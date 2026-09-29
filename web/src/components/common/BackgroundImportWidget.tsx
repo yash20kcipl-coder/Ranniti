@@ -32,7 +32,7 @@ export const BackgroundImportWidget: React.FC = () => {
         dispatch(fetchMasterCategoryData(key, endpoint, false)).catch(() => { });
       });
     }
-  }, [dispatch]);
+  }, [dispatch, voterFilters]);
 
   // Poll backend for job status updates every 1.5s while active
   useEffect(() => {

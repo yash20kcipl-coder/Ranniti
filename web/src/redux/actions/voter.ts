@@ -2,13 +2,14 @@ import api from '@/services/api';
 import { Loading } from './loader';
 import { errorHandler } from '../apiUtils';
 import type { AppDispatch } from '../store';
+import { startBulkImportJob } from './importJobs';
 import { toFormDataOrJson } from '@/utils/formData';
 
 export const SET_VOTERS_DATA = 'SET_VOTERS_DATA';
-export const SET_VOTERS_LOADING = 'SET_VOTERS_LOADING';
-export const SET_VOTERS_PAGINATION = 'SET_VOTERS_PAGINATION';
 export const SET_VOTER_STATS = 'SET_VOTER_STATS';
 export const SET_VOTER_FILTERS = 'SET_VOTER_FILTERS';
+export const SET_VOTERS_LOADING = 'SET_VOTERS_LOADING';
+export const SET_VOTERS_PAGINATION = 'SET_VOTERS_PAGINATION';
 
 export const setVotersData = (voters: any[]) => ({
   type: SET_VOTERS_DATA,
@@ -152,19 +153,14 @@ export const deleteVoterItem = (id: string, currentParams: Record<string, any> =
   };
 };
 
-export const importVotersData = (records: Record<string, any>[], currentParams: Record<string, any> = {}) => {
+export const importVotersData = (records: Record<string, any>[], _currentParams: Record<string, any> = {}) => {
   return async (dispatch: AppDispatch) => {
-    dispatch(Loading(true));
     try {
-      const res = await api.post('/masters/bulk-import/voters', { records });
-      await dispatch(fetchVotersData(currentParams, false));
-      await dispatch(fetchVoterStats(currentParams));
-      return res.data;
+      const job = await dispatch(startBulkImportJob('voters', records));
+      return job;
     } catch (err) {
       dispatch(errorHandler(err));
       throw err;
-    } finally {
-      dispatch(Loading(false));
     }
   };
 };
