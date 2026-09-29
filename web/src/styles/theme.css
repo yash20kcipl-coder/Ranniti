@@ -1,0 +1,169 @@
+/*
+ * ╔═══════════════════════════════════════════════════════════════════╗
+ * ║              RANNITI DESIGN SYSTEM — THEME TOKENS                ║
+ * ║                                                                   ║
+ * ║  This file is the single source of truth for all theme colours,  ║
+ * ║  surfaces, borders, shadows, and accents used across the app.    ║
+ * ║                                                                   ║
+ * ║  Usage in Tailwind classes: use the Tailwind dark: prefix.       ║
+ * ║  Usage in JS/inline styles: import from theme.ts instead.        ║
+ * ╚═══════════════════════════════════════════════════════════════════╝
+ */
+
+/* ─────────────────────────────────────────────────────────────────────
+   LIGHT MODE  (default — no class required)
+   ───────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+
+  /* ── Canvas / Page ──────────────────────────────────────────── */
+  --color-canvas:          #f8fafc;   /* slate-50  — page background      */
+  --color-canvas-subtle:   #f1f5f9;   /* slate-100 — hover / stripe bg    */
+
+  /* ── Surface (cards, panels, modals, sidebars) ───────────────── */
+  --color-surface:         #ffffff;   /* pure white card                  */
+  --color-surface-raised:  #f8fafc;   /* slightly elevated panel          */
+  --color-surface-overlay: rgba(255, 255, 255, 0.92); /* backdrop-blur    */
+
+  /* ── Borders ────────────────────────────────────────────────── */
+  --color-border:          #e2e8f0;   /* slate-200 — default border       */
+  --color-border-strong:   #cbd5e1;   /* slate-300 — emphasized border    */
+  --color-border-subtle:   #f1f5f9;   /* slate-100 — very faint divider   */
+
+  /* ── Text ───────────────────────────────────────────────────── */
+  --color-text-primary:    #0f172a;   /* slate-900 — headings & body      */
+  --color-text-secondary:  #475569;   /* slate-600 — subtitles & labels   */
+  --color-text-muted:      #94a3b8;   /* slate-400 — placeholder & hint   */
+  --color-text-on-accent:  #ffffff;   /* always white on coloured bg      */
+
+  /* ── Brand / Accent ─────────────────────────────────────────── */
+  --color-accent:          #6366f1;   /* indigo-500                       */
+  --color-accent-hover:    #4f46e5;   /* indigo-600                       */
+  --color-accent-muted:    rgba(99, 102, 241, 0.10);
+  --color-accent-border:   rgba(99, 102, 241, 0.25);
+
+  --color-accent-secondary: #a855f7;  /* purple-500                       */
+  --color-accent-success:   #10b981;  /* emerald-500                      */
+  --color-accent-warning:   #f59e0b;  /* amber-500                        */
+  --color-accent-danger:    #ef4444;  /* red-500                          */
+
+  /* ── Input fields ───────────────────────────────────────────── */
+  --color-input-bg:        #ffffff;
+  --color-input-border:    #cbd5e1;   /* slate-300                        */
+  --color-input-focus:     #6366f1;   /* indigo-500                       */
+  --color-input-placeholder: #94a3b8; /* slate-400                        */
+  --color-input-text:      #0f172a;   /* slate-900                        */
+
+  /* ── Interactive states ─────────────────────────────────────── */
+  --color-hover-surface:   #f1f5f9;   /* slate-100                        */
+  --color-active-surface:  #e0e7ff;   /* indigo-100                       */
+  --color-selected-text:   #4338ca;   /* indigo-700                       */
+
+  /* ── Table ──────────────────────────────────────────────────── */
+  --color-table-header-bg: rgba(241, 245, 249, 0.80); /* slate-100/80      */
+  --color-table-header-text: #475569; /* slate-600                        */
+  --color-table-row-hover: rgba(248, 250, 252, 0.80); /* slate-50/80       */
+  --color-table-divider:   #e2e8f0;   /* slate-200                        */
+  --color-table-cell-text: #1e293b;   /* slate-800                        */
+
+  /* ── Sidebar ────────────────────────────────────────────────── */
+  --color-sidebar-bg:      #ffffff;
+  --color-sidebar-border:  #e2e8f0;
+  --color-nav-text:        #64748b;   /* slate-500                        */
+  --color-nav-text-active: #4338ca;   /* indigo-700                       */
+  --color-nav-bg-active:   rgba(99, 102, 241, 0.08);
+  --color-nav-icon-active: #6366f1;   /* indigo-500                       */
+
+  /* ── Topbar / Header ────────────────────────────────────────── */
+  --color-topbar-bg:       rgba(255, 255, 255, 0.85);
+  --color-topbar-border:   #e2e8f0;
+
+  /* ── Shadows ────────────────────────────────────────────────── */
+  --shadow-card:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-raised:  0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-overlay: 0 20px 40px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.06);
+  --shadow-accent:  0 8px 24px rgba(99, 102, 241, 0.25);
+
+  /* ── Scrollbar ──────────────────────────────────────────────── */
+  --scrollbar-thumb:       rgba(100, 116, 139, 0.25);
+  --scrollbar-thumb-hover: rgba(100, 116, 139, 0.45);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   DARK MODE  (.dark class on <html>)
+   ───────────────────────────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+
+  /* ── Canvas / Page ──────────────────────────────────────────── */
+  --color-canvas:          #020617;   /* slate-950 — page background      */
+  --color-canvas-subtle:   #0f172a;   /* slate-900 — hover / stripe bg    */
+
+  /* ── Surface (cards, panels, modals, sidebars) ───────────────── */
+  --color-surface:         #0f172a;   /* slate-900                        */
+  --color-surface-raised:  #1e293b;   /* slate-800 — elevated panel       */
+  --color-surface-overlay: rgba(15, 23, 42, 0.92); /* backdrop-blur        */
+
+  /* ── Borders ────────────────────────────────────────────────── */
+  --color-border:          #1e293b;   /* slate-800 — default border       */
+  --color-border-strong:   #334155;   /* slate-700 — emphasized border    */
+  --color-border-subtle:   #0f172a;   /* slate-900 — very faint divider   */
+
+  /* ── Text ───────────────────────────────────────────────────── */
+  --color-text-primary:    #f1f5f9;   /* slate-100 — headings & body      */
+  --color-text-secondary:  #94a3b8;   /* slate-400 — subtitles & labels   */
+  --color-text-muted:      #64748b;   /* slate-500 — placeholder & hint   */
+  --color-text-on-accent:  #ffffff;   /* always white on coloured bg      */
+
+  /* ── Brand / Accent ─────────────────────────────────────────── */
+  --color-accent:          #818cf8;   /* indigo-400                       */
+  --color-accent-hover:    #6366f1;   /* indigo-500                       */
+  --color-accent-muted:    rgba(99, 102, 241, 0.15);
+  --color-accent-border:   rgba(99, 102, 241, 0.30);
+
+  --color-accent-secondary: #c084fc;  /* purple-400                       */
+  --color-accent-success:   #34d399;  /* emerald-400                      */
+  --color-accent-warning:   #fbbf24;  /* amber-400                        */
+  --color-accent-danger:    #f87171;  /* red-400                          */
+
+  /* ── Input fields ───────────────────────────────────────────── */
+  --color-input-bg:        rgba(15, 23, 42, 0.90); /* slate-900/90         */
+  --color-input-border:    #1e293b;   /* slate-800                        */
+  --color-input-focus:     #6366f1;   /* indigo-500                       */
+  --color-input-placeholder: #64748b; /* slate-500                        */
+  --color-input-text:      #f1f5f9;   /* slate-100                        */
+
+  /* ── Interactive states ─────────────────────────────────────── */
+  --color-hover-surface:   rgba(30, 41, 59, 0.60);  /* slate-800/60       */
+  --color-active-surface:  rgba(99, 102, 241, 0.15);
+  --color-selected-text:   #a5b4fc;   /* indigo-300                       */
+
+  /* ── Table ──────────────────────────────────────────────────── */
+  --color-table-header-bg: rgba(2, 6, 23, 0.60);   /* slate-950/60        */
+  --color-table-header-text: #94a3b8; /* slate-400                        */
+  --color-table-row-hover: rgba(30, 41, 59, 0.40);  /* slate-800/40       */
+  --color-table-divider:   rgba(30, 41, 59, 0.60);  /* slate-800/60       */
+  --color-table-cell-text: #e2e8f0;   /* slate-200                        */
+
+  /* ── Sidebar ────────────────────────────────────────────────── */
+  --color-sidebar-bg:      rgba(15, 23, 42, 0.95);  /* slate-900/95       */
+  --color-sidebar-border:  #1e293b;
+  --color-nav-text:        #94a3b8;   /* slate-400                        */
+  --color-nav-text-active: #a5b4fc;   /* indigo-300                       */
+  --color-nav-bg-active:   rgba(99, 102, 241, 0.15);
+  --color-nav-icon-active: #818cf8;   /* indigo-400                       */
+
+  /* ── Topbar / Header ────────────────────────────────────────── */
+  --color-topbar-bg:       rgba(15, 23, 42, 0.85);
+  --color-topbar-border:   rgba(30, 41, 59, 0.80);
+
+  /* ── Shadows ────────────────────────────────────────────────── */
+  --shadow-card:    0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-raised:  0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.25);
+  --shadow-overlay: 0 20px 60px rgba(0,0,0,0.70), 0 8px 20px rgba(0,0,0,0.40);
+  --shadow-accent:  0 8px 24px rgba(99, 102, 241, 0.35);
+
+  /* ── Scrollbar ──────────────────────────────────────────────── */
+  --scrollbar-thumb:       rgba(148, 163, 184, 0.20);
+  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.35);
+}

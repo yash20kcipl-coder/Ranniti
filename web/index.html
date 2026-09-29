@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content="Ranniti" />
+
+    <!-- Theme & Display -->
+    <meta name="theme-color" content="#020617" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- SEO & Metadata -->
+    <title>Ranniti | Election Intelligence & Strategy Portal</title>
+    <meta name="description" content="Ranniti is a modern election intelligence platform for political campaign strategy, booth management, voter demographics, and real-time field operations." />
+    <meta name="keywords" content="Ranniti, election strategy, voter management, booth management, election analytics, constituency mapping" />
+    <meta name="author" content="Ranniti Team" />
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ranniti | Election Intelligence & Strategy Portal" />
+    <meta property="og:description" content="Real-time voter management, booth analytics, and campaign strategy platform." />
+    <meta property="og:image" content="/web-app-manifest-512x512.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Ranniti | Election Intelligence & Strategy Portal" />
+    <meta name="twitter:description" content="Real-time voter management, booth analytics, and campaign strategy platform." />
+    <meta name="twitter:image" content="/web-app-manifest-512x512.png" />
+
+    <!-- Theme Initialization (Zero-FOUC) -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('ranniti_theme') || 'dark';
+          if (saved === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="antialiased selection:bg-indigo-500 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

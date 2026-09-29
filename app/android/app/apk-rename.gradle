@@ -1,0 +1,39 @@
+android {
+    applicationVariants.all { variant ->
+        if (variant.buildType.name == "release") {
+            variant.outputs.all { output ->
+                def tNames = project.gradle.startParameter.taskNames.join(" ").toLowerCase()
+                if (!tNames.contains("assemblerelease")) {
+                    return
+                }
+
+                def appName = "Ranniti"
+                def date = new Date().format("yyyy-MM-dd")
+                def baseName = "${appName}-${date}"
+                def ext = ".apk"
+
+                def countsDir = file("${project.rootDir}/apkCounts")
+                if (!countsDir.exists()) {
+                    countsDir.mkdirs()
+                }
+
+                def countsFile = new File(countsDir, "${baseName}.count")
+                int count = 0
+
+                if (countsFile.exists()) {
+                    try {
+                        count = countsFile.text.trim().toInteger()
+                    } catch (Exception ignored) {
+                        count = 0
+                    }
+                }
+
+                def fileName = (count == 0) ? baseName + ext : "${baseName}(${count})${ext}"
+
+                countsFile.text = String.valueOf(count + 1)
+
+                outputFileName = fileName
+            }
+        }
+    }
+}

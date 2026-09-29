@@ -1,0 +1,148 @@
+# ==============================================================================
+# Ranniti Monorepo .gitignore
+# Covers: Root, Backend (Node/Express/TS), Web (Vite/React/TS), App (React Native)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Operating System & IDE / Editor Files
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+# Editors & IDEs
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+*.bak
+
+# ------------------------------------------------------------------------------
+# Dependencies & Package Managers
+# ------------------------------------------------------------------------------
+node_modules/
+*/node_modules/
+.pnp
+.pnp.js
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# ------------------------------------------------------------------------------
+# Environment Variables & Secrets
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.env.local
+*.env.*.local
+local.properties
+
+# ------------------------------------------------------------------------------
+# Build & Distribution Outputs
+# ------------------------------------------------------------------------------
+dist/
+*/dist/
+build/
+*/build/
+out/
+*/out/
+dist-ssr/
+*.tsbuildinfo
+
+# ------------------------------------------------------------------------------
+# Logs & Diagnostics
+# ------------------------------------------------------------------------------
+logs/
+*/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------------------------------------------------------
+# Testing & Coverage
+# ------------------------------------------------------------------------------
+coverage/
+*/coverage/
+.nyc_output/
+*.lcov
+
+# ------------------------------------------------------------------------------
+# Caches & Temporary Files
+# ------------------------------------------------------------------------------
+.cache/
+*/.cache/
+.eslintcache
+.stylelintcache
+.oxlintcache
+*.tmp
+*.temp
+
+# ------------------------------------------------------------------------------
+# Backend Uploads & Generated Media
+# ------------------------------------------------------------------------------
+# Ignore dynamically uploaded voter media while preserving directory structure
+backend/uploads/voters/*
+!backend/uploads/voters/.gitkeep
+
+# ------------------------------------------------------------------------------
+# React Native / Mobile App (app/)
+# ------------------------------------------------------------------------------
+# Android
+app/android/.gradle/
+app/android/build/
+app/android/app/build/
+app/android/.cxx/
+app/android/*.iml
+app/android/*.hprof
+app/android/*.keystore
+!app/android/debug.keystore
+app/android/.kotlin/
+
+# iOS / Xcode
+app/ios/build/
+app/ios/Pods/
+app/ios/DerivedData/
+app/ios/*.xcworkspace/xcuserdata/
+app/ios/*.xcodeproj/xcuserdata/
+app/ios/*.xcuserstate
+app/ios/*.pbxuser
+!app/ios/default.pbxuser
+app/ios/*.mode1v3
+!app/ios/default.mode1v3
+app/ios/*.mode2v3
+!app/ios/default.mode2v3
+app/ios/*.perspectivev3
+!app/ios/default.perspectivev3
+app/ios/*.xccheckout
+app/ios/*.moved-aside
+app/ios/*.hmap
+app/ios/*.ipa
+app/ios/**/.xcode.env.local
+
+# React Native / Metro / Fastlane / Ruby
+app/*.jsbundle
+app/.metro-health-check*
+app/.bundle/
+app/vendor/bundle/
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output

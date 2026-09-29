@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ranniti - Voter & Campaign Architecture Charts</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #020617;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 40px 20px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      font-size: 15px;
+      color: #94a3b8;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #818cf8;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 40px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .svg-wrapper {
+      width: 100%;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+    .svg-wrapper svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 14px 18px;
+      text-align: left;
+      border-bottom: 1px solid #1e293b;
+    }
+    th {
+      background-color: #1e1b4b;
+      color: #a5b4fc;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+    td {
+      color: #cbd5e1;
+    }
+    tr:nth-child(even) td {
+      background-color: rgba(30, 41, 59, 0.5);
+    }
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .flow-step {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+    }
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: #6366f1;
+      color: white;
+      font-weight: 800;
+      font-size: 12px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .step-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .step-desc {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Architecture & Database Visual Center</div>
+      <h1>Ranniti Platform System Architecture</h1>
+      <p>Multi-Tenant Campaign Isolation, Global Electoral Master (1.46B+ Scale), & Field Data Overlay</p>
+    </header>
+
+    <!-- SECTION 1: SYSTEM ARCHITECTURE -->
+    <div class="card">
+      <div class="card-title">📊 1. Multi-Tenant Voter & Campaign Architecture</div>
+      <div class="svg-wrapper">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" style="background-color: #020617;">
+          <defs>
+            <linearGradient id="masterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e1b4b" />
+              <stop offset="100%" stop-color="#0f172a" />
+            </linearGradient>
+            <linearGradient id="campGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e293b" />
+              <stop offset="100%" stop-color="#0f172a" />
+            </linearGradient>
+            <linearGradient id="privateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#064e3b" />
+              <stop offset="100%" stop-color="#022c22" />
+            </linearGradient>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#6366f1" />
+            </marker>
+            <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+            </marker>
+          </defs>
+
+          <text x="600" y="45" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="800">Voter &amp; Campaign Multi-Tenant Architecture</text>
+          <text x="600" y="70" text-anchor="middle" fill="#94a3b8" font-size="13">Central Master Database (1.46B+ Records) + Isolated Campaign Workspaces</text>
+
+          <g transform="translate(50, 100)">
+            <rect width="1100" height="200" rx="16" fill="url(#masterGrad)" stroke="#4338ca" stroke-width="2" />
+            <text x="30" y="38" fill="#818cf8" font-size="16" font-weight="700">🌐 1. CENTRAL MASTER DATABASE (Read-Only Global Reference - 1.46B+ Records)</text>
+            <line x1="30" y1="50" x2="1070" y2="50" stroke="#312e81" stroke-width="1" />
+            <rect x="30" y="65" width="320" height="50" rx="10" fill="#1e1b4b" stroke="#6366f1" stroke-width="1" />
+            <text x="45" y="95" fill="#e0e7ff" font-size="13" font-weight="600">🇮🇳 States, Districts, PCs &amp; ACs</text>
+            <rect x="390" y="65" width="320" height="50" rx="10" fill="#1e1b4b" stroke="#6366f1" stroke-width="1" />
+            <text x="405" y="95" fill="#e0e7ff" font-size="13" font-weight="600">🗳️ Polling Booths &amp; Part Numbers</text>
+            <rect x="750" y="65" width="320" height="50" rx="10" fill="#1e1b4b" stroke="#6366f1" stroke-width="1" />
+            <text x="765" y="95" fill="#e0e7ff" font-size="13" font-weight="600">🧬 Religions &amp; Castes Master</text>
+            <rect x="30" y="130" width="1040" height="50" rx="10" fill="#312e81" stroke="#818cf8" stroke-width="1.5" />
+            <text x="550" y="160" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">👥 OFFICIAL VOTER MASTER: EPIC No, Full Name, Relative Name, Age, Gender, Address</text>
+          </g>
+
+          <path d="M 300 300 L 300 360" stroke="#6366f1" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+          <path d="M 600 300 L 600 360" stroke="#6366f1" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+          <path d="M 900 300 L 900 360" stroke="#6366f1" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+
+          <g transform="translate(50, 370)">
+            <g transform="translate(0, 0)">
+              <rect width="340" height="150" rx="14" fill="url(#campGrad)" stroke="#3b82f6" stroke-width="2" />
+              <text x="20" y="32" fill="#60a5fa" font-size="15" font-weight="700">🚩 Campaign A (Pune BJP)</text>
+              <text x="20" y="55" fill="#94a3b8" font-size="12">Target Territory: AC 210 (Kothrud)</text>
+              <rect x="20" y="75" width="300" height="55" rx="8" fill="#1e293b" stroke="#334155" />
+              <text x="30" y="98" fill="#cbd5e1" font-size="11">• 100% Isolated Data Workspace</text>
+              <text x="30" y="116" fill="#cbd5e1" font-size="11">• Assigned 245 Polling Booths</text>
+            </g>
+            <g transform="translate(380, 0)">
+              <rect width="340" height="150" rx="14" fill="url(#campGrad)" stroke="#ec4899" stroke-width="2" />
+              <text x="20" y="32" fill="#f472b6" font-size="15" font-weight="700">🚩 Campaign B (Kothrud INC)</text>
+              <text x="20" y="55" fill="#94a3b8" font-size="12">Target Territory: AC 210 (Kothrud)</text>
+              <rect x="20" y="75" width="300" height="55" rx="8" fill="#1e293b" stroke="#334155" />
+              <text x="30" y="98" fill="#cbd5e1" font-size="11">• 100% Isolated Data Workspace</text>
+              <text x="30" y="116" fill="#cbd5e1" font-size="11">• Private Field Worker Survey Data</text>
+            </g>
+            <g transform="translate(760, 0)">
+              <rect width="340" height="150" rx="14" fill="url(#campGrad)" stroke="#a855f7" stroke-width="2" />
+              <text x="20" y="32" fill="#c084fc" font-size="15" font-weight="700">🚩 Campaign C (Independent)</text>
+              <text x="20" y="55" fill="#94a3b8" font-size="12">Target Territory: AC 208 (Vadgaon)</text>
+              <rect x="20" y="75" width="300" height="55" rx="8" fill="#1e293b" stroke="#334155" />
+              <text x="30" y="98" fill="#cbd5e1" font-size="11">• 100% Isolated Data Workspace</text>
+              <text x="30" y="116" fill="#cbd5e1" font-size="11">• Separate Tenant Encryption</text>
+            </g>
+          </g>
+
+          <path d="M 220 520 L 220 570" stroke="#10b981" stroke-width="3" fill="none" marker-end="url(#arrowGreen)" />
+
+          <g transform="translate(50, 580)">
+            <rect width="1100" height="180" rx="16" fill="url(#privateGrad)" stroke="#10b981" stroke-width="2" />
+            <text x="30" y="38" fill="#34d399" font-size="16" font-weight="700">🔒 PRIVATE CAMPAIGN OVERLAY (Encrypted &amp; Isolated per Campaign)</text>
+            <line x1="30" y1="50" x2="1070" y2="50" stroke="#065f46" stroke-width="1" />
+            <g transform="translate(30, 65)">
+              <rect width="240" height="90" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+              <text x="15" y="35" fill="#a7f3d0" font-size="13" font-weight="700">📱 Mobile &amp; WhatsApp</text>
+              <text x="15" y="60" fill="#d1fae5" font-size="11">Private contact info collected by canvassers.</text>
+            </g>
+            <g transform="translate(295, 65)">
+              <rect width="240" height="90" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+              <text x="15" y="35" fill="#a7f3d0" font-size="13" font-weight="700">🎯 Political Disposition</text>
+              <text x="15" y="60" fill="#d1fae5" font-size="11">Pro-Party, Neutral, Opposed, or Floating status.</text>
+            </g>
+            <g transform="translate(560, 65)">
+              <rect width="240" height="90" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+              <text x="15" y="35" fill="#a7f3d0" font-size="13" font-weight="700">🏠 Household Grouping</text>
+              <text x="15" y="60" fill="#d1fae5" font-size="11">Family Head linking &amp; address clustering.</text>
+            </g>
+            <g transform="translate(825, 65)">
+              <rect width="245" height="90" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+              <text x="15" y="35" fill="#a7f3d0" font-size="13" font-weight="700">📝 Cadre Survey Notes</text>
+              <text x="15" y="60" fill="#d1fae5" font-size="11">Door-to-door feedback &amp; turnout status.</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- SECTION 2: DATABASE ERD -->
+    <div class="card">
+      <div class="card-title">🗄️ 2. PostgreSQL Entity Relationship Diagram (ERD)</div>
+      <div class="svg-wrapper">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 860" style="background-color: #020617;">
+          <defs>
+            <linearGradient id="tblGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e1b4b" />
+              <stop offset="100%" stop-color="#0f172a" />
+            </linearGradient>
+            <linearGradient id="tblGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#064e3b" />
+              <stop offset="100%" stop-color="#022c22" />
+            </linearGradient>
+            <linearGradient id="tblGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#312e81" />
+              <stop offset="100%" stop-color="#1e1b4b" />
+            </linearGradient>
+          </defs>
+
+          <text x="600" y="45" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="800">PostgreSQL Database Entity Relationship (ERD)</text>
+          <text x="600" y="70" text-anchor="middle" fill="#94a3b8" font-size="13">1.46B+ Scale Master Partitioning + Campaign Private Overlay Tables</text>
+
+          <g transform="translate(50, 110)">
+            <rect width="240" height="150" rx="10" fill="url(#tblGrad1)" stroke="#4338ca" stroke-width="1.5" />
+            <rect width="240" height="35" rx="10" fill="#312e81" />
+            <text x="15" y="23" fill="#ffffff" font-size="13" font-weight="700">📌 states</text>
+            <text x="15" y="55" fill="#a5b4fc" font-size="11">🔑 id (UUID) [PK]</text>
+            <text x="15" y="78" fill="#e0e7ff" font-size="11">name (VARCHAR)</text>
+            <text x="15" y="101" fill="#e0e7ff" font-size="11">code (VARCHAR)</text>
+            <text x="15" y="124" fill="#94a3b8" font-size="10">created_at, updated_at</text>
+          </g>
+
+          <g transform="translate(340, 110)">
+            <rect width="240" height="150" rx="10" fill="url(#tblGrad1)" stroke="#4338ca" stroke-width="1.5" />
+            <rect width="240" height="35" rx="10" fill="#312e81" />
+            <text x="15" y="23" fill="#ffffff" font-size="13" font-weight="700">📌 districts</text>
+            <text x="15" y="55" fill="#a5b4fc" font-size="11">🔑 id (UUID) [PK]</text>
+            <text x="15" y="78" fill="#818cf8" font-size="11">🔗 state_id (UUID) [FK]</text>
+            <text x="15" y="101" fill="#e0e7ff" font-size="11">name (VARCHAR)</text>
+            <text x="15" y="124" fill="#94a3b8" font-size="10">created_at, updated_at</text>
+          </g>
+
+          <g transform="translate(630, 110)">
+            <rect width="250" height="150" rx="10" fill="url(#tblGrad1)" stroke="#4338ca" stroke-width="1.5" />
+            <rect width="250" height="35" rx="10" fill="#312e81" />
+            <text x="15" y="23" fill="#ffffff" font-size="13" font-weight="700">🏛️ parliamentary_constituencies</text>
+            <text x="15" y="55" fill="#a5b4fc" font-size="11">🔑 id (UUID) [PK]</text>
+            <text x="15" y="78" fill="#818cf8" font-size="11">🔗 state_id (UUID) [FK]</text>
+            <text x="15" y="101" fill="#e0e7ff" font-size="11">pc_number (INT), name (VARCHAR)</text>
+            <text x="15" y="124" fill="#94a3b8" font-size="10">created_at, updated_at</text>
+          </g>
+
+          <g transform="translate(920, 110)">
+            <rect width="240" height="150" rx="10" fill="url(#tblGrad1)" stroke="#4338ca" stroke-width="1.5" />
+            <rect width="240" height="35" rx="10" fill="#312e81" />
+            <text x="15" y="23" fill="#ffffff" font-size="13" font-weight="700">📍 assembly_constituencies</text>
+            <text x="15" y="55" fill="#a5b4fc" font-size="11">🔑 id (UUID) [PK]</text>
+            <text x="15" y="75" fill="#818cf8" font-size="11">🔗 pc_id (UUID) [FK]</text>
+            <text x="15" y="95" fill="#818cf8" font-size="11">🔗 district_id (UUID) [FK Optional]</text>
+            <text x="15" y="115" fill="#e0e7ff" font-size="11">ac_number (INT), name (VARCHAR)</text>
+          </g>
+
+          <g transform="translate(50, 310)">
+            <rect width="240" height="160" rx="10" fill="url(#tblGrad1)" stroke="#4338ca" stroke-width="1.5" />
+            <rect width="240" height="35" rx="10" fill="#312e81" />
+            <text x="15" y="23" fill="#ffffff" font-size="13" font-weight="700">🗳️ polling_booths</text>
+            <text x="15" y="55" fill="#a5b4fc" font-size="11">🔑 id (UUID) [PK]</text>
+            <text x="15" y="78" fill="#818cf8" font-size="11">🔗 ac_id (UUID) [FK]</text>
+            <text x="15" y="101" fill="#e0e7ff" font-size="11">booth_number (INT), name</text>
+            <text x="15" y="124" fill="#e0e7ff" font-size="11">location_building, total_voters</text>
+          </g>
+
+          <g transform="translate(340, 310)">
+            <rect width="540" height="230" rx="12" fill="url(#tblGrad3)" stroke="#6366f1" stroke-width="2" />
+            <rect width="540" height="40" rx="12" fill="#4338ca" />
+            <text x="20" y="26" fill="#ffffff" font-size="14" font-weight="700">👥 voters (PARTITIONED BY LIST (state_id) - 1.46B+ Records)</text>
+            <g transform="translate(20, 55)">
+              <text x="0" y="20" fill="#a5b4fc" font-size="11">🔑 id (UUID) [PK]</text>
+              <text x="0" y="40" fill="#fbbf24" font-size="11">🆔 epic_no (VARCHAR) [UK Index]</text>
+              <text x="0" y="60" fill="#e0e7ff" font-size="11">full_name, relative_name, gender, age</text>
+              <text x="0" y="80" fill="#818cf8" font-size="11">🔗 state_id, pc_id, ac_id, booth_id [FKs]</text>
+              <text x="0" y="100" fill="#e0e7ff" font-size="11">part_no (INT), serial_no (INT), house_no</text>
+              <text x="0" y="120" fill="#818cf8" font-size="11">🔗 religion_id, caste_id [FKs], category</text>
+              <text x="0" y="145" fill="#34d399" font-size="11" font-weight="600">⚡ Composite B-Tree &amp; GIN Trigram Search Indexes</text>
+            </g>
+          </g>
+
+          <g transform="translate(920, 310)">
+            <rect width="240" height="160" rx="10" fill="url(#tblGrad2)" stroke="#10b981" stroke-width="1.5" />
+            <rect width="240" height="35" rx="10" fill="#065f46" />
+            <text x="15" y="23" fill="#ffffff" font-size="13" font-weight="700">🚩 campaigns</text>
+            <text x="15" y="55" fill="#a7f3d0" font-size="11">🔑 id (UUID) [PK]</text>
+            <text x="15" y="78" fill="#e0e7ff" font-size="11">name, code (UNIQUE)</text>
+            <text x="15" y="101" fill="#a7f3d0" font-size="11">🔗 ac_id (UUID) [FK Territory]</text>
+            <text x="15" y="124" fill="#e0e7ff" font-size="11">status ('active' / 'inactive')</text>
+          </g>
+
+          <g transform="translate(340, 580)">
+            <rect width="540" height="200" rx="12" fill="url(#tblGrad2)" stroke="#10b981" stroke-width="2" />
+            <rect width="540" height="40" rx="12" fill="#065f46" />
+            <text x="20" y="26" fill="#ffffff" font-size="14" font-weight="700">🔒 campaign_voter_details (Private Tenant Overlay)</text>
+            <g transform="translate(20, 55)">
+              <text x="0" y="20" fill="#a7f3d0" font-size="11">🔑 id (UUID) [PK]</text>
+              <text x="0" y="40" fill="#34d399" font-size="11">🔗 campaign_id (UUID) [FK Tenant Scope]</text>
+              <text x="0" y="60" fill="#34d399" font-size="11">🔗 voter_id (UUID) [FK Voter Link]</text>
+              <text x="0" y="80" fill="#e0e7ff" font-size="11">mobile_no, whatsapp_no, voter_disposition</text>
+              <text x="0" y="100" fill="#e0e7ff" font-size="11">is_family_head, family_head_id, cadre_notes</text>
+              <text x="0" y="125" fill="#fbbf24" font-size="11" font-weight="600">🛡️ CONSTRAINT uk_campaign_voter UNIQUE (campaign_id, voter_id)</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- SECTION 3: END-TO-END DATA FLOW -->
+    <div class="card">
+      <div class="card-title">🔄 3. End-to-End Campaign Data Lifecycle</div>
+      <div class="flow-grid">
+        <div class="flow-step">
+          <div class="step-number">1</div>
+          <div class="step-title">Bulk ECI Roll Import</div>
+          <div class="step-desc">Official voter lists (CSV/Excel) are streamed into the global master database in 5,000-row batch chunks.</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">2</div>
+          <div class="step-title">Campaign Provisioning</div>
+          <div class="step-desc">A new Campaign Workspace is created and assigned a target Assembly Constituency or set of Polling Booths.</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">3</div>
+          <div class="step-title">Worker Allocation</div>
+          <div class="step-desc">Booth Managers & Field Canvassers are linked to the Campaign with RBAC role permissions.</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">4</div>
+          <div class="step-title">Door-to-Door Canvassing</div>
+          <div class="step-desc">Field workers collect mobile numbers, household structures, and voter inclination (Pro/Neutral/Opposed).</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">5</div>
+          <div class="step-title">Isolated Data Storage</div>
+          <div class="step-desc">Canvassing notes and contact data are saved under `campaign_voter_details`, 100% private to that campaign.</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">6</div>
+          <div class="step-title">Real-Time Analytics</div>
+          <div class="step-desc">Live dashboard charts display favorable voter targeting, booth turnout stats, and GOTV lists.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: DATA COMPARISON -->
+    <div class="card">
+      <div class="card-title">📋 4. Central Master Data vs. Campaign Data Summary</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Data Layer</th>
+            <th>Accessible By</th>
+            <th>Content Included</th>
+            <th>Security &amp; Isolation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Global Master Database</strong></td>
+            <td>All System Admins</td>
+            <td>Official ECI Data: Name, EPIC No, Booth No, Serial No, Caste, Religion</td>
+            <td>Read-Only Shared Reference</td>
+          </tr>
+          <tr>
+            <td><strong>Campaign Workspace</strong></td>
+            <td>Campaign Members Only</td>
+            <td>Phone Numbers, Political Disposition, Household Heads, Worker Survey Notes</td>
+            <td>100% Tenant Encrypted &amp; Isolated</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
