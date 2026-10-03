@@ -60,6 +60,15 @@ export const en = {
   neutral: 'Neutral',
   unfavorable: 'Unfavorable',
   opposite: 'Opposite',
+  genderDemographics: 'Gender Demographics',
+  genderSubtitle: 'Breakdown of male, female, and other registered voters',
+  male: 'Male',
+  female: 'Female',
+  otherGender: 'Other',
+  ageGroupAnalytics: 'Age Group Demographics',
+  ageGroupSubtitle: 'Voter distribution across age groups (Youth, Adult, Senior)',
+  turnoutAnalytics: 'Voting Turnout Status',
+  turnoutSubtitle: 'Real-time voting turnout & participation progress',
 
   // Voter Module
   voterListTitle: 'Voters Directory',
@@ -83,6 +92,7 @@ export const en = {
   familyMembers: 'Family Members',
   searchFamilyHead: 'Search Family Head...',
   addFamilyMember: 'Add Member to Family',
+  noFamiliesFound: 'No families found',
 
   // Social Influencers
   influencerTitle: 'Social Influencers',

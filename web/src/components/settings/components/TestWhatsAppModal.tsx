@@ -3,7 +3,7 @@ import { useAppDispatch } from '@/redux/hooks';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
 import { CheckCircle2, Phone, Sparkles } from 'lucide-react';
-import type { WhatsAppTemplate } from '../types/settings.types';
+import type { WhatsAppTemplate } from '@/types/settings.types';
 import { sendTestWhatsAppMessage } from '@/redux/actions/settings';
 
 interface TestWhatsAppModalProps {

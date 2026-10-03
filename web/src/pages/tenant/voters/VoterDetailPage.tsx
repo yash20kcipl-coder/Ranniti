@@ -28,7 +28,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/common/PageHeader';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { fetchVoterById, deleteVoterItem, updateVoterItem, bulkAssignInfluencerAction } from '@/redux/actions/voter';
+import {
+  fetchTenantVoterById as fetchVoterById,
+  deleteTenantVoterItem as deleteVoterItem,
+  updateTenantVoterItem as updateVoterItem,
+  bulkAssignTenantInfluencerAction as bulkAssignInfluencerAction,
+} from '@/redux/actions/voterTenant';
 
 export const VoterDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();

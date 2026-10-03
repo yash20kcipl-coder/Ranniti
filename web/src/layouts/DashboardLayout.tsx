@@ -44,9 +44,11 @@ export const DashboardLayout: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const currentNavItem = navItems.find((i) =>
-    i.isMaster ? location.pathname.startsWith('/dashboard/master') : i.path === location.pathname
-  );
+  const currentNavItem = navItems.find((i) => {
+    if (i.isMaster) return location.pathname.startsWith('/dashboard/master');
+    if (i.isTenantMaster) return location.pathname.startsWith('/dashboard/tenant-master');
+    return i.path === location.pathname;
+  });
 
   return (
     <div className="h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-200">

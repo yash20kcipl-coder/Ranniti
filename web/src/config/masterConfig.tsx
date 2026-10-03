@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import { SafeImage } from '@/components/common/SafeImage';
 import type { Column } from '@/components/common/DataTable';
 import { FORM_CASTE_CATEGORY_OPTIONS } from '@/constants/dropdownOptions';
@@ -464,3 +465,22 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
   },
 };
 
+/**
+ * Tenant Master Config — same UI definitions as masterConfig but using
+ * /tenant-api/* endpoints (tenant DB, role-scoped data).
+ * Only 'acs', 'wards', 'booths' are allowed for tenants.
+ */
+export const tenantMasterConfig: Record<string, MasterCategoryConfig> = {
+  acs: {
+    ...masterConfig.acs,
+    apiEndpoint: API_ENDPOINTS.TENANT.MASTERS.ACS,
+  },
+  wards: {
+    ...masterConfig.wards,
+    apiEndpoint: API_ENDPOINTS.TENANT.MASTERS.WARDS,
+  },
+  booths: {
+    ...masterConfig.booths,
+    apiEndpoint: API_ENDPOINTS.TENANT.MASTERS.BOOTHS,
+  },
+};

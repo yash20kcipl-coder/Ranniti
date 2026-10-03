@@ -89,15 +89,8 @@ export const FORM_CASTE_CATEGORY_OPTIONS: Option[] = [
 
 export const USER_ROLE_OPTIONS: Option[] = [
   { label: 'All Roles', value: '' },
-  { label: 'Platform Super Admin', value: 'super_admin' },
-  { label: 'System Admin', value: 'admin' },
-  { label: 'Tenant Campaign Admin', value: 'tenant_admin' },
-  { label: 'Assembly Campaign Leader', value: 'leader' },
-  { label: 'Booth Coordinator (Sub-Leader)', value: 'sub_leader' },
-  { label: 'Field Supporter', value: 'supporter' },
-  { label: 'Data Entry Operator', value: 'deo' },
-  { label: 'Voter Data Analyst', value: 'analyst' },
-  { label: 'Ground Volunteer', value: 'user' },
+  { label: 'Super Admin', value: 'super_admin' },
+  { label: 'Tenant', value: 'tenant' },
 ];
 
 export const LEADER_CREATABLE_ROLE_OPTIONS: Option[] = [

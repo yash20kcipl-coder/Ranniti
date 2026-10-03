@@ -1,2 +1,2 @@
-export * from './SettingsPage';
-export { default } from './SettingsPage';
+export * from './TenantSettingsPage';
+export { default } from './TenantSettingsPage';

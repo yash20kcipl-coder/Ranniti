@@ -17,7 +17,7 @@ import React, { useState } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { AVAILABLE_VARIABLES } from './VariableChips';
 import { SafeImage } from '@/components/common/SafeImage';
-import type { WhatsAppTemplate } from '../types/settings.types';
+import type { WhatsAppTemplate } from '@/types/settings.types';
 
 interface WhatsAppPreviewModalProps {
   isOpen: boolean;

@@ -1,9 +1,9 @@
 import {
-  fetchVoterById,
-  createVoterItem,
-  updateVoterItem,
-  fetchInfluencerOptions,
-} from '@/redux/actions/voter';
+  fetchTenantVoterById as fetchVoterById,
+  createTenantVoterItem as createVoterItem,
+  updateTenantVoterItem as updateVoterItem,
+  fetchTenantInfluencerOptions as fetchInfluencerOptions,
+} from '@/redux/actions/voterTenant';
 import {
   FORM_GENDER_OPTIONS,
   FORM_VOTER_TYPE_OPTIONS,
@@ -11,9 +11,9 @@ import {
   BLOOD_GROUP_OPTIONS,
 } from '@/constants/dropdownOptions';
 import { calculateAge } from '@/utils';
-import React, { useState, useEffect } from 'react';
 import { useAppDispatch } from '@/redux/hooks';
-import { useMasterData } from '@/hooks/useMasterData';
+import React, { useState, useEffect } from 'react';
+import { useTenantMasterData } from '@/hooks/useTenantMasterData';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 
@@ -49,7 +49,7 @@ export const VoterFormPage: React.FC = () => {
   const isEditMode = Boolean(id);
 
   const dispatch = useAppDispatch();
-  const { booths, religions, castes, acs, states, districts, pcs, parties } = useMasterData();
+  const { booths, religions, castes, acs, states, districts, pcs, parties } = useTenantMasterData();
 
   const [submitting, setSubmitting] = useState(false);
   const [sameAddress, setSameAddress] = useState(false);

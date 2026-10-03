@@ -30,4 +30,5 @@ export { ParentAssociationModal } from './ParentAssociationModal';
 export { default as SearchWithFilters } from './SearchWithFilters';
 export { default as SearchAndFilterHeader } from './SearchAndFilterHeader';
 export { default as ScrollableFilterPills } from './ScrollableFilterPills';
+export { default as SearchHeaderWithFilter } from './SearchHeaderWithFilter';
 

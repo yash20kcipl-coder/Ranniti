@@ -4,4 +4,5 @@ export * from './PrimaryMetricsGrid';
 export * from './RoleHierarchySection';
 export * from './InfluencerOverviewSection';
 export * from './PoliticalViewsSection';
+export * from './GenderDemographicsSection';
 export * from './DashboardSkeleton';

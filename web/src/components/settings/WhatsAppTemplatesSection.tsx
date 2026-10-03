@@ -1,21 +1,3 @@
-import React, { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import {
-  fetchWhatsAppTemplates,
-  createWhatsAppTemplate,
-  updateWhatsAppTemplate,
-  deleteWhatsAppTemplate,
-  syncMetaWhatsAppTemplates,
-} from '@/redux/actions/settings';
-import {
-  TemplateCard,
-  TemplateBuilderModal,
-  WhatsAppPreviewModal,
-  TestWhatsAppModal,
-} from '../components';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { FormInput } from '@/components/common/FormInput';
-import type { WhatsAppTemplate } from '../types/settings.types';
 import {
   Plus,
   RefreshCw,
@@ -23,10 +5,44 @@ import {
   MessageSquare,
   Inbox,
 } from 'lucide-react';
+import {
+  TemplateCard,
+  TemplateBuilderModal,
+  WhatsAppPreviewModal,
+  TestWhatsAppModal,
+} from './components';
+import { useAppSelector } from '@/redux/hooks';
+import React, { useState, useEffect } from 'react';
+import { FormInput } from '@/components/common/FormInput';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
+import type { WhatsAppTemplate } from '@/types/settings.types';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 
-export const WhatsAppTemplatesSection: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const { whatsappTemplates, loading, syncing, saving } = useAppSelector((state) => state.settings);
+interface WhatsAppTemplatesSectionProps {
+  onFetchTemplates?: () => void;
+  onCreateTemplate?: (templateData: Partial<WhatsAppTemplate>) => Promise<unknown>;
+  onUpdateTemplate?: (id: string, templateData: Partial<WhatsAppTemplate>) => Promise<unknown>;
+  onDeleteTemplate?: (id: string) => Promise<unknown>;
+  onSyncTemplates?: () => Promise<unknown>;
+  templates?: WhatsAppTemplate[];
+  loading?: boolean;
+}
+
+export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> = ({
+  onFetchTemplates,
+  onCreateTemplate,
+  onUpdateTemplate,
+  onDeleteTemplate,
+  onSyncTemplates,
+  templates: customTemplates,
+  loading: customLoading,
+}) => {
+  const storeSettings = useAppSelector((state) => state.settings || {});
+
+  const templates = customTemplates ?? storeSettings?.whatsappTemplates ?? [];
+  const loading = customLoading ?? storeSettings?.loading ?? false;
+  const syncing = storeSettings?.syncing ?? false;
+  const saving = storeSettings?.saving ?? false;
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -44,31 +60,39 @@ export const WhatsAppTemplatesSection: React.FC = () => {
 
   const [templateToDelete, setTemplateToDelete] = useState<WhatsAppTemplate | null>(null);
 
-  // Initial load
-  useEffect(() => {
-    dispatch(fetchWhatsAppTemplates());
-  }, [dispatch]);
+  // Initial load on mount
+  useDebouncedEffect(() => {
+    if (onFetchTemplates) { onFetchTemplates() }
+  }, 500, []);
 
   const handleSyncMeta = async () => {
-    await dispatch(syncMetaWhatsAppTemplates());
+    if (onSyncTemplates) {
+      await onSyncTemplates();
+    }
   };
 
   const handleCreateOrUpdate = async (templateData: Partial<WhatsAppTemplate>) => {
     if (templateToEdit) {
-      await dispatch(updateWhatsAppTemplate(templateToEdit.id, templateData));
+      if (onUpdateTemplate) {
+        await onUpdateTemplate(templateToEdit.id, templateData);
+      }
     } else {
-      await dispatch(createWhatsAppTemplate(templateData));
+      if (onCreateTemplate) {
+        await onCreateTemplate(templateData);
+      }
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!templateToDelete) return;
-    await dispatch(deleteWhatsAppTemplate(templateToDelete.id));
+    if (onDeleteTemplate) {
+      await onDeleteTemplate(templateToDelete.id);
+    }
     setTemplateToDelete(null);
   };
 
   // Client-side filtering
-  const filteredTemplates = whatsappTemplates.filter((t) => {
+  const filteredTemplates = (templates || []).filter((t) => {
     if (selectedCategory && t.category !== selectedCategory) return false;
     if (selectedStatus && t.metaStatus !== selectedStatus) return false;
     if (search.trim()) {
@@ -101,16 +125,18 @@ export const WhatsAppTemplatesSection: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleSyncMeta}
-            disabled={syncing}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-60 cursor-pointer"
-            title="Sync approval statuses from Meta Cloud API"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${syncing ? 'animate-spin' : ''}`} />
-            <span>{syncing ? 'Syncing...' : 'Sync with Meta'}</span>
-          </button>
+          {onSyncTemplates && (
+            <button
+              type="button"
+              onClick={handleSyncMeta}
+              disabled={syncing}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-60 cursor-pointer"
+              title="Sync approval statuses from Meta Cloud API"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${syncing ? 'animate-spin' : ''}`} />
+              <span>{syncing ? 'Syncing...' : 'Sync with Meta'}</span>
+            </button>
+          )}
 
           <button
             type="button"

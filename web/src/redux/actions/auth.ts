@@ -23,7 +23,12 @@ export interface UserProfile {
   avatar?: string;
   organizationId?: string | null;
   permissions?: Record<string, boolean>;
+  /** Tenant-scoped master sub-tabs the user's Role Package allows (e.g. ['acs', 'wards', 'booths']) */
+  allowedMasterSubTabs?: string[];
+  /** Tenant web tabs the user's Role Package allows */
+  allowedWebTabs?: string[];
 }
+
 
 export const loginUser = (credentials: LoginCredentials) => {
   return async (dispatch: AppDispatch) => {

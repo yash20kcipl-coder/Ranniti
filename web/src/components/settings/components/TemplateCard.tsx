@@ -1,5 +1,3 @@
-import React from 'react';
-import type { WhatsAppTemplate } from '../types/settings.types';
 import {
   CheckCircle2,
   Clock,
@@ -12,6 +10,8 @@ import {
   CornerDownLeft,
   Phone,
 } from 'lucide-react';
+import React from 'react';
+import type { WhatsAppTemplate } from '@/types/settings.types';
 
 interface TemplateCardProps {
   template: WhatsAppTemplate;

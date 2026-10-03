@@ -2,22 +2,29 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAppSelector } from '@/redux/hooks';
 
-// Modular Page Imports - Tenant Features
+// Page Imports - Auth & Layouts
+import LoginPage from '@/pages/login';
+import { DashboardLayout } from '@/layouts/DashboardLayout';
+import { ProtectedRoute } from '@/components/common/ProtectedRoute';
+
+// Page Imports - Tenant Features
 import {
   VotersPage,
   VoterDetailPage,
   VoterFormPage,
 } from '@/pages/tenant/voters';
 import { TenantUserRoleManager } from '@/pages/tenant/roles';
-import { SettingsPage } from '@/pages/tenant/settings';
+import { TenantSettingsPage } from '@/pages/tenant/settings';
+import { TenantMasterPage } from '@/pages/tenant/master';
 
-// Modular Page Imports - Super Admin Features
+// Page Imports - Super Admin Features
+import { SuperAdminSettingsPage } from '@/pages/super_admin/settings/SuperAdminSettingsPage';
+import { TenantRoleManager } from '@/pages/super_admin/roles';
 import {
   TenantsPage,
   TenantFormPage,
   TenantDetailPage,
 } from '@/pages/super_admin/tenants';
-import { TenantRoleManager } from '@/pages/super_admin/roles';
 import {
   ReligionsPage,
   CastesPage,
@@ -31,11 +38,9 @@ import {
   BoothsPage,
 } from '@/pages/super_admin/master';
 
-import LoginPage from '@/pages/login';
-
-// Layouts & Guards
-import { DashboardLayout } from '@/layouts/DashboardLayout';
-import { ProtectedRoute } from '@/components/common/ProtectedRoute';
+// Role constants — exactly two website user types
+const SUPER_ADMIN_ROLES = ['super_admin'] as const;
+const TENANT_ROLES = ['tenant_admin'] as const;
 
 export const AppRoutes: React.FC = () => {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
@@ -46,38 +51,43 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/login"
         element={
-          isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+          isAuthenticated ? <Navigate to="/dashboard/voters" replace /> : <LoginPage />
         }
       />
 
-      {/* Protected Layout Routes */}
+      {/* Main Protected Dashboard — any authenticated user */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardLayout />}>
-          {/* Universal Authenticated Routes: All Roles */}
+          {/* Redirect /dashboard root to Voters Directory */}
+          <Route index element={<Navigate to="/dashboard/voters" replace />} />
+
+          {/* Voter Directory & Detail — both user types */}
           <Route path="voters" element={<VotersPage />} />
           <Route path="voters/:id" element={<VoterDetailPage />} />
 
-          {/* Voter Entry & Edit Routes: Admin, Tenant Admin, Leader, Sub-Leader, DEO */}
-          <Route element={<ProtectedRoute allowedRoles={['super_admin', 'admin', 'tenant_admin', 'leader', 'sub_leader', 'deo']} />}>
+          {/* Voter Entry & Editing — both user types */}
+          <Route element={<ProtectedRoute allowedRoles={[...SUPER_ADMIN_ROLES, ...TENANT_ROLES]} />}>
             <Route path="voters/new" element={<VoterFormPage />} />
             <Route path="voters/:id/edit" element={<VoterFormPage />} />
           </Route>
 
-          {/* Super Admin Only: Multi-Tenant Provisioning & Management */}
-          <Route element={<ProtectedRoute allowedRoles={['super_admin', 'admin']} />}>
+          {/* ─── SUPER ADMIN ONLY ──────────────────────────────────── */}
+
+          {/* Tenant Account Provisioning */}
+          <Route element={<ProtectedRoute allowedRoles={[...SUPER_ADMIN_ROLES]} />}>
             <Route path="tenants" element={<TenantsPage />} />
             <Route path="tenants/new" element={<TenantFormPage />} />
             <Route path="tenants/:id" element={<TenantDetailPage />} />
             <Route path="tenants/:id/edit" element={<TenantFormPage />} />
           </Route>
 
-          {/* Super Admin Only: Tenant Feature Package Roles */}
-          <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>
+          {/* Tenant Role Package Management */}
+          <Route element={<ProtectedRoute allowedRoles={[...SUPER_ADMIN_ROLES]} />}>
             <Route path="settings/tenant-roles" element={<TenantRoleManager />} />
           </Route>
 
-          {/* Super Admin / Central Admin Only: Master Configuration Data */}
-          <Route element={<ProtectedRoute allowedRoles={['super_admin', 'admin']} />}>
+          {/* Master Data (full — districts, pcs, religions, parties, etc.) */}
+          <Route element={<ProtectedRoute allowedRoles={[...SUPER_ADMIN_ROLES]} />}>
             <Route path="master" element={<Navigate to="/dashboard/master/religions" replace />} />
             <Route path="master/religions" element={<ReligionsPage />} />
             <Route path="master/castes" element={<CastesPage />} />
@@ -92,23 +102,37 @@ export const AppRoutes: React.FC = () => {
             <Route path="StateAssembly/*" element={<Navigate to="/dashboard/master/acs" replace />} />
           </Route>
 
-          {/* Tenant Campaign Settings & User Roles Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['super_admin', 'admin', 'tenant_admin', 'leader']} />}>
+          {/* Super Admin Settings */}
+          <Route element={<ProtectedRoute allowedRoles={[...SUPER_ADMIN_ROLES]} />}>
+            <Route path="super-admin/settings/*" element={<SuperAdminSettingsPage />} />
+          </Route>
+
+          {/* ─── TENANT ONLY ───────────────────────────────────────── */}
+
+          {/* Tenant Master Data (AC, Ward, Booth — filtered by Role Package masterSubTabs) */}
+          <Route element={<ProtectedRoute allowedRoles={[...TENANT_ROLES]} />}>
+            <Route path="tenant-master" element={<TenantMasterPage />} />
+            <Route path="tenant-master/acs" element={<TenantMasterPage defaultTab="acs" />} />
+            <Route path="tenant-master/wards" element={<TenantMasterPage defaultTab="wards" />} />
+            <Route path="tenant-master/booths" element={<TenantMasterPage defaultTab="booths" />} />
+          </Route>
+
+          {/* Tenant Settings & Role Management */}
+          <Route element={<ProtectedRoute allowedRoles={[...TENANT_ROLES]} />}>
             <Route path="settings/roles" element={<TenantUserRoleManager />} />
-            <Route path="settings/*" element={<SettingsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
+            <Route path="settings/*" element={<TenantSettingsPage />} />
           </Route>
         </Route>
       </Route>
 
-      {/* Fallbacks */}
+      {/* Global Fallbacks */}
       <Route
         path="/"
-        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+        element={<Navigate to={isAuthenticated ? "/dashboard/voters" : "/login"} replace />}
       />
       <Route
         path="*"
-        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+        element={<Navigate to={isAuthenticated ? "/dashboard/voters" : "/login"} replace />}
       />
     </Routes>
   );

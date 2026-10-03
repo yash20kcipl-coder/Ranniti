@@ -237,7 +237,84 @@ export class TenantApiService {
     return newBooth;
   }
 
-  // --- GEOGRAPHY (STATES, DISTRICTS, TALUKAS, VILLAGES) ---
+  async updateTenantAc(id: string, input: Partial<CreateAcInput>) {
+    const { pcId, districtId, acNumber, name } = input;
+    const res = await mainQuery(
+      `UPDATE assembly_constituencies
+       SET pc_id = COALESCE($1, pc_id),
+           district_id = COALESCE($2, district_id),
+           ac_number = COALESCE($3, ac_number),
+           name = COALESCE($4, name),
+           updated_at = NOW()
+       WHERE id = $5
+       RETURNING id, name, ac_number as "acNumber", pc_id as "pcId", district_id as "districtId"`,
+      [pcId || null, districtId || null, acNumber || null, name || null, id]
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Assembly constituency not found');
+    return res.rows[0];
+  }
+
+  async deleteTenantAc(id: string) {
+    const res = await mainQuery(
+      `DELETE FROM assembly_constituencies WHERE id = $1 RETURNING id`,
+      [id]
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Assembly constituency not found');
+  }
+
+  async updateTenantWard(id: string, input: Partial<CreateWardInput>) {
+    const { acId, wardNumber, name } = input;
+    const res = await mainQuery(
+      `UPDATE wards
+       SET ac_id = COALESCE($1, ac_id),
+           ward_number = COALESCE($2, ward_number),
+           name = COALESCE($3, name),
+           updated_at = NOW()
+       WHERE id = $4
+       RETURNING id, ac_id as "acId", ward_number as "wardNumber", name`,
+      [acId || null, wardNumber || null, name || null, id]
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Ward not found');
+    return res.rows[0];
+  }
+
+  async deleteTenantWard(id: string) {
+    const res = await mainQuery(
+      `DELETE FROM wards WHERE id = $1 RETURNING id`,
+      [id]
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Ward not found');
+  }
+
+  async updateTenantBooth(id: string, input: Partial<CreateBoothInput>) {
+    const { acId, wardId, villageId, boothNumber, name, locationBuilding } = input;
+    const res = await mainQuery(
+      `UPDATE booths
+       SET ac_id = COALESCE($1, ac_id),
+           ward_id = COALESCE($2, ward_id),
+           village_id = COALESCE($3, village_id),
+           booth_number = COALESCE($4, booth_number),
+           name = COALESCE($5, name),
+           location_building = COALESCE($6, location_building),
+           updated_at = NOW()
+       WHERE id = $7
+       RETURNING id, ac_id as "acId", ward_id as "wardId", village_id as "villageId",
+                 booth_number as "boothNumber", name, location_building as "locationBuilding"`,
+      [acId || null, wardId || null, villageId || null, boothNumber || null, name || null, locationBuilding || null, id]
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Booth not found');
+    return res.rows[0];
+  }
+
+  async deleteTenantBooth(id: string) {
+    const res = await mainQuery(
+      `DELETE FROM booths WHERE id = $1 RETURNING id`,
+      [id]
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Booth not found');
+  }
+
+
   async getTenantStates() {
     const res = await mainQuery(`SELECT id, name FROM states ORDER BY name ASC`);
     return res.rows;

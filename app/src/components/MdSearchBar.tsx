@@ -74,7 +74,7 @@ const MdSearchBar: React.FC<MdSearchBarProps> = ({
     const borderColor = interpolateColor(
       focusProgress.value,
       [0, 1],
-      ['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.45)']
+      ['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.2)']
     );
     const scale = withSpring(focusProgress.value ? 1.015 : 1.0, { damping: 15 });
 
@@ -132,21 +132,17 @@ const MdSearchBar: React.FC<MdSearchBarProps> = ({
     <View style={[styles.searchSection, containerStyle]}>
       <Animated.View style={[styles.searchContainer, containerAnimatedStyle]}>
         <Animated.View style={iconAnimatedStyle}>
-          <MaterialDesignIcons
-            name="magnify"
-            size={20}
-            color="#FFFFFF"
-          />
+          <MaterialDesignIcons name="magnify" size={15} color="#FFFFFF" />
         </Animated.View>
         <TextInput
           ref={inputRef}
-          style={styles.searchInput}
-          placeholderTextColor="rgba(255, 255, 255, 0.6)"
-          cursorColor="#FFFFFF"
           value={value}
-          onChangeText={onChangeText}
-          onFocus={handleFocus}
           onBlur={handleBlur}
+          onFocus={handleFocus}
+          cursorColor="#FFFFFF"
+          style={styles.searchInput}
+          onChangeText={onChangeText}
+          placeholderTextColor="rgba(255, 255, 255, 1)"
           {...rest}
         />
         <Animated.View style={[clearAnimatedStyle, { marginLeft: 6 }]} pointerEvents={hasText ? 'auto' : 'none'}>
@@ -163,7 +159,7 @@ const MdSearchBar: React.FC<MdSearchBarProps> = ({
             <Animated.View style={clearPressStyle}>
               <MaterialDesignIcons
                 name="close-circle"
-                size={18}
+                size={15}
                 color="rgba(255, 255, 255, 0.8)"
               />
             </Animated.View>
@@ -182,7 +178,7 @@ const MdSearchBar: React.FC<MdSearchBarProps> = ({
           }}
         >
           <Animated.View style={[styles.filterButton, filterAnimatedStyle]}>
-            <MaterialDesignIcons name="filter-variant" size={20} color="#FFFFFF" />
+            <MaterialDesignIcons name="filter-variant" size={15} color="#FFFFFF" />
           </Animated.View>
         </Pressable>
       )}
@@ -192,7 +188,7 @@ const MdSearchBar: React.FC<MdSearchBarProps> = ({
 
 const styles = StyleSheet.create({
   searchSection: {
-    gap: 12,
+    gap: 8,
     flexDirection: 'row',
     marginHorizontal: 20,
     marginBottom: 15,
@@ -208,8 +204,8 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: rfValue(13),
+    marginLeft: 10,
+    fontSize: rfValue(15),
     fontFamily: FontFamily.medium,
     color: '#FFFFFF',
     padding: 0,

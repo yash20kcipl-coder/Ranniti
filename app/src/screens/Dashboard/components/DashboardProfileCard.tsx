@@ -63,24 +63,24 @@ export const DashboardProfileCard: React.FC<DashboardProfileCardProps> = ({
         </View>
 
         <View style={styles.infoCol}>
-          <Text style={styles.userName} numberOfLines={1}>
-            {userName}
-          </Text>
-
           <View style={styles.metaRow}>
+            <Text style={styles.userName} numberOfLines={1}>
+              {userName}
+            </Text>
+
             <View style={styles.roleBadge}>
-              <Shield size={12} color={theme.colors.primary} />
+              <Shield size={10} color={theme.colors.primary} />
               <Text style={styles.roleText} numberOfLines={1}>
                 {roleName}
               </Text>
             </View>
+          </View>
 
-            <View style={styles.locationContainer}>
-              <MapPin size={12} color={theme.colors.textSecondary} />
-              <Text style={styles.areaText} numberOfLines={1}>
-                {locationName}
-              </Text>
-            </View>
+          <View style={styles.locationContainer}>
+            <MapPin size={12} color={theme.colors.textSecondary} />
+            <Text style={styles.areaText} numberOfLines={1}>
+              {locationName}
+            </Text>
           </View>
         </View>
 
@@ -171,7 +171,7 @@ const createStyles = (theme: Theme) =>
     },
     roleText: {
       fontFamily: FontFamily.bold,
-      fontSize: rfValue(11),
+      fontSize: rfValue(10),
       color: theme.colors.primary,
     },
     locationContainer: {

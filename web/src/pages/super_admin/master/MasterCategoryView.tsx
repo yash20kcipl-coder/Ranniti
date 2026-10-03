@@ -63,7 +63,7 @@ export const MasterCategoryView: React.FC<MasterCategoryViewProps> = ({ category
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterAlliance, setFilterAlliance] = useState<string>('');
 
-  const activeConfig: MasterCategoryConfig = masterConfig[activeTabKey] || masterConfig.religions;
+  const activeConfig: MasterCategoryConfig = masterConfig[activeTabKey] ?? masterConfig.religions;
 
   // Reset filters on tab change
   useEffect(() => {
@@ -318,7 +318,7 @@ export const MasterCategoryView: React.FC<MasterCategoryViewProps> = ({ category
 
   const handleOpenEditModal = (item: any) => {
     setEditingItem(item);
-    
+
     // Auto-resolve any missing parent hierarchy fields (State, District, PC, AC) from existing references
     const prefilledData = { ...item };
     if (item.acId && (!prefilledData.stateId || !prefilledData.districtId || !prefilledData.pcId)) {

@@ -23,6 +23,7 @@
     "moment": "^2.31.0",
     "react": "19.2.3",
     "react-native": "0.87.1",
+    "react-native-chart-kit": "^7.0.4",
     "react-native-device-info": "^15.0.2",
     "react-native-fast-image": "^8.8.1",
     "react-native-fs": "^2.20.0",

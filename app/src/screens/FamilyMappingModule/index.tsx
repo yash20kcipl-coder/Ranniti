@@ -1,123 +1,99 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
+import { View, StyleSheet } from 'react-native';
 import { RootState } from '../../store/store';
-import { fetchFamilyHeadsAction } from '../../store/actions/familyMapping';
-import { toggleVotedStatusAction } from '../../store/actions/voters';
 import { useLanguage } from '../../languages';
+import MdFlatList from '../../components/MdFlatList';
+import { FamilyCard } from './components/FamilyCard';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { familyMappingStyles } from './styles';
-import { SafeImage } from '../../components/SafeImage';
-import MdSearchBar from '../../components/MdSearchBar';
-import { Phone, MessageCircle, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react-native';
-import { openPhoneDialer, openWhatsAppChat } from '../../utils/linkingUtils';
+import { useSelector, useDispatch } from 'react-redux';
+import React, { useCallback, useEffect, useState } from 'react';
+import { toggleVotedStatusAction } from '../../store/actions/voters';
+import { FamilyCardSkeleton } from './components/FamilyCardSkeleton';
+import type { FamilyGroup } from '../../store/reducers/familyMapping';
+import { fetchFamilyHeadsAction } from '../../store/actions/familyMapping';
+import { SearchHeaderWithFilter } from '../../components/SearchHeaderWithFilter';
 
 export const FamilyMappingScreen: React.FC = () => {
   const dispatch = useDispatch<any>();
   const { t } = useLanguage();
-  const { theme, styles } = useAppTheme<ReturnType<typeof familyMappingStyles>>(familyMappingStyles);
+  const { theme } = useAppTheme();
 
-  const { families } = useSelector((state: RootState) => state.familyMapping);
+  const { families, loading } = useSelector((state: RootState) => state.familyMapping);
   const [search, setSearch] = useState('');
-  const [expandedFamilyIds, setExpandedFamilyIds] = useState<Record<string, boolean>>({ 'fam-01': true });
+  const [expandedFamilyIds, setExpandedFamilyIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     dispatch(fetchFamilyHeadsAction());
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    dispatch(fetchFamilyHeadsAction());
   }, [dispatch]);
 
-  const toggleExpand = (familyId: string) => {
-    setExpandedFamilyIds((prev) => ({ ...prev, [familyId]: !prev[familyId] }));
-  };
+  const handleToggle = useCallback((familyId: string) => {
+    setExpandedFamilyIds(prev => ({ ...prev, [familyId]: !prev[familyId] }));
+  }, []);
 
-  const filteredFamilies = families.filter((fam) => {
-    if (!search) return true;
+  const handleToggleVoted = useCallback((voterId: string) => {
+    dispatch(toggleVotedStatusAction(voterId));
+  }, [dispatch]);
+
+  const filteredFamilies = React.useMemo(() => {
+    if (!search.trim()) return families;
     const q = search.toLowerCase();
-    return (
+    return families.filter(fam =>
       fam.headName.toLowerCase().includes(q) ||
       fam.headEpic.toLowerCase().includes(q) ||
       fam.headMobile.includes(q)
     );
-  });
+  }, [families, search]);
+
+  const renderItem = useCallback(({ item }: { item: FamilyGroup }) => (
+    <FamilyCard
+      item={item}
+      isExpanded={!!expandedFamilyIds[item.familyId]}
+      onToggle={handleToggle}
+      onToggleVoted={handleToggleVoted}
+    />
+  ), [expandedFamilyIds, handleToggle, handleToggleVoted]);
+
+  const renderSkeleton = useCallback(() => <FamilyCardSkeleton />, []);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerBox}>
-        <MdSearchBar value={search} onChangeText={setSearch} placeholder={t('searchFamilyHead')} />
-      </View>
+    <View style={[styles.container, { backgroundColor: theme.colors.background || '#F8FAFC' }]}>
+      <SearchHeaderWithFilter
+        value={search}
+        showBackButton
+        onChangeText={setSearch}
+        placeholder={t('searchFamilyHead')}
+      />
 
-      <FlatList
+      <MdFlatList<FamilyGroup>
+        isLoading={loading}
         data={filteredFamilies}
-        keyExtractor={(item) => item.familyId}
-        contentContainerStyle={styles.listPadding}
-        renderItem={({ item }: { item: any }) => {
-          const isExpanded = expandedFamilyIds[item.familyId];
-          return (
-            <View style={styles.familyCard}>
-              {/* Head Header */}
-              <TouchableOpacity
-                style={styles.headHeaderRow}
-                onPress={() => toggleExpand(item.familyId)}
-                activeOpacity={0.7}
-              >
-                <SafeImage src={item.headPhoto} alt={item.headName} style={styles.headPhoto} />
-                <View style={styles.headInfo}>
-                  <View style={styles.badgeRow}>
-                    <Text style={styles.headBadge}>{t('familyHead')}</Text>
-                    <Text style={styles.countBadge}>{item.totalMembers} Members</Text>
-                  </View>
-                  <Text style={styles.headName}>{item.headName}</Text>
-                  <Text style={styles.headSub}>
-                    EPIC: {item.headEpic} • {item.headMobile}
-                  </Text>
-                </View>
-                {isExpanded ? (
-                  <ChevronUp {...({ size: 20, color: '#64748B' } as any)} />
-                ) : (
-                  <ChevronDown {...({ size: 20, color: '#64748B' } as any)} />
-                )}
-              </TouchableOpacity>
-
-              {/* Family Members Accordion */}
-              {isExpanded && (
-                <View style={styles.membersContainer}>
-                  <Text style={styles.membersTitle}>{t('familyMembers')}:</Text>
-                  {item.members.map((member: any) => (
-                    <View key={member.id} style={styles.memberRow}>
-                      <View style={styles.memberTextCol}>
-                        <Text style={styles.memberName}>
-                          {member.name} <Text style={styles.memberRel}>({member.relation})</Text>
-                        </Text>
-                        <Text style={styles.memberSub}>
-                          {member.age} yrs • {member.gender} • EPIC: {member.epicNo}
-                        </Text>
-                      </View>
-
-                      {/* Member Actions */}
-                      <View style={styles.memberActions}>
-                        <TouchableOpacity onPress={() => openPhoneDialer(member.mobile)}>
-                          <Phone {...({ size: 16, color: '#2563EB' } as any)} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => openWhatsAppChat(member.mobile)}>
-                          <MessageCircle {...({ size: 16, color: '#16A34A' } as any)} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => dispatch(toggleVotedStatusAction(member.id))}>
-                          {member.isVoted ? (
-                            <CheckCircle {...({ size: 18, color: '#16A34A' } as any)} />
-                          ) : (
-                            <XCircle {...({ size: 18, color: '#94A3B8' } as any)} />
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          );
-        }}
+        renderItem={renderItem}
+        refresh={handleRefresh}
+        renderSkeleton={renderSkeleton}
+        paginationProps={{ count: 20 }}
+        empty={{ text: t('noFamiliesFound'), }}
+        contentContainerStyle={styles.listContent}
+        keyExtractor={(item: FamilyGroup) => item.familyId}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
   );
 };
 
 export default FamilyMappingScreen;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  listContent: {
+    padding: 14,
+    paddingBottom: 30,
+  },
+  separator: {
+    height: 10,
+  },
+});

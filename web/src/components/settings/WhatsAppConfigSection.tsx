@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import { FormInput } from '@/components/common/FormInput';
-import type { CampaignSettings } from '../types/settings.types';
+import type { CampaignSettings } from '@/types/settings.types';
 
 interface WhatsAppConfigSectionProps {
   settings: CampaignSettings;
@@ -21,8 +21,9 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
   onChange,
   onOpenTestSend,
 }) => {
+  const safeSettings = settings || ({} as CampaignSettings);
   const isConfigured = Boolean(
-    settings.whatsappWabaId && settings.whatsappPhoneNumberId && settings.whatsappAccessToken
+    safeSettings.whatsappWabaId && safeSettings.whatsappPhoneNumberId && safeSettings.whatsappAccessToken
   );
 
   return (
@@ -75,7 +76,7 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
           <div>
             <p className="text-xs text-slate-400 font-medium">Quality Rating</p>
             <h4 className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-              {settings.whatsappQualityRating || 'GREEN (High Quality)'}
+              {safeSettings.whatsappQualityRating || 'GREEN (High Quality)'}
             </h4>
           </div>
         </div>
@@ -87,7 +88,7 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
           <div>
             <p className="text-xs text-slate-400 font-medium">Daily Messaging Limit</p>
             <h4 className="text-base font-bold text-slate-900 dark:text-white">
-              {settings.whatsappDailyLimit || '10,000 Voters/Day'}
+              {safeSettings.whatsappDailyLimit || '10,000 Voters/Day'}
             </h4>
           </div>
         </div>
@@ -114,7 +115,7 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
             name="wa_phone_id"
             label="Phone Number ID"
             placeholder="e.g. 1092837465..."
-            value={settings.whatsappPhoneNumberId || ''}
+            value={safeSettings.whatsappPhoneNumberId || ''}
             onChange={(e) => onChange({ whatsappPhoneNumberId: (e.target as any)?.value ?? e })}
             required
             helperText="Provided in Meta App Dashboard > WhatsApp > API Setup"
@@ -124,7 +125,7 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
             name="wa_waba_id"
             label="WhatsApp Business Account (WABA) ID"
             placeholder="e.g. 2938475610..."
-            value={settings.whatsappWabaId || ''}
+            value={safeSettings.whatsappWabaId || ''}
             onChange={(e) => onChange({ whatsappWabaId: (e.target as any)?.value ?? e })}
             required
             helperText="Found under Meta Business Settings > Accounts > WhatsApp Accounts"
@@ -136,7 +137,7 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
               type="password"
               label="System User Permanent Access Token"
               placeholder="EAA..."
-              value={settings.whatsappAccessToken || ''}
+              value={safeSettings.whatsappAccessToken || ''}
               onChange={(e) => onChange({ whatsappAccessToken: (e.target as any)?.value ?? e })}
               required
               helperText="Generate a permanent token with whatsapp_business_messaging & whatsapp_business_management permissions"
@@ -149,7 +150,7 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
               type="text"
               label="Webhook Verify Token (Secret)"
               placeholder="e.g. ranniti_webhook_secret_2026"
-              value={settings.whatsappWebhookVerifyToken || ''}
+              value={safeSettings.whatsappWebhookVerifyToken || ''}
               onChange={(e) => onChange({ whatsappWebhookVerifyToken: (e.target as any)?.value ?? e })}
               helperText="Used to verify inbound delivery receipts & voter quick replies from Meta Webhooks"
             />

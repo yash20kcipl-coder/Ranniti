@@ -83,3 +83,6 @@ export const useMasterData = (
 
   return master;
 };
+
+export { useTenantMasterData } from './useTenantMasterData';
+

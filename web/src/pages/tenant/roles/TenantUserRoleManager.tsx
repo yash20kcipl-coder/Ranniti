@@ -13,6 +13,7 @@ import {
 } from '@/redux/actions/role';
 import type { TenantUserRole, VoterPermissions } from '@/redux/reducers/role';
 import toast from 'react-hot-toast';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 
 // Static dropdown options for Role Key (Rule #15)
 const ROLE_KEY_OPTIONS = [
@@ -65,16 +66,16 @@ const AVAILABLE_MOBILE_SCREENS = [
 
 export const TenantUserRoleManager: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { tenantUserRoles } = useAppSelector((state) => state.role);
+  const { tenantUserRoles = [] } = useAppSelector((state) => state.role || {});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Partial<TenantUserRole> | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
+  useDebouncedEffect(() => {
     dispatch(fetchTenantUserRoles());
-  }, [dispatch]);
+  }, 500, [dispatch]);
 
   const handleOpenCreateModal = () => {
     setEditingRole({
@@ -271,11 +272,10 @@ export const TenantUserRoleManager: React.FC = () => {
                     return (
                       <span
                         key={def.key}
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
-                          isEnabled
-                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 line-through opacity-60'
-                        }`}
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${isEnabled
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 line-through opacity-60'
+                          }`}
                       >
                         {isEnabled ? '✓' : '✕'} {def.label}
                       </span>
@@ -357,11 +357,10 @@ export const TenantUserRoleManager: React.FC = () => {
                     <div
                       key={def.key}
                       onClick={() => handleToggleVoterPermission(def.key)}
-                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                        isChecked
-                          ? 'bg-white dark:bg-slate-900 border-indigo-400 dark:border-indigo-600 shadow-sm'
-                          : 'bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-70'
-                      }`}
+                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start justify-between gap-3 ${isChecked
+                        ? 'bg-white dark:bg-slate-900 border-indigo-400 dark:border-indigo-600 shadow-sm'
+                        : 'bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-70'
+                        }`}
                     >
                       <div>
                         <div className={`font-semibold text-xs flex items-center gap-1.5 ${isChecked ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-600 dark:text-slate-400'}`}>
@@ -394,11 +393,10 @@ export const TenantUserRoleManager: React.FC = () => {
                       <div
                         key={tab.key}
                         onClick={() => handleToggleWebTab(tab.key)}
-                        className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${
-                          isChecked
-                            ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 font-semibold'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                        }`}
+                        className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${isChecked
+                          ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 font-semibold'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                          }`}
                       >
                         <span className="truncate">{tab.label}</span>
                         <div className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white shrink-0 ml-1 ${isChecked ? 'bg-indigo-600' : 'border border-slate-300 dark:border-slate-700'}`}>
@@ -422,11 +420,10 @@ export const TenantUserRoleManager: React.FC = () => {
                       <div
                         key={screen.key}
                         onClick={() => handleToggleMobileScreen(screen.key)}
-                        className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${
-                          isChecked
-                            ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-semibold'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                        }`}
+                        className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${isChecked
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-semibold'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                          }`}
                       >
                         <span className="truncate">{screen.label}</span>
                         <div className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white shrink-0 ml-1 ${isChecked ? 'bg-emerald-600' : 'border border-slate-300 dark:border-slate-700'}`}>
@@ -451,11 +448,10 @@ export const TenantUserRoleManager: React.FC = () => {
                     <div
                       key={sub.key}
                       onClick={() => handleToggleMasterSubTab(sub.key)}
-                      className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${
-                        isChecked
-                          ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200 font-semibold'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
+                      className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${isChecked
+                        ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200 font-semibold'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
                     >
                       <span className="truncate">{sub.label}</span>
                       <div className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white shrink-0 ml-1 ${isChecked ? 'bg-purple-600' : 'border border-slate-300 dark:border-slate-700'}`}>

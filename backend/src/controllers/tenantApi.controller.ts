@@ -186,6 +186,66 @@ export class TenantApiController {
     }
   };
 
+  updateAc = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const updated = await tenantApiService.updateTenantAc(id, req.body);
+      res.status(200).json({ success: true, data: updated, message: 'Assembly constituency updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteAc = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      await tenantApiService.deleteTenantAc(id);
+      res.status(200).json({ success: true, message: 'Assembly constituency deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateWard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const updated = await tenantApiService.updateTenantWard(id, req.body);
+      res.status(200).json({ success: true, data: updated, message: 'Ward updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteWard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      await tenantApiService.deleteTenantWard(id);
+      res.status(200).json({ success: true, message: 'Ward deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateBooth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const updated = await tenantApiService.updateTenantBooth(id, req.body);
+      res.status(200).json({ success: true, data: updated, message: 'Booth updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteBooth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      await tenantApiService.deleteTenantBooth(id);
+      res.status(200).json({ success: true, message: 'Booth deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // --- VOTERS ---
   getVoters = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

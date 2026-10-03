@@ -18,12 +18,15 @@ export const seedRoles = async (): Promise<void> => {
   }
 
   // 1. Seed Tier 1 Super Admin Tenant Role Packages
+  // Tenant Role Packages — define which web tabs & tenant master sub-tabs tenants can access.
+  // NOTE: masterSubTabs for tenants are always a subset of ['acs', 'wards', 'booths'].
+  //       districts, pcs, states, etc. are super-admin-only master data.
   const tenantRolePackages = [
     {
       roleName: 'Full Political Campaign Suite',
-      description: 'Complete access to all web tabs, master sub-tabs, voter directory, and mobile field capabilities.',
+      description: 'Complete access to all web tabs (incl. settings), tenant master sub-tabs (AC, Ward, Booth), voter directory, and mobile field capabilities.',
       allowedTabs: {
-        webTabs: ['dashboard', 'voter_directory', 'master_data'],
+        webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
         masterSubTabs: ['acs', 'wards', 'booths'],
       },
       isActive: true,
@@ -31,9 +34,9 @@ export const seedRoles = async (): Promise<void> => {
     },
     {
       roleName: 'Standard Campaign Package',
-      description: 'Access to Dashboard, Voter Directory, Booth Master Data.',
+      description: 'Access to Dashboard, Voter Directory, Ward & Booth master data, and settings.',
       allowedTabs: {
-        webTabs: ['dashboard', 'voter_directory', 'master_data'],
+        webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
         masterSubTabs: ['wards', 'booths'],
       },
       isActive: true,
@@ -41,9 +44,9 @@ export const seedRoles = async (): Promise<void> => {
     },
     {
       roleName: 'Voter Directory & Field Survey Package',
-      description: 'Focused package for field operations with Voter Directory access and mobile survey capabilities.',
+      description: 'Focused package for field operations with Voter Directory and Booth reference access. No settings access.',
       allowedTabs: {
-        webTabs: ['dashboard', 'voter_directory'],
+        webTabs: ['dashboard', 'voter_directory', 'master_data'],
         masterSubTabs: ['booths'],
       },
       isActive: true,

@@ -1,68 +1,80 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../../store/store';
+import {
+  MdFlatList,
+  ScrollableFilterPills,
+  SearchHeaderWithFilter,
+  Fab,
+} from '../../components';
 import {
   fetchVotersAction,
   toggleVotedStatusAction,
   updateVoterPartyAction,
   setVoterFiltersAction,
 } from '../../store/actions/voters';
-import { useLanguage } from '../../languages';
-import { useAppTheme } from '../../hooks/useAppTheme';
-import { Theme } from '../../constants/theme';
-import { getShadow } from '../../utils/shadow';
-import { rfValue } from '../../utils/responsive';
-import { FontFamily } from '../../utils/typography';
-import { SafeImage } from '../../components/SafeImage';
-import MdSearchBar from '../../components/MdSearchBar';
-import { ScrollableFilterPills } from '../../components/ScrollableFilterPills';
-import {
-  Phone,
-  MessageCircle,
-  CheckCircle,
-  XCircle,
-  MapPin,
-  ChevronDown,
-  Plus,
-} from 'lucide-react-native';
-import { openPhoneDialer, openWhatsAppChat } from '../../utils/linkingUtils';
-
 import { voterListStyles } from './styles';
+import { useLanguage } from '../../languages';
+import { RootState } from '../../store/store';
+import VoterCard from './components/VoterCard';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import VoterSkeleton from './components/VoterSkeleton';
+import { useSelector, useDispatch } from 'react-redux';
+import VoterFilterModal from './components/VoterFilterModal';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
 
 const PARTIES = ['Party A', 'Party B', 'Independent', 'Undecided'];
 
 export const VoterListScreen: React.FC<any> = ({ navigation }) => {
-  const dispatch = useDispatch<any>();
   const { t } = useLanguage();
-  const { theme, styles } = useAppTheme<ReturnType<typeof voterListStyles>>(voterListStyles);
-
-  const { voters, filters } = useSelector((state: RootState) => state.voters);
+  const dispatch = useDispatch<any>();
   const [partyModalVoterId, setPartyModalVoterId] = useState<string | null>(null);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+  const { voters, filters, loading } = useSelector((state: RootState) => state.voters);
+  const { styles } = useAppTheme<ReturnType<typeof voterListStyles>>(voterListStyles);
 
   useEffect(() => {
     dispatch(fetchVotersAction());
   }, [dispatch]);
 
+  const handleRefresh = useCallback(() => {
+    dispatch(fetchVotersAction());
+  }, [dispatch]);
+
   const filteredVoters = voters.filter((voter) => {
+    const searchLower = (filters.search || '').toLowerCase();
     const matchesSearch =
       !filters.search ||
-      voter.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-      voter.epicNo.toLowerCase().includes(filters.search.toLowerCase()) ||
-      voter.mobile.includes(filters.search);
+      (voter.name && voter.name.toLowerCase().includes(searchLower)) ||
+      (voter.englishName && voter.englishName.toLowerCase().includes(searchLower)) ||
+      (voter.epicNo && voter.epicNo.toLowerCase().includes(searchLower)) ||
+      (voter.mobile && voter.mobile.includes(searchLower));
 
-    const matchesParty = filters.supportingParty === 'All' || voter.supportingParty === filters.supportingParty;
+    const matchesParty =
+      !filters.supportingParty ||
+      filters.supportingParty === 'All' ||
+      voter.supportingParty === filters.supportingParty;
+
     const matchesVoted =
+      !filters.isVoted ||
       filters.isVoted === 'all' ||
       (filters.isVoted === 'voted' && voter.isVoted) ||
       (filters.isVoted === 'not_voted' && !voter.isVoted);
 
-    return matchesSearch && matchesParty && matchesVoted;
+    const matchesGender =
+      !filters.gender ||
+      filters.gender === 'all' ||
+      voter.gender === filters.gender;
+
+    return matchesSearch && matchesParty && matchesVoted && matchesGender;
   });
 
-  const handleToggleVoted = (voterId: string) => {
+  const handleToggleVoted = useCallback((voterId: string) => {
     dispatch(toggleVotedStatusAction(voterId));
-  };
+  }, [dispatch]);
+
+  const handleOpenPartyModal = useCallback((voterId: string) => {
+    setPartyModalVoterId(voterId);
+  }, []);
 
   const handleSelectParty = (party: string) => {
     if (partyModalVoterId) {
@@ -71,108 +83,72 @@ export const VoterListScreen: React.FC<any> = ({ navigation }) => {
     }
   };
 
+  const handleApplyExtraFilters = (newFilters: { isVoted?: string; supportingParty?: string; gender?: string }) => {
+    dispatch(setVoterFiltersAction(newFilters));
+  };
+
+  const handleResetFilters = () => {
+    dispatch(setVoterFiltersAction({ search: '', isVoted: 'all', supportingParty: 'All', gender: 'all' }));
+  };
+
+  const renderVoterItem = useCallback(({ item }: { item: any }) => (
+    <VoterCard
+      voter={item}
+      onSelectParty={handleOpenPartyModal}
+      onToggleVoted={handleToggleVoted}
+      t={t}
+    />
+  ), [handleOpenPartyModal, handleToggleVoted, t]);
+
+  const renderVoterSkeleton = useCallback(() => <VoterSkeleton />, []);
+
   return (
     <View style={styles.container}>
-      {/* Search Header */}
-      <View style={styles.headerBox}>
-        <MdSearchBar
-          value={filters.search}
-          onChangeText={(text: string) => dispatch(setVoterFiltersAction({ search: text }))}
-          placeholder={t('search')}
-        />
-
-        {/* Filter Pills */}
-        <ScrollableFilterPills
-          options={[
-            { id: 'all', label: t('all') },
-            { id: 'voted', label: t('voted') },
-            { id: 'not_voted', label: t('notVoted') },
-          ]}
-          activeId={filters.isVoted}
-          onSelect={(id: string) => dispatch(setVoterFiltersAction({ isVoted: id }))}
-        />
-      </View>
-
-      {/* Voter List */}
-      <FlatList
-        data={filteredVoters}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listPadding}
-        renderItem={({ item }: { item: any }) => (
-
-          <View style={styles.voterCard}>
-            <View style={styles.cardHeader}>
-              <SafeImage src={item.image} alt={item.name} style={styles.voterPhoto} />
-              <View style={styles.voterInfo}>
-                <Text style={styles.voterName}>{item.name}</Text>
-                <Text style={styles.relativeName}>{item.relativeName}</Text>
-                <View style={styles.epicBadge}>
-                  <Text style={styles.epicText}>EPIC: {item.epicNo}</Text>
-                </View>
-              </View>
-
-              {/* Supporting Party Button */}
-              <TouchableOpacity
-                style={styles.partyTag}
-                onPress={() => setPartyModalVoterId(item.id)}
-              >
-                <Text style={styles.partyText}>{item.supportingParty}</Text>
-                <ChevronDown {...({ size: 12, color: "#1E40AF" } as any)} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Location & Booth details */}
-            <View style={styles.locationRow}>
-              <MapPin {...({ size: 14, color: "#64748B" } as any)} />
-              <Text style={styles.locationText}>
-                {item.boothNo} • {item.wardNo} • {item.acName}
-              </Text>
-            </View>
-
-            {/* Quick Action Options */}
-            <View style={styles.actionsBar}>
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => openPhoneDialer(item.mobile)}
-              >
-                <Phone {...({ size: 16, color: "#2563EB" } as any)} />
-                <Text style={[styles.actionBtnText, { color: '#2563EB' }]}>{t('call')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => openWhatsAppChat(item.mobile, `Namaste ${item.name}, greetings from Ranniti team.`)}
-              >
-                <MessageCircle {...({ size: 16, color: "#16A34A" } as any)} />
-                <Text style={[styles.actionBtnText, { color: '#16A34A' }]}>{t('whatsApp')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.votedBtn, item.isVoted ? styles.votedActive : styles.votedInactive]}
-                onPress={() => handleToggleVoted(item.id)}
-              >
-                {item.isVoted ? (
-                  <CheckCircle {...({ size: 16, color: "#FFFFFF" } as any)} />
-                ) : (
-                  <XCircle {...({ size: 16, color: "#64748B" } as any)} />
-                )}
-                <Text style={[styles.votedBtnText, item.isVoted && { color: '#FFFFFF' }]}>
-                  {item.isVoted ? t('voted') : t('markVoted')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+      {/* Search & Filter Header Container */}
+      <SearchHeaderWithFilter
+        showBackButton
+        value={filters.search}
+        placeholder={t('search')}
+        filterOptions={[
+          { id: 'all', label: t('all') },
+          { id: 'voted', label: t('voted') },
+          { id: 'not_voted', label: t('notVoted') },
+        ]}
+        activeFilterId={filters.isVoted || 'all'}
+        onFilterPress={() => setIsFilterModalOpen(true)}
+        onChangeText={(text: string) => dispatch(setVoterFiltersAction({ search: text }))}
+        onSelectFilterOption={(id: string) => dispatch(setVoterFiltersAction({ isVoted: id }))}
       />
 
-      {/* Floating Add Voter Button */}
-      <TouchableOpacity
-        style={styles.fab}
+      {/* Voter List using MdFlatList with Pagination */}
+      <MdFlatList
+        isLoading={loading}
+        data={filteredVoters}
+        refresh={handleRefresh}
+        renderItem={renderVoterItem}
+        paginationProps={{ count: 30 }}
+        showsVerticalScrollIndicator={false}
+        renderSkeleton={renderVoterSkeleton}
+        keyExtractor={(item: any) => item.id}
+        contentContainerStyle={styles.listPadding}
+      />
+
+      {/* Reusable Common Floating Action Button */}
+      <Fab
+        size={20}
+        icon="plus"
         onPress={() => navigation?.navigate('addeditvoter')}
-        activeOpacity={0.85}
-      >
-        <Plus {...({ size: 24, color: "#FFFFFF" } as any)} />
-      </TouchableOpacity>
+      />
+
+      {/* Search Filter Modal (uses AppModal) */}
+      <VoterFilterModal
+        t={t}
+        filters={filters}
+        visible={isFilterModalOpen}
+        onResetFilters={handleResetFilters}
+        onApplyFilters={handleApplyExtraFilters}
+        onDismiss={() => setIsFilterModalOpen(false)}
+      />
 
       {/* Supporting Party Modal Selector */}
       <Modal

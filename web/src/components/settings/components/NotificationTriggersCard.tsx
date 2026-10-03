@@ -1,6 +1,3 @@
-import React from 'react';
-import { FormInput } from '@/components/common/FormInput';
-import type { PushTriggerConfig } from '../types/settings.types';
 import {
   BellRing,
   CalendarCheck,
@@ -10,6 +7,9 @@ import {
   Moon,
   Clock,
 } from 'lucide-react';
+import React from 'react';
+import { FormInput } from '@/components/common/FormInput';
+import type { PushTriggerConfig } from '@/types/settings.types';
 
 interface NotificationTriggersCardProps {
   triggers: PushTriggerConfig;
@@ -20,8 +20,17 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
   triggers,
   onChange,
 }) => {
+  const safeTriggers: PushTriggerConfig = triggers || {
+    dailyBriefing: false,
+    briefingTime: '07:00',
+    surveyMilestone: false,
+    voterTurnoutAlert: false,
+    turnoutThreshold: 50,
+    emergencyBroadcast: true,
+  };
+
   const updateTrigger = (field: keyof PushTriggerConfig, value: any) => {
-    onChange({ ...triggers, [field]: value });
+    onChange({ ...safeTriggers, [field]: value });
   };
 
   return (
@@ -64,13 +73,13 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
           </div>
 
           <div className="flex items-center gap-3 self-end sm:self-center">
-            {triggers.dailyBriefing && (
+            {safeTriggers.dailyBriefing && (
               <div className="w-28">
                 <FormInput
                   name="briefing_time"
                   type="text"
                   placeholder="07:00"
-                  value={triggers.briefingTime}
+                  value={safeTriggers.briefingTime}
                   onChange={(e) => updateTrigger('briefingTime', (e.target as any)?.value ?? e)}
                   icon={<Clock className="w-3.5 h-3.5 text-slate-400" />}
                 />
@@ -79,7 +88,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
             <FormInput
               name="daily_briefing_toggle"
               type="switch"
-              value={triggers.dailyBriefing}
+              value={safeTriggers.dailyBriefing}
               onChange={(e) => updateTrigger('dailyBriefing', (e.target as any)?.value ?? e)}
             />
           </div>
@@ -110,7 +119,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
             <FormInput
               name="survey_milestones_toggle"
               type="switch"
-              value={triggers.surveyMilestones}
+              value={safeTriggers.surveyMilestones}
               onChange={(e) => updateTrigger('surveyMilestones', (e.target as any)?.value ?? e)}
             />
           </div>
@@ -141,7 +150,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
             <FormInput
               name="poll_day_turnout_toggle"
               type="switch"
-              value={triggers.pollDayTurnout}
+              value={safeTriggers.pollDayTurnout}
               onChange={(e) => updateTrigger('pollDayTurnout', (e.target as any)?.value ?? e)}
             />
           </div>
@@ -172,7 +181,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
             <FormInput
               name="urgent_broadcasts_toggle"
               type="switch"
-              value={triggers.urgentBroadcasts}
+              value={safeTriggers.urgentBroadcasts}
               onChange={(e) => updateTrigger('urgentBroadcasts', (e.target as any)?.value ?? e)}
             />
           </div>
@@ -198,19 +207,19 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
             <FormInput
               name="quiet_hours_toggle"
               type="switch"
-              value={triggers.quietHoursEnabled}
+              value={safeTriggers.quietHoursEnabled}
               onChange={(e) => updateTrigger('quietHoursEnabled', (e.target as any)?.value ?? e)}
             />
           </div>
 
-          {triggers.quietHoursEnabled && (
+          {safeTriggers.quietHoursEnabled && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700/80">
               <FormInput
                 name="quiet_start"
                 type="text"
                 label="Quiet Hours Start"
                 placeholder="22:00"
-                value={triggers.quietHoursStart}
+                value={safeTriggers.quietHoursStart}
                 onChange={(e) => updateTrigger('quietHoursStart', (e.target as any)?.value ?? e)}
                 icon={<Clock className="w-3.5 h-3.5 text-slate-400" />}
               />
@@ -220,7 +229,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
                 type="text"
                 label="Quiet Hours End"
                 placeholder="06:30"
-                value={triggers.quietHoursEnd}
+                value={safeTriggers.quietHoursEnd}
                 onChange={(e) => updateTrigger('quietHoursEnd', (e.target as any)?.value ?? e)}
                 icon={<Clock className="w-3.5 h-3.5 text-slate-400" />}
               />

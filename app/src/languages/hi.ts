@@ -62,6 +62,15 @@ export const hi: Record<TranslationKeys, string> = {
   neutral: 'तटस्थ (Neutral)',
   unfavorable: 'विपक्ष (Unfavorable)',
   opposite: 'विरोधी (Opposite)',
+  genderDemographics: 'लिंग आधारित मतदाता विवरण',
+  genderSubtitle: 'पुरुष, महिला एवं अन्य पंजीकृत मतदाताओं का विभाजन',
+  male: 'पुरुष (Male)',
+  female: 'महिला (Female)',
+  otherGender: 'अन्य (Other)',
+  ageGroupAnalytics: 'आयु वर्ग आधारित विवरण',
+  ageGroupSubtitle: 'युवा, वयस्क एवं वरिष्ठ मतदाताओं का विभाजन',
+  turnoutAnalytics: 'मतदान प्रतिशत स्थिति',
+  turnoutSubtitle: 'वास्तविक समय मतदान प्रतिशत एवं भागीदारी स्थिति',
 
   // Voter Module
   voterListTitle: 'मतदाता सूची',
@@ -85,6 +94,7 @@ export const hi: Record<TranslationKeys, string> = {
   familyMembers: 'परिवार के सदस्य',
   searchFamilyHead: 'मुखिया खोजें...',
   addFamilyMember: 'सदस्य जोड़ें',
+  noFamiliesFound: 'कोई परिवार नहीं मिला',
 
   // Social Influencers
   influencerTitle: 'सामाजिक प्रभावशाली व्यक्ति',

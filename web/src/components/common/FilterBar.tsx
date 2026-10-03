@@ -1,3 +1,4 @@
+export type { Option };
 import { FormInput } from './FormInput';
 import { createPortal } from 'react-dom';
 import type { Option } from './FormInput';

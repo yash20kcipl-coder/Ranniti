@@ -5,16 +5,16 @@ import {
   RoleHierarchySection,
   InfluencerOverviewSection,
   PoliticalViewsSection,
+  GenderDemographicsSection
 } from './components';
 import React, { useEffect } from 'react';
+import { ScrollView } from 'react-native';
 import { dashboardStyles } from './styles';
 import { RootState } from '../../store/store';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
 import { AppHeader, SafeView } from '../../components';
-import { SafeImage } from '../../components/SafeImage';
 import { useNavigation } from '@react-navigation/native';
-import { ScrollView, TouchableOpacity } from 'react-native';
 import { fetchDashboardMetricsAction } from '../../store/actions/dashboard';
 
 export const Dashboard: React.FC = () => {
@@ -93,6 +93,9 @@ export const Dashboard: React.FC = () => {
           <PoliticalViewsSection
             politicalViews={dashboard.politicalViews}
           />
+
+          {/* Gender Demographics & Age Analytics Section */}
+          <GenderDemographicsSection />
         </ScrollView>
       )}
     </SafeView>

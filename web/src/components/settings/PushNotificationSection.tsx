@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
-import type { CampaignSettings, PushTriggerConfig } from '../types/settings.types';
-import {
-  FcmCredentialsCard,
-  NotificationTriggersCard,
-  TestNotificationModal,
-} from '../components';
+import type { CampaignSettings, PushTriggerConfig } from '@/types/settings.types';
+import { FcmCredentialsCard, NotificationTriggersCard, TestNotificationModal } from './components';
 
 interface PushNotificationSectionProps {
   settings: CampaignSettings;

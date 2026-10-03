@@ -6,7 +6,7 @@ import {
   SET_WHATSAPP_SYNCING,
   SET_SETTINGS_ACTIVE_TAB,
 } from '../actions/settings';
-import type { CampaignSettings, WhatsAppTemplate } from '@/pages/tenant/settings/types/settings.types';
+import type { CampaignSettings, WhatsAppTemplate } from '@/types/settings.types';
 
 export interface SettingsState {
   settings: CampaignSettings | null;
@@ -41,7 +41,14 @@ export default function settingsReducer(
       return { ...state, settings: action.payload };
 
     case SET_WHATSAPP_TEMPLATES:
-      return { ...state, whatsappTemplates: action.payload };
+      return {
+        ...state,
+        whatsappTemplates: Array.isArray(action.payload)
+          ? action.payload
+          : Array.isArray(action.payload?.data)
+          ? action.payload.data
+          : (state.whatsappTemplates || []),
+      };
 
     case SET_WHATSAPP_SYNCING:
       return { ...state, syncing: action.payload };

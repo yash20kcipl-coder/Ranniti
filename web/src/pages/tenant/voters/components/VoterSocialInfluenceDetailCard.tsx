@@ -4,18 +4,18 @@ import { Link } from 'react-router-dom';
 
 export interface VoterSocialInfluenceDetailCardProps {
   voter: any;
-  isSocialLeader: boolean;
-  setModalInitialType: (t: 'family' | 'social') => void;
-  setAssignModalOpen: (b: boolean) => void;
-  setLinkInfluencerType: (t: 'family' | 'social') => void;
-  setLinkModalOpen: (b: boolean) => void;
-  handleToggleSocialRole: () => void;
-  handleUnlinkSocialLeader: () => void;
+  isSocialLeader?: boolean;
+  setModalInitialType?: (t: 'family' | 'social') => void;
+  setAssignModalOpen?: (b: boolean) => void;
+  setLinkInfluencerType?: (t: 'family' | 'social') => void;
+  setLinkModalOpen?: (b: boolean) => void;
+  handleToggleSocialRole?: () => void;
+  handleUnlinkSocialLeader?: () => void;
 }
 
 export const VoterSocialInfluenceDetailCard: React.FC<VoterSocialInfluenceDetailCardProps> = ({
   voter,
-  isSocialLeader,
+  isSocialLeader: isSocialLeaderProp,
   setModalInitialType,
   setAssignModalOpen,
   setLinkInfluencerType,
@@ -23,6 +23,7 @@ export const VoterSocialInfluenceDetailCard: React.FC<VoterSocialInfluenceDetail
   handleToggleSocialRole,
   handleUnlinkSocialLeader,
 }) => {
+  const isSocialLeader = isSocialLeaderProp ?? Boolean(voter?.isSocialInfluencer || Number(voter?.socialInfluencedCount) > 0);
   return (
     <div
       className={`p-5 rounded-2xl border shadow-sm dark:shadow-none transition-all space-y-4 ${
@@ -91,25 +92,29 @@ export const VoterSocialInfluenceDetailCard: React.FC<VoterSocialInfluenceDetail
           </div>
 
           <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => {
-                setModalInitialType('social');
-                setAssignModalOpen(true);
-              }}
-              className="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Manage Community Network ({voter.socialInfluencedCount || 0})</span>
-            </button>
+            {setModalInitialType && setAssignModalOpen && (
+              <button
+                type="button"
+                onClick={() => {
+                  setModalInitialType('social');
+                  setAssignModalOpen(true);
+                }}
+                className="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Manage Community Network ({voter.socialInfluencedCount || 0})</span>
+              </button>
+            )}
 
-            <button
-              type="button"
-              onClick={handleToggleSocialRole}
-              className="w-full py-1 text-center text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
-            >
-              Remove Social Leader Role
-            </button>
+            {handleToggleSocialRole && (
+              <button
+                type="button"
+                onClick={handleToggleSocialRole}
+                className="w-full py-1 text-center text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+              >
+                Remove Social Leader Role
+              </button>
+            )}
           </div>
         </div>
       ) : voter.socialInfluencerId ? (
@@ -141,26 +146,32 @@ export const VoterSocialInfluenceDetailCard: React.FC<VoterSocialInfluenceDetail
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setLinkInfluencerType('social');
-                setLinkModalOpen(true);
-              }}
-              className="py-2 px-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none rounded-xl text-xs font-semibold transition-colors text-center cursor-pointer"
-            >
-              Change Leader
-            </button>
-            <button
-              type="button"
-              onClick={handleUnlinkSocialLeader}
-              className="py-2 px-3 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/20 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm dark:shadow-none"
-            >
-              <Unlink className="w-3.5 h-3.5" />
-              <span>Unlink</span>
-            </button>
-          </div>
+          {(setLinkInfluencerType || handleUnlinkSocialLeader) && (
+            <div className="grid grid-cols-2 gap-2">
+              {setLinkInfluencerType && setLinkModalOpen && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinkInfluencerType('social');
+                    setLinkModalOpen(true);
+                  }}
+                  className="py-2 px-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none rounded-xl text-xs font-semibold transition-colors text-center cursor-pointer"
+                >
+                  Change Leader
+                </button>
+              )}
+              {handleUnlinkSocialLeader && (
+                <button
+                  type="button"
+                  onClick={handleUnlinkSocialLeader}
+                  className="py-2 px-3 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/20 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm dark:shadow-none"
+                >
+                  <Unlink className="w-3.5 h-3.5" />
+                  <span>Unlink</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         /* State 3: Voter has no social leader */
@@ -169,30 +180,36 @@ export const VoterSocialInfluenceDetailCard: React.FC<VoterSocialInfluenceDetail
             No community or caste influencer currently associated with this voter.
           </p>
 
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => {
-                setModalInitialType('social');
-                setAssignModalOpen(true);
-              }}
-              className="w-full py-2.5 px-3 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 dark:bg-amber-600/30 dark:hover:bg-amber-600/40 dark:text-amber-200 dark:border-amber-500/40 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span>Set Social Influencer</span>
-            </button>
+          {(setModalInitialType || setLinkInfluencerType) && (
+            <div className="space-y-2">
+              {setModalInitialType && setAssignModalOpen && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalInitialType('social');
+                    setAssignModalOpen(true);
+                  }}
+                  className="w-full py-2.5 px-3 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 dark:bg-amber-600/30 dark:hover:bg-amber-600/40 dark:text-amber-200 dark:border-amber-500/40 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>Set Social Influencer</span>
+                </button>
+              )}
 
-            <button
-              type="button"
-              onClick={() => {
-                setLinkInfluencerType('social');
-                setLinkModalOpen(true);
-              }}
-              className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 dark:text-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium transition-colors text-center cursor-pointer"
-            >
-              + Link to a Community Leader
-            </button>
-          </div>
+              {setLinkInfluencerType && setLinkModalOpen && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinkInfluencerType('social');
+                    setLinkModalOpen(true);
+                  }}
+                  className="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 dark:text-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium transition-colors text-center cursor-pointer"
+                >
+                  + Link to a Community Leader
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

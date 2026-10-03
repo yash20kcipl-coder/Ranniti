@@ -71,13 +71,13 @@ const TAB_LABEL_MAP: Record<string, string> = {
 
 export const TenantRoleManager: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { tenantRoles } = useAppSelector((state) => state.role);
-  const { tenants } = useAppSelector((state) => state.tenant);
+  const { tenants = [] } = useAppSelector((state) => state.tenant || {});
+  const { tenantRoles = [] } = useAppSelector((state) => state.role || {});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<Partial<TenantRolePackage> | null>(null);
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<Partial<TenantRolePackage> | null>(null);
   const [expandedTabs, setExpandedTabs] = useState<Record<string, boolean>>({ master_data: true });
 
   // Assign Package State
@@ -158,15 +158,6 @@ export const TenantRoleManager: React.FC = () => {
       toast.error('Failed to update tenant assignments');
     } finally {
       setIsAssigning(false);
-    }
-  };
-
-  const handleSetDefaultRolePackage = async (roleId: string) => {
-    try {
-      await dispatch(setDefaultTenantRolePackage(roleId));
-      toast.success('Default tenant role package updated!');
-    } catch (err: any) {
-      toast.error('Failed to update default package');
     }
   };
 
@@ -366,31 +357,6 @@ export const TenantRoleManager: React.FC = () => {
                       </div>
                     </div>
                   </div>
-
-                  <TableActions
-                    onEdit={() => handleOpenEditModal(role)}
-                    onDelete={role.isDefault ? undefined : () => setDeleteTargetId(role.id)}
-                    extra={
-                      <div className="flex items-center gap-1">
-                        {!role.isDefault && (
-                          <TableActionButton
-                            variant="custom"
-                            icon={Star}
-                            title="Set as Default Package for New Tenants"
-                            onClick={() => handleSetDefaultRolePackage(role.id)}
-                            className="bg-amber-50/90 text-amber-600 border border-amber-200/90 hover:bg-amber-600 hover:text-white dark:bg-slate-800 dark:text-amber-400 dark:border-slate-700 dark:hover:bg-amber-500/80 dark:hover:text-white"
-                          />
-                        )}
-                        <TableActionButton
-                          variant="custom"
-                          icon={UserCheck}
-                          title="Assign Package to Tenants"
-                          onClick={() => handleOpenAssignModal(role)}
-                          className="bg-indigo-50/90 text-indigo-600 border border-indigo-200/90 hover:bg-indigo-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-indigo-500/80 dark:hover:text-white"
-                        />
-                      </div>
-                    }
-                  />
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">
@@ -431,7 +397,7 @@ export const TenantRoleManager: React.FC = () => {
               </div>
 
               {/* Bottom Footer Action */}
-              <div className="mt-4 pt-2 flex items-center justify-between text-xs">
+              <div className="mt-2 pt-2 flex items-center justify-between text-xs">
                 <button
                   type="button"
                   onClick={() => handleOpenAssignModal(role)}
@@ -441,7 +407,21 @@ export const TenantRoleManager: React.FC = () => {
                   <UserCheck size={14} className="text-indigo-600 dark:text-indigo-400 group-hover/btn:scale-110 transition-transform" />
                   <span>Assigned Tenants: <strong className="text-indigo-900 dark:text-indigo-100 font-extrabold">{assignedCount}</strong></span>
                 </button>
-                <span className="text-[11px] text-slate-400 font-medium">Ceiling: <span className="text-indigo-600 dark:text-indigo-400 font-bold">Tier 1</span></span>
+                <TableActions
+                  onEdit={() => handleOpenEditModal(role)}
+                  onDelete={role.isDefault ? undefined : () => setDeleteTargetId(role.id)}
+                  extra={
+                    <div className="flex items-center gap-1">
+                      <TableActionButton
+                        variant="custom"
+                        icon={UserCheck}
+                        title="Assign Package to Tenants"
+                        onClick={() => handleOpenAssignModal(role)}
+                        className="bg-indigo-50/90 text-indigo-600 border border-indigo-200/90 hover:bg-indigo-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-indigo-500/80 dark:hover:text-white"
+                      />
+                    </div>
+                  }
+                />
               </div>
             </div>
           );

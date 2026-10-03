@@ -35,7 +35,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onBack,
   onMenu,
   rightElement,
-  variant = 'default',
+  variant = 'primary',
   style,
   noShadow = false,
   statusBar = 'default',

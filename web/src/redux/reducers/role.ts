@@ -47,25 +47,18 @@ export interface RoleState {
   error: string | null;
 }
 
+// NOTE: Tenant Role Packages define access for the whole tenant org.
+//       masterSubTabs MUST only contain tenant-managed tabs: 'acs', 'wards', 'booths'.
+//       Super-admin-only tabs (districts, pcs, talukas, states, religions, castes, parties)
+//       are never assigned to tenant packages.
 const DEFAULT_TENANT_ROLES: TenantRolePackage[] = [
   {
     id: 'tr-full-suite',
     roleName: 'Full Political Campaign Suite',
-    description: 'Complete access to all web tabs, master sub-tabs, voter directory, and mobile field capabilities.',
+    description: 'Complete access to all web tabs (incl. settings), tenant master sub-tabs (AC, Ward, Booth), voter directory, and mobile field capabilities.',
     allowedTabs: {
-      webTabs: ['dashboard', 'voter_directory', 'tenant_accounts', 'master_data', 'settings'],
-      masterSubTabs: [
-        'districts',
-        'talukas',
-        'villages',
-        'pcs',
-        'acs',
-        'wards',
-        'booths',
-        'religions',
-        'castes',
-        'parties',
-      ],
+      webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
+      masterSubTabs: ['acs', 'wards', 'booths'],
     },
     isActive: true,
     isDefault: true,
@@ -74,10 +67,10 @@ const DEFAULT_TENANT_ROLES: TenantRolePackage[] = [
   {
     id: 'tr-standard',
     roleName: 'Standard Campaign Package',
-    description: 'Access to Dashboard, Voter Directory, Booth Master Data, and Mobile Search & Surveying.',
+    description: 'Access to Dashboard, Voter Directory, Ward & Booth master data, and settings.',
     allowedTabs: {
       webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
-      masterSubTabs: ['districts', 'talukas', 'villages', 'pcs', 'acs', 'wards', 'booths', 'castes'],
+      masterSubTabs: ['wards', 'booths'],
     },
     isActive: true,
     isDefault: false,
@@ -86,9 +79,9 @@ const DEFAULT_TENANT_ROLES: TenantRolePackage[] = [
   {
     id: 'tr-voter-only',
     roleName: 'Voter Directory & Field Survey Package',
-    description: 'Focused package for field operations with Voter Directory access and mobile survey capabilities.',
+    description: 'Focused package for field operations with Voter Directory and Booth reference access. No settings access.',
     allowedTabs: {
-      webTabs: ['dashboard', 'voter_directory'],
+      webTabs: ['dashboard', 'voter_directory', 'master_data'],
       masterSubTabs: ['booths'],
     },
     isActive: true,
@@ -105,7 +98,7 @@ const DEFAULT_TENANT_USER_ROLES: TenantUserRole[] = [
     description: 'Parliamentary Constituency Leader with full constituency overview and voter edit capabilities.',
     accessibleTabs: {
       webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
-      masterSubTabs: ['pcs', 'acs', 'wards', 'booths', 'religions', 'castes', 'parties'],
+      masterSubTabs: ['acs', 'wards', 'booths'],
       mobileScreens: ['voter_search', 'family_tree', 'survey', 'booth_analytics', 'gate_meetings'],
     },
     voterPermissions: {
@@ -126,7 +119,7 @@ const DEFAULT_TENANT_USER_ROLES: TenantUserRole[] = [
     description: 'Assembly Constituency Leader managing AC campaign activities and voter records.',
     accessibleTabs: {
       webTabs: ['dashboard', 'voter_directory', 'master_data'],
-      masterSubTabs: ['acs', 'wards', 'booths', 'castes'],
+      masterSubTabs: ['acs', 'wards', 'booths'],
       mobileScreens: ['voter_search', 'family_tree', 'survey', 'booth_analytics'],
     },
     voterPermissions: {
@@ -207,7 +200,14 @@ export const SET_ROLE_LOADING = 'SET_ROLE_LOADING';
 export default function roleReducer(state = initialState, action: any): RoleState {
   switch (action.type) {
     case SET_TENANT_ROLES:
-      return { ...state, tenantRoles: action.payload };
+      return {
+        ...state,
+        tenantRoles: Array.isArray(action.payload)
+          ? action.payload
+          : Array.isArray(action.payload?.data)
+          ? action.payload.data
+          : (state.tenantRoles || []),
+      };
 
     case ADD_TENANT_ROLE:
       return { ...state, tenantRoles: [action.payload, ...state.tenantRoles] };
@@ -236,7 +236,14 @@ export default function roleReducer(state = initialState, action: any): RoleStat
       };
 
     case SET_TENANT_USER_ROLES:
-      return { ...state, tenantUserRoles: action.payload };
+      return {
+        ...state,
+        tenantUserRoles: Array.isArray(action.payload)
+          ? action.payload
+          : Array.isArray(action.payload?.data)
+          ? action.payload.data
+          : (state.tenantUserRoles || []),
+      };
 
     case ADD_TENANT_USER_ROLE:
       return { ...state, tenantUserRoles: [action.payload, ...state.tenantUserRoles] };

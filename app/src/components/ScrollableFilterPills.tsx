@@ -100,10 +100,10 @@ const getStyles = (theme: any) =>
       backgroundColor: theme.colors.inputBackground,
       borderWidth: 1,
       borderColor: 'transparent',
-      ...getShadow(2, theme.colors.shadowColor, 0.02),
+      ...getShadow(2, theme.colors.shadowColor, 0.1),
     },
     pillActive: {
-      backgroundColor: theme.colors.primary,
+      backgroundColor: "rgba(255, 255, 255, 0.12)",
       ...getShadow(4, theme.colors.primary, 0.15),
     },
     label: {

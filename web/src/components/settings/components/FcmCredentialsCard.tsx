@@ -9,9 +9,8 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { FormInput } from '@/components/common/FormInput';
-import type { CampaignSettings } from '../types/settings.types';
+import type { CampaignSettings } from '@/types/settings.types';
 import { FileUploadInput } from '@/components/common/FileUploadInput';
-
 
 interface FcmCredentialsCardProps {
   settings: CampaignSettings;
@@ -24,6 +23,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
   onChange,
   onOpenTestModal,
 }) => {
+  const safeSettings = settings || ({} as CampaignSettings);
   const [isApnsOpen, setIsApnsOpen] = useState(false);
   const [jsonUploadError, setJsonUploadError] = useState<string | null>(null);
 
@@ -55,7 +55,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
     reader.readAsText(file);
   };
 
-  const isConfigured = Boolean(settings.fcmProjectId && (settings.fcmPrivateKey || settings.fcmServerKey));
+  const isConfigured = Boolean(safeSettings.fcmProjectId && (safeSettings.fcmPrivateKey || safeSettings.fcmServerKey));
 
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5">
@@ -136,7 +136,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
           type="text"
           label="Firebase Project ID"
           placeholder="e.g. ranniti-election-app"
-          value={settings.fcmProjectId || ''}
+          value={safeSettings.fcmProjectId || ''}
           onChange={(e) => onChange({ fcmProjectId: (e.target as any)?.value ?? e })}
           required
         />
@@ -146,7 +146,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
           type="email"
           label="Firebase Service Account Client Email"
           placeholder="e.g. firebase-adminsdk-xyz@...iam.gserviceaccount.com"
-          value={settings.fcmClientEmail || ''}
+          value={safeSettings.fcmClientEmail || ''}
           onChange={(e) => onChange({ fcmClientEmail: (e.target as any)?.value ?? e })}
         />
 
@@ -156,7 +156,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
             type="password"
             label="Service Account Private Key"
             placeholder="-----BEGIN PRIVATE KEY----- ... -----END PRIVATE KEY-----"
-            value={settings.fcmPrivateKey || ''}
+            value={safeSettings.fcmPrivateKey || ''}
             onChange={(e) => onChange({ fcmPrivateKey: (e.target as any)?.value ?? e })}
             helperText="Stored securely in encrypted vault for push notification dispatch"
           />
@@ -168,7 +168,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
             type="password"
             label="Legacy FCM Server Key (Optional Fallback)"
             placeholder="AIzaSy..."
-            value={settings.fcmServerKey || ''}
+            value={safeSettings.fcmServerKey || ''}
             onChange={(e) => onChange({ fcmServerKey: (e.target as any)?.value ?? e })}
           />
         </div>
@@ -194,7 +194,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
               name="apns_team_id"
               label="Apple Team ID"
               placeholder="e.g. 10-character Team ID"
-              value={settings.apnsTeamId || ''}
+              value={safeSettings.apnsTeamId || ''}
               onChange={(e) => onChange({ apnsTeamId: (e.target as any)?.value ?? e })}
             />
 
@@ -202,7 +202,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
               name="apns_key_id"
               label="Apple Key ID"
               placeholder="e.g. 10-character Key ID"
-              value={settings.apnsKeyId || ''}
+              value={safeSettings.apnsKeyId || ''}
               onChange={(e) => onChange({ apnsKeyId: (e.target as any)?.value ?? e })}
             />
 
@@ -210,7 +210,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
               name="apns_bundle_id"
               label="iOS Bundle Identifier"
               placeholder="e.g. com.ranniti.karyakarta"
-              value={settings.apnsBundleId || ''}
+              value={safeSettings.apnsBundleId || ''}
               onChange={(e) => onChange({ apnsBundleId: (e.target as any)?.value ?? e })}
             />
 
@@ -219,7 +219,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
               type="password"
               label="Apple Auth Key (.p8 contents)"
               placeholder="-----BEGIN PRIVATE KEY-----"
-              value={settings.apnsAuthKey || ''}
+              value={safeSettings.apnsAuthKey || ''}
               onChange={(e) => onChange({ apnsAuthKey: (e.target as any)?.value ?? e })}
             />
           </div>

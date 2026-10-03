@@ -2,8 +2,8 @@ import React from 'react';
 import { MapPin } from 'lucide-react';
 import SectionContainer from './SectionContainer';
 import FormInput from '@/components/common/FormInput';
-import { useMasterData } from '@/hooks/useMasterData';
 import type { Option } from '@/components/common/FormInput';
+import { useTenantMasterData } from '@/hooks/useTenantMasterData';
 
 export interface VoterGeographyFormSectionProps {
   formData: any;
@@ -30,7 +30,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
   sameAddress,
   handleSameAddressToggle,
 }) => {
-  const { talukas, villages } = useMasterData(['talukas', 'villages']);
+  const { talukas, villages } = useTenantMasterData(['talukas', 'villages']);
 
   // Suggestions: district-matched talukas appear first, then all others — so typing always works globally
   const talukaSuggestions = React.useMemo(() => {

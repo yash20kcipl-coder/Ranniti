@@ -8,9 +8,9 @@ import {
 } from 'lucide-react';
 import { VariableChips } from './VariableChips';
 import { Modal } from '@/components/common/Modal';
-import { FormInput } from '@/components/common/FormInput';
 import React, { useState, useEffect } from 'react';
-import type { WhatsAppTemplate, WhatsAppButton } from '../types/settings.types';
+import { FormInput } from '@/components/common/FormInput';
+import type { WhatsAppTemplate, WhatsAppButton } from '@/types/settings.types';
 
 interface TemplateBuilderModalProps {
   isOpen: boolean;
@@ -58,7 +58,6 @@ export const TemplateBuilderModal: React.FC<TemplateBuilderModalProps> = ({
   const [footerText, setFooterText] = useState('');
   const [buttons, setButtons] = useState<WhatsAppButton[]>([]);
   const [error, setError] = useState<string | null>(null);
-
 
   useEffect(() => {
     if (templateToEdit) {

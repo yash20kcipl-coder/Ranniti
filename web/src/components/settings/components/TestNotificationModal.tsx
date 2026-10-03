@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Modal } from '@/components/common/Modal';
-import { FormInput } from '@/components/common/FormInput';
 import { useAppDispatch } from '@/redux/hooks';
-import { sendTestPushNotification } from '@/redux/actions/settings';
+import { Modal } from '@/components/common/Modal';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { FormInput } from '@/components/common/FormInput';
+import { sendTestPushNotification } from '@/redux/actions/settings';
 
 interface TestNotificationModalProps {
   isOpen: boolean;
