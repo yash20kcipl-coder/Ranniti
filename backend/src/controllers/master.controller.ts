@@ -137,6 +137,83 @@ export class MasterController {
     res.status(response.statusCode).json(response.body);
   });
 
+  // TALUKAS
+  getTalukas = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const districtId = req.query.districtId as string | undefined;
+    const stateId = req.query.stateId as string | undefined;
+    const talukas = await masterService.getTalukas(districtId, stateId);
+    const response = ApiResponse.success(talukas, 'Talukas retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getTalukaById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const taluka = await masterService.getTalukaById(id);
+    const response = ApiResponse.success(taluka, 'Taluka retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  createTaluka = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { districtId, name } = req.body;
+    const taluka = await masterService.createTaluka(districtId, name);
+    const response = ApiResponse.success(taluka, 'Taluka created successfully', 201);
+    res.status(response.statusCode).json(response.body);
+  });
+
+  updateTaluka = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const { districtId, name } = req.body;
+    const taluka = await masterService.updateTaluka(id, districtId, name);
+    const response = ApiResponse.success(taluka, 'Taluka updated successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  deleteTaluka = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    await masterService.deleteTaluka(id);
+    const response = ApiResponse.success(null, 'Taluka deleted successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  // VILLAGES
+  getVillages = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const talukaId = req.query.talukaId as string | undefined;
+    const districtId = req.query.districtId as string | undefined;
+    const stateId = req.query.stateId as string | undefined;
+    const villages = await masterService.getVillages(talukaId, districtId, stateId);
+    const response = ApiResponse.success(villages, 'Villages retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getVillageById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const village = await masterService.getVillageById(id);
+    const response = ApiResponse.success(village, 'Village retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  createVillage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { talukaId, name } = req.body;
+    const village = await masterService.createVillage(talukaId, name);
+    const response = ApiResponse.success(village, 'Village created successfully', 201);
+    res.status(response.statusCode).json(response.body);
+  });
+
+  updateVillage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const { talukaId, name } = req.body;
+    const village = await masterService.updateVillage(id, talukaId, name);
+    const response = ApiResponse.success(village, 'Village updated successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  deleteVillage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    await masterService.deleteVillage(id);
+    const response = ApiResponse.success(null, 'Village deleted successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
   // PARLIAMENTARY CONSTITUENCIES (PC)
   getPcs = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const stateId = req.query.stateId as string | undefined;
@@ -231,10 +308,52 @@ export class MasterController {
     res.status(response.statusCode).json(response.body);
   });
 
+  // WARDS
+  getWards = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const acId = req.query.acId as string | undefined;
+    const wards = await masterService.getWards(acId);
+    const response = ApiResponse.success(wards, 'Wards retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getWardById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const ward = await masterService.getWardById(id);
+    const response = ApiResponse.success(ward, 'Ward retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  createWard = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { acId, wardNumber, name } = req.body;
+    const ward = await masterService.createWard({ acId, wardNumber: Number(wardNumber), name });
+    const response = ApiResponse.success(ward, 'Ward created successfully', 201);
+    res.status(response.statusCode).json(response.body);
+  });
+
+  updateWard = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const { acId, wardNumber, name } = req.body;
+    const ward = await masterService.updateWard(id, {
+      acId,
+      wardNumber: wardNumber !== undefined ? Number(wardNumber) : undefined,
+      name,
+    });
+    const response = ApiResponse.success(ward, 'Ward updated successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  deleteWard = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    await masterService.deleteWard(id);
+    const response = ApiResponse.success(null, 'Ward deleted successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
   // BOOTHS
   getBooths = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const acId = req.query.acId as string | undefined;
-    const booths = await masterService.getBooths(acId);
+    const wardId = req.query.wardId as string | undefined;
+    const booths = await masterService.getBooths(acId, wardId);
     const response = ApiResponse.success(booths, 'Booths retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
@@ -256,33 +375,6 @@ export class MasterController {
     const id = req.params.id as string;
     await masterService.deleteBooth(id);
     const response = ApiResponse.success(null, 'Booth deleted successfully');
-    res.status(response.statusCode).json(response.body);
-  });
-
-  // ORGANIZATIONS
-  getOrganizations = asyncHandler(async (_req: Request, res: Response): Promise<void> => {
-    const orgs = await masterService.getOrganizations();
-    const response = ApiResponse.success(orgs, 'Organizations retrieved successfully');
-    res.status(response.statusCode).json(response.body);
-  });
-
-  createOrganization = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const org = await masterService.createOrganization(req.body);
-    const response = ApiResponse.success(org, 'Organization created successfully', 201);
-    res.status(response.statusCode).json(response.body);
-  });
-
-  updateOrganization = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const id = req.params.id as string;
-    const org = await masterService.updateOrganization(id, req.body);
-    const response = ApiResponse.success(org, 'Organization updated successfully');
-    res.status(response.statusCode).json(response.body);
-  });
-
-  deleteOrganization = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const id = req.params.id as string;
-    await masterService.deleteOrganization(id);
-    const response = ApiResponse.success(null, 'Organization deleted successfully');
     res.status(response.statusCode).json(response.body);
   });
 }

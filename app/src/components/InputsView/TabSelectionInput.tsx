@@ -4,7 +4,7 @@ import { Theme } from '../../constants/theme';
 import { rfValue } from '../../utils/responsive';
 import { FontFamily } from '../../utils/typography';
 import { View, Pressable, Text } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 
 interface TabSelectionInputComponentProps extends FormInputProps {
   theme: Theme;

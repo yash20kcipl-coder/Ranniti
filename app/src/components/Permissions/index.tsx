@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Modal } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 import { checkMultiple, requestMultiple, openSettings } from 'react-native-permissions';
 import permissionsConfig from './permissionsConfig';
 import { useAppTheme } from '../../hooks/useAppTheme';

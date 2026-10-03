@@ -260,7 +260,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                 {user?.name || 'Administrator'}
               </p>
               <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold capitalize mt-1">
-                {user?.role || 'Super Admin'}
+                {user?.roleName || user?.role || 'Super Admin'}
               </p>
             </div>
             <ChevronDown
@@ -278,7 +278,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{user?.email || 'admin@ranniti.com'}</p>
                 <div className="mt-2 flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-md text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 w-fit">
                   <Shield size={11} className="text-indigo-500 dark:text-indigo-400" />
-                  <span>Super Admin Role</span>
+                  <span>{user?.roleName || (user?.role ? `${user.role.replace('_', ' ')} Role` : 'Super Admin Role')}</span>
                 </div>
               </div>
 

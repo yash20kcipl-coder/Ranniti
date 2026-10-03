@@ -48,7 +48,7 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
   // Search & Filter State (Defaulting Unassigned to true for network building)
   const [search, setSearch] = useState('');
   const [sameSectionOnly, setSameSectionOnly] = useState(false);
-  const [unassignedOnly, setUnassignedOnly] = useState(true);
+  const [unassignedOnly, setUnassignedOnly] = useState(false);
   const [genderFilter, setGenderFilter] = useState('');
   const [voterTypeFilter, setVoterTypeFilter] = useState('');
 
@@ -71,7 +71,7 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
     if (isOpen) {
       setSearch('');
       setSameSectionOnly(false);
-      setUnassignedOnly(true);
+      setUnassignedOnly(false);
       setGenderFilter('');
       setVoterTypeFilter('');
       setPage(1);
@@ -295,11 +295,11 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                   setPage(1);
                 }}
                 className={`py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${sameSectionOnly
-                    ? 'bg-amber-600 text-white shadow-md shadow-amber-900/30 border border-amber-500'
-                    : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
+                  ? 'bg-amber-600 text-white shadow-md shadow-amber-900/30 border border-amber-500'
+                  : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
                   }`}
               >
-                <MapPin className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                <MapPin className={`w-3.5 h-3.5 ${sameSectionOnly ? 'text-white' : 'text-amber-500 dark:text-amber-400'}`} />
                 <span>Same Section (#{influencerSectionNo})</span>
               </button>
             )}
@@ -311,11 +311,11 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                 setPage(1);
               }}
               className={`py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${unassignedOnly
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30 border border-emerald-500'
-                  : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30 border border-emerald-500'
+                : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
                 }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+              <CheckCircle2 className={`w-3.5 h-3.5 ${unassignedOnly ? 'text-white' : 'text-emerald-500 dark:text-emerald-400'}`} />
               <span>Unassigned Only</span>
             </button>
 
@@ -326,11 +326,11 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                 setPage(1);
               }}
               className={`py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${voterTypeFilter === 'Student'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30 border border-blue-500'
-                  : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30 border border-blue-500'
+                : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
                 }`}
             >
-              <GraduationCap className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+              <GraduationCap className={`w-3.5 h-3.5 ${voterTypeFilter === 'Student' ? 'text-white' : 'text-blue-500 dark:text-blue-400'}`} />
               <span>Students / Youth</span>
             </button>
 
@@ -341,11 +341,11 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                 setPage(1);
               }}
               className={`py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${voterTypeFilter === 'Senior'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-900/30 border border-purple-500'
-                  : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
+                ? 'bg-purple-600 text-white shadow-md shadow-purple-900/30 border border-purple-500'
+                : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
                 }`}
             >
-              <UserCheck className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
+              <UserCheck className={`w-3.5 h-3.5 ${voterTypeFilter === 'Senior' ? 'text-white' : 'text-purple-500 dark:text-purple-400'}`} />
               <span>Seniors</span>
             </button>
 
@@ -566,8 +566,8 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                     type="button"
                     onClick={() => setPage(pNum)}
                     className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors ${page === pNum
-                        ? 'bg-amber-600 text-white border-amber-500 shadow-sm'
-                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm dark:shadow-none'
+                      ? 'bg-amber-600 text-white border-amber-500 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm dark:shadow-none'
                       }`}
                   >
                     {pNum}

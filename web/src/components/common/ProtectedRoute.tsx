@@ -2,8 +2,22 @@ import React from 'react';
 import { useAppSelector } from '@/redux/hooks';
 import { Navigate, Outlet } from 'react-router-dom';
 
-export const ProtectedRoute: React.FC = () => {
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+interface ProtectedRouteProps {
+  allowedRoles?: string[];
+}
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && allowedRoles.length > 0 && user?.role) {
+    if (!allowedRoles.includes(user.role)) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return <Outlet />;
 };

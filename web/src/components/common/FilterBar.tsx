@@ -2,12 +2,17 @@ import { FormInput } from './FormInput';
 import { createPortal } from 'react-dom';
 import type { Option } from './FormInput';
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, X, RotateCcw, Check, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import {
+  Search, Filter, X, RotateCcw, Check, ChevronDown,
+  ChevronUp, Sparkles
+} from 'lucide-react';
 
 export interface FilterPreset {
   label: string;
   icon?: React.ReactNode;
   apply: () => void;
+  applyDraft?: (currentDraft: Record<string, any>) => Record<string, any>;
+  isActiveDraft?: (currentDraft: Record<string, any>) => boolean;
   active?: boolean;
 }
 
@@ -20,11 +25,12 @@ export interface FilterField {
   gridSpan?: 1 | 2; // 1 = half width (1 col in 2-col grid), 2 = full width (2 cols)
   value: any;
   onChange: (value: any) => void;
-  options?: Option[];
+  options?: Option[] | ((currentValues: Record<string, any>) => Option[]);
   placeholder?: string;
   isPrimary?: boolean; // If true, displayed inline on wider screens
-  disabled?: boolean;
-  helperText?: string;
+  disabled?: boolean | ((currentValues: Record<string, any>) => boolean);
+  helperText?: string | ((currentValues: Record<string, any>) => string | undefined);
+  hidden?: boolean | ((currentValues: Record<string, any>) => boolean);
 }
 
 export interface FilterBarProps {
@@ -34,6 +40,7 @@ export interface FilterBarProps {
   filters?: FilterField[];
   presets?: FilterPreset[];
   onReset?: () => void;
+  onApply?: (appliedValues: Record<string, any>) => void;
   extraActions?: React.ReactNode;
   className?: string;
 }
@@ -45,17 +52,36 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   filters = [],
   presets = [],
   onReset,
+  onApply,
   extraActions,
   className = '',
 }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+  const [draftValues, setDraftValues] = useState<Record<string, any>>({});
 
-  // Calculate active filter count (excluding empty values)
+  // Sync draft values when drawer opens or when external filters change while drawer is closed
+  useEffect(() => {
+    if (isDrawerOpen) {
+      const initial: Record<string, any> = {};
+      filters.forEach((f) => {
+        initial[f.key] = f.value ?? '';
+      });
+      setDraftValues(initial);
+    }
+  }, [isDrawerOpen]);
+
+  // Calculate committed active filter count (excluding empty values)
   const activeFilters = filters.filter(
     (f) => f.value !== '' && f.value !== null && f.value !== undefined
   );
   const activeFiltersCount = activeFilters.length;
+
+  // Calculate draft active filter count inside drawer
+  const draftActiveCount = filters.filter((f) => {
+    const val = draftValues[f.key] !== undefined ? draftValues[f.key] : f.value;
+    return val !== '' && val !== null && val !== undefined;
+  }).length;
 
   // Primary filters shown inline
   const primaryFilters = filters.filter((f) => f.isPrimary);
@@ -79,6 +105,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     activeCount: data.fields.filter(
       (f) => f.value !== '' && f.value !== null && f.value !== undefined
     ).length,
+    draftActiveCount: data.fields.filter((f) => {
+      const val = draftValues[f.key] !== undefined ? draftValues[f.key] : f.value;
+      return val !== '' && val !== null && val !== undefined;
+    }).length,
   }));
 
   const toggleCategory = (catName: string) => {
@@ -100,16 +130,106 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   // Helper to format filter value label for tag cloud
   const getFilterDisplayValue = (field: FilterField) => {
-    if (field.options && field.options.length > 0) {
-      const match = field.options.find((opt) => String(opt.value) === String(field.value));
+    const rawOptions = typeof field.options === 'function' ? field.options({}) : field.options;
+    if (rawOptions && rawOptions.length > 0) {
+      const match = rawOptions.find((opt) => String(opt.value) === String(field.value));
       if (match) return match.label;
     }
     return String(field.value);
   };
 
+  const handleDraftChange = (key: string, value: any) => {
+    setDraftValues((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const resolveFieldOptions = (field: FilterField, currentValues: Record<string, any>): Option[] => {
+    if (typeof field.options === 'function') {
+      return field.options(currentValues);
+    }
+    return field.options || [];
+  };
+
+  const resolveFieldDisabled = (field: FilterField, currentValues: Record<string, any>): boolean => {
+    if (typeof field.disabled === 'function') {
+      return field.disabled(currentValues);
+    }
+    return field.disabled ?? false;
+  };
+
+  const resolveFieldHelperText = (field: FilterField, currentValues: Record<string, any>): string | undefined => {
+    if (typeof field.helperText === 'function') {
+      return field.helperText(currentValues);
+    }
+    return field.helperText;
+  };
+
+  const resolveFieldHidden = (field: FilterField, currentValues: Record<string, any>): boolean => {
+    if (typeof field.hidden === 'function') {
+      return field.hidden(currentValues);
+    }
+    return field.hidden ?? false;
+  };
+
+  const handleApply = () => {
+    // Commit all modified draft values to the parent via field.onChange
+    filters.forEach((f) => {
+      const draftVal = draftValues[f.key];
+      if (draftVal !== undefined && draftVal !== f.value) {
+        f.onChange(draftVal);
+      }
+    });
+
+    if (onApply) {
+      onApply(draftValues);
+    }
+
+    setIsDrawerOpen(false);
+  };
+
+  const handleResetDraft = () => {
+    const resetDraft: Record<string, any> = {};
+    filters.forEach((f) => {
+      resetDraft[f.key] = '';
+    });
+    setDraftValues(resetDraft);
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    // Revert draft values to current parent values
+    const reverted: Record<string, any> = {};
+    filters.forEach((f) => {
+      reverted[f.key] = f.value ?? '';
+    });
+    setDraftValues(reverted);
+  };
+
+  const handlePresetClickInDrawer = (preset: FilterPreset) => {
+    if (preset.applyDraft) {
+      setDraftValues(preset.applyDraft);
+    } else {
+      preset.apply();
+    }
+  };
+
+  const isPresetActiveInDrawer = (preset: FilterPreset): boolean => {
+    if (preset.isActiveDraft) {
+      return preset.isActiveDraft(draftValues);
+    }
+    return !!preset.active;
+  };
+
   // Render Pill Segmented Option Group
-  const renderPillControl = (field: FilterField) => {
-    const options = field.options || [];
+  const renderPillControl = (field: FilterField, isDraftMode: boolean = false) => {
+    const activeValues = isDraftMode ? draftValues : filters.reduce((acc, f) => ({ ...acc, [f.key]: f.value }), {});
+    const options = resolveFieldOptions(field, activeValues);
+    const currentValue = isDraftMode
+      ? (draftValues[field.key] !== undefined ? draftValues[field.key] : field.value)
+      : field.value;
+
     return (
       <div className="space-y-1.5">
         <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 tracking-wide">
@@ -117,17 +237,22 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </label>
         <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-slate-950/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
           {options.map((opt) => {
-            const isSelected = String(field.value ?? '') === String(opt.value);
+            const isSelected = String(currentValue ?? '') === String(opt.value);
             return (
               <button
                 key={String(opt.value)}
                 type="button"
-                onClick={() => field.onChange(opt.value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-center whitespace-nowrap cursor-pointer ${
-                  isSelected
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800/60'
-                }`}
+                onClick={() => {
+                  if (isDraftMode) {
+                    handleDraftChange(field.key, opt.value);
+                  } else {
+                    field.onChange(opt.value);
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-center whitespace-nowrap cursor-pointer ${isSelected
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800/60'
+                  }`}
               >
                 {opt.label}
               </button>
@@ -147,7 +272,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         {/* Backdrop Overlay */}
         <div
           className="fixed inset-0 bg-slate-950/60 dark:bg-slate-950/80 backdrop-blur-sm transition-opacity animate-fadeIn"
-          onClick={() => setIsDrawerOpen(false)}
+          onClick={handleCloseDrawer}
         />
 
         {/* Drawer Panel */}
@@ -161,9 +286,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white">Filter &amp; Refine</h3>
-                  {activeFiltersCount > 0 && (
+                  {draftActiveCount > 0 && (
                     <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 text-xs font-semibold">
-                      {activeFiltersCount} active
+                      {draftActiveCount} active
                     </span>
                   )}
                 </div>
@@ -172,7 +297,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </div>
 
             <button
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={handleCloseDrawer}
               className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="Close Drawer"
             >
@@ -190,21 +315,23 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   <span>Quick Filter Shortcuts</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {presets.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => preset.apply()}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
-                        preset.active
+                  {presets.map((preset, idx) => {
+                    const isSelected = isPresetActiveInDrawer(preset);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handlePresetClickInDrawer(preset)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${isSelected
                           ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30'
                           : 'bg-white dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border-indigo-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-700 dark:hover:text-white'
-                      }`}
-                    >
-                      {preset.icon}
-                      <span>{preset.label}</span>
-                    </button>
-                  ))}
+                          }`}
+                      >
+                        {preset.icon}
+                        <span>{preset.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -216,9 +343,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               return (
                 <div
                   key={category.name}
-                  className={`rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 transition-all shadow-sm ${
-                    isCollapsed ? 'overflow-hidden' : 'overflow-visible'
-                  }`}
+                  className={`rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 transition-all shadow-sm ${isCollapsed ? 'overflow-hidden' : 'overflow-hidden'
+                    }`}
                 >
                   {/* Category Header Bar */}
                   <button
@@ -229,9 +355,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     <div className="flex items-center gap-2.5">
                       {category.icon && <span className="text-indigo-600 dark:text-indigo-400">{category.icon}</span>}
                       <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{category.name}</span>
-                      {category.activeCount > 0 && (
+                      {category.draftActiveCount > 0 && (
                         <span className="ml-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 text-[11px] font-bold">
-                          {category.activeCount}
+                          {category.draftActiveCount}
                         </span>
                       )}
                     </div>
@@ -244,7 +370,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   {!isCollapsed && (
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800/60">
                       {category.fields.map((field) => {
+                        const isHidden = resolveFieldHidden(field, draftValues);
+                        if (isHidden) return null;
+
                         const isFullWidth = field.gridSpan === 2 || field.type === 'pills' || field.type === 'notice';
+                        const fieldValue = draftValues[field.key] !== undefined ? draftValues[field.key] : field.value;
 
                         return (
                           <div
@@ -257,18 +387,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                                 <span className="leading-relaxed">{field.label}</span>
                               </div>
                             ) : field.type === 'pills' ? (
-                              renderPillControl(field)
+                              renderPillControl(field, true)
                             ) : (
                               <FormInput
                                 name={field.key}
                                 label={field.label}
                                 type={(field.type as any) || 'select'}
-                                value={field.value}
-                                onChange={(e) => field.onChange((e.target as any)?.value ?? e)}
-                                options={field.options || []}
+                                value={fieldValue}
+                                onChange={(e) => handleDraftChange(field.key, (e.target as any)?.value ?? e)}
+                                options={resolveFieldOptions(field, draftValues)}
                                 placeholder={field.placeholder || `Select ${field.label}`}
-                                disabled={field.disabled}
-                                helperText={field.helperText}
+                                disabled={resolveFieldDisabled(field, draftValues)}
+                                helperText={resolveFieldHelperText(field, draftValues)}
                               />
                             )}
                           </div>
@@ -283,25 +413,23 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
           {/* Footer Actions */}
           <div className="p-5 border-t border-indigo-100 dark:border-slate-800 bg-white dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between gap-3">
-            {onReset && (
-              <button
-                type="button"
-                onClick={onReset}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset All</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleResetDraft}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset All</span>
+            </button>
 
             <button
               type="button"
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={handleApply}
               className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
             >
               <Check className="w-4 h-4" />
               <span>
-                Apply Filters {activeFiltersCount > 0 ? `(${activeFiltersCount})` : ''}
+                Apply Filters {draftActiveCount > 0 ? `(${draftActiveCount})` : ''}
               </span>
             </button>
           </div>
@@ -338,7 +466,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 type={field.type === 'pills' || field.type === 'notice' ? 'select' : (field.type || 'select')}
                 value={field.value}
                 onChange={(e) => field.onChange((e.target as any)?.value ?? e)}
-                options={field.options || []}
+                options={resolveFieldOptions(field, filters.reduce((acc, f) => ({ ...acc, [f.key]: f.value }), {}))}
                 placeholder={field.placeholder}
               />
             </div>
@@ -349,11 +477,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               type="button"
               onClick={() => setIsDrawerOpen(true)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all whitespace-nowrap flex-shrink-0 cursor-pointer ${
-                activeFiltersCount > 0
-                  ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/30'
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all whitespace-nowrap flex-shrink-0 cursor-pointer ${activeFiltersCount > 0
+                ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/30'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
             >
               <Filter className="w-4 h-4" />
               <span>All Filters</span>

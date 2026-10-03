@@ -13,7 +13,7 @@ interface PaginationProps {
   count: number;
 }
 
-export interface MdFlatlistProps<T> extends Omit<FlatListProps<T>, 'data' | 'renderItem'> {
+export interface MdFlatlistProps<T> extends Omit<FlatListProps<T>, 'data' | 'renderItem' | 'ListEmptyComponent'> {
   data?: T[] | null;
   refresh?: () => void;
   renderItem?: ListRenderItem<T>;
@@ -28,7 +28,7 @@ export interface MdFlatlistProps<T> extends Omit<FlatListProps<T>, 'data' | 'ren
   renderSkeleton?: ListRenderItem<T>;
 }
 
-const wait = (timeout: number) => { return new Promise<void>(resolve => setTimeout(resolve, timeout)); }
+const wait = (timeout: number) => { return new Promise<void>(resolve => setTimeout(() => resolve(), timeout)); }
 
 function MdFlatlistInner<T>(
   {

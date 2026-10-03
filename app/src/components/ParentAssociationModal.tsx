@@ -17,7 +17,7 @@ import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
 import React, { useState, useEffect } from 'react';
 import { searchParentsAction } from '../store/actions/student';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 
 const { width } = Dimensions.get('window');
 

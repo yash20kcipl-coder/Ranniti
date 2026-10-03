@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { Theme } from '../constants/theme';

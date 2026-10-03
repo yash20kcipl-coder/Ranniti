@@ -1,162 +1,168 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { FormInputProps } from './types';
 import { Theme } from '../../constants/theme';
-import { getShadow } from '../../utils/shadow';
 import { rfValue } from '../../utils/responsive';
 import { FontFamily } from '../../utils/typography';
-import { Dropdown } from 'react-native-element-dropdown';
-import { View, Text, Dimensions, StatusBar } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react-native';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 
-const { height } = Dimensions.get("window")
-
-interface SelectInputComponentProps extends FormInputProps {
+interface SelectInputComponentProps extends Partial<FormInputProps> {
   theme: Theme;
   styles: any;
   dropdownPosition?: 'auto' | 'top' | 'bottom';
 }
 
+
 export const SelectInput: React.FC<SelectInputComponentProps> = ({
-  label: _label,
   value,
   placeholder,
   options = [],
   onChange,
-  editable = true,
+  disabled,
   error,
   theme,
-  styles,
-  dropdownPosition = 'auto',
 }) => {
-  const containerRef = useRef<View>(null);
-  const selectedOption = options?.find((opt) => opt.value === value);
-  const [computedPosition, setComputedPosition] = useState<'top' | 'bottom'>('bottom');
-  const insets = useSafeAreaInsets();
+  const [modalVisible, setModalVisible] = useState(false);
 
-  const handleFocus = () => {
-    if (dropdownPosition !== 'auto') {
-      setComputedPosition(dropdownPosition);
-      return;
+  const selectedOption = options.find((opt) => String(opt.value) === String(value));
+  const displayText = selectedOption ? selectedOption.label : placeholder || 'Select option...';
+
+  const handleSelect = (val: any) => {
+    if (onChange) {
+      onChange(val);
     }
-
-    containerRef.current?.measureInWindow((x, y, w, h) => {
-      const screenHeight = Dimensions.get('window').height;
-      const statusBarHeight = insets.top || StatusBar.currentHeight || 0;
-      const bottomHeight = insets.bottom || 0;
-
-      // Usable active height excluding the top status bar and bottom gesture bar/buttons
-      const activeHeight = screenHeight - statusBarHeight - bottomHeight;
-      const midpoint = activeHeight / 2;
-
-      // Position of the input midpoint relative to the start of the active usable screen height
-      const inputRelativeMidpoint = (y + h / 2) - statusBarHeight;
-
-      if (inputRelativeMidpoint > midpoint) {
-        setComputedPosition('top');
-      } else {
-        setComputedPosition('bottom');
-      }
-    });
+    setModalVisible(false);
   };
 
   return (
-    <View ref={containerRef} style={{ width: '100%' }}>
-      <Dropdown
-        dropdownPosition={computedPosition}
-        onFocus={handleFocus}
+    <View style={componentStyles.container}>
+      <TouchableOpacity
         style={[
-          styles.selectBox,
-          !!error && styles.selectBoxError,
-          !editable && { opacity: 0.6 }
+          componentStyles.selectBox,
+          { backgroundColor: theme.colors.surface, borderColor: error ? theme.colors.error : theme.colors.outline },
+          disabled && { opacity: 0.6 },
         ]}
-        placeholderStyle={[styles.selectText, styles.placeholder]}
-        selectedTextStyle={styles.selectText}
-        inputSearchStyle={{
-          borderRadius: 8,
-          borderColor: theme.colors.border,
-          backgroundColor: theme.colors.inputBackground,
-          fontFamily: FontFamily.body,
-          fontSize: rfValue(13),
-          height: 40,
-          color: theme.colors.text,
-          paddingHorizontal: 8,
-        }}
-        containerStyle={{
-          borderRadius: 12,
-          backgroundColor: theme.colors.surface,
-          borderColor: theme.colors.border,
-          borderWidth: 1,
-          marginTop: 4,
-          paddingVertical: 4,
-          ...getShadow(3, '#000000', 0.05),
-        }}
-        activeColor="transparent"
-        data={options}
-        search={options.length > 5}
-        maxHeight={height / 2.5}
-        labelField="label"
-        valueField="value"
-        placeholder={placeholder || 'Select option...'}
-        searchPlaceholder="Search..."
-        value={value}
-        onChange={(item) => onChange(item.value)}
-        disable={!editable}
-        flatListProps={{
-          keyboardShouldPersistTaps: 'handled',
-        }}
-        renderRightIcon={() => (
-          <MaterialDesignIcons
-            name="chevron-down"
-            size={20}
-            color={theme.colors.textSecondary + 'B3'}
-          />
-        )}
-        renderLeftIcon={() =>
-          selectedOption?.icon ? (
-            <View style={{ marginRight: 10 }}>
-              <MaterialDesignIcons
-                name={selectedOption.icon as any}
-                size={18}
-                color={selectedOption.color || theme.colors.primary}
-              />
-            </View>
-          ) : null
-        }
-        renderItem={(item) => {
-          const isSelected = item.value === value;
-          const itemIconColor = item.color || theme.colors.primary;
-          const itemIconBg = item.bg || itemIconColor + '15';
+        activeOpacity={0.7}
+        onPress={() => !disabled && setModalVisible(true)}
+      >
+        <Text
+          style={[
+            componentStyles.selectText,
+            { color: selectedOption ? theme.colors.text : theme.colors.textSecondary },
+          ]}
+        >
+          {displayText}
+        </Text>
+        <MaterialDesignIcons name="chevron-down" size={20} color={theme.colors.textSecondary} />
+      </TouchableOpacity>
 
-          return (
-            <View style={[styles.optionItem, isSelected && styles.activeOptionItem]}>
-              <View style={styles.optionRow}>
-                {item.icon && (
-                  <View style={[styles.modalIconContainer, { width: 28, height: 28, borderRadius: 14, backgroundColor: itemIconBg }]}>
-                    <MaterialDesignIcons
-                      name={item.icon as any}
-                      size={14}
-                      color={itemIconColor}
-                    />
-                  </View>
-                )}
-                <Text style={[styles.optionText, { fontSize: rfValue(13.5) }, isSelected && styles.activeOptionText]}>
-                  {item.label}
-                </Text>
-              </View>
-              {isSelected && (
-                <MaterialDesignIcons
-                  name="check"
-                  size={16}
-                  color={theme.colors.primary}
-                />
-              )}
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+        <TouchableOpacity
+          style={componentStyles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
+        >
+          <View style={[componentStyles.modalCard, { backgroundColor: theme.colors.surface }]}>
+            <View style={componentStyles.modalHeader}>
+              <Text style={[componentStyles.modalTitle, { color: theme.colors.text }]}>
+                {placeholder || 'Select Option'}
+              </Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <MaterialDesignIcons name="close" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
             </View>
-          );
-        }}
-      />
+
+            <FlatList
+              data={options}
+              keyExtractor={(item) => String(item.value)}
+              renderItem={({ item }) => {
+                const isSelected = String(item.value) === String(value);
+                return (
+                  <TouchableOpacity
+                    style={[
+                      componentStyles.optionItem,
+                      isSelected && { backgroundColor: theme.colors.primary + '15' },
+                    ]}
+                    onPress={() => handleSelect(item.value)}
+                  >
+                    <Text
+                      style={[
+                        componentStyles.optionText,
+                        { color: isSelected ? theme.colors.primary : theme.colors.text },
+                        isSelected && { fontWeight: 'bold' },
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                    {isSelected && (
+                      <MaterialDesignIcons name="check" size={18} color={theme.colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
+
+const componentStyles = StyleSheet.create({
+  container: {
+    width: '100%',
+  },
+  selectBox: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectText: {
+    fontFamily: FontFamily.body,
+    fontSize: rfValue(14),
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxHeight: 360,
+    borderRadius: 16,
+    padding: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  modalTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: rfValue(16),
+  },
+  optionItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  optionText: {
+    fontFamily: FontFamily.body,
+    fontSize: rfValue(14),
+  },
+});
 
 export default SelectInput;

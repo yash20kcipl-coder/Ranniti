@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Bharatiya Janata Party",
+    "abbreviation": "BJP",
+    "symbolLogo": "/uploads/parties/bjp.png",
+    "alliance": "National Democratic Alliance (NDA)"
+  },
+  {
+    "name": "Indian National Congress",
+    "abbreviation": "INC",
+    "symbolLogo": "/uploads/parties/inc.png",
+    "alliance": "INDIA Alliance"
+  },
+  {
+    "name": "Nationalist Congress Party",
+    "abbreviation": "NCP",
+    "symbolLogo": "/uploads/parties/ncp.png",
+    "alliance": "Mahayuti / NDA"
+  },
+  {
+    "name": "Nationalist Congress Party (Sharadchandra Pawar)",
+    "abbreviation": "NCP (SP)",
+    "symbolLogo": "/uploads/parties/ncp_sp.png",
+    "alliance": "Maha Vikas Aghadi (MVA) / INDIA"
+  },
+  {
+    "name": "Shiv Sena",
+    "abbreviation": "SHS",
+    "symbolLogo": "/uploads/parties/shs.png",
+    "alliance": "Mahayuti / NDA"
+  },
+  {
+    "name": "Shiv Sena (Uddhav Balasaheb Thackeray)",
+    "abbreviation": "SHS (UBT)",
+    "symbolLogo": "/uploads/parties/shs_ubt.png",
+    "alliance": "Maha Vikas Aghadi (MVA) / INDIA"
+  },
+  {
+    "name": "Maharashtra Navnirman Sena",
+    "abbreviation": "MNS",
+    "symbolLogo": "/uploads/parties/mns.png",
+    "alliance": "Independent / NDA Support"
+  },
+  {
+    "name": "Aam Aadmi Party",
+    "abbreviation": "AAP",
+    "symbolLogo": "/uploads/parties/aap.png",
+    "alliance": "INDIA Alliance"
+  },
+  {
+    "name": "Bahujan Samaj Party",
+    "abbreviation": "BSP",
+    "symbolLogo": "/uploads/parties/bsp.png",
+    "alliance": "Independent"
+  },
+  {
+    "name": "Communist Party of India (Marxist)",
+    "abbreviation": "CPI(M)",
+    "symbolLogo": "/uploads/parties/cpim.png",
+    "alliance": "Left Front / INDIA"
+  },
+  {
+    "name": "Independent / Neutral",
+    "abbreviation": "IND",
+    "symbolLogo": "/uploads/parties/ind.png",
+    "alliance": "Independent"
+  }
+]

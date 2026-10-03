@@ -24,11 +24,21 @@ export class AuthService {
       throw ApiError.unauthorized('Invalid email or password');
     }
 
+    const FIELD_ROLES = ['pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter'];
+    if (FIELD_ROLES.includes(user.role)) {
+      throw ApiError.forbidden(
+        'Web access denied. Leaders, Sub-Leaders, and Supporters can only access the Ranniti Mobile Application.'
+      );
+    }
+
     const token = generateJwtToken({
       userId: user.id,
       email: user.email,
       role: user.role,
-      organizationId: user.organizationId,
+      tenantDbName: user.tenantDbName,
+      parentLeaderId: user.parentLeaderId,
+      assignedAcId: user.assignedAcId,
+      assignedBoothIds: user.assignedBoothIds,
     });
 
     const { passwordHash, ...userWithoutPassword } = user;
@@ -40,8 +50,13 @@ export class AuthService {
     email: string;
     password: string;
     role?: string;
-    organizationId?: string;
+    roleName?: string | null;
     mobile?: string;
+    avatar?: string | null;
+    tenantDbName?: string | null;
+    parentLeaderId?: string | null;
+    assignedAcId?: string | null;
+    assignedBoothIds?: string[];
   }): Promise<Omit<UserRecord, 'passwordHash'>> {
     const existing = await AuthQueries.findUserByEmail(data.email);
     if (existing) {

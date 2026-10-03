@@ -5,7 +5,7 @@ import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 interface CollapsibleCardProps {

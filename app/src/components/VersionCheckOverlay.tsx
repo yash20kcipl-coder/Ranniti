@@ -9,7 +9,7 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
@@ -63,7 +63,8 @@ export const VersionCheckOverlay: React.FC<VersionCheckOverlayProps> = ({
       onRequestClose={isForceUpdate ? () => {} : handleDismiss}
     >
       <View style={styles.backdrop}>
-        <StatusBar barStyle="light-content" backgroundColor="rgba(0,0,0,0.8)" />
+        <StatusBar barStyle="light-content" />
+
         
         {/* Update Card */}
         <View style={styles.card}>

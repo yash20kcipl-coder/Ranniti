@@ -1,86 +1,150 @@
 import React from 'react';
-import { goBack } from '../../navigation';
+import { View, Text, Image, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
+import { Menu, ChevronLeft } from 'lucide-react-native';
 import { appHeaderStyles } from './styles';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { teacherDrawerRoutes, studentDrawerRoutes } from '../../navigation/routes';
-import { useNavigation, useRoute, DrawerActions } from '@react-navigation/native';
-import { View, Text, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { goBack } from '../../navigation';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface AppHeaderProps {
-  title: string;
+const RANNITI_LOGO = require('../../assets/images/ranniti-logo.png');
+
+export interface AppHeaderProps {
+  title?: string;
+  subtitle?: string;
+  badge?: string | number;
+  showLogo?: boolean;
   showBack?: boolean;
+  showMenu?: boolean;
   onBack?: () => void;
+  onMenu?: () => void;
   rightElement?: React.ReactNode;
-  noShadow?: boolean;
+  variant?: 'default' | 'primary' | 'transparent';
   style?: StyleProp<ViewStyle>;
-  backgroundColor?: string;
-  textColor?: string;
-  iconColor?: string;
+  noShadow?: boolean;
+  statusBar?: 'default' | 'hidden' | 'light-content' | 'dark-content';
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   title,
-  showBack = true,
+  subtitle,
+  badge,
+  showLogo = !title,
+  showBack = false,
+  showMenu = false,
   onBack,
+  onMenu,
   rightElement,
-  noShadow,
+  variant = 'default',
   style,
-  backgroundColor,
-  textColor,
-  iconColor,
+  noShadow = false,
+  statusBar = 'default',
 }) => {
-  const route = useRoute();
+  const { top } = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { styles, theme } = useAppTheme(appHeaderStyles);
-  const canGoBack = navigation && navigation.canGoBack();
-  const isDrawerScreen = [...teacherDrawerRoutes, ...studentDrawerRoutes]
-    .some((r) => String(r.name).toLowerCase() === route.name?.toLowerCase());
 
-  const showLeftButton = isDrawerScreen || (showBack && canGoBack);
-  const isDarkBg = !backgroundColor || (backgroundColor !== '#F8FAFC' && backgroundColor !== '#FFFFFF');
+  const canGoBack = navigation && typeof navigation.canGoBack === 'function' && navigation.canGoBack();
+  const isPrimary = variant === 'primary';
+  const isTransparent = variant === 'transparent';
 
-  const handlePressLeft = () => {
-    if (isDrawerScreen) {
+  const handleMenuPress = () => {
+    if (onMenu) {
+      onMenu();
+    } else if (navigation?.openDrawer) {
+      navigation.openDrawer();
+    } else if (navigation?.dispatch) {
       navigation.dispatch(DrawerActions.openDrawer());
-    } else if (canGoBack) {
-      if (onBack) { onBack(); } else { goBack(); }
     }
   };
 
+  const handleBackPress = () => {
+    if (onBack) {
+      onBack();
+    } else if (canGoBack) {
+      goBack();
+    }
+  };
+
+  // Determine container styles
+  const containerStyle = [
+    styles.headerContainer,
+    isPrimary && styles.headerPrimary,
+    isTransparent && styles.headerTransparent,
+    statusBar === 'hidden' && { paddingTop: top },
+    noShadow && { elevation: 0, shadowOpacity: 0 },
+    style,
+  ];
+
+  const iconColor = isPrimary ? '#FFFFFF' : theme.colors.primary || '#1E40AF';
+
   return (
-    <View style={[styles.header, noShadow && { elevation: 0, shadowOpacity: 0 }, backgroundColor ? { backgroundColor } : null, style]}>
-      <View style={styles.content}>
-        <View style={styles.leftContainer}>
-          {showLeftButton && (
+    <View style={containerStyle}>
+      <View style={styles.contentRow}>
+        {/* Left Section: Menu button / Back button + Logo/Title */}
+        <View style={styles.leftSection}>
+          {showBack ? (
             <TouchableOpacity
-              onPress={handlePressLeft}
-              style={[
-                styles.backButton,
-                !isDarkBg ? { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#F1F5F9' } : null
-              ]}
+              style={[styles.actionBtn, isPrimary && styles.actionBtnPrimary]}
               activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={handleBackPress}
             >
-              <MaterialDesignIcons
-                size={isDrawerScreen ? 22 : 26}
-                name={isDrawerScreen ? 'menu' : 'chevron-left'}
-                color={iconColor || (isDarkBg ? '#FFFFFF' : theme.colors.text)}
-              />
+              <ChevronLeft size={22} color={iconColor} />
             </TouchableOpacity>
-          )}
+          ) : (showMenu || !title) ? (
+            <TouchableOpacity
+              style={[styles.actionBtn, isPrimary && styles.actionBtnPrimary]}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={handleMenuPress}
+            >
+              <Menu strokeWidth={2.2} size={22} color={iconColor} />
+            </TouchableOpacity>
+          ) : null}
+
+          {showLogo ? (
+            <View style={styles.logoContainer}>
+              <Image
+                source={RANNITI_LOGO}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+          ) : title ? (
+            <View style={styles.titleContainer}>
+              <View style={styles.titleRow}>
+                <Text
+                  style={[styles.titleText, isPrimary && styles.titleTextPrimary]}
+                  numberOfLines={1}
+                >
+                  {title}
+                </Text>
+                {badge !== undefined && (
+                  <View style={[styles.badgeContainer, isPrimary && styles.badgeContainerPrimary]}>
+                    <Text style={[styles.badgeText, isPrimary && styles.badgeTextPrimary]}>
+                      {badge}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {subtitle ? (
+                <Text
+                  style={[styles.subtitleText, isPrimary && styles.subtitleTextPrimary]}
+                  numberOfLines={1}
+                >
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
         </View>
 
-        <View style={styles.centerContainer}>
-          <Text style={[styles.title, textColor ? { color: textColor } : (!isDarkBg ? { color: theme.colors.text } : null)]} numberOfLines={1}>
-            {title}
-          </Text>
-        </View>
-
-        <View style={styles.rightContainer}>
-          {rightElement}
-        </View>
+        {/* Right Section: Action badges / Custom elements */}
+        {rightElement ? <View style={styles.rightSection}>{rightElement}</View> : null}
       </View>
     </View>
   );
 };
+
 export default AppHeader;

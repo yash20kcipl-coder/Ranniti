@@ -1,4 +1,6 @@
-import { query } from './dbPool';
+import { query, dbPool } from './dbPool';
+import { logger } from '../utils/logger';
+import { FamilyMappingService } from '../services/familyMapping.service';
 import { Voter, VoterFilterParams, VoterStats, InfluencerOption, FamilyCandidateParams, SocialCandidateParams } from '../models/voter.model';
 
 export class VoterQueries {
@@ -38,8 +40,15 @@ export class VoterQueries {
       paramIndex++;
     }
 
+    if (params.pcId) {
+      conditions.push(`v.pc_id = $${paramIndex}`);
+      values.push(params.pcId);
+      paramIndex++;
+    }
+
+
     if (params.gender) {
-      conditions.push(`v.gender ILIKE $${paramIndex}`);
+      conditions.push(`LOWER(v.gender) = LOWER($${paramIndex})`);
       values.push(params.gender);
       paramIndex++;
     }
@@ -117,23 +126,23 @@ export class VoterQueries {
     }
 
     if (params.influencerRole === 'family') {
-      conditions.push(`(v.is_family_influencer = TRUE OR EXISTS (SELECT 1 FROM voters fv WHERE fv.family_influencer_id = v.id))`);
+      conditions.push(`v.is_family_influencer = TRUE`);
     } else if (params.influencerRole === 'social') {
-      conditions.push(`(v.is_social_influencer = TRUE OR EXISTS (SELECT 1 FROM voters sv WHERE sv.social_influencer_id = v.id))`);
+      conditions.push(`v.is_social_influencer = TRUE`);
     } else if (params.influencerRole === 'any') {
-      conditions.push(`(v.is_family_influencer = TRUE OR v.is_social_influencer = TRUE OR EXISTS (SELECT 1 FROM voters fv WHERE fv.family_influencer_id = v.id) OR EXISTS (SELECT 1 FROM voters sv WHERE sv.social_influencer_id = v.id))`);
+      conditions.push(`(v.is_family_influencer = TRUE OR v.is_social_influencer = TRUE)`);
     } else {
       if (params.isFamilyInfluencer !== undefined && params.isFamilyInfluencer !== '') {
         const isFam = params.isFamilyInfluencer === true || params.isFamilyInfluencer === 'true';
         if (isFam) {
-          conditions.push(`(v.is_family_influencer = TRUE OR EXISTS (SELECT 1 FROM voters fv WHERE fv.family_influencer_id = v.id))`);
+          conditions.push(`v.is_family_influencer = TRUE`);
         }
       }
 
       if (params.isSocialInfluencer !== undefined && params.isSocialInfluencer !== '') {
         const isSoc = params.isSocialInfluencer === true || params.isSocialInfluencer === 'true';
         if (isSoc) {
-          conditions.push(`(v.is_social_influencer = TRUE OR EXISTS (SELECT 1 FROM voters sv WHERE sv.social_influencer_id = v.id))`);
+          conditions.push(`v.is_social_influencer = TRUE`);
         }
       }
     }
@@ -144,21 +153,27 @@ export class VoterQueries {
       conditions.push(`(v.family_influencer_id IS NULL AND v.social_influencer_id IS NULL)`);
     }
 
-    if (params.organizationId) {
-      conditions.push(`v.organization_id = $${paramIndex}`);
-      values.push(params.organizationId);
-      paramIndex++;
-    }
+
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Count Total
-    const countSql = `SELECT COUNT(*)::int AS total FROM voters v ${whereClause}`;
-    const countRes = await query(countSql, values);
-    const total = countRes.rows[0]?.total || 0;
+    // Fetch Data using Late Row Fetching (Deferred Joins)
+    // The CTE filters and sorts IDs only, ensuring 11 joins and lateral counts run only on the paged 25 rows
+    const sortClause = params.boothId
+      ? 'v.serial_no ASC NULLS LAST, v.created_at DESC'
+      : 'b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.created_at DESC';
 
-    // Fetch Data
+    const countSql = `SELECT COUNT(*)::int AS total FROM voters v ${whereClause}`;
+
     const dataSql = `
+      WITH paged_voters AS (
+        SELECT v.id
+        FROM voters v
+        ${params.boothId ? '' : 'LEFT JOIN booths b ON v.booth_id = b.id'}
+        ${whereClause}
+        ORDER BY ${sortClause}
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      )
       SELECT 
         v.id,
         v.epic_no AS "epicNo",
@@ -208,23 +223,25 @@ export class VoterQueries {
         v.voter_address AS "voterAddress",
         v.party_id AS "partyId",
         p.name AS "partyName",
+        p.abbreviation AS "partyAbbreviation",
         p.symbol_logo AS "partySymbol",
         v.family_influencer_id AS "familyInfluencerId",
         CONCAT_WS(' ', NULLIF(fi.eng_first_name, ''), NULLIF(fi.eng_middle_name, ''), NULLIF(fi.eng_surname, '')) AS "familyInfluencerName",
         fi.epic_no AS "familyInfluencerEpic",
-        (SELECT COUNT(*)::int FROM voters fv WHERE fv.family_influencer_id = v.id) AS "familyInfluencedCount",
-        (COALESCE(v.is_family_influencer, FALSE) OR (SELECT COUNT(*)::int FROM voters fv WHERE fv.family_influencer_id = v.id) > 0) AS "isFamilyInfluencer",
+        COALESCE(fic.cnt, 0) AS "familyInfluencedCount",
+        (COALESCE(v.is_family_influencer, FALSE) OR COALESCE(fic.cnt, 0) > 0) AS "isFamilyInfluencer",
         v.social_influencer_id AS "socialInfluencerId",
         CONCAT_WS(' ', NULLIF(si.eng_first_name, ''), NULLIF(si.eng_middle_name, ''), NULLIF(si.eng_surname, '')) AS "socialInfluencerName",
         si.epic_no AS "socialInfluencerEpic",
-        (SELECT COUNT(*)::int FROM voters sv WHERE sv.social_influencer_id = v.id) AS "socialInfluencedCount",
-        (COALESCE(v.is_social_influencer, FALSE) OR (SELECT COUNT(*)::int FROM voters sv WHERE sv.social_influencer_id = v.id) > 0) AS "isSocialInfluencer",
+        COALESCE(sic.cnt, 0) AS "socialInfluencedCount",
+        (COALESCE(v.is_social_influencer, FALSE) OR COALESCE(sic.cnt, 0) > 0) AS "isSocialInfluencer",
 
-        v.organization_id AS "organizationId",
-        org.name AS "organizationName",
+        v.family_id AS "familyId",
+
         v.created_at AS "createdAt",
         v.updated_at AS "updatedAt"
-      FROM voters v
+      FROM paged_voters pv
+      JOIN voters v ON pv.id = v.id
       LEFT JOIN states st ON v.state_id = st.id
       LEFT JOIN districts dt ON v.district_id = dt.id
       LEFT JOIN parliamentary_constituencies pc ON v.pc_id = pc.id
@@ -235,13 +252,22 @@ export class VoterQueries {
       LEFT JOIN parties p ON v.party_id = p.id
       LEFT JOIN voters fi ON v.family_influencer_id = fi.id
       LEFT JOIN voters si ON v.social_influencer_id = si.id
-      LEFT JOIN organizations org ON v.organization_id = org.id
-      ${whereClause}
-      ORDER BY b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.created_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt FROM voters fv WHERE fv.family_influencer_id = v.id
+      ) fic ON true
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt FROM voters sv WHERE sv.social_influencer_id = v.id
+      ) sic ON true
+      ORDER BY ${sortClause}
     `;
 
-    const dataRes = await query(dataSql, [...values, limit, offset]);
+    const [countRes, dataRes] = await Promise.all([
+      query(countSql, values),
+      query(dataSql, [...values, limit, offset]),
+    ]);
+
+    const total = countRes.rows[0]?.total || 0;
 
     return {
       data: dataRes.rows,
@@ -303,20 +329,20 @@ export class VoterQueries {
         v.voter_address AS "voterAddress",
         v.party_id AS "partyId",
         p.name AS "partyName",
+        p.abbreviation AS "partyAbbreviation",
         p.symbol_logo AS "partySymbol",
         v.family_influencer_id AS "familyInfluencerId",
         CONCAT_WS(' ', NULLIF(fi.eng_first_name, ''), NULLIF(fi.eng_middle_name, ''), NULLIF(fi.eng_surname, '')) AS "familyInfluencerName",
-        fi.epic_no AS "familyInfluencerEpic",
-        (SELECT COUNT(*)::int FROM voters fv WHERE fv.family_influencer_id = v.id) AS "familyInfluencedCount",
-        (COALESCE(v.is_family_influencer, FALSE) OR (SELECT COUNT(*)::int FROM voters fv WHERE fv.family_influencer_id = v.id) > 0) AS "isFamilyInfluencer",
+        COALESCE(fic.cnt, 0) AS "familyInfluencedCount",
+        (COALESCE(v.is_family_influencer, FALSE) OR COALESCE(fic.cnt, 0) > 0) AS "isFamilyInfluencer",
         v.social_influencer_id AS "socialInfluencerId",
         CONCAT_WS(' ', NULLIF(si.eng_first_name, ''), NULLIF(si.eng_middle_name, ''), NULLIF(si.eng_surname, '')) AS "socialInfluencerName",
         si.epic_no AS "socialInfluencerEpic",
-        (SELECT COUNT(*)::int FROM voters sv WHERE sv.social_influencer_id = v.id) AS "socialInfluencedCount",
-        (COALESCE(v.is_social_influencer, FALSE) OR (SELECT COUNT(*)::int FROM voters sv WHERE sv.social_influencer_id = v.id) > 0) AS "isSocialInfluencer",
+        COALESCE(sic.cnt, 0) AS "socialInfluencedCount",
+        (COALESCE(v.is_social_influencer, FALSE) OR COALESCE(sic.cnt, 0) > 0) AS "isSocialInfluencer",
 
-        v.organization_id AS "organizationId",
-        org.name AS "organizationName",
+        v.family_id AS "familyId",
+
         v.created_at AS "createdAt",
         v.updated_at AS "updatedAt"
       FROM voters v
@@ -330,7 +356,13 @@ export class VoterQueries {
       LEFT JOIN parties p ON v.party_id = p.id
       LEFT JOIN voters fi ON v.family_influencer_id = fi.id
       LEFT JOIN voters si ON v.social_influencer_id = si.id
-      LEFT JOIN organizations org ON v.organization_id = org.id
+
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt FROM voters fv WHERE fv.family_influencer_id = v.id
+      ) fic ON true
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt FROM voters sv WHERE sv.social_influencer_id = v.id
+      ) sic ON true
       WHERE v.id = $1`,
       [id]
     );
@@ -345,8 +377,8 @@ export class VoterQueries {
         gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
         profession_type, profession, religion_id, caste_id, subcaste_name, voter_type,
         status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
-        party_id, family_influencer_id, social_influencer_id, organization_id,
-        is_family_influencer, is_social_influencer
+        party_id, family_influencer_id, social_influencer_id,
+        is_family_influencer, is_social_influencer, family_id
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14, $15,
@@ -362,6 +394,7 @@ export class VoterQueries {
         aadhaar_no AS "aadhaarNo", pan_no AS "panNo", profession_type AS "professionType", profession,
         voter_type AS "voterType", status, is_dead AS "isDead", blood_group AS "bloodGroup", avatar,
         is_family_influencer AS "isFamilyInfluencer", is_social_influencer AS "isSocialInfluencer",
+        family_id AS "familyId",
         created_at AS "createdAt", updated_at AS "updatedAt"`,
       [
         data.epicNo,
@@ -403,13 +436,159 @@ export class VoterQueries {
         data.partyId || null,
         data.familyInfluencerId || null,
         data.socialInfluencerId || null,
-        data.organizationId || null,
         data.isFamilyInfluencer || false,
         data.isSocialInfluencer || false,
+        data.familyId || null,
       ]
     );
 
     return res.rows[0];
+  }
+
+  /**
+   * High-performance multi-row batch insert with ON CONFLICT (epic_no) DO UPDATE
+   * Chunks queries in batches of 300 (safely below PostgreSQL's 65,535 parameter limit).
+   * Falls back to single-row inserts for any failed chunk so valid records are never dropped.
+   */
+  static async createVotersBatch(votersList: Partial<Voter>[]): Promise<{ inserted: number; errors: number }> {
+    if (!votersList || votersList.length === 0) {
+      return { inserted: 0, errors: 0 };
+    }
+
+    const CHUNK_SIZE = 300;
+    let totalInserted = 0;
+    let totalErrors = 0;
+
+    for (let i = 0; i < votersList.length; i += CHUNK_SIZE) {
+      const chunk = votersList.slice(i, i + CHUNK_SIZE);
+      const valueTuples: string[] = [];
+      const valuesParams: any[] = [];
+      let pIndex = 1;
+
+      for (const data of chunk) {
+        const tuplePlaceholders = Array.from({ length: 42 }, (_, idx) => `$${pIndex + idx}`).join(', ');
+        valueTuples.push(`(${tuplePlaceholders})`);
+
+        valuesParams.push(
+          data.epicNo,
+          data.stateId || null,
+          data.districtId || null,
+          data.pcId || null,
+          data.acId || null,
+          data.boothId || null,
+          data.serialNo || null,
+          data.sectionNo || null,
+          data.houseNo || null,
+          data.firstName || null,
+          data.engFirstName || null,
+          data.middleName || null,
+          data.engMiddleName || null,
+          data.surname || null,
+          data.engSurname || null,
+          data.gender || null,
+          data.dob || null,
+          data.age || null,
+          data.mobileNo || null,
+          data.email || null,
+          data.aadhaarNo || null,
+          data.panNo || null,
+          data.professionType || null,
+          data.profession || null,
+          data.religionId || null,
+          data.casteId || null,
+          data.subcasteName || null,
+          data.voterType || 'Voter',
+          data.status || 'ACTIVE',
+          data.isDead || false,
+          data.bloodGroup || null,
+          data.avatar || null,
+          data.taluka || null,
+          data.village || null,
+          data.fullAddress || null,
+          data.voterAddress || null,
+          data.partyId || null,
+          data.familyInfluencerId || null,
+          data.socialInfluencerId || null,
+          data.isFamilyInfluencer || false,
+          data.isSocialInfluencer || false,
+          data.familyId || null
+        );
+
+        pIndex += 42;
+      }
+
+      const sql = `
+        INSERT INTO voters (
+          epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
+          first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname,
+          gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
+          profession_type, profession, religion_id, caste_id, subcaste_name, voter_type,
+          status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
+          party_id, family_influencer_id, social_influencer_id,
+          is_family_influencer, is_social_influencer, family_id
+        ) VALUES 
+        ${valueTuples.join(',\n')}
+        ON CONFLICT (epic_no) DO UPDATE SET
+          state_id = EXCLUDED.state_id,
+          district_id = EXCLUDED.district_id,
+          pc_id = EXCLUDED.pc_id,
+          ac_id = EXCLUDED.ac_id,
+          booth_id = EXCLUDED.booth_id,
+          serial_no = EXCLUDED.serial_no,
+          section_no = EXCLUDED.section_no,
+          house_no = EXCLUDED.house_no,
+          first_name = EXCLUDED.first_name,
+          eng_first_name = EXCLUDED.eng_first_name,
+          middle_name = EXCLUDED.middle_name,
+          eng_middle_name = EXCLUDED.eng_middle_name,
+          surname = EXCLUDED.surname,
+          eng_surname = EXCLUDED.eng_surname,
+          gender = EXCLUDED.gender,
+          dob = EXCLUDED.dob,
+          age = EXCLUDED.age,
+          mobile_no = EXCLUDED.mobile_no,
+          email = EXCLUDED.email,
+          aadhaar_no = EXCLUDED.aadhaar_no,
+          pan_no = EXCLUDED.pan_no,
+          profession_type = EXCLUDED.profession_type,
+          profession = EXCLUDED.profession,
+          religion_id = EXCLUDED.religion_id,
+          caste_id = EXCLUDED.caste_id,
+          subcaste_name = EXCLUDED.subcaste_name,
+          voter_type = EXCLUDED.voter_type,
+          status = EXCLUDED.status,
+          is_dead = EXCLUDED.is_dead,
+          blood_group = EXCLUDED.blood_group,
+          taluka = EXCLUDED.taluka,
+          village = EXCLUDED.village,
+          full_address = EXCLUDED.full_address,
+          voter_address = EXCLUDED.voter_address,
+          party_id = EXCLUDED.party_id,
+          is_family_influencer = EXCLUDED.is_family_influencer,
+          is_social_influencer = EXCLUDED.is_social_influencer,
+          family_id = COALESCE(EXCLUDED.family_id, voters.family_id),
+          updated_at = NOW()
+        RETURNING id
+      `;
+
+      try {
+        const res = await query(sql, valuesParams);
+        totalInserted += res.rowCount || res.rows.length;
+      } catch (chunkErr: any) {
+        logger.warn(`[VoterQueries.createVotersBatch] Chunk insert failed (${chunkErr.message}), falling back to single-row inserts...`);
+        for (const singleVoter of chunk) {
+          try {
+            await VoterQueries.createVoter(singleVoter);
+            totalInserted++;
+          } catch (singleErr: any) {
+            totalErrors++;
+            logger.warn(`[VoterQueries.createVotersBatch] Single insert skipped for EPIC '${singleVoter.epicNo}': ${singleErr.message}`);
+          }
+        }
+      }
+    }
+
+    return { inserted: totalInserted, errors: totalErrors };
   }
 
   static async updateVoter(id: string, data: Partial<Voter>): Promise<Voter | null> {
@@ -451,22 +630,21 @@ export class VoterQueries {
         village = COALESCE($35, village),
         full_address = COALESCE($36, full_address),
         voter_address = COALESCE($37, voter_address),
-        party_id = CASE WHEN $46 = TRUE THEN $38 ELSE party_id END,
+        party_id = CASE WHEN $45 = TRUE THEN $38 ELSE party_id END,
         family_influencer_id = CASE 
-          WHEN COALESCE($42, is_family_influencer) = TRUE THEN NULL 
-          WHEN $44 = TRUE THEN $39 
+          WHEN COALESCE($41, is_family_influencer) = TRUE THEN NULL 
+          WHEN $43 = TRUE THEN $39 
           ELSE family_influencer_id 
         END,
         social_influencer_id = CASE 
-          WHEN $45 = TRUE THEN $40 
+          WHEN $44 = TRUE THEN $40 
           ELSE social_influencer_id 
         END,
-        organization_id = COALESCE($41, organization_id),
         is_family_influencer = CASE 
-          WHEN $39 IS NOT NULL AND ($42 IS NULL OR $42 = FALSE) THEN FALSE 
-          ELSE COALESCE($42, is_family_influencer) 
+          WHEN $39 IS NOT NULL AND ($41 IS NULL OR $41 = FALSE) THEN FALSE 
+          ELSE COALESCE($41, is_family_influencer) 
         END,
-        is_social_influencer = COALESCE($43, is_social_influencer),
+        is_social_influencer = COALESCE($42, is_social_influencer),
         updated_at = NOW()
       WHERE id = $1
       RETURNING id, epic_no AS "epicNo", updated_at AS "updatedAt"`,
@@ -511,7 +689,6 @@ export class VoterQueries {
         data.partyId !== undefined ? data.partyId : null,
         data.familyInfluencerId !== undefined ? data.familyInfluencerId : null,
         data.socialInfluencerId !== undefined ? data.socialInfluencerId : null,
-        data.organizationId !== undefined ? data.organizationId : null,
         data.isFamilyInfluencer !== undefined ? data.isFamilyInfluencer : null,
         data.isSocialInfluencer !== undefined ? data.isSocialInfluencer : null,
         data.familyInfluencerId !== undefined,
@@ -555,9 +732,9 @@ export class VoterQueries {
     }
 
     if (type === 'family') {
-      conditions.push(`(v.is_family_influencer = TRUE OR EXISTS (SELECT 1 FROM voters fv WHERE fv.family_influencer_id = v.id))`);
+      conditions.push(`v.is_family_influencer = TRUE`);
     } else if (type === 'social') {
-      conditions.push(`(v.is_social_influencer = TRUE OR EXISTS (SELECT 1 FROM voters sv WHERE sv.social_influencer_id = v.id))`);
+      conditions.push(`v.is_social_influencer = TRUE`);
     }
 
     if (search && search.trim()) {
@@ -603,28 +780,107 @@ export class VoterQueries {
   ): Promise<number> {
     if (!voterIds || voterIds.length === 0) return 0;
 
-    const column = influencerType === 'family' ? 'family_influencer_id' : 'social_influencer_id';
-    const extraCondition = (influencerType === 'family' && influencerId)
-      ? 'AND (is_family_influencer IS NOT TRUE)'
-      : '';
-
-    const res = await query(
-      `UPDATE voters 
-       SET ${column} = $1, updated_at = NOW() 
-       WHERE id = ANY($2::uuid[]) ${extraCondition}`,
-      [influencerId, voterIds]
-    );
-
-    if (influencerId) {
-      const flagCol = influencerType === 'family' ? 'is_family_influencer' : 'is_social_influencer';
-      const clearSubInfluencer = influencerType === 'family' ? ', family_influencer_id = NULL' : '';
-      await query(
-        `UPDATE voters SET ${flagCol} = TRUE ${clearSubInfluencer}, updated_at = NOW() WHERE id = $1`,
-        [influencerId]
+    if (influencerType === 'social') {
+      const res = await query(
+        `UPDATE voters 
+         SET social_influencer_id = $1, updated_at = NOW() 
+         WHERE id = ANY($2::uuid[])`,
+        [influencerId, voterIds]
       );
+
+      if (influencerId) {
+        await query(
+          `UPDATE voters SET is_social_influencer = TRUE, updated_at = NOW() WHERE id = $1`,
+          [influencerId]
+        );
+      }
+      return res.rowCount || 0;
     }
 
-    return res.rowCount || 0;
+    // --- Family Influencer Assignment ---
+    const client = await dbPool.connect();
+    try {
+      await client.query('BEGIN');
+
+      if (!influencerId) {
+        // Unlinking family influencer
+        const res = await client.query(
+          `UPDATE voters 
+           SET family_influencer_id = NULL, updated_at = NOW() 
+           WHERE id = ANY($1::uuid[])`,
+          [voterIds]
+        );
+        await client.query('COMMIT');
+        return res.rowCount || 0;
+      }
+
+      // 1. Fetch Influencer Details
+      const infRes = await client.query(
+        `SELECT v.id, v.family_id AS "familyId", v.booth_id AS "boothId", v.house_no AS "houseNo",
+                v.age, v.gender, v.first_name AS "firstName", v.eng_first_name AS "engFirstName",
+                v.middle_name AS "middleName", v.eng_middle_name AS "engMiddleName",
+                v.surname, v.eng_surname AS "engSurname", b.booth_number AS "boothNumber"
+         FROM voters v
+         LEFT JOIN booths b ON v.booth_id = b.id
+         WHERE v.id = $1`,
+        [influencerId]
+      );
+      const influencer = infRes.rows[0];
+      if (!influencer) {
+        await client.query('ROLLBACK');
+        return 0;
+      }
+
+      let familyId = influencer.familyId;
+      if (!familyId) {
+        const boothNo = influencer.boothNumber ? String(influencer.boothNumber).padStart(3, '0') : '000';
+        const cleanHouse = (influencer.houseNo || 'NA').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const randomSeq = Math.floor(100 + Math.random() * 900);
+        familyId = `FAM-B${boothNo}-H${cleanHouse || 'NA'}-${randomSeq}`;
+
+        await client.query(
+          `UPDATE voters 
+           SET family_id = $1, is_family_influencer = TRUE, family_influencer_id = NULL, updated_at = NOW()
+           WHERE id = $2`,
+          [familyId, influencerId]
+        );
+      } else {
+        await client.query(
+          `UPDATE voters 
+           SET is_family_influencer = TRUE, family_influencer_id = NULL, updated_at = NOW()
+           WHERE id = $1`,
+          [influencerId]
+        );
+      }
+
+      // 2. Fetch target voters details
+      const targetRes = await client.query(
+        `SELECT id
+         FROM voters
+         WHERE id = ANY($1::uuid[]) AND (is_family_influencer IS NOT TRUE)`,
+        [voterIds]
+      );
+      const targetVoters = targetRes.rows;
+
+      let updatedCount = 0;
+      for (const member of targetVoters) {
+        await client.query(
+          `UPDATE voters
+           SET family_influencer_id = $1, family_id = $2, updated_at = NOW()
+           WHERE id = $3`,
+          [influencerId, familyId, member.id]
+        );
+        updatedCount++;
+      }
+
+      await client.query('COMMIT');
+      return updatedCount;
+    } catch (err: any) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   static async deleteVoter(id: string): Promise<boolean> {
@@ -649,49 +905,67 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.organizationId) {
-      conditions.push(`organization_id = $${paramIndex}`);
-      values.push(params.organizationId);
+    if (params.pcId) {
+      conditions.push(`pc_id = $${paramIndex}`);
+      values.push(params.pcId);
       paramIndex++;
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    const statsSql = `
-      SELECT 
-        COUNT(*)::int AS "totalVoters",
-        COUNT(CASE WHEN gender ILIKE 'male' THEN 1 END)::int AS "maleVoters",
-        COUNT(CASE WHEN gender ILIKE 'female' THEN 1 END)::int AS "femaleVoters",
-        COUNT(CASE WHEN gender NOT ILIKE 'male' AND gender NOT ILIKE 'female' THEN 1 END)::int AS "otherVoters"
-      FROM voters ${whereClause}
-    `;
-
-    const typeSql = `
-      SELECT voter_type AS "voterType", COUNT(*)::int AS count
-      FROM voters ${whereClause}
-      GROUP BY voter_type
-    `;
-
-    const [statsRes, typeRes] = await Promise.all([
-      query(statsSql, values),
-      query(typeSql, values),
-    ]);
-
-    const stats = statsRes.rows[0] || { totalVoters: 0, maleVoters: 0, femaleVoters: 0, otherVoters: 0 };
-    const voterTypeCounts: Record<string, number> = {};
-
-    for (const row of typeRes.rows) {
-      if (row.voterType) {
-        voterTypeCounts[row.voterType] = row.count;
-      }
+    if (params.districtId) {
+      conditions.push(`district_id = $${paramIndex}`);
+      values.push(params.districtId);
+      paramIndex++;
     }
 
+    if (params.stateId) {
+      conditions.push(`state_id = $${paramIndex}`);
+      values.push(params.stateId);
+      paramIndex++;
+    }
+
+
+
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const sql = `
+      WITH filtered_voters AS (
+        SELECT gender, voter_type
+        FROM voters
+        ${whereClause}
+      )
+      SELECT 
+        COUNT(*)::int AS "totalVoters",
+        COUNT(*) FILTER (WHERE LOWER(gender) = 'male')::int AS "maleVoters",
+        COUNT(*) FILTER (WHERE LOWER(gender) = 'female')::int AS "femaleVoters",
+        COUNT(*) FILTER (WHERE LOWER(gender) NOT IN ('male', 'female'))::int AS "otherVoters",
+        (
+          SELECT COALESCE(json_object_agg(voter_type, cnt), '{}'::json)
+          FROM (
+            SELECT voter_type, COUNT(*)::int AS cnt
+            FROM filtered_voters
+            WHERE voter_type IS NOT NULL
+            GROUP BY voter_type
+          ) t
+        ) AS "voterTypeCounts"
+      FROM filtered_voters;
+    `;
+
+    const res = await query(sql, values);
+    const stats = res.rows[0] || {
+      totalVoters: 0,
+      maleVoters: 0,
+      femaleVoters: 0,
+      otherVoters: 0,
+      voterTypeCounts: {},
+    };
+
     return {
-      totalVoters: stats.totalVoters,
-      maleVoters: stats.maleVoters,
-      femaleVoters: stats.femaleVoters,
-      otherVoters: stats.otherVoters,
-      voterTypeCounts,
+      totalVoters: stats.totalVoters || 0,
+      maleVoters: stats.maleVoters || 0,
+      femaleVoters: stats.femaleVoters || 0,
+      otherVoters: stats.otherVoters || 0,
+      voterTypeCounts: stats.voterTypeCounts || {},
     };
   }
 
@@ -746,11 +1020,7 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.organizationId) {
-      conditions.push(`v.organization_id = $${paramIndex}`);
-      values.push(params.organizationId);
-      paramIndex++;
-    }
+
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -796,8 +1066,8 @@ export class VoterQueries {
         p.name AS "partyName",
         CONCAT_WS(' ', NULLIF(fi.eng_first_name, ''), NULLIF(fi.eng_middle_name, ''), NULLIF(fi.eng_surname, '')) AS "familyInfluencerName",
         CONCAT_WS(' ', NULLIF(si.eng_first_name, ''), NULLIF(si.eng_middle_name, ''), NULLIF(si.eng_surname, '')) AS "socialInfluencerName",
-        (SELECT COUNT(*)::int FROM voters fv WHERE fv.family_influencer_id = v.id) AS "familyInfluencedCount",
-        (SELECT COUNT(*)::int FROM voters sv WHERE sv.social_influencer_id = v.id) AS "socialInfluencedCount"
+        COALESCE(fic.cnt, 0) AS "familyInfluencedCount",
+        COALESCE(sic.cnt, 0) AS "socialInfluencedCount"
       FROM voters v
       LEFT JOIN states st ON v.state_id = st.id
       LEFT JOIN districts dt ON v.district_id = dt.id
@@ -809,6 +1079,12 @@ export class VoterQueries {
       LEFT JOIN parties p ON v.party_id = p.id
       LEFT JOIN voters fi ON v.family_influencer_id = fi.id
       LEFT JOIN voters si ON v.social_influencer_id = si.id
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt FROM voters fv WHERE fv.family_influencer_id = v.id
+      ) fic ON (v.is_family_influencer = TRUE)
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt FROM voters sv WHERE sv.social_influencer_id = v.id
+      ) sic ON (v.is_social_influencer = TRUE)
       ${whereClause}
       ORDER BY b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}

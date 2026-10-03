@@ -18,6 +18,7 @@ export interface UserProfile {
   name: string;
   email: string;
   role: string;
+  roleName?: string | null;
   mobile?: string;
   avatar?: string;
   organizationId?: string | null;

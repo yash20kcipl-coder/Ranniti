@@ -1,0 +1,99 @@
+{
+  "talukas": [
+    { "districtName": "Pune", "name": "Haveli" },
+    { "districtName": "Pune", "name": "Pune City" },
+    { "districtName": "Pune", "name": "Baramati" },
+    { "districtName": "Pune", "name": "Ambegaon" },
+    { "districtName": "Pune", "name": "Junnar" },
+    { "districtName": "Pune", "name": "Shirur" },
+    { "districtName": "Pune", "name": "Khed" },
+    { "districtName": "Pune", "name": "Purandar" },
+    { "districtName": "Pune", "name": "Bhor" },
+    { "districtName": "Mumbai City", "name": "Mumbai South" },
+    { "districtName": "Nagpur", "name": "Nagpur Urban" }
+  ],
+  "villages": [
+    { "talukaName": "Haveli", "name": "Khadakwasla" },
+    { "talukaName": "Haveli", "name": "Nanded" },
+    { "talukaName": "Haveli", "name": "Kondhwa Budruk" },
+    { "talukaName": "Haveli", "name": "Dhayari" },
+    { "talukaName": "Haveli", "name": "Narhe" },
+    { "talukaName": "Baramati", "name": "Dorlewadi" },
+    { "talukaName": "Baramati", "name": "Malegaon Budruk" },
+    { "talukaName": "Baramati", "name": "Kalthan" },
+    { "talukaName": "Shirur", "name": "Shikrapur" },
+    { "talukaName": "Shirur", "name": "Sanaswadi" },
+    { "talukaName": "Junnar", "name": "Narayangaon" },
+    { "talukaName": "Khed", "name": "Chakan" }
+  ],
+  "wards": [
+    { "acName": "Kasba Peth", "wardNumber": 1, "name": "Ward 1 - Shaniwar Peth / Narayan Peth" },
+    { "acName": "Kasba Peth", "wardNumber": 2, "name": "Ward 2 - Raviwar Peth / Budhwar Peth" },
+    { "acName": "Kothrud", "wardNumber": 1, "name": "Ward 1 - Mayur Colony / ideal Colony" },
+    { "acName": "Kothrud", "wardNumber": 2, "name": "Ward 2 - Karvenagar / Dahanukar Colony" },
+    { "acName": "Shivajinagar", "wardNumber": 1, "name": "Ward 1 - FC Road / Deccan Gymkhana" },
+    { "acName": "Shivajinagar", "wardNumber": 2, "name": "Ward 2 - Model Colony / SB Road" },
+    { "acName": "Vadgaon Sheri", "wardNumber": 1, "name": "Ward 1 - Viman Nagar / Lohegaon" },
+    { "acName": "Hadapsar", "wardNumber": 1, "name": "Ward 1 - Magarpatta / Mundhwa" },
+    { "acName": "Parvati", "wardNumber": 1, "name": "Ward 1 - Sahakar Nagar / Bibwewadi" },
+    { "acName": "Baramati", "wardNumber": 1, "name": "Ward 1 - Baramati Central Municipal Ward" }
+  ],
+  "booths": [
+    {
+      "acName": "Kasba Peth",
+      "wardNumber": 1,
+      "boothNumber": 101,
+      "name": "NMV High School Room No 1, Bajirao Road",
+      "locationBuilding": "NMV High School, Pune",
+      "totalVoters": 1150
+    },
+    {
+      "acName": "Kasba Peth",
+      "wardNumber": 1,
+      "boothNumber": 102,
+      "name": "NMV High School Room No 2, Bajirao Road",
+      "locationBuilding": "NMV High School, Pune",
+      "totalVoters": 1080
+    },
+    {
+      "acName": "Kothrud",
+      "wardNumber": 1,
+      "boothNumber": 101,
+      "name": "MES Abasaheb Garware College Hall A",
+      "locationBuilding": "Garware College Campus",
+      "totalVoters": 1240
+    },
+    {
+      "acName": "Kothrud",
+      "wardNumber": 2,
+      "boothNumber": 102,
+      "name": "Cummins College Engineering Lab 3",
+      "locationBuilding": "Cummins Engineering Campus",
+      "totalVoters": 1190
+    },
+    {
+      "acName": "Shivajinagar",
+      "wardNumber": 1,
+      "boothNumber": 101,
+      "name": "Modern High School Auditorium",
+      "locationBuilding": "Modern High School, JM Road",
+      "totalVoters": 1120
+    },
+    {
+      "acName": "Vadgaon Sheri",
+      "wardNumber": 1,
+      "boothNumber": 101,
+      "name": "Air Force School Viman Nagar Hall B",
+      "locationBuilding": "Air Force School Campus",
+      "totalVoters": 1310
+    },
+    {
+      "acName": "Baramati",
+      "wardNumber": 1,
+      "boothNumber": 101,
+      "name": "Baramati High School Main Hall",
+      "locationBuilding": "Baramati High School",
+      "totalVoters": 1050
+    }
+  ]
+}

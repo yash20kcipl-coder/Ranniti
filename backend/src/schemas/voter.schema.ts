@@ -90,8 +90,6 @@ export const createVoterSchema = z.object({
     socialInfluencerId: preprocessUuid(),
     isFamilyInfluencer: preprocessBool(),
     isSocialInfluencer: preprocessBool(),
-
-    organizationId: preprocessUuid(),
   }),
 });
 
@@ -126,7 +124,6 @@ export const voterQuerySchema = z.object({
     isSocialInfluencer: z.string().optional(),
     influencerStatus: z.string().optional(),
     type: z.string().optional(),
-    organizationId: z.string().optional(),
   }),
 });
 

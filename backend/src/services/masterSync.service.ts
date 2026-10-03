@@ -1,5 +1,5 @@
 import { query } from '../queries/dbPool';
-import { initialReligions, initialCastes, initialParties, initialStates, initialOrganizations } from '../seeds/data/masters.seed';
+import { initialReligions, initialCastes, initialParties, initialStates } from '../seeds/data/masters.seed';
 import { logger } from '../utils/logger';
 
 export interface MasterSyncResult {
@@ -7,12 +7,11 @@ export interface MasterSyncResult {
   religionsSynced: number;
   partiesSynced: number;
   castesSynced: number;
-  organizationsSynced: number;
   durationMs: number;
 }
 
 /**
- * Service for non-destructive, automated updating of Master Datasets (States, Religions, Parties, Castes, Organizations)
+ * Service for non-destructive, automated updating of Master Datasets (States, Religions, Parties, Castes)
  * Uses PostgreSQL ON CONFLICT DO UPDATE logic to preserve foreign key UUID references.
  */
 export class MasterSyncService {
@@ -27,7 +26,6 @@ export class MasterSyncService {
     const religionsSynced = await this.syncReligions();
     const partiesSynced = await this.syncParties();
     const castesSynced = await this.syncCastes();
-    const organizationsSynced = await this.syncOrganizations();
 
     const durationMs = Number(process.hrtime.bigint() - startTime) / 1e6;
     logger.info(`✅ Master Data Auto-Sync Complete in ${Math.round(durationMs)}ms.`);
@@ -37,76 +35,76 @@ export class MasterSyncService {
       religionsSynced,
       partiesSynced,
       castesSynced,
-      organizationsSynced,
       durationMs: Math.round(durationMs),
     };
   }
 
   static async syncStates(): Promise<number> {
-    let count = 0;
-    for (const state of initialStates) {
-      const sql = `
-        INSERT INTO states (name) VALUES ($1)
-        ON CONFLICT (name) DO UPDATE SET updated_at = NOW();
-      `;
-      await query(sql, [state.name]);
-      count++;
-    }
-    return count;
+    if (!initialStates.length) return 0;
+    const values: string[] = [];
+    const params: any[] = [];
+    initialStates.forEach((st, idx) => {
+      values.push(`($${idx + 1})`);
+      params.push(st.name);
+    });
+    const sql = `
+      INSERT INTO states (name) VALUES ${values.join(', ')}
+      ON CONFLICT (name) DO UPDATE SET updated_at = NOW();
+    `;
+    await query(sql, params);
+    return initialStates.length;
   }
 
   static async syncReligions(): Promise<number> {
-    let count = 0;
-    for (const rel of initialReligions) {
-      const sql = `
-        INSERT INTO religions (name) VALUES ($1)
-        ON CONFLICT (name) DO UPDATE SET updated_at = NOW();
-      `;
-      await query(sql, [rel.name]);
-      count++;
-    }
-    return count;
+    if (!initialReligions.length) return 0;
+    const values: string[] = [];
+    const params: any[] = [];
+    initialReligions.forEach((rel, idx) => {
+      values.push(`($${idx + 1})`);
+      params.push(rel.name);
+    });
+    const sql = `
+      INSERT INTO religions (name) VALUES ${values.join(', ')}
+      ON CONFLICT (name) DO UPDATE SET updated_at = NOW();
+    `;
+    await query(sql, params);
+    return initialReligions.length;
   }
 
   static async syncParties(): Promise<number> {
-    let count = 0;
-    for (const party of initialParties) {
-      const sql = `
-        INSERT INTO parties (name, abbreviation, symbol_logo) VALUES ($1, $2, $3)
-        ON CONFLICT (name) DO UPDATE 
-        SET abbreviation = EXCLUDED.abbreviation, 
-            symbol_logo = EXCLUDED.symbol_logo, 
-            updated_at = NOW();
-      `;
-      await query(sql, [party.name, party.abbreviation, party.symbolLogo || null]);
-      count++;
-    }
-    return count;
+    if (!initialParties.length) return 0;
+    const values: string[] = [];
+    const params: any[] = [];
+    initialParties.forEach((party, idx) => {
+      const p = idx * 3;
+      values.push(`($${p + 1}, $${p + 2}, $${p + 3})`);
+      params.push(party.name, party.abbreviation, party.symbolLogo || null);
+    });
+    const sql = `
+      INSERT INTO parties (name, abbreviation, symbol_logo) VALUES ${values.join(', ')}
+      ON CONFLICT (name) DO UPDATE 
+      SET abbreviation = EXCLUDED.abbreviation, 
+          symbol_logo = EXCLUDED.symbol_logo, 
+          updated_at = NOW();
+    `;
+    await query(sql, params);
+    return initialParties.length;
   }
 
   static async syncCastes(): Promise<number> {
-    let count = 0;
-    for (const caste of initialCastes) {
-      const sql = `
-        INSERT INTO castes (name, category) VALUES ($1, $2)
-        ON CONFLICT (name) DO UPDATE SET category = EXCLUDED.category, updated_at = NOW();
-      `;
-      await query(sql, [caste.name, caste.category]);
-      count++;
-    }
-    return count;
-  }
-
-  static async syncOrganizations(): Promise<number> {
-    let count = 0;
-    for (const org of initialOrganizations) {
-      const sql = `
-        INSERT INTO organizations (name, code, status) VALUES ($1, $2, $3)
-        ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status, updated_at = NOW();
-      `;
-      await query(sql, [org.name, org.code, org.status || 'active']);
-      count++;
-    }
-    return count;
+    if (!initialCastes.length) return 0;
+    const values: string[] = [];
+    const params: any[] = [];
+    initialCastes.forEach((caste, idx) => {
+      const p = idx * 2;
+      values.push(`($${p + 1}, $${p + 2})`);
+      params.push(caste.name, caste.category);
+    });
+    const sql = `
+      INSERT INTO castes (name, category) VALUES ${values.join(', ')}
+      ON CONFLICT (name) DO UPDATE SET category = EXCLUDED.category, updated_at = NOW();
+    `;
+    await query(sql, params);
+    return initialCastes.length;
   }
 }

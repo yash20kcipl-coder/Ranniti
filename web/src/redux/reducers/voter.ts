@@ -27,8 +27,9 @@ export interface VoterState {
     search: string;
     stateId: string;
     districtId: string;
-    boothId: string;
+    pcId: string;
     acId: string;
+    boothId: string;
     gender: string;
     voterType: string;
     status: string;
@@ -52,8 +53,9 @@ export const initialVoterFilters = {
   search: '',
   stateId: '',
   districtId: '',
-  boothId: '',
+  pcId: '',
   acId: '',
+  boothId: '',
   gender: '',
   voterType: '',
   status: '',

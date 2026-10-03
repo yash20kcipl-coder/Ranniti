@@ -4,7 +4,7 @@ import { FontFamily } from '../../utils/typography';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { TabView, SceneRendererProps, NavigationState } from 'react-native-tab-view';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 
 const { width } = Dimensions.get('window');
 

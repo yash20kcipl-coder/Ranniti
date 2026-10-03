@@ -21,8 +21,20 @@ export class AdminUserController {
     res.status(response.statusCode).json(response.body);
   });
 
+  getTeamMembers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const parentId = (req.query.parentId as string) || req.user!.userId;
+    const users = await adminUserService.getTeamMembersByParentId(parentId);
+    const formattedUsers = attachFileUrls(users, undefined, req);
+    const response = ApiResponse.success(formattedUsers, 'Team members retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
   createAdminUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const user = await authService.registerUser(req.body);
+    const payload = {
+      ...req.body,
+      parentLeaderId: req.body.parentLeaderId || req.user?.userId,
+    };
+    const user = await authService.registerUser(payload);
     const formattedUser = attachFileUrls(user, undefined, req);
     const response = ApiResponse.success(formattedUser, 'Admin user created successfully', 201);
     res.status(response.statusCode).json(response.body);

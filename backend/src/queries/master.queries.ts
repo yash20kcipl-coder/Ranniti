@@ -4,11 +4,13 @@ import {
   Caste,
   State,
   District,
+  Taluka,
+  Village,
   ParliamentaryConstituency,
   AssemblyConstituency,
+  Ward,
   Booth,
   Party,
-  Organization,
 } from '../models/master.model';
 
 export class MasterQueries {
@@ -145,6 +147,243 @@ export class MasterQueries {
       [stateId, name]
     );
     return res.rows[0];
+  }
+
+  // --- TALUKAS ---
+  static async getTalukas(districtId?: string, stateId?: string): Promise<Taluka[]> {
+    const params: any[] = [];
+    const conditions: string[] = [];
+
+    if (districtId) {
+      params.push(districtId);
+      conditions.push(`t.district_id = $${params.length}`);
+    }
+
+    if (stateId) {
+      params.push(stateId);
+      conditions.push(`d.state_id = $${params.length}`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const sql = `
+      SELECT 
+        t.id, 
+        t.district_id AS "districtId", 
+        d.name AS "districtName",
+        d.state_id AS "stateId",
+        s.name AS "stateName",
+        t.name, 
+        t.created_at AS "createdAt", 
+        t.updated_at AS "updatedAt" 
+      FROM talukas t
+      INNER JOIN districts d ON t.district_id = d.id
+      INNER JOIN states s ON d.state_id = s.id
+      ${whereClause}
+      ORDER BY s.name ASC, d.name ASC, t.name ASC
+    `;
+
+    const res = await query(sql, params);
+    return res.rows;
+  }
+
+  static async getTalukaById(id: string): Promise<Taluka | null> {
+    const sql = `
+      SELECT 
+        t.id, 
+        t.district_id AS "districtId", 
+        d.name AS "districtName",
+        d.state_id AS "stateId",
+        s.name AS "stateName",
+        t.name, 
+        t.created_at AS "createdAt", 
+        t.updated_at AS "updatedAt" 
+      FROM talukas t
+      INNER JOIN districts d ON t.district_id = d.id
+      INNER JOIN states s ON d.state_id = s.id
+      WHERE t.id = $1
+    `;
+    const res = await query(sql, [id]);
+    return res.rows[0] || null;
+  }
+
+  static async createTaluka(districtId: string, name: string): Promise<Taluka> {
+    const res = await query(
+      `INSERT INTO talukas (district_id, name) 
+       VALUES ($1, $2) 
+       RETURNING id, district_id AS "districtId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [districtId, name]
+    );
+    return res.rows[0];
+  }
+
+  static async updateTaluka(id: string, districtId?: string, name?: string): Promise<Taluka | null> {
+    const res = await query(
+      `UPDATE talukas 
+       SET district_id = COALESCE($2, district_id), name = COALESCE($3, name), updated_at = NOW() 
+       WHERE id = $1 
+       RETURNING id, district_id AS "districtId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [id, districtId || null, name || null]
+    );
+    return res.rows[0] || null;
+  }
+
+  static async deleteTaluka(id: string): Promise<boolean> {
+    const res = await query(`DELETE FROM talukas WHERE id = $1`, [id]);
+    return (res.rowCount || 0) > 0;
+  }
+
+  static async upsertTalukaByName(name: string, districtId?: string): Promise<string | null> {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return null;
+
+    const existing = await query(
+      `SELECT id FROM talukas WHERE LOWER(TRIM(name)) = LOWER($1) LIMIT 1`,
+      [cleanName]
+    );
+    if (existing.rows[0]) {
+      return existing.rows[0].id;
+    }
+
+    if (!districtId) return null;
+
+    try {
+      const inserted = await query(
+        `INSERT INTO talukas (district_id, name) VALUES ($1, $2) RETURNING id`,
+        [districtId, cleanName]
+      );
+      return inserted.rows[0]?.id || null;
+    } catch {
+      const fallback = await query(
+        `SELECT id FROM talukas WHERE LOWER(TRIM(name)) = LOWER($1) LIMIT 1`,
+        [cleanName]
+      );
+      return fallback.rows[0]?.id || null;
+    }
+  }
+
+  static async upsertVillageByName(name: string, talukaId?: string): Promise<string | null> {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return null;
+
+    const existing = await query(
+      `SELECT id FROM villages WHERE LOWER(TRIM(name)) = LOWER($1) LIMIT 1`,
+      [cleanName]
+    );
+    if (existing.rows[0]) {
+      return existing.rows[0].id;
+    }
+
+    if (!talukaId) return null;
+
+    try {
+      const inserted = await query(
+        `INSERT INTO villages (taluka_id, name) VALUES ($1, $2) RETURNING id`,
+        [talukaId, cleanName]
+      );
+      return inserted.rows[0]?.id || null;
+    } catch {
+      const fallback = await query(
+        `SELECT id FROM villages WHERE LOWER(TRIM(name)) = LOWER($1) LIMIT 1`,
+        [cleanName]
+      );
+      return fallback.rows[0]?.id || null;
+    }
+  }
+
+  // --- VILLAGES ---
+  static async getVillages(talukaId?: string, districtId?: string, stateId?: string): Promise<Village[]> {
+    const params: any[] = [];
+    const conditions: string[] = [];
+
+    if (talukaId) {
+      params.push(talukaId);
+      conditions.push(`v.taluka_id = $${params.length}`);
+    }
+
+    if (districtId) {
+      params.push(districtId);
+      conditions.push(`t.district_id = $${params.length}`);
+    }
+
+    if (stateId) {
+      params.push(stateId);
+      conditions.push(`d.state_id = $${params.length}`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const sql = `
+      SELECT 
+        v.id, 
+        v.taluka_id AS "talukaId", 
+        t.name AS "talukaName",
+        t.district_id AS "districtId",
+        d.name AS "districtName",
+        d.state_id AS "stateId",
+        s.name AS "stateName",
+        v.name, 
+        v.created_at AS "createdAt", 
+        v.updated_at AS "updatedAt" 
+      FROM villages v
+      INNER JOIN talukas t ON v.taluka_id = t.id
+      INNER JOIN districts d ON t.district_id = d.id
+      INNER JOIN states s ON d.state_id = s.id
+      ${whereClause}
+      ORDER BY s.name ASC, d.name ASC, t.name ASC, v.name ASC
+    `;
+
+    const res = await query(sql, params);
+    return res.rows;
+  }
+
+  static async getVillageById(id: string): Promise<Village | null> {
+    const sql = `
+      SELECT 
+        v.id, 
+        v.taluka_id AS "talukaId", 
+        t.name AS "talukaName",
+        t.district_id AS "districtId",
+        d.name AS "districtName",
+        d.state_id AS "stateId",
+        s.name AS "stateName",
+        v.name, 
+        v.created_at AS "createdAt", 
+        v.updated_at AS "updatedAt" 
+      FROM villages v
+      INNER JOIN talukas t ON v.taluka_id = t.id
+      INNER JOIN districts d ON t.district_id = d.id
+      INNER JOIN states s ON d.state_id = s.id
+      WHERE v.id = $1
+    `;
+    const res = await query(sql, [id]);
+    return res.rows[0] || null;
+  }
+
+  static async createVillage(talukaId: string, name: string): Promise<Village> {
+    const res = await query(
+      `INSERT INTO villages (taluka_id, name) 
+       VALUES ($1, $2) 
+       RETURNING id, taluka_id AS "talukaId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [talukaId, name]
+    );
+    return res.rows[0];
+  }
+
+  static async updateVillage(id: string, talukaId?: string, name?: string): Promise<Village | null> {
+    const res = await query(
+      `UPDATE villages 
+       SET taluka_id = COALESCE($2, taluka_id), name = COALESCE($3, name), updated_at = NOW() 
+       WHERE id = $1 
+       RETURNING id, taluka_id AS "talukaId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [id, talukaId || null, name || null]
+    );
+    return res.rows[0] || null;
+  }
+
+  static async deleteVillage(id: string): Promise<boolean> {
+    const res = await query(`DELETE FROM villages WHERE id = $1`, [id]);
+    return (res.rowCount || 0) > 0;
   }
 
   // --- PARLIAMENTARY CONSTITUENCIES (PC) ---
@@ -291,22 +530,136 @@ export class MasterQueries {
     return (res.rowCount || 0) > 0;
   }
 
-  // --- BOOTHS ---
-  static async getBooths(acId?: string): Promise<Booth[]> {
+  // --- WARDS ---
+  static async getWards(acId?: string): Promise<Ward[]> {
     const params: any[] = [];
     let whereClause = '';
 
     if (acId) {
       params.push(acId);
-      whereClause = 'WHERE b.ac_id = $1';
+      whereClause = `WHERE w.ac_id = $1`;
     }
+
+    const sql = `
+      SELECT 
+        w.id,
+        w.ac_id AS "acId",
+        a.name AS "acName",
+        a.ac_number AS "acNumber",
+        a.pc_id AS "pcId",
+        p.name AS "pcName",
+        a.district_id AS "districtId",
+        d.name AS "districtName",
+        COALESCE(sp.id, sd.id) AS "stateId",
+        COALESCE(sp.name, sd.name) AS "stateName",
+        w.ward_number AS "wardNumber",
+        w.name,
+        w.created_at AS "createdAt",
+        w.updated_at AS "updatedAt"
+      FROM wards w
+      LEFT JOIN assembly_constituencies a ON w.ac_id = a.id
+      LEFT JOIN parliamentary_constituencies p ON a.pc_id = p.id
+      LEFT JOIN states sp ON p.state_id = sp.id
+      LEFT JOIN districts d ON a.district_id = d.id
+      LEFT JOIN states sd ON d.state_id = sd.id
+      ${whereClause}
+      ORDER BY w.ward_number ASC, w.name ASC
+    `;
+
+    const res = await query(sql, params);
+    return res.rows;
+  }
+
+  static async getWardById(id: string): Promise<Ward | null> {
+    const sql = `
+      SELECT 
+        w.id,
+        w.ac_id AS "acId",
+        a.name AS "acName",
+        a.ac_number AS "acNumber",
+        a.pc_id AS "pcId",
+        p.name AS "pcName",
+        a.district_id AS "districtId",
+        d.name AS "districtName",
+        COALESCE(sp.id, sd.id) AS "stateId",
+        COALESCE(sp.name, sd.name) AS "stateName",
+        w.ward_number AS "wardNumber",
+        w.name,
+        w.created_at AS "createdAt",
+        w.updated_at AS "updatedAt"
+      FROM wards w
+      LEFT JOIN assembly_constituencies a ON w.ac_id = a.id
+      LEFT JOIN parliamentary_constituencies p ON a.pc_id = p.id
+      LEFT JOIN states sp ON p.state_id = sp.id
+      LEFT JOIN districts d ON a.district_id = d.id
+      LEFT JOIN states sd ON d.state_id = sd.id
+      WHERE w.id = $1
+    `;
+    const res = await query(sql, [id]);
+    return res.rows[0] || null;
+  }
+
+  static async createWard(data: { acId: string; wardNumber: number; name: string }): Promise<Ward> {
+    const res = await query(
+      `INSERT INTO wards (ac_id, ward_number, name)
+       VALUES ($1, $2, $3)
+       RETURNING id, ac_id AS "acId", ward_number AS "wardNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [data.acId, data.wardNumber, data.name]
+    );
+    return res.rows[0];
+  }
+
+  static async updateWard(id: string, data: { acId?: string; wardNumber?: number; name?: string }): Promise<Ward | null> {
+    const res = await query(
+      `UPDATE wards
+       SET ac_id = COALESCE($2, ac_id),
+           ward_number = COALESCE($3, ward_number),
+           name = COALESCE($4, name),
+           updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, ac_id AS "acId", ward_number AS "wardNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [id, data.acId || null, data.wardNumber || null, data.name || null]
+    );
+    return res.rows[0] || null;
+  }
+
+  static async deleteWard(id: string): Promise<boolean> {
+    const res = await query(`DELETE FROM wards WHERE id = $1 RETURNING id`, [id]);
+    return (res.rowCount || 0) > 0;
+  }
+
+  // --- BOOTHS ---
+  static async getBooths(acId?: string, wardId?: string): Promise<Booth[]> {
+    const params: any[] = [];
+    const conditions: string[] = [];
+
+    if (acId) {
+      params.push(acId);
+      conditions.push(`b.ac_id = $${params.length}`);
+    }
+
+    if (wardId) {
+      params.push(wardId);
+      conditions.push(`b.ward_id = $${params.length}`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const sql = `
       SELECT 
         b.id, 
         b.ac_id AS "acId", 
         a.name AS "acName",
-        b.block_id AS "blockId", 
+        a.ac_number AS "acNumber",
+        a.pc_id AS "pcId",
+        p.name AS "pcName",
+        a.district_id AS "districtId",
+        d.name AS "districtName",
+        COALESCE(sp.id, sd.id) AS "stateId",
+        COALESCE(sp.name, sd.name) AS "stateName",
+        b.ward_id AS "wardId",
+        w.name AS "wardName",
+        w.ward_number AS "wardNumber",
         b.booth_number AS "boothNumber", 
         b.name, 
         b.location_building AS "locationBuilding", 
@@ -315,6 +668,11 @@ export class MasterQueries {
         b.updated_at AS "updatedAt" 
       FROM booths b
       LEFT JOIN assembly_constituencies a ON b.ac_id = a.id
+      LEFT JOIN parliamentary_constituencies p ON a.pc_id = p.id
+      LEFT JOIN states sp ON p.state_id = sp.id
+      LEFT JOIN districts d ON a.district_id = d.id
+      LEFT JOIN states sd ON d.state_id = sd.id
+      LEFT JOIN wards w ON b.ward_id = w.id
       ${whereClause}
       ORDER BY b.booth_number ASC
     `;
@@ -323,44 +681,38 @@ export class MasterQueries {
     return res.rows;
   }
 
-  static async createBooth(data: { acId: string; blockId?: string; boothNumber: number; name: string; locationBuilding?: string; totalVoters?: number }): Promise<Booth> {
+  static async createBooth(data: { acId: string; wardId?: string; boothNumber: number; name: string; locationBuilding?: string; totalVoters?: number }): Promise<Booth> {
     const res = await query(
-      `INSERT INTO booths (ac_id, block_id, booth_number, name, location_building, total_voters) 
+      `INSERT INTO booths (ac_id, ward_id, booth_number, name, location_building, total_voters) 
        VALUES ($1, $2, $3, $4, $5, $6) 
-       RETURNING id, ac_id AS "acId", block_id AS "blockId", booth_number AS "boothNumber", name, location_building AS "locationBuilding", total_voters AS "totalVoters", created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [data.acId, data.blockId || null, data.boothNumber, data.name, data.locationBuilding || null, data.totalVoters || 0]
+       RETURNING id, ac_id AS "acId", ward_id AS "wardId", booth_number AS "boothNumber", name, location_building AS "locationBuilding", total_voters AS "totalVoters", created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [data.acId, data.wardId || null, data.boothNumber, data.name, data.locationBuilding || null, data.totalVoters || 0]
     );
     return res.rows[0];
   }
 
-  // --- ORGANIZATIONS ---
-  static async getOrganizations(): Promise<Organization[]> {
+  static async updateBooth(id: string, data: { acId?: string; wardId?: string; boothNumber?: number; name?: string; locationBuilding?: string; totalVoters?: number }): Promise<Booth | null> {
     const res = await query(
-      `SELECT 
-        o.id, 
-        o.name, 
-        o.code, 
-        o.ac_id AS "acId", 
-        a.name AS "acName",
-        o.status, 
-        o.created_at AS "createdAt", 
-        o.updated_at AS "updatedAt" 
-       FROM organizations o
-       LEFT JOIN assembly_constituencies a ON o.ac_id = a.id
-       ORDER BY o.name ASC`
+      `UPDATE booths 
+       SET ac_id = COALESCE($2, ac_id), 
+           ward_id = COALESCE($3, ward_id), 
+           booth_number = COALESCE($4, booth_number), 
+           name = COALESCE($5, name), 
+           location_building = COALESCE($6, location_building), 
+           total_voters = COALESCE($7, total_voters), 
+           updated_at = NOW() 
+       WHERE id = $1 
+       RETURNING id, ac_id AS "acId", ward_id AS "wardId", booth_number AS "boothNumber", name, location_building AS "locationBuilding", total_voters AS "totalVoters", created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [id, data.acId || null, data.wardId || null, data.boothNumber || null, data.name || null, data.locationBuilding || null, data.totalVoters || null]
     );
-    return res.rows;
+    return res.rows[0] || null;
   }
 
-  static async createOrganization(data: { name: string; code: string; acId?: string; status?: string }): Promise<Organization> {
-    const res = await query(
-      `INSERT INTO organizations (name, code, ac_id, status) 
-       VALUES ($1, $2, $3, $4) 
-       RETURNING id, name, code, ac_id AS "acId", status, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [data.name, data.code, data.acId || null, data.status || 'active']
-    );
-    return res.rows[0];
+  static async deleteBooth(id: string): Promise<boolean> {
+    const res = await query(`DELETE FROM booths WHERE id = $1 RETURNING id`, [id]);
+    return (res.rowCount || 0) > 0;
   }
+
 
   // --- CASTES UPDATE & DELETE ---
   static async updateCaste(id: string, name?: string, category?: string, religionId?: string, parentCasteId?: string): Promise<Caste | null> {
@@ -459,50 +811,6 @@ export class MasterQueries {
 
   static async deleteAc(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM assembly_constituencies WHERE id = $1 RETURNING id`, [id]);
-    return (res.rowCount || 0) > 0;
-  }
-
-  // --- BOOTHS UPDATE & DELETE ---
-  static async updateBooth(id: string, data: { acId?: string; blockId?: string; boothNumber?: number; name?: string; locationBuilding?: string; totalVoters?: number }): Promise<Booth | null> {
-    const res = await query(
-      `UPDATE booths 
-       SET ac_id = COALESCE($2, ac_id), 
-           block_id = COALESCE($3, block_id),
-           booth_number = COALESCE($4, booth_number),
-           name = COALESCE($5, name),
-           location_building = COALESCE($6, location_building),
-           total_voters = COALESCE($7, total_voters),
-           updated_at = NOW() 
-       WHERE id = $1 
-       RETURNING id, ac_id AS "acId", block_id AS "blockId", booth_number AS "boothNumber", name, location_building AS "locationBuilding", total_voters AS "totalVoters", created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [id, data.acId || null, data.blockId || null, data.boothNumber || null, data.name || null, data.locationBuilding || null, data.totalVoters !== undefined ? data.totalVoters : null]
-    );
-    return res.rows[0] || null;
-  }
-
-  static async deleteBooth(id: string): Promise<boolean> {
-    const res = await query(`DELETE FROM booths WHERE id = $1 RETURNING id`, [id]);
-    return (res.rowCount || 0) > 0;
-  }
-
-  // --- ORGANIZATIONS UPDATE & DELETE ---
-  static async updateOrganization(id: string, data: { name?: string; code?: string; acId?: string; status?: string }): Promise<Organization | null> {
-    const res = await query(
-      `UPDATE organizations 
-       SET name = COALESCE($2, name), 
-           code = COALESCE($3, code),
-           ac_id = COALESCE($4, ac_id),
-           status = COALESCE($5, status),
-           updated_at = NOW() 
-       WHERE id = $1 
-       RETURNING id, name, code, ac_id AS "acId", status, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [id, data.name || null, data.code || null, data.acId || null, data.status || null]
-    );
-    return res.rows[0] || null;
-  }
-
-  static async deleteOrganization(id: string): Promise<boolean> {
-    const res = await query(`DELETE FROM organizations WHERE id = $1 RETURNING id`, [id]);
     return (res.rowCount || 0) > 0;
   }
 }

@@ -1,15 +1,19 @@
 import { z } from 'zod';
+import { ALL_ROLES } from './auth.schema';
 
 export const createAdminUserSchema = z.object({
   body: z.object({
     name: z.string().min(2, 'Name must be at least 2 characters long'),
     email: z.string().email('Invalid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters long'),
-    role: z
-      .enum(['super_admin', 'admin', 'leader', 'sub_leader', 'deo', 'analyst', 'user'])
-      .default('user'),
-    organizationId: z.string().uuid().optional(),
+    role: z.enum(ALL_ROLES).default('user'),
+    roleName: z.string().nullable().optional(),
     mobile: z.string().optional(),
+    avatar: z.string().nullable().optional(),
+    tenantDbName: z.string().nullable().optional(),
+    parentLeaderId: z.string().uuid().nullable().optional(),
+    assignedAcId: z.string().uuid().nullable().optional(),
+    assignedBoothIds: z.array(z.string().uuid()).optional(),
   }),
 });
 
@@ -20,11 +24,13 @@ export const updateAdminUserSchema = z.object({
   body: z.object({
     name: z.string().min(2).optional(),
     email: z.string().email().optional(),
-    role: z
-      .enum(['super_admin', 'admin', 'leader', 'sub_leader', 'deo', 'analyst', 'user'])
-      .optional(),
+    role: z.enum(ALL_ROLES).optional(),
+    roleName: z.string().nullable().optional(),
     mobile: z.string().optional(),
     status: z.enum(['active', 'inactive', 'suspended']).optional(),
+    parentLeaderId: z.string().uuid().nullable().optional(),
+    assignedAcId: z.string().uuid().nullable().optional(),
+    assignedBoothIds: z.array(z.string().uuid()).optional(),
   }),
 });
 

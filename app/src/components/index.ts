@@ -12,6 +12,7 @@ export { default as NoData } from './NoData';
 export { default as TopTab } from './TopTab';
 export { AppTextInput } from './AppTextInput';
 export { PermissionsPopUp } from './Permissions';
+export { AppUpdateModal } from './AppUpdateModal';
 export { default as SearchBar } from './SearchBar';
 export { DateRangePicker } from './DateRangePicker';
 export { default as FormInput } from './InputsView';
@@ -29,3 +30,4 @@ export { ParentAssociationModal } from './ParentAssociationModal';
 export { default as SearchWithFilters } from './SearchWithFilters';
 export { default as SearchAndFilterHeader } from './SearchAndFilterHeader';
 export { default as ScrollableFilterPills } from './ScrollableFilterPills';
+

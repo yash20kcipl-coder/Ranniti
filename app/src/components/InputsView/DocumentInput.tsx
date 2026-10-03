@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { check, PERMISSIONS, RESULTS } from 'react-native-permissions';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 import { PermissionsPopUp } from '../Permissions';
 import { AttachmentPickerModal } from '../AttachmentPickerModal';
 import { FormInputProps } from './types';

@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { SafeView, ScrollView } from '../../../components';
 import { fetchContactInfoAction } from '../../../store/actions/support';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { View, Text, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
 
 const ContactSupport = () => {

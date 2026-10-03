@@ -162,7 +162,7 @@ export const FileUploadInput: React.FC<FileUploadInputProps> = ({
           onClick={() => {
             if (!disabled) fileInputRef.current?.click();
           }}
-          className={`relative group w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 transition-all cursor-pointer overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-900/90 shadow-md ${isDragging
+          className={`relative group w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 transition-all cursor-pointer overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-900/90 shadow-md ${isDragging
             ? 'border-indigo-500 ring-4 ring-indigo-500/20'
             : displayError
               ? 'border-red-500'
@@ -206,11 +206,7 @@ export const FileUploadInput: React.FC<FileUploadInputProps> = ({
                 Remove
               </button>
             </div>
-          ) : (
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Allowed: {allowedExtensions.join(', ').toUpperCase()} (Max {maxSizeMB}MB)
-            </p>
-          )}
+          ) : null}
 
           {displayError ? (
             <p className="flex items-center justify-center gap-1 text-[11px] font-medium text-red-400 mt-1">
@@ -227,7 +223,7 @@ export const FileUploadInput: React.FC<FileUploadInputProps> = ({
   return (
     <div className={`space-y-2 text-left ${className}`}>
       {label && (
-        <label className="block text-xs font-semibold text-slate-300 tracking-wide">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-wide">
           {label}
         </label>
       )}
@@ -243,7 +239,7 @@ export const FileUploadInput: React.FC<FileUploadInputProps> = ({
           ? 'border-indigo-500 bg-indigo-500/10'
           : displayError
             ? 'border-red-500/80 bg-red-500/5'
-            : 'border-slate-800 hover:border-indigo-500/60 bg-slate-900/60 hover:bg-slate-900/90'
+            : 'border-slate-300 dark:border-slate-800 hover:border-indigo-500/60 bg-slate-50/80 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900/90'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={() => {
           if (!disabled) {

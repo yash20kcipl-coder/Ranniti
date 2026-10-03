@@ -3,7 +3,7 @@ import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
 import ScrollableFilterPills, { FilterOption } from './ScrollableFilterPills';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { View, StyleSheet, TouchableOpacity, TextInput, StyleProp, ViewStyle } from 'react-native';
 
 export interface SearchAndFilterHeaderProps {

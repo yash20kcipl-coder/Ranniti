@@ -13,6 +13,7 @@ const ThemedToaster = () => {
   return (
     <Toaster
       position="top-right"
+      containerStyle={{ zIndex: 10000 }}
       toastOptions={{
         style: {
           background: t.surface,

@@ -8,11 +8,10 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/seeds/index.ts",
-    "typecheck": "tsc --noEmit",
-    "migrate:create": "node-pg-migrate -m src/database/migrations create",
-    "migrate:up": "node-pg-migrate -m src/database/migrations up",
-    "migrate:down": "node-pg-migrate -m src/database/migrations down",
-    "migrate:redo": "node-pg-migrate -m src/database/migrations redo"
+    "seed:backfill-family-ids": "tsx src/seeds/backfillFamilyIds.ts",
+    "generate-sample": "tsx src/seeds/generate_sample_voters_file.ts",
+    "migrate:tenants": "tsx src/scripts/migrateTenants.ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "nodejs",
@@ -33,7 +32,7 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0",
     "multer": "^2.4.0",
-    "node-pg-migrate": "^9.0.0",
+    "nodemailer": "^10.0.13",
     "pg": "^8.23.0",
     "xlsx": "^0.18.5",
     "zod": "^3.24.2"
@@ -47,6 +46,7 @@
     "@types/morgan": "^1.9.9",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.13.10",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"

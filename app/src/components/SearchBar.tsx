@@ -23,7 +23,7 @@ import { getShadow } from '../utils/shadow';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 
 const AnimatedIcon = Animated.createAnimatedComponent(MaterialDesignIcons);
 

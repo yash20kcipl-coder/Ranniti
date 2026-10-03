@@ -8,7 +8,7 @@ import { useAppTheme } from '../hooks/useAppTheme';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { fetchAcademicYearsAction, switchAcademicYearAction } from '../store/actions/auth';
 
 interface AcademicYearModalProps {

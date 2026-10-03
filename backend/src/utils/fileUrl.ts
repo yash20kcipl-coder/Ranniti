@@ -90,6 +90,8 @@ const DEFAULT_FILE_KEYS = [
   'logo',
 ];
 
+const DEFAULT_FILE_KEYS_SET = new Set(DEFAULT_FILE_KEYS);
+
 /**
  * Recursively attaches file base URLs to matching object properties or array items in API payloads.
  *
@@ -102,35 +104,32 @@ export const attachFileUrls = <T>(
   customKeys: string[] = DEFAULT_FILE_KEYS,
   req?: Request
 ): T => {
-  if (!data) return data;
+  if (!data || data instanceof Date || typeof data !== 'object') return data;
 
-  if (data instanceof Date) return data;
+  const keySet = customKeys === DEFAULT_FILE_KEYS ? DEFAULT_FILE_KEYS_SET : new Set(customKeys);
 
-  if (Array.isArray(data)) {
-    return data.map((item) => attachFileUrls(item, customKeys, req)) as unknown as T;
-  }
-
-  if (typeof data === 'object' && data !== null) {
-    const copy = { ...data } as Record<string, any>;
+  const transform = (item: any): any => {
+    if (!item || item instanceof Date || typeof item !== 'object') return item;
+    if (Array.isArray(item)) {
+      return item.map(transform);
+    }
+    const copy = { ...item };
     for (const key of Object.keys(copy)) {
       const val = copy[key];
-
-      if (customKeys.includes(key)) {
+      if (keySet.has(key)) {
         if (typeof val === 'string') {
           copy[key] = toFileUrl(val, req);
         } else if (Array.isArray(val)) {
           copy[key] = toFileUrls(val, req);
         }
-      } else if (val instanceof Date) {
-        copy[key] = val;
-      } else if (typeof val === 'object' && val !== null) {
-        copy[key] = attachFileUrls(val, customKeys, req);
+      } else if (typeof val === 'object' && val !== null && !(val instanceof Date)) {
+        copy[key] = transform(val);
       }
     }
-    return copy as T;
-  }
+    return copy;
+  };
 
-  return data;
+  return transform(data) as T;
 };
 
 /**

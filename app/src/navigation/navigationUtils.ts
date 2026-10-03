@@ -81,17 +81,7 @@ export function resetArray(routes: any[]) {
   }
 }
 
-export function navigateToDashboard(role: string, childCount: number = 0) {
-  if (role === 'teacher') {
-    resetArray([SCREENS.TEACHER_MAIN]);
-  } else if (role === 'parent') {
-    if (childCount > 1) {
-      resetArray([SCREENS.PARENT_PROFILES]);
-    } else {
-      resetArray([SCREENS.STUDENT_MAIN]);
-    }
-  } else {
-    // Default for student or any other role
-    resetArray([SCREENS.STUDENT_MAIN]);
-  }
+export function navigateToDashboard(role?: string) {
+  resetArray([SCREENS.MAIN]);
 }
+

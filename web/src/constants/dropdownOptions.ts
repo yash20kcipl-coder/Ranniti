@@ -87,16 +87,26 @@ export const FORM_CASTE_CATEGORY_OPTIONS: Option[] = [
   { label: 'Other', value: 'Other' },
 ];
 
-export const ORGANIZATION_STATUS_OPTIONS: Option[] = [
-  { label: 'All Statuses', value: '' },
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
-  { label: 'Suspended', value: 'suspended' },
+export const USER_ROLE_OPTIONS: Option[] = [
+  { label: 'All Roles', value: '' },
+  { label: 'Platform Super Admin', value: 'super_admin' },
+  { label: 'System Admin', value: 'admin' },
+  { label: 'Tenant Campaign Admin', value: 'tenant_admin' },
+  { label: 'Assembly Campaign Leader', value: 'leader' },
+  { label: 'Booth Coordinator (Sub-Leader)', value: 'sub_leader' },
+  { label: 'Field Supporter', value: 'supporter' },
+  { label: 'Data Entry Operator', value: 'deo' },
+  { label: 'Voter Data Analyst', value: 'analyst' },
+  { label: 'Ground Volunteer', value: 'user' },
 ];
 
-export const FORM_ORGANIZATION_STATUS_OPTIONS: Option[] = [
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
-  { label: 'Suspended', value: 'suspended' },
+export const LEADER_CREATABLE_ROLE_OPTIONS: Option[] = [
+  { label: 'Assembly / Sub-Sector Leader', value: 'leader' },
+  { label: 'Booth Coordinator (Sub-Leader)', value: 'sub_leader' },
 ];
+
+export const SUB_LEADER_CREATABLE_ROLE_OPTIONS: Option[] = [
+  { label: 'Field Supporter', value: 'supporter' },
+];
+
 

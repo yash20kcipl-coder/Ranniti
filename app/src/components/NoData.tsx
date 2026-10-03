@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, ImageSourcePropType } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { FontFamily } from '../utils/typography';
 import { rfValue } from '../utils/responsive';

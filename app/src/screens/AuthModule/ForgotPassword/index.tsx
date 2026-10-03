@@ -7,7 +7,7 @@ import { useAppTheme } from '../../../hooks/useAppTheme';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { AppTextInput } from '../../../components/AppTextInput';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 
 import toast from '../../../utils/toast';
 import { useDispatch } from 'react-redux';
@@ -18,7 +18,7 @@ const ForgotPassword = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch<any>();
   const [loading, setLoading] = useState(false);
-  const { theme, styles } = useAppTheme(forgotPasswordStyles);
+  const { theme, styles } = useAppTheme<ReturnType<typeof forgotPasswordStyles>>(forgotPasswordStyles);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [identifier, setIdentifier] = useState('');

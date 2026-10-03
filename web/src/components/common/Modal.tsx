@@ -77,9 +77,11 @@ export const Modal: React.FC<ModalProps> = ({
         }
       }}
     >
-      <div className={`relative w-full ${maxWidthClasses} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-6 text-left`}>
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
+      <div
+        className={`relative w-full ${maxWidthClasses} max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-left`}
+      >
+        {/* Modal Header (Fixed at top) */}
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-10">
           <div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
             {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
@@ -94,12 +96,16 @@ export const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Body / Form Content */}
+        {/* Modal Body & Footer */}
         {onSubmit ? (
-          <form onSubmit={onSubmit} className="space-y-4">
-            {children}
-            {/* Modal Actions Footer */}
-            <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-200 dark:border-slate-800">
+          <form onSubmit={onSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Scrollable Form Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {children}
+            </div>
+
+            {/* Modal Actions Sticky Footer */}
+            <div className="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 z-10">
               <button
                 type="button"
                 onClick={onClose}
@@ -119,7 +125,9 @@ export const Modal: React.FC<ModalProps> = ({
             </div>
           </form>
         ) : (
-          children
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {children}
+          </div>
         )}
       </div>
     </div>

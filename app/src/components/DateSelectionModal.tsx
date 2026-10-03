@@ -1,13 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import moment from 'moment';
 import { Theme } from '../constants/theme';
 import { getShadow } from '../utils/shadow';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
-import { Calendar } from 'react-native-calendars';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { View, StyleSheet, Modal, Text, TouchableOpacity } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 
 interface DateSelectionModalProps {
   visible: boolean;
@@ -23,262 +22,164 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
   visible,
   onClose,
   dayType,
-  startDate,
-  endDate,
+  startDate: initialStart,
+  endDate: initialEnd,
   onSelectDates,
-  holidays,
 }) => {
   const { theme, styles } = useAppTheme(getStyles);
+  const [selectedStart, setSelectedStart] = useState<string>(initialStart || moment().format('YYYY-MM-DD'));
+  const [currentMonth, setCurrentMonth] = useState(moment());
 
-  const handleDatePress = (dateString: string) => {
-    const selected = dateString; // This is already YYYY-MM-DD
-
-    if (dayType === 'half') {
-      onSelectDates(selected, selected);
-      onClose();
-    } else {
-      if (!startDate || (startDate && endDate)) {
-        onSelectDates(selected, '');
-      } else {
-        const start = moment(startDate);
-        const current = moment(selected);
-
-        if (current.isBefore(start)) {
-          onSelectDates(selected, '');
-        } else {
-          onSelectDates(startDate, selected);
-        }
-      }
-    }
-  };
-
-  const getMarkedDates = () => {
-    const marked: any = {};
-
-    // 1. Populate holidays
-    if (holidays && Array.isArray(holidays)) {
-      holidays.forEach((holiday: any) => {
-        if (!holiday.startDate) return;
-        let currentHoliday = moment(holiday.startDate).startOf('day');
-        const endHoliday = moment(holiday.endDate || holiday.startDate).startOf('day');
-
-        while (currentHoliday.isSameOrBefore(endHoliday, 'day')) {
-          const dateStr = currentHoliday.format('YYYY-MM-DD');
-          marked[dateStr] = {
-            color: theme.colors.warning + '20', // transparent warning background
-            textColor: theme.colors.warning, // warning text color
-            startingDay: currentHoliday.isSame(moment(holiday.startDate), 'day'),
-            endingDay: currentHoliday.isSame(endHoliday, 'day'),
-          };
-          currentHoliday.add(1, 'days');
-        }
-      });
-    }
-
-    if (!startDate) return marked;
-
-    const startStr = startDate.split('T')[0];
-
-    if (dayType === 'half' || !endDate) {
-      marked[startStr] = {
-        selected: true,
-        startingDay: true,
-        endingDay: true,
-        color: theme.colors.primary,
-        textColor: '#FFFFFF',
-      };
-      return marked;
-    }
-
-    const endStr = endDate.split('T')[0];
-
-    if (startStr === endStr) {
-      marked[startStr] = {
-        selected: true,
-        startingDay: true,
-        endingDay: true,
-        color: theme.colors.primary,
-        textColor: '#FFFFFF',
-      };
-      return marked;
-    }
-
-    marked[startStr] = {
-      selected: true,
-      startingDay: true,
-      color: theme.colors.primary,
-      textColor: '#FFFFFF',
-    };
-
-    marked[endStr] = {
-      selected: true,
-      endingDay: true,
-      color: theme.colors.primary,
-      textColor: '#FFFFFF',
-    };
-
-    let current = moment(startDate).add(1, 'days');
-    const end = moment(endDate);
-
-    while (current.isBefore(end)) {
-      const dateStr = current.format('YYYY-MM-DD');
-      marked[dateStr] = {
-        selected: true,
-        color: theme.colors.primary + '18',
-        textColor: theme.colors.primary,
-      };
-      current.add(1, 'days');
-    }
-
-    return marked;
-  };
-
-  const confirmDateRange = () => {
-    if (!endDate) {
-      onSelectDates(startDate, startDate);
-    }
+  const handleDatePress = (dateStr: string) => {
+    setSelectedStart(dateStr);
+    onSelectDates(dateStr, dateStr);
     onClose();
   };
 
+  const startOfMonth = currentMonth.clone().startOf('month');
+  const daysInMonth = currentMonth.daysInMonth();
+  const startDayOfWeek = startOfMonth.day();
+
+  const days: (number | null)[] = [];
+  for (let i = 0; i < startDayOfWeek; i++) {
+    days.push(null);
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    days.push(i);
+  }
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
-          style={styles.calendarModalContainer}
-        >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={styles.calendarModalContainer}>
+          {/* Calendar Header */}
+          <View style={styles.monthHeader}>
+            <TouchableOpacity
+              onPress={() => setCurrentMonth(currentMonth.clone().subtract(1, 'month'))}
+              style={styles.arrowBox}
+            >
+              <MaterialDesignIcons size={18} color={theme.colors.primary} name="chevron-left" />
+            </TouchableOpacity>
 
-          <Calendar
-            renderArrow={(direction: string) => (
-              <View style={styles.arrowBox}>
-                <MaterialDesignIcons
-                  size={18}
-                  color={theme.colors.primary}
-                  name={direction === 'left' ? 'chevron-left' : 'chevron-right'}
-                />
-              </View>
-            )}
-            minDate={moment().format('YYYY-MM-DD')}
-            markingType="period"
-            markedDates={getMarkedDates()}
-            onDayPress={(day) => handleDatePress(day.dateString)}
-            theme={{
-              backgroundColor: theme.colors.surface,
-              calendarBackground: theme.colors.surface,
-              textSectionTitleColor: theme.colors.text,
-              selectedDayBackgroundColor: theme.colors.primary,
-              selectedDayTextColor: '#FFFFFF',
-              todayTextColor: theme.colors.primary,
-              dayTextColor: theme.colors.text,
-              textDisabledColor: theme.colors.textSecondary + '40',
-              dotColor: theme.colors.primary,
-              selectedDotColor: '#FFFFFF',
-              arrowColor: theme.colors.primary,
-              monthTextColor: theme.colors.text,
-              indicatorColor: theme.colors.primary,
-              textDayFontFamily: FontFamily.body,
-              textMonthFontFamily: FontFamily.bodyBold,
-              textDayHeaderFontFamily: FontFamily.bodyBold,
-              textDayFontSize: rfValue(13.5),
-              textMonthFontSize: rfValue(15.5),
-              textDayHeaderFontSize: rfValue(11),
-              'stylesheet.day.basic': {
-                base: {
-                  width: 32,
-                  height: 32,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                },
-                text: {
-                  marginTop: 0,
-                  fontSize: rfValue(12),
-                  fontFamily: FontFamily.bodyBold,
-                },
+            <Text style={styles.monthTitle}>{currentMonth.format('MMMM YYYY')}</Text>
+
+            <TouchableOpacity
+              onPress={() => setCurrentMonth(currentMonth.clone().add(1, 'month'))}
+              style={styles.arrowBox}
+            >
+              <MaterialDesignIcons size={18} color={theme.colors.primary} name="chevron-right" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Days of Week */}
+          <View style={styles.weekRow}>
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+              <Text key={d} style={styles.weekDayText}>{d}</Text>
+            ))}
+          </View>
+
+          {/* Grid of Days */}
+          <View style={styles.daysGrid}>
+            {days.map((dayNum, idx) => {
+              if (dayNum === null) {
+                return <View key={`empty-${idx}`} style={styles.dayCell} />;
               }
-            } as any}
-            enableSwipeMonths
-          />
+              const dateStr = currentMonth.clone().date(dayNum).format('YYYY-MM-DD');
+              const isSelected = dateStr === selectedStart;
+              const isToday = dateStr === moment().format('YYYY-MM-DD');
 
-          {dayType === 'full' && (
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[styles.confirmBtn, !endDate && styles.confirmBtnDisabled]}
-                activeOpacity={0.85}
-                onPress={confirmDateRange}
-                disabled={!endDate}
-              >
-                <Text style={styles.confirmBtnText}>Confirm Range</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+              return (
+                <TouchableOpacity
+                  key={`day-${dayNum}`}
+                  style={[
+                    styles.dayCell,
+                    isSelected && { backgroundColor: theme.colors.primary, borderRadius: 20 },
+                  ]}
+                  onPress={() => handleDatePress(dateStr)}
+                >
+                  <Text
+                    style={[
+                      styles.dayText,
+                      isSelected && { color: '#FFFFFF', fontWeight: 'bold' },
+                      isToday && !isSelected && { color: theme.colors.primary, fontWeight: 'bold' },
+                    ]}
+                  >
+                    {dayNum}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
   );
 };
 
-const getStyles = (theme: Theme) => StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  calendarModalContainer: {
-    width: '100%',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 24,
-    padding: 20,
-    paddingTop: 5,
-    ...getShadow(4, theme.colors.shadowColor, 0.15),
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: rfValue(15),
-    fontFamily: FontFamily.heading,
-    color: theme.colors.text,
-  },
-  modalFooter: {
-    marginTop: 16,
-  },
-  confirmBtn: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmBtnDisabled: {
-    backgroundColor: theme.colors.textSecondary + '40',
-  },
-  confirmBtnText: {
-    color: '#FFFFFF',
-    fontFamily: FontFamily.bodyBold,
-    fontSize: rfValue(14),
-  },
-  arrowBox: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 6,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...getShadow(1, theme.colors.shadowColor, 0.02),
-  },
-});
+const getStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+    },
+    calendarModalContainer: {
+      width: '100%',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      ...getShadow(8, '#000000', 0.2),
+    },
+    monthHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    monthTitle: {
+      fontFamily: FontFamily.bold,
+      fontSize: rfValue(16),
+      color: theme.colors.text,
+    },
+    arrowBox: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.colors.surfaceVariant,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    weekRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: 8,
+    },
+    weekDayText: {
+      width: 36,
+      textAlign: 'center',
+      fontFamily: FontFamily.medium,
+      fontSize: rfValue(12),
+      color: theme.colors.textSecondary,
+    },
+    daysGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-around',
+    },
+    dayCell: {
+      width: 36,
+      height: 36,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginVertical: 2,
+    },
+    dayText: {
+      fontFamily: FontFamily.body,
+      fontSize: rfValue(14),
+      color: theme.colors.text,
+    },
+  });
+
+export default DateSelectionModal;

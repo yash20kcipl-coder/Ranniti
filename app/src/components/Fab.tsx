@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle, StyleProp } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { getShadow } from '../utils/shadow';
 import { Theme } from '../constants/theme';

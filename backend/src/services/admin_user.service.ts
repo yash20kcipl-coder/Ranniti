@@ -5,16 +5,32 @@ import { AdminUser, UpdateAdminUserInput } from '../models/admin_user.model';
 export class AdminUserService {
   async getAllAdminUsers(): Promise<AdminUser[]> {
     const res = await query(
-      `SELECT id, organization_id AS "organizationId", name, email, role, mobile, avatar, status,
+      `SELECT id, name, email, role, role_name AS "roleName", mobile, avatar, status,
               created_at AS "createdAt", updated_at AS "updatedAt"
        FROM admin_users ORDER BY created_at DESC`
     );
     return res.rows;
   }
 
+  async getTeamMembersByParentId(parentLeaderId: string): Promise<AdminUser[]> {
+    const res = await query(
+      `SELECT u.id, u.name, u.email, u.role, u.role_name AS "roleName", u.mobile, u.avatar, u.status,
+              u.parent_leader_id AS "parentLeaderId", u.assigned_ac_id AS "assignedAcId",
+              u.created_at AS "createdAt", u.updated_at AS "updatedAt",
+              COALESCE(ARRAY_AGG(uba.booth_id) FILTER (WHERE uba.booth_id IS NOT NULL), '{}') AS "assignedBoothIds"
+       FROM admin_users u
+       LEFT JOIN user_booth_assignments uba ON u.id = uba.user_id
+       WHERE u.parent_leader_id = $1
+       GROUP BY u.id
+       ORDER BY u.created_at DESC`,
+      [parentLeaderId]
+    );
+    return res.rows;
+  }
+
   async getAdminUserById(id: string): Promise<AdminUser> {
     const res = await query(
-      `SELECT id, organization_id AS "organizationId", name, email, role, mobile, avatar, status,
+      `SELECT id, name, email, role, role_name AS "roleName", mobile, avatar, status,
               created_at AS "createdAt", updated_at AS "updatedAt"
        FROM admin_users WHERE id = $1`,
       [id]
@@ -44,6 +60,10 @@ export class AdminUserService {
       fields.push(`role = $${idx++}`);
       values.push(input.role);
     }
+    if (input.roleName !== undefined) {
+      fields.push(`role_name = $${idx++}`);
+      values.push(input.roleName);
+    }
     if (input.mobile !== undefined) {
       fields.push(`mobile = $${idx++}`);
       values.push(input.mobile);
@@ -62,7 +82,7 @@ export class AdminUserService {
 
     const res = await query(
       `UPDATE admin_users SET ${fields.join(', ')} WHERE id = $${idx} 
-       RETURNING id, organization_id AS "organizationId", name, email, role, mobile, avatar, status, created_at AS "createdAt", updated_at AS "updatedAt"`,
+       RETURNING id, name, email, role, role_name AS "roleName", mobile, avatar, status, created_at AS "createdAt", updated_at AS "updatedAt"`,
       values
     );
 

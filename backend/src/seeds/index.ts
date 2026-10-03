@@ -1,7 +1,8 @@
 import { logger } from '../utils/logger';
-import { seedMasters } from './seeders/master.seeder';
-import { seedAdminUsers } from './seeders/admin_user.seeder';
+import { seedRoles } from './seeders/role.seeder';
 import { seedVoters } from './seeders/voter.seeder';
+import { seedMasters } from './seeders/master.seeder';
+import { seedAdminUsers, seedTenantDatabases } from './seeders/admin_user.seeder';
 
 const runSeeders = async (): Promise<void> => {
   logger.info('==========================================');
@@ -10,8 +11,10 @@ const runSeeders = async (): Promise<void> => {
 
   try {
     await seedMasters();
+    await seedRoles();
     await seedAdminUsers();
-    await seedVoters(1000);
+    await seedVoters(3500);
+    await seedTenantDatabases();
     logger.info('==========================================');
     logger.info('✅ Database Seeding Completed Successfully');
     logger.info('==========================================');

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import moment from 'moment';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 import { DateSelectionModal } from '../DateSelectionModal';
 import { FormInputProps } from './types';
 import { Theme } from '../../constants/theme';

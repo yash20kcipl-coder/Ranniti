@@ -50,7 +50,7 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
   const [sameHouseOnly, setSameHouseOnly] = useState(false);
   const [sameSurnameOnly, setSameSurnameOnly] = useState(true);
   const [sameSectionOnly, setSameSectionOnly] = useState(false);
-  const [unassignedOnly, setUnassignedOnly] = useState(true);
+  const [unassignedOnly, setUnassignedOnly] = useState(false);
   const [genderFilter, setGenderFilter] = useState('');
 
   // Pagination State
@@ -74,7 +74,7 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
       setSameHouseOnly(false);
       setSameSurnameOnly(true);
       setSameSectionOnly(false);
-      setUnassignedOnly(true);
+      setUnassignedOnly(false);
       setGenderFilter('');
       setPage(1);
       setSelectedVoterIds([]);
@@ -308,7 +308,7 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
                   : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
                   }`}
               >
-                <Home className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <Home className={`w-3.5 h-3.5 ${sameHouseOnly ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
                 <span>Same House (#{influencerHouseNo})</span>
               </button>
             )}
@@ -324,7 +324,7 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
                 : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
                 }`}
             >
-              <Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              <Users className={`w-3.5 h-3.5 ${sameSurnameOnly ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
               <span>Same Surname Only</span>
             </button>
 
@@ -340,7 +340,7 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
                   : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
                   }`}
               >
-                <MapPin className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <MapPin className={`w-3.5 h-3.5 ${sameSectionOnly ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} />
                 <span>Same Section (#{influencerSectionNo})</span>
               </button>
             )}
@@ -356,7 +356,7 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
                 : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
                 }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <CheckCircle2 className={`w-3.5 h-3.5 ${unassignedOnly ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
               <span>Unassigned Only</span>
             </button>
 

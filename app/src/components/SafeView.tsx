@@ -29,9 +29,8 @@ export const SafeView: React.FC<SafeViewProps> = ({
     <>
       {hideTop && (
         <StatusBar
-          backgroundColor={statusBarColor || 'transparent'}
           barStyle={barStyle || (theme.colors.background === '#F9FAFB' ? 'dark-content' : 'light-content')}
-          translucent
+          showHideTransition="fade"
         />
       )}
       <SafeAreaView

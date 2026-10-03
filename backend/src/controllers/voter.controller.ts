@@ -29,7 +29,6 @@ export class VoterController {
       isSocialInfluencer: req.query.isSocialInfluencer as string,
       influencerStatus: req.query.influencerStatus as string,
       influencerRole: req.query.influencerRole as string,
-      organizationId: req.query.organizationId as string,
     };
 
     const result = await VoterService.getVoters(filterParams);
@@ -98,7 +97,6 @@ export class VoterController {
     const filterParams: Partial<VoterFilterParams> = {
       boothId: req.query.boothId as string,
       acId: req.query.acId as string,
-      organizationId: req.query.organizationId as string,
     };
     const stats = await VoterService.getVoterStats(filterParams);
     const response = ApiResponse.success(stats, 'Voter statistics retrieved successfully');
@@ -112,7 +110,8 @@ export class VoterController {
     const type = req.query.type as string;
 
     const options = await VoterService.getInfluencerOptions(search, boothId, excludeId, type);
-    const response = ApiResponse.success(options, 'Influencer options retrieved successfully');
+    const transformedOptions = attachFileUrls(options, ['avatar'], req);
+    const response = ApiResponse.success(transformedOptions, 'Influencer options retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
 
@@ -141,7 +140,6 @@ export class VoterController {
       partyId: req.query.partyId as string,
       isFamilyInfluencer: req.query.isFamilyInfluencer as string,
       isSocialInfluencer: req.query.isSocialInfluencer as string,
-      organizationId: req.query.organizationId as string,
     };
 
     await VoterService.exportVotersStream(res, filterParams);

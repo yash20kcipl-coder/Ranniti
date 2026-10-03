@@ -1,0 +1,43 @@
+[
+  { "pcName": "Pune", "acNumber": 208, "name": "Vadgaon Sheri", "districtName": "Pune" },
+  { "pcName": "Pune", "acNumber": 209, "name": "Shivajinagar", "districtName": "Pune" },
+  { "pcName": "Pune", "acNumber": 210, "name": "Kothrud", "districtName": "Pune" },
+  { "pcName": "Pune", "acNumber": 211, "name": "Khadakwasla", "districtName": "Pune" },
+  { "pcName": "Pune", "acNumber": 212, "name": "Parvati", "districtName": "Pune" },
+  { "pcName": "Pune", "acNumber": 213, "name": "Hadapsar", "districtName": "Pune" },
+  { "pcName": "Pune", "acNumber": 214, "name": "Pune Cantonment", "districtName": "Pune" },
+  { "pcName": "Pune", "acNumber": 215, "name": "Kasba Peth", "districtName": "Pune" },
+
+  { "pcName": "Baramati", "acNumber": 201, "name": "Baramati", "districtName": "Pune" },
+  { "pcName": "Baramati", "acNumber": 202, "name": "Indapur", "districtName": "Pune" },
+  { "pcName": "Baramati", "acNumber": 203, "name": "Daund", "districtName": "Pune" },
+  { "pcName": "Baramati", "acNumber": 204, "name": "Purandar", "districtName": "Pune" },
+  { "pcName": "Baramati", "acNumber": 205, "name": "Bhor", "districtName": "Pune" },
+
+  { "pcName": "Shirur", "acNumber": 195, "name": "Junnar", "districtName": "Pune" },
+  { "pcName": "Shirur", "acNumber": 196, "name": "Ambegaon", "districtName": "Pune" },
+  { "pcName": "Shirur", "acNumber": 197, "name": "Khed Alandi", "districtName": "Pune" },
+  { "pcName": "Shirur", "acNumber": 198, "name": "Shirur", "districtName": "Pune" },
+  { "pcName": "Shirur", "acNumber": 199, "name": "Bhosari", "districtName": "Pune" },
+
+  { "pcName": "Maval", "acNumber": 206, "name": "Pimpri", "districtName": "Pune" },
+  { "pcName": "Maval", "acNumber": 207, "name": "Chinchwad", "districtName": "Pune" },
+  { "pcName": "Maval", "acNumber": 204, "name": "Maval", "districtName": "Pune" },
+
+  { "pcName": "Mumbai South", "acNumber": 182, "name": "Worli", "districtName": "Mumbai City" },
+  { "pcName": "Mumbai South", "acNumber": 183, "name": "Shivadi", "districtName": "Mumbai City" },
+  { "pcName": "Mumbai South", "acNumber": 184, "name": "Byculla", "districtName": "Mumbai City" },
+  { "pcName": "Mumbai South", "acNumber": 185, "name": "Malabar Hill", "districtName": "Mumbai City" },
+  { "pcName": "Mumbai South", "acNumber": 186, "name": "Mumbadevi", "districtName": "Mumbai City" },
+  { "pcName": "Mumbai South", "acNumber": 187, "name": "Colaba", "districtName": "Mumbai City" },
+
+  { "pcName": "Nagpur", "acNumber": 52, "name": "Nagpur South West", "districtName": "Nagpur" },
+  { "pcName": "Nagpur", "acNumber": 53, "name": "Nagpur South", "districtName": "Nagpur" },
+  { "pcName": "Nagpur", "acNumber": 54, "name": "Nagpur East", "districtName": "Nagpur" },
+  { "pcName": "Nagpur", "acNumber": 55, "name": "Nagpur Central", "districtName": "Nagpur" },
+  { "pcName": "Nagpur", "acNumber": 56, "name": "Nagpur West", "districtName": "Nagpur" },
+
+  { "pcName": "Chhatrapati Sambhajinagar (Aurangabad)", "acNumber": 107, "name": "Aurangabad Central", "districtName": "Chhatrapati Sambhajinagar" },
+  { "pcName": "Chhatrapati Sambhajinagar (Aurangabad)", "acNumber": 108, "name": "Aurangabad West", "districtName": "Chhatrapati Sambhajinagar" },
+  { "pcName": "Chhatrapati Sambhajinagar (Aurangabad)", "acNumber": 109, "name": "Aurangabad East", "districtName": "Chhatrapati Sambhajinagar" }
+]

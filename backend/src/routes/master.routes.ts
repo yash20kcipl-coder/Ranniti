@@ -6,11 +6,16 @@ import {
   createCasteSchema,
   createStateSchema,
   createDistrictSchema,
+  createTalukaSchema,
+  updateTalukaSchema,
+  createVillageSchema,
+  updateVillageSchema,
   createPcSchema,
   createAcSchema,
+  createWardSchema,
+  updateWardSchema,
   createPartySchema,
   createBoothSchema,
-  createOrganizationSchema,
 } from '../schemas/master.schema';
 import { validate } from '../middlewares/validate.middleware';
 import { optionalUpload } from '../middlewares/upload.middleware';
@@ -73,6 +78,30 @@ router
   .put(validate(masterIdParamSchema), masterController.updateDistrict)
   .delete(validate(masterIdParamSchema), masterController.deleteDistrict);
 
+// --- TALUKAS ---
+router
+  .route('/talukas')
+  .get(masterController.getTalukas)
+  .post(validate(createTalukaSchema), masterController.createTaluka);
+
+router
+  .route('/talukas/:id')
+  .get(validate(masterIdParamSchema), masterController.getTalukaById)
+  .put(validate(updateTalukaSchema), masterController.updateTaluka)
+  .delete(validate(masterIdParamSchema), masterController.deleteTaluka);
+
+// --- VILLAGES ---
+router
+  .route('/villages')
+  .get(masterController.getVillages)
+  .post(validate(createVillageSchema), masterController.createVillage);
+
+router
+  .route('/villages/:id')
+  .get(validate(masterIdParamSchema), masterController.getVillageById)
+  .put(validate(updateVillageSchema), masterController.updateVillage)
+  .delete(validate(masterIdParamSchema), masterController.deleteVillage);
+
 // --- PARLIAMENTARY CONSTITUENCIES (PC) ---
 router
   .route('/pcs')
@@ -95,6 +124,18 @@ router
   .put(validate(masterIdParamSchema), masterController.updateAc)
   .delete(validate(masterIdParamSchema), masterController.deleteAc);
 
+// --- WARDS ---
+router
+  .route('/wards')
+  .get(masterController.getWards)
+  .post(validate(createWardSchema), masterController.createWard);
+
+router
+  .route('/wards/:id')
+  .get(validate(masterIdParamSchema), masterController.getWardById)
+  .put(validate(updateWardSchema), masterController.updateWard)
+  .delete(validate(masterIdParamSchema), masterController.deleteWard);
+
 // --- PARTIES ---
 router
   .route('/parties')
@@ -116,16 +157,5 @@ router
   .route('/booths/:id')
   .put(validate(masterIdParamSchema), masterController.updateBooth)
   .delete(validate(masterIdParamSchema), masterController.deleteBooth);
-
-// --- ORGANIZATIONS ---
-router
-  .route('/organizations')
-  .get(masterController.getOrganizations)
-  .post(validate(createOrganizationSchema), masterController.createOrganization);
-
-router
-  .route('/organizations/:id')
-  .put(validate(masterIdParamSchema), masterController.updateOrganization)
-  .delete(validate(masterIdParamSchema), masterController.deleteOrganization);
 
 export const masterRoutes = router;

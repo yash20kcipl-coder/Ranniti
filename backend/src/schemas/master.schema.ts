@@ -54,6 +54,38 @@ export const createDistrictSchema = z.object({
   }),
 });
 
+// Taluka Schemas
+export const createTalukaSchema = z.object({
+  body: z.object({
+    districtId: z.string().uuid('District ID must be a valid UUID'),
+    name: z.string().min(2, 'Taluka name required'),
+  }),
+});
+
+export const updateTalukaSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    districtId: z.string().uuid().optional(),
+    name: z.string().min(2).optional(),
+  }),
+});
+
+// Village Schemas
+export const createVillageSchema = z.object({
+  body: z.object({
+    talukaId: z.string().uuid('Taluka ID must be a valid UUID'),
+    name: z.string().min(2, 'Village name required'),
+  }),
+});
+
+export const updateVillageSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    talukaId: z.string().uuid().optional(),
+    name: z.string().min(2).optional(),
+  }),
+});
+
 // Parliamentary Constituency (PC) Schemas
 export const createPcSchema = z.object({
   body: z.object({
@@ -73,6 +105,30 @@ export const createAcSchema = z.object({
   }),
 });
 
+// Ward Schemas
+export const createWardSchema = z.object({
+  body: z.object({
+    acId: z.string().uuid('Assembly constituency ID must be a valid UUID'),
+    wardNumber: z.number().int().positive('Ward number must be a positive integer'),
+    name: z.string().min(1, 'Ward name required'),
+    stateId: z.string().uuid().optional().nullable(),
+    districtId: z.string().uuid().optional().nullable(),
+    pcId: z.string().uuid().optional().nullable(),
+  }),
+});
+
+export const updateWardSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    acId: z.string().uuid().optional(),
+    wardNumber: z.number().int().positive().optional(),
+    name: z.string().min(1).optional(),
+    stateId: z.string().uuid().optional().nullable(),
+    districtId: z.string().uuid().optional().nullable(),
+    pcId: z.string().uuid().optional().nullable(),
+  }),
+});
+
 // Party Schemas
 export const createPartySchema = z.object({
   body: z.object({
@@ -86,20 +142,13 @@ export const createPartySchema = z.object({
 export const createBoothSchema = z.object({
   body: z.object({
     acId: z.string().uuid('Assembly constituency ID must be a valid UUID'),
-    blockId: z.string().uuid().optional(),
+    wardId: z.string().uuid().optional().nullable(),
     boothNumber: z.number().int().positive('Booth number must be a positive integer'),
     name: z.string().min(2, 'Booth name required'),
-    locationBuilding: z.string().optional(),
+    locationBuilding: z.string().optional().nullable(),
     totalVoters: z.number().int().nonnegative().optional(),
-  }),
-});
-
-// Organization Schemas
-export const createOrganizationSchema = z.object({
-  body: z.object({
-    name: z.string().min(2, 'Organization name required'),
-    code: z.string().min(2, 'Unique organization code required'),
-    acId: z.string().uuid().optional(),
-    status: z.enum(['active', 'inactive', 'suspended']).default('active'),
+    stateId: z.string().uuid().optional().nullable(),
+    districtId: z.string().uuid().optional().nullable(),
+    pcId: z.string().uuid().optional().nullable(),
   }),
 });

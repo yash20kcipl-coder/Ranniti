@@ -13,7 +13,7 @@ import {
   withSpring,
 } from 'react-native-reanimated';
 import React, { useState } from 'react';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
@@ -100,11 +100,10 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     marginBottom: theme.space.md,
   },
   label: {
-    fontFamily: FontFamily.bodyBold,
-    fontSize: rfValue(14),
+    fontSize: rfValue(15),
     color: theme.colors.text,
     marginBottom: theme.space.xs,
-    opacity: 0.9,
+    fontFamily: FontFamily.bodyBold,
   },
   inputContainer: {
     flexDirection: 'row',

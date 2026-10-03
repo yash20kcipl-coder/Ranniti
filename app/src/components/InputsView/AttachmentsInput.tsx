@@ -7,7 +7,7 @@ import { rfValue } from '../../utils/responsive';
 import { FontFamily } from '../../utils/typography';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { AttachmentPickerModal } from '../AttachmentPickerModal';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 
 interface AttachmentsInputComponentProps extends FormInputProps {
   theme: Theme;

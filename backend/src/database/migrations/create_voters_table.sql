@@ -3,9 +3,7 @@
 
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
-DROP TABLE IF EXISTS voters CASCADE;
-
-CREATE TABLE voters (
+CREATE TABLE IF NOT EXISTS voters (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     epic_no VARCHAR(30) UNIQUE NOT NULL,
     state_id UUID REFERENCES states(id) ON DELETE SET NULL,
@@ -13,6 +11,8 @@ CREATE TABLE voters (
     pc_id UUID REFERENCES parliamentary_constituencies(id) ON DELETE SET NULL,
     ac_id UUID REFERENCES assembly_constituencies(id) ON DELETE SET NULL,
     booth_id UUID REFERENCES booths(id) ON DELETE SET NULL,
+    ward_id UUID REFERENCES wards(id) ON DELETE SET NULL,
+    village_id UUID REFERENCES villages(id) ON DELETE SET NULL,
     serial_no INT,
     section_no INT,
     house_no VARCHAR(100),
@@ -52,11 +52,11 @@ CREATE TABLE voters (
     full_address TEXT,
     voter_address TEXT,
     party_id UUID REFERENCES parties(id) ON DELETE SET NULL,
+    is_family_influencer BOOLEAN DEFAULT FALSE,
+    is_social_influencer BOOLEAN DEFAULT FALSE,
+    family_id VARCHAR(50),
     family_influencer_id UUID REFERENCES voters(id) ON DELETE SET NULL,
     social_influencer_id UUID REFERENCES voters(id) ON DELETE SET NULL,
-
-    -- Organization / Campaign Tenant Overlay
-    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -65,18 +65,34 @@ CREATE TABLE voters (
 -- Indexes for Sub-Millisecond Search & Roll Navigation
 CREATE UNIQUE INDEX IF NOT EXISTS idx_voters_epic_no ON voters(epic_no);
 CREATE INDEX IF NOT EXISTS idx_voters_booth_serial ON voters(booth_id, serial_no);
+CREATE INDEX IF NOT EXISTS idx_voters_state_id ON voters(state_id);
+CREATE INDEX IF NOT EXISTS idx_voters_district_id ON voters(district_id);
+CREATE INDEX IF NOT EXISTS idx_voters_pc_id ON voters(pc_id);
 CREATE INDEX IF NOT EXISTS idx_voters_ac_id ON voters(ac_id);
-CREATE INDEX IF NOT EXISTS idx_voters_organization_id ON voters(organization_id);
+CREATE INDEX IF NOT EXISTS idx_voters_ward_id ON voters(ward_id);
+CREATE INDEX IF NOT EXISTS idx_voters_village_id ON voters(village_id);
 CREATE INDEX IF NOT EXISTS idx_voters_religion_id ON voters(religion_id);
 CREATE INDEX IF NOT EXISTS idx_voters_caste_id ON voters(caste_id);
 CREATE INDEX IF NOT EXISTS idx_voters_status ON voters(status);
 CREATE INDEX IF NOT EXISTS idx_voters_is_dead ON voters(is_dead);
 CREATE INDEX IF NOT EXISTS idx_voters_party_id ON voters(party_id);
 CREATE INDEX IF NOT EXISTS idx_voters_blood_group ON voters(blood_group);
+CREATE INDEX IF NOT EXISTS idx_voters_gender ON voters(gender);
+CREATE INDEX IF NOT EXISTS idx_voters_voter_type ON voters(voter_type);
+CREATE INDEX IF NOT EXISTS idx_voters_age ON voters(age);
+CREATE INDEX IF NOT EXISTS idx_voters_section_no ON voters(section_no);
+CREATE INDEX IF NOT EXISTS idx_voters_created_at ON voters(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_voters_booth_house ON voters(booth_id, house_no);
 CREATE INDEX IF NOT EXISTS idx_voters_family_inf ON voters(family_influencer_id);
 CREATE INDEX IF NOT EXISTS idx_voters_social_inf ON voters(social_influencer_id);
+CREATE INDEX IF NOT EXISTS idx_voters_family_id ON voters(family_id);
+CREATE INDEX IF NOT EXISTS idx_voters_booth_family_id ON voters(booth_id, family_id);
 
--- GIN Trigram Search Index for English Name Lookup
+-- GIN Trigram Search Indexes for Fast Search
 CREATE INDEX IF NOT EXISTS idx_voters_eng_fname_trgm ON voters USING gin(eng_first_name gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_voters_eng_sname_trgm ON voters USING gin(eng_surname gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_voters_epic_no_trgm ON voters USING gin(epic_no gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_voters_mobile_no_trgm ON voters USING gin(mobile_no gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_voters_house_no_trgm ON voters USING gin(house_no gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_voters_first_name_trgm ON voters USING gin(first_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_voters_surname_trgm ON voters USING gin(surname gin_trgm_ops);

@@ -3,11 +3,13 @@ import {
   Caste,
   State,
   District,
+  Taluka,
+  Village,
   ParliamentaryConstituency,
   AssemblyConstituency,
+  Ward,
   Party,
   Booth,
-  Organization,
 } from '../models/master.model';
 import { ApiError } from '../utils/apiError';
 import { MasterQueries } from '../queries/master.queries';
@@ -99,6 +101,58 @@ export class MasterService {
     if (!deleted) throw ApiError.notFound('District not found');
   }
 
+  // Talukas
+  async getTalukas(districtId?: string, stateId?: string): Promise<Taluka[]> {
+    return MasterQueries.getTalukas(districtId, stateId);
+  }
+
+  async getTalukaById(id: string): Promise<Taluka> {
+    const taluka = await MasterQueries.getTalukaById(id);
+    if (!taluka) throw ApiError.notFound('Taluka not found');
+    return taluka;
+  }
+
+  async createTaluka(districtId: string, name: string): Promise<Taluka> {
+    return MasterQueries.createTaluka(districtId, name);
+  }
+
+  async updateTaluka(id: string, districtId?: string, name?: string): Promise<Taluka> {
+    const updated = await MasterQueries.updateTaluka(id, districtId, name);
+    if (!updated) throw ApiError.notFound('Taluka not found');
+    return updated;
+  }
+
+  async deleteTaluka(id: string): Promise<void> {
+    const deleted = await MasterQueries.deleteTaluka(id);
+    if (!deleted) throw ApiError.notFound('Taluka not found');
+  }
+
+  // Villages
+  async getVillages(talukaId?: string, districtId?: string, stateId?: string): Promise<Village[]> {
+    return MasterQueries.getVillages(talukaId, districtId, stateId);
+  }
+
+  async getVillageById(id: string): Promise<Village> {
+    const village = await MasterQueries.getVillageById(id);
+    if (!village) throw ApiError.notFound('Village not found');
+    return village;
+  }
+
+  async createVillage(talukaId: string, name: string): Promise<Village> {
+    return MasterQueries.createVillage(talukaId, name);
+  }
+
+  async updateVillage(id: string, talukaId?: string, name?: string): Promise<Village> {
+    const updated = await MasterQueries.updateVillage(id, talukaId, name);
+    if (!updated) throw ApiError.notFound('Village not found');
+    return updated;
+  }
+
+  async deleteVillage(id: string): Promise<void> {
+    const deleted = await MasterQueries.deleteVillage(id);
+    if (!deleted) throw ApiError.notFound('Village not found');
+  }
+
   // Parliamentary Constituencies (PC)
   async getPcs(stateId?: string): Promise<ParliamentaryConstituency[]> {
     return MasterQueries.getPcs(stateId);
@@ -160,16 +214,42 @@ export class MasterService {
     return MasterQueries.deleteParty(id);
   }
 
-  // Booths
-  async getBooths(acId?: string): Promise<Booth[]> {
-    return MasterQueries.getBooths(acId);
+  // Wards
+  async getWards(acId?: string): Promise<Ward[]> {
+    return MasterQueries.getWards(acId);
   }
 
-  async createBooth(data: { acId: string; blockId?: string; boothNumber: number; name: string; locationBuilding?: string; totalVoters?: number }): Promise<Booth> {
+  async getWardById(id: string): Promise<Ward> {
+    const ward = await MasterQueries.getWardById(id);
+    if (!ward) throw ApiError.notFound('Ward not found');
+    return ward;
+  }
+
+  async createWard(data: { acId: string; wardNumber: number; name: string }): Promise<Ward> {
+    return MasterQueries.createWard(data);
+  }
+
+  async updateWard(id: string, data: { acId?: string; wardNumber?: number; name?: string }): Promise<Ward> {
+    const updated = await MasterQueries.updateWard(id, data);
+    if (!updated) throw ApiError.notFound('Ward not found');
+    return updated;
+  }
+
+  async deleteWard(id: string): Promise<void> {
+    const deleted = await MasterQueries.deleteWard(id);
+    if (!deleted) throw ApiError.notFound('Ward not found');
+  }
+
+  // Booths
+  async getBooths(acId?: string, wardId?: string): Promise<Booth[]> {
+    return MasterQueries.getBooths(acId, wardId);
+  }
+
+  async createBooth(data: { acId: string; wardId?: string; boothNumber: number; name: string; locationBuilding?: string; totalVoters?: number }): Promise<Booth> {
     return MasterQueries.createBooth(data);
   }
 
-  async updateBooth(id: string, data: { acId?: string; blockId?: string; boothNumber?: number; name?: string; locationBuilding?: string; totalVoters?: number }): Promise<Booth> {
+  async updateBooth(id: string, data: { acId?: string; wardId?: string; boothNumber?: number; name?: string; locationBuilding?: string; totalVoters?: number }): Promise<Booth> {
     const updated = await MasterQueries.updateBooth(id, data);
     if (!updated) throw ApiError.notFound('Booth not found');
     return updated;
@@ -178,26 +258,6 @@ export class MasterService {
   async deleteBooth(id: string): Promise<void> {
     const deleted = await MasterQueries.deleteBooth(id);
     if (!deleted) throw ApiError.notFound('Booth not found');
-  }
-
-  // Organizations
-  async getOrganizations(): Promise<Organization[]> {
-    return MasterQueries.getOrganizations();
-  }
-
-  async createOrganization(data: { name: string; code: string; acId?: string; status?: string }): Promise<Organization> {
-    return MasterQueries.createOrganization(data);
-  }
-
-  async updateOrganization(id: string, data: { name?: string; code?: string; acId?: string; status?: string }): Promise<Organization> {
-    const updated = await MasterQueries.updateOrganization(id, data);
-    if (!updated) throw ApiError.notFound('Organization not found');
-    return updated;
-  }
-
-  async deleteOrganization(id: string): Promise<void> {
-    const deleted = await MasterQueries.deleteOrganization(id);
-    if (!deleted) throw ApiError.notFound('Organization not found');
   }
 }
 

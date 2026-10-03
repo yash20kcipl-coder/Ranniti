@@ -8,6 +8,7 @@ export const SET_MASTER_TAB = 'SET_MASTER_TAB';
 export const SET_MASTER_DATA = 'SET_MASTER_DATA';
 export const SET_MASTER_LOADING = 'SET_MASTER_LOADING';
 export const SET_MASTER_SEARCH = 'SET_MASTER_SEARCH';
+export const SET_MASTER_FETCHING = 'SET_MASTER_FETCHING';
 
 export const setMasterTab = (tab: string) => ({
   type: SET_MASTER_TAB,
@@ -30,6 +31,12 @@ export const setMasterLoading = (loading: boolean) => ({
   data: loading,
 });
 
+export const setMasterFetching = (category: string, isFetching: boolean) => ({
+  type: SET_MASTER_FETCHING,
+  category,
+  isFetching,
+});
+
 const getMasterData = async (endpoint: string) => {
   const res = await api.get(endpoint);
   return res.data?.data || res.data || [];
@@ -37,6 +44,7 @@ const getMasterData = async (endpoint: string) => {
 
 export const fetchMasterCategoryData = (category: string, endpoint: string, showLoader = true) => {
   return async (dispatch: AppDispatch) => {
+    dispatch(setMasterFetching(category, true));
     if (showLoader) {
       dispatch(setMasterLoading(true));
     }
@@ -51,6 +59,7 @@ export const fetchMasterCategoryData = (category: string, endpoint: string, show
       dispatch(setMasterData(category, []));
       throw err;
     } finally {
+      dispatch(setMasterFetching(category, false));
       if (showLoader) {
         dispatch(setMasterLoading(false));
       }

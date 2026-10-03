@@ -14,6 +14,30 @@ export interface District {
   updatedAt: Date;
 }
 
+export interface Taluka {
+  id: string;
+  districtId: string;
+  districtName?: string;
+  stateId?: string;
+  stateName?: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Village {
+  id: string;
+  talukaId: string;
+  talukaName?: string;
+  districtId?: string;
+  districtName?: string;
+  stateId?: string;
+  stateName?: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface ParliamentaryConstituency {
   id: string;
   stateId: string;
@@ -30,16 +54,26 @@ export interface AssemblyConstituency {
   pcName?: string;
   districtId?: string;
   districtName?: string;
+  stateId?: string;
+  stateName?: string;
   acNumber: number;
   name: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface Block {
+export interface Ward {
   id: string;
   acId: string;
-  code?: string;
+  acName?: string;
+  acNumber?: number;
+  pcId?: string;
+  pcName?: string;
+  districtId?: string;
+  districtName?: string;
+  stateId?: string;
+  stateName?: string;
+  wardNumber: number;
   name: string;
   createdAt: Date;
   updatedAt: Date;
@@ -49,7 +83,15 @@ export interface Booth {
   id: string;
   acId: string;
   acName?: string;
-  blockId?: string;
+  pcId?: string;
+  pcName?: string;
+  districtId?: string;
+  districtName?: string;
+  stateId?: string;
+  stateName?: string;
+  wardId?: string;
+  wardName?: string;
+  wardNumber?: number;
   boothNumber: number;
   name: string;
   locationBuilding?: string;
@@ -82,17 +124,6 @@ export interface Party {
   name: string;
   abbreviation: string;
   symbolLogo?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Organization {
-  id: string;
-  name: string;
-  code: string;
-  acId?: string;
-  acName?: string;
-  status: 'active' | 'inactive' | 'suspended';
   createdAt: Date;
   updatedAt: Date;
 }

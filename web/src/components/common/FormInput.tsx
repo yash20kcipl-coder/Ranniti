@@ -11,7 +11,7 @@ export interface Option {
 export interface FormInputProps {
   label?: string;
   name: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'select' | 'multiselect' | 'textarea' | 'file' | 'checkbox' | 'switch' | 'date';
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'select' | 'multiselect' | 'textarea' | 'file' | 'checkbox' | 'switch' | 'date' | 'autocomplete';
   searchable?: boolean;
   value?: any;
   onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }) => void;
@@ -19,12 +19,17 @@ export interface FormInputProps {
   required?: boolean;
   disabled?: boolean;
   options?: Option[];
+  /** Suggestion strings for type="autocomplete" free-text inputs */
+  suggestions?: string[];
   error?: string;
   helperText?: string;
   rows?: number;
   accept?: string;
   icon?: React.ReactNode;
+  labelRightAction?: React.ReactNode;
   className?: string;
+  /** @deprecated use type="autocomplete" + suggestions instead */
+  list?: string;
 }
 
 interface SearchableSelectProps {
@@ -39,6 +44,145 @@ interface SearchableSelectProps {
   icon?: React.ReactNode;
   baseInputStyles: string;
 }
+
+interface AutocompleteInputProps {
+  name: string;
+  value?: string;
+  onChange?: (e: { target: { name: string; value: any } }) => void;
+  suggestions: string[];
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  icon?: React.ReactNode;
+  baseInputStyles: string;
+}
+
+const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
+  name,
+  value = '',
+  onChange,
+  suggestions,
+  placeholder,
+  required,
+  disabled,
+  icon,
+  baseInputStyles,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number; openUpwards: boolean } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = React.useMemo(() => {
+    if (!value.trim()) return suggestions.slice(0, 20);
+    const term = value.toLowerCase();
+    return suggestions.filter((s) => s.toLowerCase().includes(term)).slice(0, 20);
+  }, [suggestions, value]);
+
+  const updateCoords = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUpwards = spaceBelow < 220 && rect.top > spaceBelow;
+    setDropdownCoords({
+      top: openUpwards ? rect.top - 6 : rect.bottom + 4,
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
+      width: rect.width,
+      openUpwards,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) { setDropdownCoords(null); return; }
+    updateCoords();
+    window.addEventListener('resize', updateCoords);
+    window.addEventListener('scroll', updateCoords, true);
+    return () => {
+      window.removeEventListener('resize', updateCoords);
+      window.removeEventListener('scroll', updateCoords, true);
+    };
+  }, [isOpen, updateCoords]);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (
+        containerRef.current && !containerRef.current.contains(t) &&
+        dropdownRef.current && !dropdownRef.current.contains(t)
+      ) setIsOpen(false);
+    };
+    if (isOpen) document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [isOpen]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange?.({ target: { name, value: e.target.value } });
+    setIsOpen(true);
+  };
+
+  const handleSelect = (suggestion: string) => {
+    onChange?.({ target: { name, value: suggestion } });
+    setIsOpen(false);
+    inputRef.current?.focus();
+  };
+
+  const showDropdown = isOpen && filtered.length > 0;
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      {icon && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none">{icon}</div>}
+      <input
+        ref={inputRef}
+        type="text"
+        name={name}
+        value={value}
+        onChange={handleInputChange}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        autoComplete="off"
+        className={`${baseInputStyles} ${icon ? 'pl-10' : ''}`}
+      />
+      {showDropdown && dropdownCoords && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'fixed',
+            left: `${dropdownCoords.left}px`,
+            width: `${dropdownCoords.width}px`,
+            ...(dropdownCoords.openUpwards
+              ? { bottom: `${window.innerHeight - dropdownCoords.top}px` }
+              : { top: `${dropdownCoords.top}px` }),
+            zIndex: 999999,
+          }}
+          className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/90 shadow-2xl shadow-slate-900/10 dark:shadow-black/90 backdrop-blur-xl overflow-hidden"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <div className="max-h-52 overflow-y-auto p-1.5 space-y-0.5">
+            {filtered.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onMouseDown={() => handleSelect(s)}
+                className={`w-full px-3 py-2 rounded-lg text-xs text-left transition-colors cursor-pointer flex items-center gap-2 ${s.toLowerCase() === value.toLowerCase()
+                  ? 'bg-indigo-600 text-white font-semibold'
+                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                  }`}
+              >
+                <span className="truncate">{s}</span>
+                {s.toLowerCase() === value.toLowerCase() && <Check size={12} className="shrink-0 text-white ml-auto" />}
+              </button>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
 
 const SearchableSelect: React.FC<SearchableSelectProps> = ({
   name,
@@ -179,9 +323,8 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`${baseInputStyles} ${icon ? 'pl-10' : ''} pr-10 text-left text-sm transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none ${
-          isOpen ? 'ring-2 ring-indigo-500/20 border-indigo-500' : ''
-        }`}
+        className={`${baseInputStyles} ${icon ? 'pl-10' : ''} pr-10 text-left text-sm transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none ${isOpen ? 'ring-2 ring-indigo-500/20 border-indigo-500' : ''
+          }`}
       >
         {icon && (
           <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -195,9 +338,12 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
         <ChevronDown
           size={16}
-          className={`absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-indigo-500' : ''
-          }`}
+          className={`absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-200 ${isOpen
+            ? 'rotate-180 text-indigo-500'
+            : selectedOption && selectedOption.value !== ''
+              ? 'text-indigo-500/80 dark:text-indigo-400'
+              : 'text-slate-400'
+            }`}
         />
       </button>
 
@@ -258,11 +404,10 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     key={String(opt.value)}
                     type="button"
                     onClick={() => handleSelect(opt.value)}
-                    className={`w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between text-left transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-indigo-600 text-white font-semibold'
-                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                    className={`w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between text-left transition-colors cursor-pointer ${isSelected
+                      ? 'bg-indigo-600 text-white font-semibold'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
+                      }`}
                   >
                     <span className="truncate">{opt.label}</span>
                     {isSelected && <Check size={14} className="shrink-0 ml-2 text-white" />}
@@ -293,18 +438,32 @@ export const FormInput: React.FC<FormInputProps> = ({
   required = false,
   disabled = false,
   options = [],
+  suggestions = [],
   error,
   helperText,
   rows = 3,
   accept,
   icon,
+  labelRightAction,
   className = '',
+  list,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
 
-  const baseInputStyles = `w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/90 border ${
-    error ? 'border-red-500/80 focus:border-red-500' : 'border-slate-300 dark:border-slate-800 focus:border-indigo-500'
-  } text-slate-900 dark:text-slate-100 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xs`;
+  const hasValue =
+    value !== undefined &&
+    value !== null &&
+    value !== '' &&
+    value !== 'null' &&
+    value !== 'undefined' &&
+    !(Array.isArray(value) && value.length === 0);
+
+  const baseInputStyles = `w-full px-4 py-2.5 rounded-xl border ${error
+    ? 'border-red-500/80 focus:border-red-500 bg-red-50/30 dark:bg-red-950/20'
+    : hasValue
+      ? 'bg-white dark:bg-slate-900 border-indigo-400/80 dark:border-indigo-600/80 text-slate-900 dark:text-slate-100 font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+    } text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs`;
 
   const renderInput = () => {
     switch (type) {
@@ -348,6 +507,20 @@ export const FormInput: React.FC<FormInputProps> = ({
           />
         );
 
+      case 'autocomplete':
+        return (
+          <AutocompleteInput
+            name={name}
+            value={value || ''}
+            onChange={onChange}
+            suggestions={suggestions}
+            placeholder={placeholder}
+            required={required}
+            disabled={disabled}
+            icon={icon}
+            baseInputStyles={baseInputStyles}
+          />
+        );
       case 'textarea':
         return (
           <textarea
@@ -430,6 +603,7 @@ export const FormInput: React.FC<FormInputProps> = ({
               placeholder={placeholder}
               required={required}
               disabled={disabled}
+              list={list}
               className={`${baseInputStyles} ${icon ? 'pl-10' : ''}`}
             />
           </div>
@@ -444,10 +618,13 @@ export const FormInput: React.FC<FormInputProps> = ({
   return (
     <div className={`space-y-1.5 text-left ${className}`}>
       {label && type !== 'switch' && type !== 'file' && (
-        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-wide">
-          {label}
-          {required && <span className="text-red-400 ml-1">*</span>}
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-wide">
+            {label}
+            {required && <span className="text-red-400 ml-1">*</span>}
+          </label>
+          {labelRightAction}
+        </div>
       )}
       {renderInput()}
       {error ? (

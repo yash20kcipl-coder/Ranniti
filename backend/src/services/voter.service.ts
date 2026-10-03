@@ -1,6 +1,8 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { logger } from '../utils/logger';
 import { VoterQueries } from '../queries/voter.queries';
+import { MasterQueries } from '../queries/master.queries';
+import { FamilyMappingService } from './familyMapping.service';
 import { calculateAge, formatDateForDb } from '../utils/dateUtils';
 import { Voter, VoterFilterParams, VoterStats, InfluencerOption, FamilyCandidateParams, SocialCandidateParams } from '../models/voter.model';
 
@@ -24,6 +26,24 @@ export class VoterService {
       }
       data.dob = formatDateForDb(data.dob) || data.dob;
     }
+
+    // Auto-upsert Taluka and Village if provided as string names
+    let talukaId: string | null = null;
+    if (data.taluka) {
+      talukaId = await MasterQueries.upsertTalukaByName(data.taluka, data.districtId || undefined);
+    }
+    if (data.village) {
+      await MasterQueries.upsertVillageByName(data.village, talukaId || undefined);
+    }
+
+    // Auto family mapping assignment if not explicitly provided
+    if (!data.familyId) {
+      const familyAssigned = await FamilyMappingService.assignVoterToFamily(data);
+      data.familyId = familyAssigned.familyId;
+      data.isFamilyInfluencer = familyAssigned.isFamilyInfluencer;
+      data.familyInfluencerId = familyAssigned.familyInfluencerId;
+    }
+
     return await VoterQueries.createVoter(data);
   }
 
@@ -36,6 +56,16 @@ export class VoterService {
       }
       data.dob = formatDateForDb(data.dob) || data.dob;
     }
+
+    // Auto-upsert Taluka and Village if provided as string names
+    let talukaId: string | null = null;
+    if (data.taluka) {
+      talukaId = await MasterQueries.upsertTalukaByName(data.taluka, data.districtId || undefined);
+    }
+    if (data.village) {
+      await MasterQueries.upsertVillageByName(data.village, talukaId || undefined);
+    }
+
     if (data.isFamilyInfluencer === true) {
       data.familyInfluencerId = null;
     }
@@ -67,7 +97,16 @@ export class VoterService {
   }
 
   static async exportVotersStream(res: any, params: VoterFilterParams): Promise<void> {
-    logger.info(`[VoterService] Exporting voters to Excel for filters: ${JSON.stringify(params)}`);
+    logger.info(`[VoterService] Streaming voters export to Excel for filters: ${JSON.stringify(params)}`);
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="voters_export_${new Date().toISOString().slice(0, 10)}.xlsx"`
+    );
 
     const headers = [
       'EPIC No',
@@ -113,17 +152,25 @@ export class VoterService {
       'Social Influenced Count',
     ];
 
-    const dataRows: (string | number)[][] = [headers];
+    // High-performance streaming workbook writer directly piped to HTTP response
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: res,
+      useStyles: true,
+      useSharedStrings: false,
+    });
+
+    const worksheet = workbook.addWorksheet('Voters');
+    worksheet.addRow(headers).commit();
 
     let page = 1;
-    const batchSize = 5000;
+    const batchSize = 2500;
 
     while (true) {
       const rows = await VoterQueries.getVotersForExport(params, page, batchSize);
       if (!rows || rows.length === 0) break;
 
       for (const r of rows) {
-        dataRows.push([
+        worksheet.addRow([
           r.epicNo || '',
           r.engFirstName || '',
           r.engMiddleName || '',
@@ -165,28 +212,15 @@ export class VoterService {
           r.socialInfluencerName || '',
           Number(r.socialInfluencedCount) > 0 ? 'YES' : 'NO',
           Number(r.socialInfluencedCount) || 0,
-        ]);
+        ]).commit();
       }
 
       if (rows.length < batchSize) break;
       page++;
     }
 
-    const worksheet = XLSX.utils.aoa_to_sheet(dataRows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Voters');
-
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="voters_export_${new Date().toISOString().slice(0, 10)}.xlsx"`
-    );
-    res.send(buffer);
+    await worksheet.commit();
+    await workbook.commit();
   }
 
   static async getFamilyCandidates(params: FamilyCandidateParams) {

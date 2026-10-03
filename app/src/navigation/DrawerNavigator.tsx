@@ -1,15 +1,19 @@
 import React from 'react';
 import { SCREENS } from './constants';
-import { teacherDrawerRoutes, studentDrawerRoutes } from './routes';
 import { useAppTheme } from '../hooks/useAppTheme';
 import CustomDrawer from '../components/CustomDrawer';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import TeacherDashboard from '../screens/DashboardModule/TeacherDashboard';
-import StudentDashboard from '../screens/DashboardModule/StudentDashboard';
+import Dashboard from '../screens/Dashboard';
+import VoterListScreen from '../screens/VoterModule/VoterListScreen';
+import FamilyMappingScreen from '../screens/FamilyMappingModule';
+import InfluencerMappingScreen from '../screens/InfluencerModule';
+import ContactSyncScreen from '../screens/ContactSyncModule';
+import AddTeamMemberScreen from '../screens/TeamModule';
+import ProfileScreen from '../screens/ProfileModule';
 
 const Drawer = createDrawerNavigator();
 
-export const TeacherDrawerNavigator = () => {
+export const DrawerNavigator = () => {
   const { theme } = useAppTheme();
 
   return (
@@ -17,52 +21,27 @@ export const TeacherDrawerNavigator = () => {
       drawerContent={(props) => <CustomDrawer {...props} />}
       screenOptions={{
         headerShown: false,
+        headerStyle: {
+          backgroundColor: '#FFFFFF',
+        },
+        headerTintColor: '#0F172A',
         drawerType: 'slide',
-        overlayColor: theme.colors.overlay,
         drawerStyle: {
-          width: '75%',
-          backgroundColor: theme.colors.surface,
+          width: '78%',
+          backgroundColor: '#FFFFFF',
         },
       }}
     >
-      {teacherDrawerRoutes.map((route) => {
-        return (
-          <Drawer.Screen
-            key={String(route.name).toLowerCase()}
-            name={String(route.name).toLowerCase()}
-            component={route.component}
-          />
-        );
-      })}
+      <Drawer.Screen name={SCREENS.DASHBOARD} component={Dashboard} options={{ title: 'Dashboard' }} />
+      <Drawer.Screen name={SCREENS.VOTER_LIST} component={VoterListScreen} options={{ title: 'Voters Directory' }} />
+      <Drawer.Screen name={SCREENS.FAMILY_MAPPING} component={FamilyMappingScreen} options={{ title: 'Family Mapping' }} />
+      <Drawer.Screen name={SCREENS.INFLUENCER_MAPPING} component={InfluencerMappingScreen} options={{ title: 'Social Influencers' }} />
+      <Drawer.Screen name={SCREENS.CONTACT_SYNC} component={ContactSyncScreen} options={{ title: 'Contact Sync Voters' }} />
+      <Drawer.Screen name={SCREENS.TEAM_MANAGEMENT} component={AddTeamMemberScreen} options={{ title: 'Team Management' }} />
+      <Drawer.Screen name={SCREENS.PROFILE} component={ProfileScreen} options={{ title: 'My Profile' }} />
     </Drawer.Navigator>
   );
 };
 
-export const StudentDrawerNavigator = () => {
-  const { theme } = useAppTheme();
-
-  return (
-    <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawer {...props} />}
-      screenOptions={{
-        headerShown: false,
-        drawerType: 'slide',
-        overlayColor: theme.colors.overlay,
-        drawerStyle: {
-          width: '75%',
-          backgroundColor: theme.colors.surface,
-        },
-      }}
-    >
-      {studentDrawerRoutes.map((route) => {
-        return (
-          <Drawer.Screen
-            key={String(route.name).toLowerCase()}
-            name={String(route.name).toLowerCase()}
-            component={route.component}
-          />
-        );
-      })}
-    </Drawer.Navigator>
-  );
-};
+export const TeacherDrawerNavigator = DrawerNavigator;
+export const StudentDrawerNavigator = DrawerNavigator;

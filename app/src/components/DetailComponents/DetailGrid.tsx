@@ -4,7 +4,7 @@ import { rfValue } from '../../utils/responsive';
 import { FontFamily } from '../../utils/typography';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 
 export interface GridItem {
   icon: string;

@@ -51,6 +51,7 @@ export interface Voter {
 
   partyId?: string | null;
   partyName?: string | null;
+  partyAbbreviation?: string | null;
   partySymbol?: string | null;
 
   familyInfluencerId?: string | null;
@@ -65,11 +66,53 @@ export interface Voter {
   socialInfluencedCount?: number;
   isSocialInfluencer?: boolean;
 
-  organizationId?: string | null;
-  organizationName?: string | null;
+  familyId?: string | null;
+  familyRelation?: string | null;
 
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export interface FamilySupportSummary {
+  supporters: number;
+  neutral: number;
+  opposition: number;
+}
+
+export interface FamilySummary {
+  familyId: string;
+  headVoter: Voter;
+  totalMembers: number;
+  supportSummary: FamilySupportSummary;
+  influenceScore: number;
+  members?: Voter[];
+}
+
+export interface AutoMapFamiliesParams {
+  boothId: string;
+  dryRun?: boolean;
+}
+
+export interface AutoMapFamiliesResult {
+  boothId: string;
+  totalVoters: number;
+  familiesCreated: number;
+  votersMapped: number;
+  unmappedVoters: number;
+  previewFamilies?: Array<{
+    familyId: string;
+    headName: string;
+    headEpicNo: string;
+    houseNo: string;
+    memberCount: number;
+    members: Array<{
+      name: string;
+      epicNo: string;
+      relation: string;
+      gender: string;
+      age?: number;
+    }>;
+  }>;
 }
 
 export interface VoterFilterParams {
@@ -78,8 +121,9 @@ export interface VoterFilterParams {
   search?: string;
   stateId?: string;
   districtId?: string;
-  boothId?: string;
+  pcId?: string;
   acId?: string;
+  boothId?: string;
   sectionNo?: number | string;
   gender?: string;
   voterType?: string;
@@ -95,7 +139,6 @@ export interface VoterFilterParams {
   isSocialInfluencer?: boolean | string;
   influencerStatus?: string;
   influencerRole?: string;
-  organizationId?: string;
 }
 
 export interface InfluencerOption {

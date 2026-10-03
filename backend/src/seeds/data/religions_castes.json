@@ -1,0 +1,97 @@
+{
+  "religions": [
+    { "name": "Hinduism" },
+    { "name": "Islam" },
+    { "name": "Christianity" },
+    { "name": "Sikhism" },
+    { "name": "Buddhism" },
+    { "name": "Jainism" },
+    { "name": "Other" }
+  ],
+  "castes": [
+    {
+      "name": "Maratha",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": ["96 Kuli Maratha", "Deshmukh", "Kunbi Maratha", "Patil"]
+    },
+    {
+      "name": "Brahmin",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": ["Deshastha", "Kokanastha (Chitpavan)", "Karhade", "Saraswat", "Gaur Brahmin"]
+    },
+    {
+      "name": "OBC (Other Backward Class)",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": ["Mali", "Teli", "Dhangar", "Bhandari", "Gurjar", "Yadav", "Kurmi", "Koli"]
+    },
+    {
+      "name": "Scheduled Caste (SC)",
+      "category": "SC",
+      "religionName": "Hinduism",
+      "subcastes": ["Mahar", "Matang", "Chambhar", "Jatav", "Valmiki"]
+    },
+    {
+      "name": "Scheduled Tribe (ST)",
+      "category": "ST",
+      "religionName": "Hinduism",
+      "subcastes": ["Bhil", "Gond", "Mahadev Koli", "Warli", "Korku", "Munda", "Santhal"]
+    },
+    {
+      "name": "Sunni",
+      "category": "General",
+      "religionName": "Islam",
+      "subcastes": ["Sheikh", "Khan", "Pathan", "Syed"]
+    },
+    {
+      "name": "Shia",
+      "category": "General",
+      "religionName": "Islam",
+      "subcastes": ["Bohra", "Khoja", "Imami"]
+    },
+    {
+      "name": "Catholic",
+      "category": "General",
+      "religionName": "Christianity",
+      "subcastes": ["Goan Catholic", "Mangalorean Catholic", "East Indian"]
+    },
+    {
+      "name": "Protestant",
+      "category": "General",
+      "religionName": "Christianity",
+      "subcastes": ["Church of North India", "Methodist", "Baptist"]
+    },
+    {
+      "name": "Jat Sikh",
+      "category": "General",
+      "religionName": "Sikhism",
+      "subcastes": ["Gill", "Sidhu", "Dhillon", "Grewal", "Sandhu"]
+    },
+    {
+      "name": "Ramdasia Sikh",
+      "category": "SC",
+      "religionName": "Sikhism",
+      "subcastes": ["Chamar Sikh", "Ramdasia"]
+    },
+    {
+      "name": "Neo-Buddhist",
+      "category": "SC",
+      "religionName": "Buddhism",
+      "subcastes": ["Navayana", "Ambedkarite"]
+    },
+    {
+      "name": "Digambara",
+      "category": "General",
+      "religionName": "Jainism",
+      "subcastes": ["Oswal", "Khandelwal", "Parwar"]
+    },
+    {
+      "name": "Svetambara",
+      "category": "General",
+      "religionName": "Jainism",
+      "subcastes": ["Oswal", "Porwal", "Shrimali"]
+    }
+  ]
+}

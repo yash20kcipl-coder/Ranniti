@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Pressable, View, Text } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 import { FormInputProps } from './types';
 
 interface CheckboxInputComponentProps extends FormInputProps {

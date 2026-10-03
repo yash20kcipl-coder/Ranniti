@@ -5,7 +5,11 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
-  organizationId?: string | null;
+  tenantDbName?: string | null;
+  tenantUserRoleId?: string | null;
+  parentLeaderId?: string | null;
+  assignedAcId?: string | null;
+  assignedBoothIds?: string[];
 }
 
 export const generateJwtToken = (payload: JwtPayload): string => {

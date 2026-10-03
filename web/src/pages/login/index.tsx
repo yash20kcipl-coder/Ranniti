@@ -10,8 +10,8 @@ import { BarChart3, Users2, Lock, Mail, Loader2, Sparkles, CheckCircle2 } from '
 export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [email, setEmail] = useState('admin@ranniti.com');
-  const [password, setPassword] = useState('Admin@123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -35,24 +35,20 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col lg:flex-row text-slate-900 dark:text-slate-100 overflow-hidden font-sans transition-colors duration-200">
+    <div className="min-h-screen min-h-dvh bg-slate-50 dark:bg-slate-950 flex flex-col lg:flex-row text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200 overflow-y-auto lg:overflow-hidden">
       {/* LEFT SIDE: LOGIN FORM & CREDENTIALS */}
-      <div className="w-full lg:w-[45%] flex flex-col justify-between p-8 lg:p-6 z-10 bg-white/95 dark:bg-slate-950/95 border-r border-slate-200 dark:border-slate-800/80 shadow-2xl transition-colors duration-200">
+      <div className="w-full lg:w-[45%] xl:w-[40%] min-h-screen min-h-dvh flex-1 lg:flex-initial flex flex-col justify-between p-5 sm:p-8 lg:p-8 z-10 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/80 shadow-2xl transition-colors duration-200 shrink-0">
 
         {/* Brand Header with Theme Toggle */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           {/* Logo: branded gradient pill in light mode so white logo stays visible */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 dark:bg-none dark:from-transparent dark:to-transparent dark:bg-transparent border border-indigo-500/40 dark:border-transparent shadow-lg shadow-indigo-500/20 dark:shadow-none transition-all duration-200">
+            <div className="flex items-center gap-3 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 dark:bg-none dark:from-transparent dark:to-transparent dark:bg-transparent border border-indigo-500/40 dark:border-transparent shadow-lg shadow-indigo-500/20 dark:shadow-none transition-all duration-200">
               <img
                 src="/ranniti-logo.png"
                 alt="Ranniti"
-                className="h-8 md:h-9 w-auto object-contain"
+                className="h-7 sm:h-8 md:h-9 w-auto object-contain"
               />
-              <div className="hidden sm:block h-5 w-px bg-white/30 dark:bg-slate-700" />
-              <p className="hidden sm:block text-[10px] font-bold tracking-widest text-white/90 dark:text-indigo-400 uppercase">
-                Election Intelligence
-              </p>
             </div>
           </div>
 
@@ -60,14 +56,14 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Login Form Container */}
-        <div className="my-auto py-8 max-w-md w-full mx-auto space-y-7">
+        <div className="my-auto py-6 sm:py-8 max-w-md w-full mx-auto space-y-6 sm:space-y-7">
           <div className="text-left space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-full text-xs font-semibold text-indigo-600 dark:text-indigo-400">
               <Sparkles size={14} />
               <span>Admin Access Portal</span>
             </div>
-            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Sign In to Dashboard</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Manage campaign strategies, booth intelligence, and voters master data.</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Sign In to Dashboard</h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Manage campaign strategies, booth intelligence, and voters master data.</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -77,7 +73,7 @@ export const LoginPage: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@ranniti.app"
+              placeholder="admin@ranniti.com"
               required
               icon={<Mail size={18} />}
             />
@@ -93,7 +89,7 @@ export const LoginPage: React.FC = () => {
               icon={<Lock size={18} />}
             />
 
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
               <FormInput
                 name="rememberMe"
                 type="checkbox"
@@ -104,7 +100,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => toast('Please contact your administrator to reset password.')}
-                className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+                className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer self-start sm:self-auto"
               >
                 Forgot password?
               </button>
@@ -113,7 +109,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
             >
               {loading ? (
                 <>
@@ -121,14 +117,43 @@ export const LoginPage: React.FC = () => {
                   <span>Authenticating...</span>
                 </>
               ) : (
-                <span>Sign In to Admin Portal</span>
+                <span>Sign In to Portal</span>
               )}
             </button>
           </form>
+
+          {/* Quick Demo Credentials */}
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
+            <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Quick Demo Login</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@ranniti.com');
+                  setPassword('Amit@5667');
+                }}
+                className="px-3 py-2 text-left bg-slate-100 hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 rounded-lg transition-colors cursor-pointer"
+              >
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Tenant Admin</p>
+                <p className="text-[10px] text-slate-500 truncate">admin@ranniti.com</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('superadmin@ranniti.com');
+                  setPassword('SuperAdmin@123456');
+                }}
+                className="px-3 py-2 text-left bg-slate-100 hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 rounded-lg transition-colors cursor-pointer"
+              >
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Super Admin</p>
+                <p className="text-[10px] text-slate-500 truncate">superadmin@ranniti.com</p>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between border-t border-slate-200 dark:border-slate-900 pt-6">
+        <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-900 pt-5 sm:pt-6 mt-4 sm:mt-0">
           <p>© 2026 Ranniti Tech Platform</p>
           <div className="flex items-center gap-4">
             <span className="hover:text-slate-800 dark:hover:text-slate-300 cursor-pointer transition-colors">Privacy</span>

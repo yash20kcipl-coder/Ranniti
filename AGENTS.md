@@ -78,9 +78,28 @@
 - Always use the interactive `FileUploadInput` component (`src/components/common/FileUploadInput.tsx`) or `FormInput` with `type="file"` for all file uploads.
 - Must enforce strict file type validation (e.g. `accept="image/*"`, allowed extensions: `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`, `.svg`), max file size limit validation (e.g. 5MB), drag-and-drop support, real-time backend API file upload dispatch, and instant image preview with clear action buttons.
 
+### 17. Clean Architecture & Dead Code Elimination (Remove Unused Files & Code)
+- Always proactively prune and delete unused files, dead functions, temporary test scripts, orphaned scratch files, and unreferenced imports immediately after finishing code modifications or refactoring.
+- Never leave behind obsolete, commented-out, duplicate, or unreferenced code blocks in production codebase files.
+- Ensure all modules, components, actions, schemas, types, and dependencies across both backend and frontend are actively utilized, free of dead code, and strictly maintained.
 
+### 18. Reusable Page Header Component Standard (`src/components/common/PageHeader.tsx`)
+- Never write ad-hoc inline header titles, raw flex banners, or unstandardized top action button bars directly inside React UI page components or views.
+- Always import and use the shared `PageHeader` component (`src/components/common/PageHeader.tsx`) for all page headers, utilizing built-in props (`title`, `subtitle`, `icon`, `badge`, `onAddClick`, `addLabel`, `onImportClick`, `onExportClick`, `onSyncClick`, `actions`).
 
+### 19. Reusable Table Actions Component Standard (`src/components/common/TableActions.tsx`)
+- Never write ad-hoc inline action button groups (edit/delete/view icon buttons) or unstandardized action cells directly inside React table renderers.
+- Always import and use the shared `TableActions` component (`src/components/common/TableActions.tsx`) or `TableActionButton` for all table action columns (`onView`, `onEdit`, `onDelete`, `extra`).
 
+### 20. Reusable Skeleton Loading Component Standard (`app/src/components/Skeleton.tsx`)
+- Never write ad-hoc custom pulse views, static gray boxes, or custom animated opacity blocks for loading state placeholders inside React Native mobile screens or components.
+- Always import and use the shared `Skeleton` component (`app/src/components/Skeleton.tsx` / `../../components/Skeleton`) for all screen shimmer placeholders, loading cards, list item skeletons, and image loading placeholders.
+- Enforces smooth reanimated opacity transitions, theme-aware border/background colors, and consistent loading placeholder design across all mobile application screens.
+
+### 21. Screen-Specific Component Architecture Standard (`app/src/screens/<ScreenName>/components/`)
+- Screen-specific subcomponents that are exclusively used within a particular screen must be placed inside a `components/` folder directly under that screen's folder (e.g., `app/src/screens/Dashboard/components/` or `app/src/screens/<ScreenName>/components/`).
+- Shared global components used across multiple screens must continue to be placed in `app/src/components/`.
+- Screen index files (`index.tsx`) must remain clean, modular, and concise by delegating section layouts to dedicated subcomponents.
 
 
 

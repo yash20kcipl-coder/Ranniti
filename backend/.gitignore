@@ -22,3 +22,10 @@ yarn-error.log*
 .DS_Store
 .vscode/
 .idea/
+
+# Uploaded user files (runtime) — ignore bulk voter photos
+uploads/voters/
+# Ignore any timestamped duplicate uploads (e.g. bjp_1790583810752_4065.png)
+uploads/**/*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.png
+uploads/**/*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.jpg
+# Seed placeholder assets (avatars/, parties/) ARE tracked — do not add them here

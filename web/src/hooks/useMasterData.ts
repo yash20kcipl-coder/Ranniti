@@ -6,29 +6,33 @@ import type { MasterState } from '@/redux/reducers/master';
 export type MasterCategoryKey =
   | 'states'
   | 'districts'
+  | 'talukas'
+  | 'villages'
   | 'pcs'
   | 'acs'
   | 'booths'
   | 'religions'
   | 'castes'
-  | 'parties'
-  | 'organizations';
+  | 'parties';
 
 export const MASTER_ENDPOINTS: Record<MasterCategoryKey, string> = {
   states: '/masters/states',
   districts: '/masters/districts',
+  talukas: '/masters/talukas',
+  villages: '/masters/villages',
   pcs: '/masters/pcs',
   acs: '/masters/acs',
   booths: '/masters/booths',
   religions: '/masters/religions',
   castes: '/masters/castes',
   parties: '/masters/parties',
-  organizations: '/masters/organizations',
 };
 
 export const DEFAULT_MASTER_CATEGORIES: MasterCategoryKey[] = [
   'states',
   'districts',
+  'talukas',
+  'villages',
   'pcs',
   'acs',
   'booths',
@@ -58,15 +62,14 @@ export const useMasterData = (
 ): MasterState => {
   const dispatch = useAppDispatch();
   const master = useAppSelector((state) => state.master);
-
-  // Extract dependency state array for the requested categories
-  const categoryStates = categories.map((cat) => master[cat]);
+  const categoriesKey = categories.join(',');
 
   useDebouncedEffect(
     () => {
       categories.forEach((cat) => {
-        const items = master[cat];
-        if (!items || items.length === 0) {
+        const isLoaded = master.loadedCategories?.[cat];
+        const isFetching = master.fetchingCategories?.[cat];
+        if (!isLoaded && !isFetching) {
           const endpoint = MASTER_ENDPOINTS[cat];
           if (endpoint) {
             dispatch(fetchMasterCategoryData(cat, endpoint, false));
@@ -75,7 +78,7 @@ export const useMasterData = (
       });
     },
     delay,
-    [dispatch, ...categoryStates]
+    [dispatch, categoriesKey, master.loadedCategories, master.fetchingCategories]
   );
 
   return master;

@@ -4,7 +4,7 @@ import { appModalStyles } from './styles';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { ZoomIn, FadeOut } from 'react-native-reanimated';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from '../MaterialDesignIcons';
 
 interface AppModalProps {
   visible: boolean;

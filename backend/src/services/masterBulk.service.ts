@@ -1,100 +1,14 @@
-import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { logger } from '../utils/logger';
 import { BulkImporter } from '../utils/bulkImporter';
 import { importJobTracker } from './importJobTracker';
+import { VoterQueries } from '../queries/voter.queries';
 import { MasterQueries } from '../queries/master.queries';
+import { FamilyMappingService } from './familyMapping.service';
+import { BatchInsertQuery } from '../queries/batchInsert.query';
 import { calculateAge, formatDateForDb } from '../utils/dateUtils';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export class MasterBulkService {
-  // Helper to resolve or auto-create Religion ID
-  private static async resolveReligionId(val?: string): Promise<string | undefined> {
-    if (!val || !val.trim()) return undefined;
-    const cleanVal = val.trim();
-    if (UUID_REGEX.test(cleanVal)) return cleanVal;
-
-    const religions = await MasterQueries.getReligions();
-    const existing = religions.find((r) => r.name.toLowerCase() === cleanVal.toLowerCase());
-    if (existing) return existing.id;
-
-    // Auto-create new Religion if it does not exist yet
-    const created = await MasterQueries.createReligion(cleanVal);
-    logger.info(`[MasterBulkService] Auto-created new Religion: '${cleanVal}' (${created.id})`);
-    return created.id;
-  }
-
-  // Helper to resolve or auto-create State ID
-  private static async resolveStateId(val?: string): Promise<string | undefined> {
-    if (!val || !val.trim()) return undefined;
-    const cleanVal = val.trim();
-    if (UUID_REGEX.test(cleanVal)) return cleanVal;
-
-    const states = await MasterQueries.getStates();
-    const existing = states.find((s) => s.name.toLowerCase() === cleanVal.toLowerCase());
-    if (existing) return existing.id;
-
-    // Auto-create new State if it does not exist yet
-    const created = await MasterQueries.createState(cleanVal);
-    logger.info(`[MasterBulkService] Auto-created new State: '${cleanVal}' (${created.id})`);
-    return created.id;
-  }
-
-  // Helper to resolve or auto-create District ID
-  private static async resolveDistrictId(stateId?: string, val?: string): Promise<string | undefined> {
-    if (!val || !val.trim()) return undefined;
-    const cleanVal = val.trim();
-    if (UUID_REGEX.test(cleanVal)) return cleanVal;
-
-    const districts = await MasterQueries.getDistricts(stateId);
-    const existing = districts.find((d) => d.name.toLowerCase() === cleanVal.toLowerCase());
-    if (existing) return existing.id;
-
-    if (stateId) {
-      const created = await MasterQueries.createDistrict(stateId, cleanVal);
-      logger.info(`[MasterBulkService] Auto-created new District: '${cleanVal}' under state ${stateId}`);
-      return created.id;
-    }
-    return undefined;
-  }
-
-  // Helper to resolve or auto-create PC ID
-  private static async resolvePcId(stateId?: string, val?: string, pcNumberHint = 1): Promise<string | undefined> {
-    if (!val || !val.trim()) return undefined;
-    const cleanVal = val.trim();
-    if (UUID_REGEX.test(cleanVal)) return cleanVal;
-
-    const pcs = await MasterQueries.getPcs(stateId);
-    const existing = pcs.find((p) => p.name.toLowerCase() === cleanVal.toLowerCase());
-    if (existing) return existing.id;
-
-    if (stateId) {
-      const created = await MasterQueries.createPc(stateId, pcNumberHint, cleanVal);
-      logger.info(`[MasterBulkService] Auto-created new PC: '${cleanVal}' under state ${stateId}`);
-      return created.id;
-    }
-    return undefined;
-  }
-
-  // Helper to resolve or auto-create AC ID
-  private static async resolveAcId(pcId?: string, val?: string, districtId?: string, acNumberHint = 1): Promise<string | undefined> {
-    if (!val || !val.trim()) return undefined;
-    const cleanVal = val.trim();
-    if (UUID_REGEX.test(cleanVal)) return cleanVal;
-
-    const acs = await MasterQueries.getAcs(pcId, districtId);
-    const existing = acs.find((a) => a.name.toLowerCase() === cleanVal.toLowerCase());
-    if (existing) return existing.id;
-
-    if (pcId) {
-      const created = await MasterQueries.createAc(pcId, acNumberHint, cleanVal, districtId);
-      logger.info(`[MasterBulkService] Auto-created new AC: '${cleanVal}' under PC ${pcId}`);
-      return created.id;
-    }
-    return undefined;
-  }
-
   /**
    * Process asynchronous bulk import job in background with Name Resolution & Auto-Creation
    */
@@ -109,257 +23,439 @@ export class MasterBulkService {
       let result;
 
       switch (category.toLowerCase()) {
-        case 'religions':
+        case 'religions': {
           result = await BulkImporter.processArray(records, {
-            batchSize: 500,
+            batchSize: 2500,
             concurrency: 2,
             onProgress: progressCallback,
             onBatchInsert: async (batch) => {
-              let inserted = 0;
-              for (const row of batch) {
-                const name = (row.name || row.religionName || '').trim();
-                if (name) {
-                  await MasterQueries.createReligion(name);
-                  inserted++;
-                }
-              }
-              return inserted;
+              const rowsToInsert = batch
+                .map((row) => ({ name: (row.name || row.religionName || '').trim() }))
+                .filter((r) => r.name.length > 0);
+              if (rowsToInsert.length === 0) return 0;
+              const res = await BatchInsertQuery.executeBatchImport(
+                'religions',
+                rowsToInsert,
+                ['name'],
+                { conflictTarget: ['name'], conflictStrategy: 'DO NOTHING' }
+              );
+              return res.insertedCount;
             },
           });
           break;
+        }
 
-        case 'castes':
+        case 'castes': {
+          const religions = await MasterQueries.getReligions().catch(() => []);
+          const religionMap = new Map<string, string>();
+          for (const r of religions) {
+            religionMap.set(r.id.toLowerCase(), r.id);
+            religionMap.set(r.name.toLowerCase().trim(), r.id);
+          }
+
           result = await BulkImporter.processArray(records, {
-            batchSize: 500,
+            batchSize: 2500,
             concurrency: 2,
             onProgress: progressCallback,
             onBatchInsert: async (batch) => {
-              let inserted = 0;
+              const rowsToInsert: any[] = [];
               for (const row of batch) {
                 const name = (row.name || row.casteName || '').trim();
                 const categoryName = (row.category || 'General').trim();
-                const religionRef = row.religionName || row.religion || row.religionId || row.religion_id;
-                const religionId = await this.resolveReligionId(religionRef);
+                const religionRef = String(row.religionName || row.religion || row.religionId || row.religion_id || '').toLowerCase().trim();
+                const religionId = religionMap.get(religionRef) || null;
+                const parentCasteId = row.parentCasteId || row.parent_caste_id || null;
 
                 if (name && categoryName) {
-                  await MasterQueries.createCaste(
+                  rowsToInsert.push({
                     name,
-                    categoryName,
-                    religionId,
-                    row.parentCasteId || row.parent_caste_id || undefined
-                  );
-                  inserted++;
+                    category: categoryName,
+                    religion_id: religionId,
+                    parent_caste_id: parentCasteId,
+                  });
                 }
               }
-              return inserted;
+              if (rowsToInsert.length === 0) return 0;
+              const res = await BatchInsertQuery.executeBatchImport(
+                'castes',
+                rowsToInsert,
+                ['name', 'category', 'religion_id', 'parent_caste_id'],
+                { conflictTarget: ['name'], conflictStrategy: 'DO NOTHING' }
+              );
+              return res.insertedCount;
             },
           });
           break;
+        }
 
-        case 'states':
+        case 'states': {
           result = await BulkImporter.processArray(records, {
-            batchSize: 500,
+            batchSize: 2500,
             concurrency: 2,
             onProgress: progressCallback,
             onBatchInsert: async (batch) => {
-              let inserted = 0;
-              for (const row of batch) {
-                const name = (row.name || row.stateName || '').trim();
-                if (name) {
-                  await MasterQueries.createState(name);
-                  inserted++;
-                }
-              }
-              return inserted;
+              const rowsToInsert = batch
+                .map((row) => ({ name: (row.name || row.stateName || '').trim() }))
+                .filter((r) => r.name.length > 0);
+              if (rowsToInsert.length === 0) return 0;
+              const res = await BatchInsertQuery.executeBatchImport(
+                'states',
+                rowsToInsert,
+                ['name'],
+                { conflictTarget: ['name'], conflictStrategy: 'DO NOTHING' }
+              );
+              return res.insertedCount;
             },
           });
           break;
+        }
 
-        case 'districts':
+        case 'districts': {
+          const states = await MasterQueries.getStates().catch(() => []);
+          const stateMap = new Map<string, string>();
+          for (const s of states) {
+            stateMap.set(s.id.toLowerCase(), s.id);
+            stateMap.set(s.name.toLowerCase().trim(), s.id);
+          }
+
           result = await BulkImporter.processArray(records, {
-            batchSize: 500,
+            batchSize: 2500,
             concurrency: 2,
             onProgress: progressCallback,
             onBatchInsert: async (batch) => {
-              let inserted = 0;
+              const rowsToInsert: any[] = [];
               for (const row of batch) {
                 const name = (row.name || row.districtName || '').trim();
-                const stateRef = row.stateName || row.state || row.stateId || row.state_id;
-                const stateId = await this.resolveStateId(stateRef);
+                const stateRef = String(row.stateName || row.state || row.stateId || row.state_id || '').toLowerCase().trim();
+                const stateId = stateMap.get(stateRef);
 
                 if (name && stateId) {
-                  await MasterQueries.createDistrict(stateId, name);
-                  inserted++;
+                  rowsToInsert.push({ state_id: stateId, name });
                 }
               }
-              return inserted;
+              if (rowsToInsert.length === 0) return 0;
+              const res = await BatchInsertQuery.executeBatchImport(
+                'districts',
+                rowsToInsert,
+                ['state_id', 'name'],
+                { conflictTarget: ['state_id', 'name'], conflictStrategy: 'DO NOTHING' }
+              );
+              return res.insertedCount;
             },
           });
           break;
+        }
 
         case 'pcs':
-        case 'parliamentary_constituencies':
+        case 'parliamentary_constituencies': {
+          const states = await MasterQueries.getStates().catch(() => []);
+          const stateMap = new Map<string, string>();
+          for (const s of states) {
+            stateMap.set(s.id.toLowerCase(), s.id);
+            stateMap.set(s.name.toLowerCase().trim(), s.id);
+          }
+
           result = await BulkImporter.processArray(records, {
-            batchSize: 500,
+            batchSize: 2500,
             concurrency: 2,
             onProgress: progressCallback,
             onBatchInsert: async (batch) => {
-              let inserted = 0;
+              const rowsToInsert: any[] = [];
               for (const row of batch) {
                 const name = (row.name || row.pcName || '').trim();
                 const pcNum = Number(row.pcNumber || row.pc_number || 1);
-                const stateRef = row.stateName || row.state || row.stateId || row.state_id;
-                const stateId = await this.resolveStateId(stateRef);
+                const stateRef = String(row.stateName || row.state || row.stateId || row.state_id || '').toLowerCase().trim();
+                const stateId = stateMap.get(stateRef);
 
                 if (name && stateId) {
-                  await MasterQueries.createPc(stateId, pcNum, name);
-                  inserted++;
+                  rowsToInsert.push({ state_id: stateId, pc_number: pcNum, name });
                 }
               }
-              return inserted;
+              if (rowsToInsert.length === 0) return 0;
+              const res = await BatchInsertQuery.executeBatchImport(
+                'parliamentary_constituencies',
+                rowsToInsert,
+                ['state_id', 'pc_number', 'name'],
+                { conflictTarget: ['state_id', 'pc_number'], conflictStrategy: 'DO NOTHING' }
+              );
+              return res.insertedCount;
             },
           });
           break;
+        }
 
         case 'acs':
-        case 'assembly_constituencies':
+        case 'assembly_constituencies': {
+          const [pcs, districts] = await Promise.all([
+            MasterQueries.getPcs().catch(() => []),
+            MasterQueries.getDistricts().catch(() => []),
+          ]);
+          const pcMap = new Map<string, string>();
+          for (const p of pcs) {
+            pcMap.set(p.id.toLowerCase(), p.id);
+            pcMap.set(p.name.toLowerCase().trim(), p.id);
+          }
+          const districtMap = new Map<string, string>();
+          for (const d of districts) {
+            districtMap.set(d.id.toLowerCase(), d.id);
+            districtMap.set(d.name.toLowerCase().trim(), d.id);
+          }
+
           result = await BulkImporter.processArray(records, {
-            batchSize: 500,
+            batchSize: 2500,
             concurrency: 2,
             onProgress: progressCallback,
             onBatchInsert: async (batch) => {
-              let inserted = 0;
+              const rowsToInsert: any[] = [];
               for (const row of batch) {
                 const name = (row.name || row.acName || '').trim();
                 const acNum = Number(row.acNumber || row.ac_number || 1);
-                const stateRef = row.stateName || row.state || row.stateId || row.state_id;
-                const stateId = await this.resolveStateId(stateRef);
+                const pcRef = String(row.pcName || row.pc || row.pcId || row.pc_id || '').toLowerCase().trim();
+                const pcId = pcMap.get(pcRef);
 
-                const pcRef = row.pcName || row.pc || row.pcId || row.pc_id;
-                const pcId = await this.resolvePcId(stateId, pcRef, acNum);
-
-                const districtRef = row.districtName || row.district || row.districtId || row.district_id;
-                const districtId = await this.resolveDistrictId(stateId, districtRef);
+                const districtRef = String(row.districtName || row.district || row.districtId || row.district_id || '').toLowerCase().trim();
+                const districtId = districtMap.get(districtRef) || null;
 
                 if (name && pcId) {
-                  await MasterQueries.createAc(pcId, acNum, name, districtId);
-                  inserted++;
+                  rowsToInsert.push({
+                    pc_id: pcId,
+                    ac_number: acNum,
+                    name,
+                    district_id: districtId,
+                  });
                 }
               }
-              return inserted;
+              if (rowsToInsert.length === 0) return 0;
+              const res = await BatchInsertQuery.executeBatchImport(
+                'assembly_constituencies',
+                rowsToInsert,
+                ['pc_id', 'ac_number', 'name', 'district_id'],
+                { conflictTarget: ['pc_id', 'ac_number'], conflictStrategy: 'DO NOTHING' }
+              );
+              return res.insertedCount;
             },
           });
           break;
+        }
 
-        case 'booths':
-        case 'polling_booths':
+        case 'wards': {
+          const acs = await MasterQueries.getAcs().catch(() => []);
+          const acMap = new Map<string, string>();
+          for (const a of acs) {
+            acMap.set(a.id.toLowerCase(), a.id);
+            acMap.set(a.name.toLowerCase().trim(), a.id);
+          }
+
           result = await BulkImporter.processArray(records, {
-            batchSize: 500,
+            batchSize: 2500,
             concurrency: 2,
             onProgress: progressCallback,
             onBatchInsert: async (batch) => {
-              let inserted = 0;
+              const rowsToInsert: any[] = [];
+              for (const row of batch) {
+                const name = (row.name || row.wardName || '').trim();
+                const wardNum = Number(row.wardNumber || row.ward_number || 1);
+                const acRef = String(row.acName || row.ac || row.acId || row.ac_id || '').toLowerCase().trim();
+                const acId = acMap.get(acRef);
+
+                if (name && acId) {
+                  rowsToInsert.push({
+                    ac_id: acId,
+                    ward_number: wardNum,
+                    name,
+                  });
+                }
+              }
+              if (rowsToInsert.length === 0) return 0;
+              const res = await BatchInsertQuery.executeBatchImport(
+                'wards',
+                rowsToInsert,
+                ['ac_id', 'ward_number', 'name'],
+                { conflictTarget: ['ac_id', 'ward_number'], conflictStrategy: 'DO NOTHING' }
+              );
+              return res.insertedCount;
+            },
+          });
+          break;
+        }
+
+        case 'booths':
+        case 'polling_booths': {
+          const [acs, wards] = await Promise.all([
+            MasterQueries.getAcs().catch(() => []),
+            MasterQueries.getWards().catch(() => []),
+          ]);
+          const acMap = new Map<string, string>();
+          for (const a of acs) {
+            acMap.set(a.id.toLowerCase(), a.id);
+            acMap.set(a.name.toLowerCase().trim(), a.id);
+          }
+          const wardMap = new Map<string, string>();
+          for (const w of wards) {
+            wardMap.set(w.id.toLowerCase(), w.id);
+            wardMap.set(w.name.toLowerCase().trim(), w.id);
+            wardMap.set(`${w.acId}_${w.wardNumber}`.toLowerCase(), w.id);
+          }
+
+          result = await BulkImporter.processArray(records, {
+            batchSize: 2500,
+            concurrency: 2,
+            onProgress: progressCallback,
+            onBatchInsert: async (batch) => {
+              const rowsToInsert: any[] = [];
               for (const row of batch) {
                 const name = (row.name || row.boothName || '').trim();
                 const boothNum = Number(row.boothNumber || row.booth_number || 1);
-                const acRef = row.acName || row.ac || row.acId || row.ac_id;
-                const acId = await this.resolveAcId(undefined, acRef, undefined, boothNum);
+                const acRef = String(row.acName || row.ac || row.acId || row.ac_id || '').toLowerCase().trim();
+                const acId = acMap.get(acRef);
+
+                const wardRef = String(row.wardName || row.ward || row.wardId || row.ward_id || '').toLowerCase().trim();
+                const wardId = wardMap.get(wardRef) || (acId && row.wardNumber ? wardMap.get(`${acId}_${row.wardNumber}`.toLowerCase()) : null);
 
                 if (name && acId) {
-                  await MasterQueries.createBooth({
-                    acId,
-                    boothNumber: boothNum,
+                  rowsToInsert.push({
+                    ac_id: acId,
+                    ward_id: wardId || null,
+                    booth_number: boothNum,
                     name,
-                    locationBuilding: row.locationBuilding || row.location_building || undefined,
-                    totalVoters: Number(row.totalVoters || row.total_voters || 0),
+                    location_building: row.locationBuilding || row.location_building || null,
+                    total_voters: Number(row.totalVoters || row.total_voters || 0),
                   });
-                  inserted++;
                 }
               }
-              return inserted;
+              if (rowsToInsert.length === 0) return 0;
+              const res = await BatchInsertQuery.executeBatchImport(
+                'booths',
+                rowsToInsert,
+                ['ac_id', 'ward_id', 'booth_number', 'name', 'location_building', 'total_voters'],
+                { conflictTarget: ['ac_id', 'booth_number'], conflictStrategy: 'DO NOTHING' }
+              );
+              return res.insertedCount;
             },
           });
           break;
+        }
 
         case 'parties':
-        case 'political_parties':
+        case 'political_parties': {
           result = await BulkImporter.processArray(records, {
-            batchSize: 500,
+            batchSize: 2500,
             concurrency: 2,
             onProgress: progressCallback,
             onBatchInsert: async (batch) => {
-              let inserted = 0;
-              for (const row of batch) {
-                const name = (row.name || row.partyName || '').trim();
-                const abbrev = (row.abbreviation || row.code || '').trim();
-                if (name && abbrev) {
-                  await MasterQueries.createParty(
-                    name,
-                    abbrev,
-                    row.symbolLogo || row.symbol_logo || undefined
-                  );
-                  inserted++;
-                }
-              }
-              return inserted;
+              const rowsToInsert = batch
+                .map((row) => ({
+                  name: (row.name || row.partyName || '').trim(),
+                  abbreviation: (row.abbreviation || row.code || '').trim(),
+                  symbol_logo: row.symbolLogo || row.symbol_logo || null,
+                }))
+                .filter((r) => r.name.length > 0 && r.abbreviation.length > 0);
+              if (rowsToInsert.length === 0) return 0;
+              const res = await BatchInsertQuery.executeBatchImport(
+                'parties',
+                rowsToInsert,
+                ['name', 'abbreviation', 'symbol_logo'],
+                { conflictTarget: ['name'], conflictStrategy: 'DO NOTHING' }
+              );
+              return res.insertedCount;
             },
           });
           break;
+        }
 
-        case 'organizations':
+        case 'voters': {
+          const { VoterQueries } = await import('../queries/voter.queries');
+          const { MasterQueries } = await import('../queries/master.queries');
+
+          // Pre-fetch all master tables once before batch processing (avoiding repetitive queries per batch)
+          const [booths, religions, castes, parties, states, districts, pcs, acs] = await Promise.all([
+            MasterQueries.getBooths(),
+            MasterQueries.getReligions(),
+            MasterQueries.getCastes(),
+            MasterQueries.getParties().catch(() => []),
+            MasterQueries.getStates().catch(() => []),
+            MasterQueries.getDistricts().catch(() => []),
+            MasterQueries.getPcs().catch(() => []),
+            MasterQueries.getAcs().catch(() => []),
+          ]);
+
+          // Build O(1) in-memory lookup maps for instant key access
+          const boothById = new Map<string, any>();
+          const boothByName = new Map<string, any>();
+          const boothByNum = new Map<string, any>();
+          for (const b of booths) {
+            boothById.set(b.id, b);
+            boothByName.set(b.name.toLowerCase().trim(), b);
+            if (b.boothNumber !== undefined && b.boothNumber !== null) {
+              boothByNum.set(String(b.boothNumber).trim(), b);
+            }
+          }
+
+          const acById = new Map<string, any>();
+          const acByName = new Map<string, any>();
+          for (const a of acs) {
+            acById.set(a.id, a);
+            acByName.set(a.name.toLowerCase().trim(), a);
+          }
+
+          const pcById = new Map<string, any>();
+          const pcByName = new Map<string, any>();
+          for (const p of pcs) {
+            pcById.set(p.id, p);
+            pcByName.set(p.name.toLowerCase().trim(), p);
+          }
+
+          const distById = new Map<string, any>();
+          const distByName = new Map<string, any>();
+          for (const d of districts) {
+            distById.set(d.id, d);
+            distByName.set(d.name.toLowerCase().trim(), d);
+          }
+
+          const stateById = new Map<string, any>();
+          const stateByName = new Map<string, any>();
+          for (const s of states) {
+            stateById.set(s.id, s);
+            stateByName.set(s.name.toLowerCase().trim(), s);
+          }
+
+          // Build O(1) lookup maps for religion, caste, and party
+          const religionByNameOrId = new Map<string, string>();
+          for (const r of religions) {
+            religionByNameOrId.set(r.id.toLowerCase(), r.id);
+            religionByNameOrId.set(r.name.toLowerCase().trim(), r.id);
+          }
+
+          const casteByNameOrId = new Map<string, string>();
+          for (const c of castes) {
+            casteByNameOrId.set(c.id.toLowerCase(), c.id);
+            casteByNameOrId.set(c.name.toLowerCase().trim(), c.id);
+          }
+
+          const partyByNameOrAbbr = new Map<string, string>();
+          for (const p of parties) {
+            partyByNameOrAbbr.set(p.id.toLowerCase(), p.id);
+            partyByNameOrAbbr.set(p.name.toLowerCase().trim(), p.id);
+            if (p.abbreviation) {
+              partyByNameOrAbbr.set(p.abbreviation.toLowerCase().trim(), p.id);
+            }
+          }
+
+          const parseBool = (val: any): boolean => {
+            if (val === true || val === 1) return true;
+            if (typeof val === 'string') {
+              const lower = val.trim().toLowerCase();
+              return lower === 'yes' || lower === 'true' || lower === '1' || lower === 'y';
+            }
+            return false;
+          };
+
           result = await BulkImporter.processArray(records, {
             batchSize: 500,
             concurrency: 2,
             onProgress: progressCallback,
             onBatchInsert: async (batch) => {
-              let inserted = 0;
-              for (const row of batch) {
-                const name = (row.name || row.orgName || '').trim();
-                const code = (row.code || '').trim();
-                const acRef = row.acName || row.ac || row.acId || row.ac_id;
-                const acId = await this.resolveAcId(undefined, acRef);
-
-                if (name && code) {
-                  await MasterQueries.createOrganization({
-                    name,
-                    code,
-                    acId,
-                    status: row.status || 'active',
-                  });
-                  inserted++;
-                }
-              }
-              return inserted;
-            },
-          });
-          break;
-
-        case 'voters':
-          result = await BulkImporter.processArray(records, {
-            batchSize: 500,
-            concurrency: 2,
-            onProgress: progressCallback,
-            onBatchInsert: async (batch) => {
-              let inserted = 0;
-              const { VoterQueries } = await import('../queries/voter.queries');
-              const { MasterQueries } = await import('../queries/master.queries');
-              const booths = await MasterQueries.getBooths();
-              const religions = await MasterQueries.getReligions();
-              const castes = await MasterQueries.getCastes();
-              const parties = await MasterQueries.getParties().catch(() => []);
-              const states = await MasterQueries.getStates().catch(() => []);
-              const districts = await MasterQueries.getDistricts().catch(() => []);
-              const pcs = await MasterQueries.getPcs().catch(() => []);
-              const acs = await MasterQueries.getAcs().catch(() => []);
-
-              const parseBool = (val: any): boolean => {
-                if (val === true || val === 1) return true;
-                if (typeof val === 'string') {
-                  const lower = val.trim().toLowerCase();
-                  return lower === 'yes' || lower === 'true' || lower === '1' || lower === 'y';
-                }
-                return false;
-              };
+              const votersToInsert: any[] = [];
 
               for (const row of batch) {
                 const epicNo = (
@@ -373,7 +469,7 @@ export class MasterBulkService {
                 ).toString().trim();
                 if (!epicNo) continue;
 
-                // Resolve Booth & Hierarchy
+                // Resolve Booth & Hierarchy (O(1) Map lookup)
                 const boothRef = (
                   row['Select Booth'] ||
                   row['Booth Name'] ||
@@ -383,93 +479,79 @@ export class MasterBulkService {
                   ''
                 ).toString().trim();
                 const boothNumRef = row['Booth No'] || row['boothNumber'] || row['boothNo'];
-                
+
                 let boothId: string | undefined = undefined;
                 let resolvedBooth: any = undefined;
                 if (boothRef) {
-                  resolvedBooth = booths.find(
-                    (b) =>
-                      b.id === boothRef ||
-                      b.name.toLowerCase() === boothRef.toLowerCase() ||
-                      String(b.boothNumber) === boothRef
-                  );
+                  resolvedBooth = boothById.get(boothRef) || boothByName.get(boothRef.toLowerCase()) || boothByNum.get(boothRef);
                 }
                 if (!resolvedBooth && boothNumRef !== undefined && boothNumRef !== '') {
-                  resolvedBooth = booths.find((b) => String(b.boothNumber) === String(boothNumRef));
+                  resolvedBooth = boothByNum.get(String(boothNumRef).trim());
                 }
                 if (resolvedBooth) {
                   boothId = resolvedBooth.id;
                 }
 
-                // Resolve AC, PC, District, State
+                // Resolve AC, PC, District, State with O(1) lookups
                 let acId: string | undefined = resolvedBooth?.acId;
                 const acRef = (row['AC Name'] || row['acName'] || row['acId'] || '').toString().trim();
                 if (!acId && acRef) {
-                  const foundAc = acs.find((a) => a.id === acRef || a.name.toLowerCase() === acRef.toLowerCase());
+                  const foundAc = acById.get(acRef) || acByName.get(acRef.toLowerCase());
                   if (foundAc) acId = foundAc.id;
                 }
 
                 let pcId: string | undefined = undefined;
                 const pcRef = (row['PC Name'] || row['pcName'] || row['pcId'] || '').toString().trim();
                 if (acId) {
-                  const parentAc = acs.find((a) => a.id === acId);
+                  const parentAc = acById.get(acId);
                   if (parentAc?.pcId) pcId = parentAc.pcId;
                 }
                 if (!pcId && pcRef) {
-                  const foundPc = pcs.find((p) => p.id === pcRef || p.name.toLowerCase() === pcRef.toLowerCase());
+                  const foundPc = pcById.get(pcRef) || pcByName.get(pcRef.toLowerCase());
                   if (foundPc) pcId = foundPc.id;
                 }
 
                 let districtId: string | undefined = undefined;
                 const distRef = (row['District Name'] || row['districtName'] || row['districtId'] || '').toString().trim();
                 if (acId) {
-                  const parentAc = acs.find((a) => a.id === acId);
+                  const parentAc = acById.get(acId);
                   if (parentAc?.districtId) districtId = parentAc.districtId;
                 }
                 if (!districtId && distRef) {
-                  const foundDist = districts.find((d) => d.id === distRef || d.name.toLowerCase() === distRef.toLowerCase());
+                  const foundDist = distById.get(distRef) || distByName.get(distRef.toLowerCase());
                   if (foundDist) districtId = foundDist.id;
                 }
 
                 let stateId: string | undefined = undefined;
                 const stateRef = (row['State Name'] || row['stateName'] || row['stateId'] || '').toString().trim();
                 if (districtId) {
-                  const parentDist = districts.find((d) => d.id === districtId);
+                  const parentDist = distById.get(districtId);
                   if (parentDist?.stateId) stateId = parentDist.stateId;
                 }
+                if (!stateId && pcId) {
+                  const parentPc = pcById.get(pcId);
+                  if (parentPc?.stateId) stateId = parentPc.stateId;
+                }
+                if (!stateId && acId) {
+                  const parentAc = acById.get(acId);
+                  if (parentAc?.stateId) stateId = parentAc.stateId;
+                }
                 if (!stateId && stateRef) {
-                  const foundState = states.find((s) => s.id === stateRef || s.name.toLowerCase() === stateRef.toLowerCase());
+                  const foundState = stateById.get(stateRef) || stateByName.get(stateRef.toLowerCase());
                   if (foundState) stateId = foundState.id;
                 }
 
-                // Resolve Party
+                // Resolve Party (O(1) Map lookup)
                 const partyRef = (row['Party'] || row['partyName'] || row['partyId'] || row['Party Name'] || '').toString().trim();
-                let partyId: string | undefined = undefined;
-                if (partyRef) {
-                  const foundParty = parties.find(
-                    (p) =>
-                      p.id === partyRef ||
-                      p.name.toLowerCase() === partyRef.toLowerCase() ||
-                      (p.abbreviation && p.abbreviation.toLowerCase() === partyRef.toLowerCase())
-                  );
-                  if (foundParty) partyId = foundParty.id;
-                }
+                const partyId = partyRef ? partyByNameOrAbbr.get(partyRef.toLowerCase()) : undefined;
 
-                // Resolve Religion
+                // Resolve Religion (O(1) Map lookup)
                 const relRef = (row['Religion'] || row['religionName'] || row['religionId'] || '').toString().trim();
-                let religionId: string | undefined = undefined;
-                if (relRef) {
-                  const foundRel = religions.find((r) => r.id === relRef || r.name.toLowerCase() === relRef.toLowerCase());
-                  if (foundRel) religionId = foundRel.id;
-                }
+                const religionId = relRef ? religionByNameOrId.get(relRef.toLowerCase()) : undefined;
 
-                // Resolve Caste
+                // Resolve Caste (O(1) Map lookup)
                 const casteRef = (row['Caste'] || row['Cast'] || row['casteName'] || row['casteId'] || '').toString().trim();
-                let casteId: string | undefined = undefined;
-                if (casteRef) {
-                  const foundCaste = castes.find((c) => c.id === casteRef || c.name.toLowerCase() === casteRef.toLowerCase());
-                  if (foundCaste) casteId = foundCaste.id;
-                }
+                const casteId = casteRef ? casteByNameOrId.get(casteRef.toLowerCase()) : undefined;
 
                 // Parse Serial & Section
                 const serialNo = row['Serial No'] || row['SerialNo'] || row['serialNo'] ? Number(row['Serial No'] || row['SerialNo'] || row['serialNo']) : undefined;
@@ -487,8 +569,8 @@ export class MasterBulkService {
                 const gender = /^(m|male)$/i.test(rawGender)
                   ? 'Male'
                   : /^(f|female)$/i.test(rawGender)
-                  ? 'Female'
-                  : (rawGender || undefined);
+                    ? 'Female'
+                    : (rawGender || undefined);
 
                 // Sanitize Mobile & Email
                 const rawMobile = (row['Mobile No'] || row['MobileNo*'] || row['MobileNo'] || row['mobileNo'] || '').toString().trim().replace(/[\s-]/g, '');
@@ -510,56 +592,65 @@ export class MasterBulkService {
                 const fullAddress = (row['Full Address'] || row['fullAddress'] || row['FullAddress'] || '').toString().trim() || undefined;
                 const voterAddress = (row['Voter Address'] || row['voterAddress'] || row['VoterAddress'] || '').toString().trim() || undefined;
 
+                votersToInsert.push({
+                  epicNo,
+                  stateId,
+                  districtId,
+                  pcId,
+                  acId,
+                  boothId,
+                  religionId,
+                  casteId,
+                  partyId,
+                  serialNo,
+                  sectionNo,
+                  houseNo: row['House No'] || row['HouseNo'] || row['houseNo'] || undefined,
+                  engFirstName: row['First Name (Eng)'] || row['EngFname'] || row['Eng Fname'] || row['engFirstName'] || undefined,
+                  engMiddleName: row['Middle Name (Eng)'] || row['EngMname'] || row['Eng Mname'] || row['engMiddleName'] || undefined,
+                  engSurname: row['Surname (Eng)'] || row['EngSname'] || row['Eng Sname'] || row['engSurname'] || undefined,
+                  firstName: row['First Name (Local)'] || row['FName'] || row['Fname'] || row['firstName'] || undefined,
+                  middleName: row['Middle Name (Local)'] || row['MName'] || row['Mname'] || row['middleName'] || undefined,
+                  surname: row['Surname (Local)'] || row['SName'] || row['Sname'] || row['surname'] || undefined,
+                  gender,
+                  dob: formattedDob,
+                  age: finalAge,
+                  mobileNo,
+                  email,
+                  aadhaarNo: (row['Aadhaar No'] || row['AdharNo'] || row['aadhaarNo'] || '').toString().trim() || undefined,
+                  panNo: (row['PAN No'] || row['PanNo'] || row['panNo'] || '').toString().trim().toUpperCase() || undefined,
+                  professionType: row['Profession Type'] || row['ProfessionType'] || row['professionType'] || undefined,
+                  profession: row['Profession'] || row['profession'] || undefined,
+                  subcasteName: row['Subcaste'] || row['SubCast'] || row['subcasteName'] || undefined,
+                  voterType: row['Voter Type'] || row['VoterType'] || row['voterType'] || 'Voter',
+                  status,
+                  isDead,
+                  bloodGroup,
+                  taluka,
+                  village,
+                  fullAddress,
+                  voterAddress,
+                  isFamilyInfluencer,
+                  isSocialInfluencer,
+                });
+              }
+
+              const batchRes = await VoterQueries.createVotersBatch(votersToInsert);
+
+              // Auto-trigger family mapping for all affected booths post-import
+              const uniqueBoothIds = Array.from(new Set(votersToInsert.map((v) => v.boothId).filter(Boolean))) as string[];
+              for (const bId of uniqueBoothIds) {
                 try {
-                  await VoterQueries.createVoter({
-                    epicNo,
-                    stateId,
-                    districtId,
-                    pcId,
-                    acId,
-                    boothId,
-                    religionId,
-                    casteId,
-                    partyId,
-                    serialNo,
-                    sectionNo,
-                    houseNo: row['House No'] || row['HouseNo'] || row['houseNo'] || undefined,
-                    engFirstName: row['First Name (Eng)'] || row['EngFname'] || row['Eng Fname'] || row['engFirstName'] || undefined,
-                    engMiddleName: row['Middle Name (Eng)'] || row['EngMname'] || row['Eng Mname'] || row['engMiddleName'] || undefined,
-                    engSurname: row['Surname (Eng)'] || row['EngSname'] || row['Eng Sname'] || row['engSurname'] || undefined,
-                    firstName: row['First Name (Local)'] || row['FName'] || row['Fname'] || row['firstName'] || undefined,
-                    middleName: row['Middle Name (Local)'] || row['MName'] || row['Mname'] || row['middleName'] || undefined,
-                    surname: row['Surname (Local)'] || row['SName'] || row['Sname'] || row['surname'] || undefined,
-                    gender,
-                    dob: formattedDob,
-                    age: finalAge,
-                    mobileNo,
-                    email,
-                    aadhaarNo: (row['Aadhaar No'] || row['AdharNo'] || row['aadhaarNo'] || '').toString().trim() || undefined,
-                    panNo: (row['PAN No'] || row['PanNo'] || row['panNo'] || '').toString().trim().toUpperCase() || undefined,
-                    professionType: row['Profession Type'] || row['ProfessionType'] || row['professionType'] || undefined,
-                    profession: row['Profession'] || row['profession'] || undefined,
-                    subcasteName: row['Subcaste'] || row['SubCast'] || row['subcasteName'] || undefined,
-                    voterType: row['Voter Type'] || row['VoterType'] || row['voterType'] || 'Voter',
-                    status,
-                    isDead,
-                    bloodGroup,
-                    taluka,
-                    village,
-                    fullAddress,
-                    voterAddress,
-                    isFamilyInfluencer,
-                    isSocialInfluencer,
-                  });
-                  inserted++;
-                } catch (rowErr: any) {
-                  logger.warn(`[MasterBulkService] Skipped row for EPIC '${epicNo}': ${rowErr.message}`);
+                  await FamilyMappingService.autoMapBoothFamilies({ boothId: bId });
+                } catch (mapErr: any) {
+                  logger.warn(`[MasterBulkService] Post-import auto family mapping for booth ${bId} encountered error: ${mapErr.message}`);
                 }
               }
-              return inserted;
+
+              return batchRes.inserted;
             },
           });
           break;
+        }
 
         default:
           throw new Error(`Unsupported master category for bulk import: '${category}'`);
@@ -625,11 +716,7 @@ export class MasterBulkService {
       return 'name,abbreviation,symbolLogo\nBharatiya Janata Party,BJP,/uploads/parties/bjp.png\nIndian National Congress,INC,/uploads/parties/inc.png\nAam Aadmi Party,AAP,/uploads/parties/aap.png';
     }
 
-    if (cat === 'organizations') {
-      const acs = await MasterQueries.getAcs();
-      const ac1 = acs[0]?.name || 'Nagpur South West';
-      return `name,code,acName,status\nYouth Congress Nagpur,YCN,${ac1},active\nBJP Yuva Morcha,BJPYM,${ac1},active`;
-    }
+
 
     if (cat === 'voters') {
       const booths = await MasterQueries.getBooths();
@@ -710,7 +797,7 @@ export class MasterBulkService {
     };
 
     // Fetch dynamic options from DB
-    const [religions, castes, states, districts, pcs, acs, booths] = await Promise.all([
+    const [religions, castes, states, districts, pcs, acs, booths, talukas, villages, parties] = await Promise.all([
       MasterQueries.getReligions().catch(() => []),
       MasterQueries.getCastes().catch(() => []),
       MasterQueries.getStates().catch(() => []),
@@ -718,6 +805,9 @@ export class MasterBulkService {
       MasterQueries.getPcs().catch(() => []),
       MasterQueries.getAcs().catch(() => []),
       MasterQueries.getBooths().catch(() => []),
+      MasterQueries.getTalukas().catch(() => []),
+      MasterQueries.getVillages().catch(() => []),
+      MasterQueries.getParties().catch(() => []),
     ]);
 
     const religionNames = religions.map((r) => r.name);
@@ -731,6 +821,9 @@ export class MasterBulkService {
     const pcNames = pcs.map((p) => p.name);
     const acNames = acs.map((a) => a.name);
     const boothNames = booths.map((b) => b.name);
+    const talukaNames = talukas.length > 0 ? talukas.map((t) => t.name) : ['Haveli', 'Karjat', 'Shirur', 'Baramati'];
+    const villageNames = villages.length > 0 ? villages.map((v) => v.name) : ['Wagholi', 'Kothrud', 'Hadapsar', 'Bavdhan'];
+    const partyNames = parties.length > 0 ? parties.map((p) => p.name) : ['Bharatiya Janata Party', 'Indian National Congress', 'Aam Aadmi Party'];
 
     if (cat === 'voters') {
       const headers = [
@@ -756,7 +849,15 @@ export class MasterBulkService {
         'Cast',
         'SubCast',
         'Religion',
+        'Party',
+        'Taluka',
+        'Village',
         'VoterType',
+        'Status',
+        'Is Dead',
+        'Is Family Influencer',
+        'Is Social Influencer',
+        'Blood Group',
       ];
       sheet.addRow(headers);
 
@@ -765,6 +866,10 @@ export class MasterBulkService {
       const r1 = religionNames[0] || 'Hinduism';
       const c1 = casteNames[0] || 'Brahmin';
       const sc1 = subcasteNames[0] || 'Kanyakubj';
+      const p1 = partyNames[0] || 'Bharatiya Janata Party';
+      const t1 = talukaNames[0] || 'Haveli';
+      const v1 = villageNames[0] || 'Wagholi';
+
       sheet.addRow([
         b1,
         1,
@@ -788,7 +893,15 @@ export class MasterBulkService {
         c1,
         sc1,
         r1,
+        p1,
+        t1,
+        v1,
         'Voter',
+        'ACTIVE',
+        'No',
+        'No',
+        'No',
+        'B+',
       ]);
 
       // Data Validations
@@ -799,7 +912,7 @@ export class MasterBulkService {
       // Col L: Gender (Static)
       addListValidation('L', '"Male,Female,Other"');
 
-      // Col M: DateOfBirth(dd-MM-yyyy) (Interactive Date Picker Validation & dd-mm-yyyy formatting)
+      // Col M: DateOfBirth(dd-MM-yyyy)
       for (let r = 2; r <= 1000; r++) {
         const cell = sheet.getCell(`M${r}`);
         cell.numFmt = 'dd-mm-yyyy';
@@ -828,8 +941,35 @@ export class MasterBulkService {
       const religionFormula = registerDynamicLookup('Religions', religionNames);
       addListValidation('V', religionFormula);
 
-      // Col W: VoterType (Static)
-      addListValidation('W', '"Voter,Neutral Voter,Non Voter,Student,Senior,NRI,VIP"');
+      // Col W: Party (Dynamic)
+      const partyFormula = registerDynamicLookup('Parties', partyNames);
+      addListValidation('W', partyFormula);
+
+      // Col X: Taluka (Dynamic)
+      const talukaFormula = registerDynamicLookup('Talukas', talukaNames);
+      addListValidation('X', talukaFormula);
+
+      // Col Y: Village (Dynamic)
+      const villageFormula = registerDynamicLookup('Villages', villageNames);
+      addListValidation('Y', villageFormula);
+
+      // Col Z: VoterType (Static)
+      addListValidation('Z', '"Voter,Neutral Voter,Non Voter,Student,Senior,NRI,VIP"');
+
+      // Col AA: Status (Static)
+      addListValidation('AA', '"ACTIVE,INACTIVE,SHIFTED,UNVERIFIED,PENDING"');
+
+      // Col AB: Is Dead (Static)
+      addListValidation('AB', '"Yes,No"');
+
+      // Col AC: Is Family Influencer (Static)
+      addListValidation('AC', '"Yes,No"');
+
+      // Col AD: Is Social Influencer (Static)
+      addListValidation('AD', '"Yes,No"');
+
+      // Col AE: Blood Group (Static)
+      addListValidation('AE', '"A+,A-,B+,B-,AB+,AB-,O+,O-"');
     } else if (cat === 'castes') {
       sheet.addRow(['name', 'category', 'religionName']);
       const r1 = religionNames[0] || 'Hinduism';
@@ -879,10 +1019,18 @@ export class MasterBulkService {
       // Col D: districtName (Dynamic)
       const distFormula = registerDynamicLookup('Districts', districtNames);
       addListValidation('D', distFormula);
-    } else if (cat === 'booths' || cat === 'polling_booths') {
-      sheet.addRow(['boothNumber', 'name', 'acName', 'locationBuilding', 'totalVoters']);
+    } else if (cat === 'wards') {
+      sheet.addRow(['wardNumber', 'name', 'acName']);
       const a1 = acNames[0] || 'Nagpur South West';
-      sheet.addRow([1, 'Zilla Parishad Primary School Room 1', a1, 'Z.P. School', 850]);
+      sheet.addRow([1, 'Ward No. 1', a1]);
+
+      // Col C: acName (Dynamic)
+      const acFormula = registerDynamicLookup('ACs', acNames);
+      addListValidation('C', acFormula);
+    } else if (cat === 'booths' || cat === 'polling_booths') {
+      sheet.addRow(['boothNumber', 'name', 'acName', 'wardName', 'locationBuilding', 'totalVoters']);
+      const a1 = acNames[0] || 'Nagpur South West';
+      sheet.addRow([1, 'Zilla Parishad Primary School Room 1', a1, 'Ward No. 1', 'Z.P. School', 850]);
 
       // Col C: acName (Dynamic)
       const acFormula = registerDynamicLookup('ACs', acNames);
@@ -891,17 +1039,7 @@ export class MasterBulkService {
       sheet.addRow(['name', 'abbreviation', 'symbolLogo']);
       sheet.addRow(['Bharatiya Janata Party', 'BJP', '/uploads/parties/bjp.png']);
       sheet.addRow(['Indian National Congress', 'INC', '/uploads/parties/inc.png']);
-    } else if (cat === 'organizations') {
-      sheet.addRow(['name', 'code', 'acName', 'status']);
-      const a1 = acNames[0] || 'Nagpur South West';
-      sheet.addRow(['Youth Congress Nagpur', 'YCN', a1, 'active']);
 
-      // Col C: acName (Dynamic)
-      const acFormula = registerDynamicLookup('ACs', acNames);
-      addListValidation('C', acFormula);
-
-      // Col D: status (Static)
-      addListValidation('D', '"active,inactive,suspended"');
     } else {
       sheet.addRow(['name']);
       sheet.addRow(['Sample Entry 1']);

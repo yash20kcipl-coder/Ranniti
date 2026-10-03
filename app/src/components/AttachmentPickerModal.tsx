@@ -6,10 +6,8 @@ import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
 import ImagePicker from 'react-native-image-crop-picker';
-import { createThumbnail } from 'react-native-create-thumbnail';
-import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
-import { Image as ImageCompressor, Video as VideoCompressor } from 'react-native-compressor';
 import { View, StyleSheet, Modal, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 
 interface AttachmentPickerModalProps {

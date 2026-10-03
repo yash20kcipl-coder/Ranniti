@@ -9,11 +9,13 @@ import {
   ChevronRight,
   MapPin,
   Map,
+  Building,
+  Home,
   Landmark,
   Building2,
+  Layers,
   HeartHandshake,
   Flag,
-  Briefcase,
   LogOut,
   X,
   PanelLeftClose,
@@ -34,6 +36,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/dashboard/voters', label: 'Voter Directory', icon: Vote },
+  { path: '/dashboard/tenants', label: 'Tenant Accounts', icon: Users },
   { path: '/dashboard/master', label: 'Master Data', icon: Database, isMaster: true },
   { path: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
@@ -44,8 +47,11 @@ export const masterSections = [
     icon: MapPin,
     items: [
       { key: 'districts', label: 'Districts', icon: Map },
+      { key: 'talukas', label: 'Talukas (Tehsils)', icon: Building },
+      { key: 'villages', label: 'Villages', icon: Home },
       { key: 'pcs', label: 'Parliamentary (PC)', icon: Landmark },
       { key: 'acs', label: 'Assembly (AC)', icon: Building2 },
+      { key: 'wards', label: 'Wards (Prabhags)', icon: Layers },
       { key: 'booths', label: 'Polling Booths', icon: Vote },
     ],
   },
@@ -62,7 +68,6 @@ export const masterSections = [
     icon: Flag,
     items: [
       { key: 'parties', label: 'Political Parties', icon: Flag },
-      { key: 'organizations', label: 'Organizations', icon: Briefcase },
     ],
   },
 ];
@@ -192,148 +197,159 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* SIDEBAR NAVIGATION ITEMS */}
           <nav className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 py-4 space-y-1.5 no-scrollbar">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isMasterItem = item.isMaster;
-              const isActive = isMasterItem ? isMasterPath : location.pathname === item.path;
+            {navItems
+              .filter((item) => {
+                const role = user?.role || 'tenant_admin';
+                if (item.path === '/dashboard/tenants') {
+                  return role === 'super_admin' || role === 'admin';
+                }
+                if (item.isMaster) {
+                  return role === 'super_admin' || role === 'admin';
+                }
+                return true;
+              })
+              .map((item) => {
+                const Icon = item.icon;
+                const isMasterItem = item.isMaster;
+                const isActive = isMasterItem ? isMasterPath : location.pathname === item.path;
 
-              /* MASTER DATA ACCORDION ITEM */
-              if (isMasterItem) {
-                return (
-                  <div key={item.path} className="space-y-1">
-                    {/* Collapsed desktop button with flyout / tooltip */}
-                    {isSidebarCollapsed ? (
-                      <div className="relative group flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onToggleSidebarCollapse();
-                            navigate(`/dashboard/master/${activeTabKey}`);
-                          }}
-                          className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all cursor-pointer ${isActive
-                            ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/25 ring-1 ring-white/20'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-slate-800/60'
-                            }`}
-                        >
-                          <Icon size={20} />
-                        </button>
-
-                        {/* Hover Tooltip in collapsed mode */}
-                        <div className="hidden lg:group-hover:flex absolute left-full ml-3 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
-                          <span>Master Data</span>
-                          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/20 px-1.5 py-0.5 rounded-full">
-                            8
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Expanded master data header */
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsMasterOpen((prev) => !prev);
-                            if (!isMasterPath) {
+                /* MASTER DATA ACCORDION ITEM */
+                if (isMasterItem) {
+                  return (
+                    <div key={item.path} className="space-y-1">
+                      {/* Collapsed desktop button with flyout / tooltip */}
+                      {isSidebarCollapsed ? (
+                        <div className="relative group flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onToggleSidebarCollapse();
                               navigate(`/dashboard/master/${activeTabKey}`);
-                            }
-                          }}
-                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${isActive
-                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/25'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-slate-800/60'
-                            }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Icon size={18} className={isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'} />
-                            <span>{item.label}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${isActive
-                                ? 'bg-white/20 text-white'
-                                : 'bg-indigo-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400'
-                                }`}
-                            >
+                            }}
+                            className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all cursor-pointer ${isActive
+                              ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/25 ring-1 ring-white/20'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-slate-800/60'
+                              }`}
+                          >
+                            <Icon size={20} />
+                          </button>
+
+                          {/* Hover Tooltip in collapsed mode */}
+                          <div className="hidden lg:group-hover:flex absolute left-full ml-3 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
+                            <span>Master Data</span>
+                            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/20 px-1.5 py-0.5 rounded-full">
                               8
                             </span>
-                            {isMasterOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                           </div>
-                        </button>
+                        </div>
+                      ) : (
+                        /* Expanded master data header */
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsMasterOpen((prev) => !prev);
+                              if (!isMasterPath) {
+                                navigate(`/dashboard/master/${activeTabKey}`);
+                              }
+                            }}
+                            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${isActive
+                              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/25'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-slate-800/60'
+                              }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Icon size={18} className={isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'} />
+                              <span>{item.label}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${isActive
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-indigo-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400'
+                                  }`}
+                              >
+                                8
+                              </span>
+                              {isMasterOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                            </div>
+                          </button>
 
-                        {/* MASTER SUB-SECTIONS (When Open) */}
-                        {isMasterOpen && (
-                          <div className="ml-3 pl-3 border-l-2 border-indigo-500/30 space-y-3 py-2 animate-in fade-in duration-200">
-                            {masterSections.map((section) => {
-                              const SectionIcon = section.icon;
-                              return (
-                                <div key={section.title} className="space-y-1 text-left">
-                                  <div className="px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400/80 flex items-center gap-1.5">
-                                    <SectionIcon size={11} className="text-indigo-500 dark:text-indigo-400" />
-                                    <span>{section.title}</span>
+                          {/* MASTER SUB-SECTIONS (When Open) */}
+                          {isMasterOpen && (
+                            <div className="ml-3 pl-3 border-l-2 border-indigo-500/30 space-y-3 py-2 animate-in fade-in duration-200">
+                              {masterSections.map((section) => {
+                                const SectionIcon = section.icon;
+                                return (
+                                  <div key={section.title} className="space-y-1 text-left">
+                                    <div className="px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400/80 flex items-center gap-1.5">
+                                      <SectionIcon size={11} className="text-indigo-500 dark:text-indigo-400" />
+                                      <span>{section.title}</span>
+                                    </div>
+                                    {section.items.map((sub) => {
+                                      const SubIcon = sub.icon;
+                                      const subPath = `/dashboard/master/${sub.key}`;
+                                      const isSubActive =
+                                        location.pathname === subPath || (isMasterPath && activeTabKey === sub.key);
+                                      return (
+                                        <Link
+                                          key={sub.key}
+                                          to={subPath}
+                                          onClick={() => {
+                                            dispatch(setMasterTab(sub.key));
+                                            onCloseMobileSidebar();
+                                          }}
+                                          className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all text-left cursor-pointer ${isSubActive
+                                            ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-200 font-semibold border border-indigo-300 dark:border-indigo-500/40 shadow-xs'
+                                            : 'text-slate-500 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800/60'
+                                            }`}
+                                        >
+                                          <SubIcon
+                                            size={13}
+                                            className={isSubActive ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}
+                                          />
+                                          <span className="truncate">{sub.label}</span>
+                                        </Link>
+                                      );
+                                    })}
                                   </div>
-                                  {section.items.map((sub) => {
-                                    const SubIcon = sub.icon;
-                                    const subPath = `/dashboard/master/${sub.key}`;
-                                    const isSubActive =
-                                      location.pathname === subPath || (isMasterPath && activeTabKey === sub.key);
-                                    return (
-                                      <Link
-                                        key={sub.key}
-                                        to={subPath}
-                                        onClick={() => {
-                                          dispatch(setMasterTab(sub.key));
-                                          onCloseMobileSidebar();
-                                        }}
-                                        className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all text-left cursor-pointer ${isSubActive
-                                          ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-200 font-semibold border border-indigo-300 dark:border-indigo-500/40 shadow-xs'
-                                          : 'text-slate-500 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800/60'
-                                          }`}
-                                      >
-                                        <SubIcon
-                                          size={13}
-                                          className={isSubActive ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}
-                                        />
-                                        <span className="truncate">{sub.label}</span>
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                }
+
+                /* STANDARD NAV ITEM */
+                return (
+                  <div key={item.path} className="relative group flex justify-center">
+                    <Link
+                      to={item.path}
+                      onClick={onCloseMobileSidebar}
+                      className={`flex items-center rounded-xl text-xs font-semibold transition-all w-full cursor-pointer ${isSidebarCollapsed
+                        ? 'lg:w-12 lg:h-12 lg:justify-center px-3.5 py-2.5'
+                        : 'px-3.5 py-2.5 gap-3'
+                        } ${isActive
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/25 ring-1 ring-white/10'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-slate-800/60'
+                        }`}
+                    >
+                      <Icon size={18} className={isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-white'} />
+                      {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
+                    </Link>
+
+                    {/* Hover Tooltip in collapsed mode */}
+                    {isSidebarCollapsed && (
+                      <div className="hidden lg:group-hover:flex absolute left-full ml-3 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
+                        <span>{item.label}</span>
+                      </div>
                     )}
                   </div>
                 );
-              }
-
-              /* STANDARD NAV ITEM */
-              return (
-                <div key={item.path} className="relative group flex justify-center">
-                  <Link
-                    to={item.path}
-                    onClick={onCloseMobileSidebar}
-                    className={`flex items-center rounded-xl text-xs font-semibold transition-all w-full cursor-pointer ${isSidebarCollapsed
-                      ? 'lg:w-12 lg:h-12 lg:justify-center px-3.5 py-2.5'
-                      : 'px-3.5 py-2.5 gap-3'
-                      } ${isActive
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/25 ring-1 ring-white/10'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-slate-800/60'
-                      }`}
-                  >
-                    <Icon size={18} className={isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-white'} />
-                    {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
-                  </Link>
-
-                  {/* Hover Tooltip in collapsed mode */}
-                  {isSidebarCollapsed && (
-                    <div className="hidden lg:group-hover:flex absolute left-full ml-3 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
-                      <span>{item.label}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+              })}
           </nav>
 
           {/* USER FOOTER */}

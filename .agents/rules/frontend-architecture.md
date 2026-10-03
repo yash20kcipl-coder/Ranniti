@@ -38,3 +38,20 @@ All web application frontend development under `web/src/` must adhere to these s
    - Always use the interactive `FileUploadInput` component (`src/components/common/FileUploadInput.tsx`) or `FormInput` with `type="file"`.
    - Must enforce client/server file type validation (allowed extensions: `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`, `.svg`, MIME types), max file size limits (5MB), drag-and-drop support, real-time backend API file upload dispatch, and instant image preview with clear action buttons.
 
+9. **Reusable Safe Image Component Standard (`src/components/common/SafeImage.tsx`)**:
+   - Never write raw `<img />` tags with ad-hoc `onError` inline handlers or unhandled broken image sources in UI components, views, or table renderers.
+   - Always import and use `SafeImage` (`src/components/common/SafeImage.tsx`) for user avatars, party logos, symbols, or external image assets to ensure automatic loading skeletons, broken link fallbacks, and clean initials rendering.
+
+10. **Reusable Page Header Component Standard (`src/components/common/PageHeader.tsx`)**:
+    - Never write ad-hoc inline header titles, raw flex banners, or unstandardized top action button bars directly inside React UI page components or views.
+    - Always import and use `PageHeader` (`src/components/common/PageHeader.tsx`) for all page headers, utilizing built-in props (`title`, `subtitle`, `icon`, `badge`, `onAddClick`, `addLabel`, `onImportClick`, `onExportClick`, `onSyncClick`, `actions`).
+
+11. **Reusable Table Actions Component Standard (`src/components/common/TableActions.tsx`)**:
+    - Never write ad-hoc inline action button groups (edit/delete/view icon buttons) or unstandardized action cells directly inside React table renderers.
+    - Always import and use `TableActions` (`src/components/common/TableActions.tsx`) or `TableActionButton` for all table action columns (`onView`, `onEdit`, `onDelete`, `extra`).
+
+12. **Clean Architecture & Dead Code Elimination**:
+    - Always proactively prune and delete unused files, dead functions, temporary test scripts, orphaned scratch files, and unreferenced imports immediately after finishing code modifications or refactoring.
+    - Never leave behind obsolete, commented-out, duplicate, or unreferenced code blocks in production codebase files.
+
+
