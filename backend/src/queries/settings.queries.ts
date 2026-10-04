@@ -1,4 +1,13 @@
 import { query, dbPool } from './dbPool';
+import { CacheService } from '../services/cache.service';
+import { TenantPoolManager } from '../utils/tenantPoolManager';
+
+async function executeSettingsQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
+  if (tenantDbName && tenantDbName.trim()) {
+    return await TenantPoolManager.query(tenantDbName.trim(), sqlStr, queryValues);
+  }
+  return await query(sqlStr, queryValues);
+}
 
 export interface CampaignSettingsRecord {
   id: string;
@@ -124,34 +133,38 @@ const mapTemplateRowToCamelCase = (row: any): WhatsAppTemplateRecord => ({
 
 export const settingsQueries = {
   /**
-   * Get campaign settings for an organization (or global fallback if org is null)
+   * Get campaign settings for a tenant campaign (or global fallback if tenantDbName is null)
    */
-  async getSettings(): Promise<CampaignSettingsRecord> {
-    const res = await query(`SELECT * FROM campaign_settings ORDER BY created_at ASC LIMIT 1`);
-    if (res.rows.length > 0) {
-      return mapSettingsRowToCamelCase(res.rows[0]);
-    }
+  async getSettings(tenantDbName?: string | null): Promise<CampaignSettingsRecord> {
+    const cacheKey = `ranniti:settings:${tenantDbName || 'master'}`;
+    return await CacheService.getOrSet(cacheKey, 3600, async () => {
+      const res = await executeSettingsQuery(`SELECT * FROM campaign_settings ORDER BY created_at ASC LIMIT 1`, [], tenantDbName);
+      if (res.rows.length > 0) {
+        return mapSettingsRowToCamelCase(res.rows[0]);
+      }
 
-    // Auto-initialize default settings row if none exists
-    const initSql = `
-      INSERT INTO campaign_settings (
-        whatsapp_quality_rating,
-        whatsapp_daily_limit,
-        election_type
-      ) VALUES ('GREEN', '10K', 'Assembly')
-      RETURNING *
-    `;
-    const initRes = await query(initSql);
-    return mapSettingsRowToCamelCase(initRes.rows[0]);
+      // Auto-initialize default settings row if none exists
+      const initSql = `
+        INSERT INTO campaign_settings (
+          whatsapp_quality_rating,
+          whatsapp_daily_limit,
+          election_type
+        ) VALUES ('GREEN', '10K', 'Assembly')
+        RETURNING *
+      `;
+      const initRes = await executeSettingsQuery(initSql, [], tenantDbName);
+      return mapSettingsRowToCamelCase(initRes.rows[0]);
+    });
   },
 
   /**
-   * Update or upsert campaign settings
+   * Update or upsert campaign settings in Tenant DB or Master DB
    */
   async upsertSettings(
-    data: Partial<CampaignSettingsRecord>
+    data: Partial<CampaignSettingsRecord>,
+    tenantDbName?: string | null
   ): Promise<CampaignSettingsRecord> {
-    const current = await settingsQueries.getSettings();
+    const current = await settingsQueries.getSettings(tenantDbName);
 
     const fcmProjectId = data.fcmProjectId !== undefined ? data.fcmProjectId : current.fcmProjectId;
     const fcmClientEmail = data.fcmClientEmail !== undefined ? data.fcmClientEmail : current.fcmClientEmail;
@@ -207,7 +220,7 @@ export const settingsQueries = {
       RETURNING *
     `;
 
-    const res = await query(updateSql, [
+    const res = await executeSettingsQuery(updateSql, [
       fcmProjectId,
       fcmClientEmail,
       fcmPrivateKey,
@@ -231,7 +244,10 @@ export const settingsQueries = {
       electionType,
       fieldRules,
       current.id,
-    ]);
+    ], tenantDbName);
+
+    // Invalidate Redis cache for this tenant
+    await CacheService.del(`ranniti:settings:${tenantDbName || 'master'}`);
 
     return mapSettingsRowToCamelCase(res.rows[0]);
   },
@@ -240,41 +256,52 @@ export const settingsQueries = {
    * Get all WhatsApp templates
    */
   async getWhatsAppTemplates(
-    filters?: { category?: string; status?: string; search?: string }
+    filters?: { category?: string; status?: string; search?: string },
+    tenantDbName?: string | null
   ): Promise<WhatsAppTemplateRecord[]> {
-    let sql = `SELECT * FROM whatsapp_templates WHERE 1=1`;
-    const params: any[] = [];
-    let paramIndex = 1;
+    const isFiltered = !!(filters?.category || filters?.status || filters?.search);
+    const cacheKey = `ranniti:wa_templates:${tenantDbName || 'master'}`;
 
-    if (filters?.category) {
-      sql += ` AND category = $${paramIndex}`;
-      params.push(filters.category);
-      paramIndex++;
+    const fetchFromDb = async () => {
+      let sql = `SELECT * FROM whatsapp_templates WHERE 1=1`;
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      if (filters?.category) {
+        sql += ` AND category = $${paramIndex}`;
+        params.push(filters.category);
+        paramIndex++;
+      }
+
+      if (filters?.status) {
+        sql += ` AND meta_status = $${paramIndex}`;
+        params.push(filters.status);
+        paramIndex++;
+      }
+
+      if (filters?.search) {
+        sql += ` AND (name ILIKE $${paramIndex} OR body_text ILIKE $${paramIndex})`;
+        params.push(`%${filters.search}%`);
+        paramIndex++;
+      }
+
+      sql += ` ORDER BY created_at DESC`;
+
+      const res = await executeSettingsQuery(sql, params, tenantDbName);
+      return res.rows.map(mapTemplateRowToCamelCase);
+    };
+
+    if (!isFiltered) {
+      return await CacheService.getOrSet(cacheKey, 3600, fetchFromDb);
     }
-
-    if (filters?.status) {
-      sql += ` AND meta_status = $${paramIndex}`;
-      params.push(filters.status);
-      paramIndex++;
-    }
-
-    if (filters?.search) {
-      sql += ` AND (name ILIKE $${paramIndex} OR body_text ILIKE $${paramIndex})`;
-      params.push(`%${filters.search}%`);
-      paramIndex++;
-    }
-
-    sql += ` ORDER BY created_at DESC`;
-
-    const res = await query(sql, params);
-    return res.rows.map(mapTemplateRowToCamelCase);
+    return await fetchFromDb();
   },
 
   /**
    * Get template by ID
    */
-  async getWhatsAppTemplateById(id: string): Promise<WhatsAppTemplateRecord | null> {
-    const res = await query(`SELECT * FROM whatsapp_templates WHERE id = $1`, [id]);
+  async getWhatsAppTemplateById(id: string, tenantDbName?: string | null): Promise<WhatsAppTemplateRecord | null> {
+    const res = await executeSettingsQuery(`SELECT * FROM whatsapp_templates WHERE id = $1`, [id], tenantDbName);
     if (res.rows.length === 0) return null;
     return mapTemplateRowToCamelCase(res.rows[0]);
   },
@@ -294,7 +321,8 @@ export const settingsQueries = {
       buttons?: any[];
       variables?: string[];
       metaStatus?: string;
-    }
+    },
+    tenantDbName?: string | null
   ): Promise<WhatsAppTemplateRecord> {
     // Extract dynamic variables from body text if not explicitly provided
     let vars = data.variables || [];
@@ -325,7 +353,7 @@ export const settingsQueries = {
     `;
 
     const metaTemplateId = `meta_tpl_${Date.now()}`;
-    const res = await query(sql, [
+    const res = await executeSettingsQuery(sql, [
       data.name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'),
       data.category || 'UTILITY',
       data.language || 'hi',
@@ -337,8 +365,9 @@ export const settingsQueries = {
       JSON.stringify(vars),
       data.metaStatus || 'APPROVED',
       metaTemplateId,
-    ]);
+    ], tenantDbName);
 
+    await CacheService.del(`ranniti:wa_templates:${tenantDbName || 'master'}`);
     return mapTemplateRowToCamelCase(res.rows[0]);
   },
 
@@ -347,9 +376,10 @@ export const settingsQueries = {
    */
   async updateWhatsAppTemplate(
     id: string,
-    data: Partial<WhatsAppTemplateRecord>
+    data: Partial<WhatsAppTemplateRecord>,
+    tenantDbName?: string | null
   ): Promise<WhatsAppTemplateRecord | null> {
-    const existing = await settingsQueries.getWhatsAppTemplateById(id);
+    const existing = await settingsQueries.getWhatsAppTemplateById(id, tenantDbName);
     if (!existing) return null;
 
     let vars = data.variables !== undefined ? data.variables : existing.variables;
@@ -378,7 +408,7 @@ export const settingsQueries = {
       RETURNING *
     `;
 
-    const res = await query(sql, [
+    const res = await executeSettingsQuery(sql, [
       data.name ? data.name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_') : null,
       data.category || null,
       data.language || null,
@@ -391,31 +421,34 @@ export const settingsQueries = {
       data.metaStatus || null,
       data.metaRejectionReason !== undefined ? data.metaRejectionReason : existing.metaRejectionReason,
       id,
-    ]);
+    ], tenantDbName);
 
+    await CacheService.del(`ranniti:wa_templates:${tenantDbName || 'master'}`);
     return mapTemplateRowToCamelCase(res.rows[0]);
   },
 
   /**
    * Delete WhatsApp template
    */
-  async deleteWhatsAppTemplate(id: string): Promise<boolean> {
-    const res = await query(`DELETE FROM whatsapp_templates WHERE id = $1 RETURNING id`, [id]);
+  async deleteWhatsAppTemplate(id: string, tenantDbName?: string | null): Promise<boolean> {
+    const res = await executeSettingsQuery(`DELETE FROM whatsapp_templates WHERE id = $1 RETURNING id`, [id], tenantDbName);
+    await CacheService.del(`ranniti:wa_templates:${tenantDbName || 'master'}`);
     return (res.rowCount ?? 0) > 0;
   },
 
   /**
    * Sync template approval statuses from Meta
    */
-  async syncMetaTemplateStatuses(): Promise<WhatsAppTemplateRecord[]> {
+  async syncMetaTemplateStatuses(tenantDbName?: string | null): Promise<WhatsAppTemplateRecord[]> {
     // In production, this contacts https://graph.facebook.com/v20.0/{WABA_ID}/message_templates
     // Here we ensure pending items get transitioned to APPROVED/REJECTED for seamless testing
-    await query(`
+    await executeSettingsQuery(`
       UPDATE whatsapp_templates
       SET meta_status = 'APPROVED', updated_at = NOW()
       WHERE meta_status = 'PENDING'
-    `);
+    `, [], tenantDbName);
 
-    return settingsQueries.getWhatsAppTemplates();
+    await CacheService.del(`ranniti:wa_templates:${tenantDbName || 'master'}`);
+    return settingsQueries.getWhatsAppTemplates(undefined, tenantDbName);
   },
 };

@@ -15,7 +15,7 @@ import {
   VoterGeographyDetailCard,
   VoterDemographicsDetailCard,
   VoterContactKycDetailCard,
-} from './components';
+} from '@/components/common/voter/detail';
 import toast from 'react-hot-toast';
 import {
   FamilyInfluencerAssignModal,

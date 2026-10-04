@@ -21,7 +21,7 @@ export const superAdminAuth = (req: Request, _res: Response, next: NextFunction)
     req.user = payload;
 
     if (payload.role !== 'super_admin') {
-      return next(ApiError.forbidden('Forbidden: Super Admin privilege required'));
+      return next(ApiError.forbidden('Forbidden: Access denied. Tenant users cannot access Super Admin endpoints.'));
     }
 
     next();

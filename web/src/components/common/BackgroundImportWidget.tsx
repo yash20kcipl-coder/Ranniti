@@ -1,10 +1,12 @@
 import * as XLSX from 'xlsx';
 import { masterConfig } from '@/config/masterConfig';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchMasterCategoryData } from '@/redux/actions/master';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { fetchJobStatus, dismissJob } from '@/redux/actions/importJobs';
+import { fetchJobStatus, dismissJob, executeJobCallback } from '@/redux/actions/importJobs';
 import { fetchVotersData, fetchVoterStats } from '@/redux/actions/voter';
+import { fetchSuperAdminMasterCategoryData } from '@/redux/actions/masterSuperAdmin';
+import { fetchTenantMasterCategoryData } from '@/redux/actions/masterTenant';
+import { TENANT_MASTER_ENDPOINTS } from '@/hooks/useTenantMasterData';
 import { Loader2, CheckCircle2, AlertCircle, X, ChevronDown, ChevronUp, Database, Download } from 'lucide-react';
 
 export const BackgroundImportWidget: React.FC = () => {
@@ -14,25 +16,34 @@ export const BackgroundImportWidget: React.FC = () => {
   const autoDismissJobsRef = useRef<Set<string>>(new Set());
   const voterFilters = useAppSelector((state) => state.voter.filters);
   const { jobs, activeJobIds } = useAppSelector((state) => state.importJobs);
+  const currentUser = useAppSelector((state: any) => state.user?.user || state.user?.myprofile);
   const [visualProgressMap, setVisualProgressMap] = useState<Record<string, number>>({});
 
   const activeJobsList = activeJobIds.map((id) => jobs[id]).filter(Boolean);
+  const isTenant = currentUser?.role !== 'SUPER_ADMIN' && currentUser?.role !== 'SUPERADMIN';
 
-  // Helper to refresh table data for active category + dependent reference categories
+  // Helper to refresh table data for the imported category upon job completion
   const refreshCategoryData = useCallback((category?: string) => {
-    const cleanCat = (category || '').toLowerCase();
+    const cleanCat = (category || '').toLowerCase().trim();
+    if (!cleanCat) return;
+
     if (cleanCat === 'voters') {
       dispatch(fetchVotersData(voterFilters || {}, false)).catch(() => { });
       dispatch(fetchVoterStats(voterFilters || {})).catch(() => { });
-    } else if (cleanCat) {
-      const refKeys = Array.from(new Set([cleanCat, 'states', 'districts', 'pcs', 'acs', 'religions', 'castes']));
-      refKeys.forEach((key) => {
-        const cfg = masterConfig[key];
-        const endpoint = cfg ? cfg.apiEndpoint : `/masters/${key}`;
-        dispatch(fetchMasterCategoryData(key, endpoint, false)).catch(() => { });
-      });
+      return;
     }
-  }, [dispatch, voterFilters]);
+
+    const isPaginated = ['villages', 'village', 'booths', 'booth', 'wards', 'ward'].includes(cleanCat);
+    const fetchAction = isTenant ? fetchTenantMasterCategoryData : fetchSuperAdminMasterCategoryData;
+    const endpoint = isTenant
+      ? (TENANT_MASTER_ENDPOINTS as any)[cleanCat]
+      : (masterConfig[cleanCat]?.apiEndpoint || `/masters/${cleanCat}`);
+
+    if (endpoint) {
+      const params = isPaginated ? { page: 1, limit: 25 } : undefined;
+      dispatch(fetchAction(cleanCat, endpoint, false, params)).catch(() => { });
+    }
+  }, [dispatch, voterFilters, isTenant]);
 
   // Poll backend for job status updates every 1.5s while active
   useEffect(() => {
@@ -100,6 +111,7 @@ export const BackgroundImportWidget: React.FC = () => {
       // 1. Refresh Data ONCE upon backend completion
       if (isCompleted && !refreshedJobsRef.current.has(job.jobId)) {
         refreshedJobsRef.current.add(job.jobId);
+        executeJobCallback(job.jobId);
         refreshCategoryData(job.category);
       }
 

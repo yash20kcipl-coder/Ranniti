@@ -1,16 +1,17 @@
+import {
+  setVotersData,
+  setVotersLoading,
+  setVotersPagination,
+  setVoterStats,
+  setVoterBoothOptions,
+  setVoterBoothOptionsLoading,
+} from './voter';
 import api from '@/services/api';
 import { Loading } from './loader';
 import { errorHandler } from '../apiUtils';
 import type { AppDispatch } from '../store';
 import { startBulkImportJob } from './importJobs';
 import { toFormDataOrJson } from '@/utils/formData';
-import {
-  setVotersData,
-  setVotersLoading,
-  setVotersPagination,
-  setVoterStats,
-  setVoterFilters,
-} from './voter';
 
 export const fetchSuperAdminVotersData = (params: Record<string, any> = {}, showLoader = true) => {
   return async (dispatch: AppDispatch) => {
@@ -124,10 +125,15 @@ export const deleteSuperAdminVoterItem = (id: string, currentParams: Record<stri
   };
 };
 
-export const importSuperAdminVotersData = (records: Record<string, any>[], _currentParams: Record<string, any> = {}) => {
+export const importSuperAdminVotersData = (records: Record<string, any>[], currentParams: Record<string, any> = {}) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const job = await dispatch(startBulkImportJob('voters', records));
+      const job = await dispatch(
+        startBulkImportJob('voters', records, () => {
+          dispatch(fetchSuperAdminVotersData(currentParams, false)).catch(() => { });
+          dispatch(fetchSuperAdminVoterStats(currentParams)).catch(() => { });
+        })
+      );
       return job;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -189,6 +195,31 @@ export const bulkAssignSuperAdminInfluencerAction = (payload: {
     } catch (err) {
       dispatch(errorHandler(err));
       throw err;
+    }
+  };
+};
+
+export const fetchSuperAdminBoothOptions = (params: {
+  acId?: string;
+  wardId?: string;
+  search?: string;
+  limit?: number;
+  saveToStore?: boolean;
+}) => {
+  return async (dispatch: AppDispatch) => {
+    const shouldSave = params.saveToStore !== false;
+    if (shouldSave) dispatch(setVoterBoothOptionsLoading(true));
+    try {
+      const res = await api.get('/super-admin/masters/booths/options', { params });
+      const options = res.data?.data || res.data || [];
+      if (shouldSave) dispatch(setVoterBoothOptions(options));
+      return options;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      if (shouldSave) dispatch(setVoterBoothOptions([]));
+      return [];
+    } finally {
+      if (shouldSave) dispatch(setVoterBoothOptionsLoading(false));
     }
   };
 };

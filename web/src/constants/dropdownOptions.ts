@@ -102,4 +102,25 @@ export const SUB_LEADER_CREATABLE_ROLE_OPTIONS: Option[] = [
   { label: 'Field Supporter', value: 'supporter' },
 ];
 
+export const VOLUNTEER_ROLE_OPTIONS: Option[] = [
+  { label: 'All Roles', value: '' },
+  { label: 'PC Leader (Parliamentary)', value: 'pc_leader' },
+  { label: 'AC Leader (Assembly)', value: 'ac_leader' },
+  { label: 'Sub-Leader / Ward Coordinator', value: 'sub_leader' },
+  { label: 'Campaign Supporter / Volunteer', value: 'supporter' },
+];
+
+export const FORM_VOLUNTEER_ROLE_OPTIONS: Option[] = [
+  { label: 'PC Leader (Parliamentary)', value: 'pc_leader' },
+  { label: 'AC Leader (Assembly)', value: 'ac_leader' },
+  { label: 'Sub-Leader / Ward Coordinator', value: 'sub_leader' },
+  { label: 'Campaign Supporter / Volunteer', value: 'supporter' },
+];
+
+export const SUBORDINATE_ROLE_DELEGATION_OPTIONS = [
+  { key: 'ac_leader', label: 'AC Leader (Assembly Coordinator)', desc: 'Can manage assembly operations and subordinates' },
+  { key: 'sub_leader', label: 'Sub-Leader / Ward Coordinator', desc: 'Can manage ward clusters and booth volunteers' },
+  { key: 'supporter', label: 'Campaign Supporter / Volunteer', desc: 'Can perform ground surveys and booth voter lookups' },
+];
+
 

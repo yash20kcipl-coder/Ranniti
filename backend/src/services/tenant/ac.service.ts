@@ -22,8 +22,8 @@ export class TenantAcService {
   ): Promise<any> {
     const id = data.id || (await tenantPool.query(`SELECT gen_random_uuid() AS id`)).rows[0].id;
     const sql = `
-      INSERT INTO assembly_constituencies (id, ac_number, name, district_id, pc_id, total_voters, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      INSERT INTO assembly_constituencies (id, ac_number, name, district_id, pc_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *
     `;
     const res = await tenantPool.query(sql, [
@@ -32,7 +32,6 @@ export class TenantAcService {
       data.acName,
       data.districtId || null,
       data.pcId || null,
-      data.totalVoters || 0,
     ]);
 
     const created = res.rows[0];
@@ -46,11 +45,10 @@ export class TenantAcService {
       'CREATE',
       {
         id: created.id,
-        acNo: created.ac_number,
-        acName: created.name,
+        acNumber: created.ac_number,
+        name: created.name,
         districtId: created.district_id,
         pcId: created.pc_id,
-        totalVoters: created.total_voters,
       }
     ).catch((err) => {
       logger.error(`[TenantAcService] AutoSync error for AC '${created.id}':`, err);

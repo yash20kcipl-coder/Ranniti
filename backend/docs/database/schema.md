@@ -1,6 +1,7 @@
 # PostgreSQL Database Schema Directory
 
 All database tables are documented individually in separate Markdown files under the [`tables/`](./tables/) directory.
+For the complete multi-tenant database placement and deletion architecture, see [**Multi-Tenant DB Architecture (`db.md`)**](./db.md).
 
 ---
 

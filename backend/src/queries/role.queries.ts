@@ -1,5 +1,14 @@
 import { query } from './dbPool';
+import { CacheService } from '../services/cache.service';
+import { TenantPoolManager } from '../utils/tenantPoolManager';
 import type { TenantRole, TenantUserRole } from '../models/role.model';
+
+async function executeRoleQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
+  if (tenantDbName && tenantDbName.trim()) {
+    return await TenantPoolManager.query(tenantDbName.trim(), sqlStr, queryValues);
+  }
+  return await query(sqlStr, queryValues);
+}
 
 export class RoleQueries {
   // ─── Super Admin Tenant Role Packages ──────────────────────────────────────
@@ -156,36 +165,48 @@ export class RoleQueries {
     return (res.rowCount ?? 0) > 0;
   }
 
-  // ─── Tenant Custom User Roles ─────────────────────────────────────────────
+  // ─── Tenant Custom User Roles (Tenant DB + Redis) ──────────────────────────
 
   static async getAllTenantUserRoles(tenantDbName?: string): Promise<TenantUserRole[]> {
-    let sql = `SELECT id, tenant_db_name AS "tenantDbName", role_name AS "roleName",
+    const cacheKey = `ranniti:roles:${tenantDbName || 'master'}`;
+    return await CacheService.getOrSet(cacheKey, 3600, async () => {
+      let sql: string;
+      const params: any[] = [];
+
+      if (tenantDbName && tenantDbName.trim()) {
+        sql = `SELECT id, tenant_db_name AS "tenantDbName", role_name AS "roleName",
                       role_key AS "roleKey", description, accessible_tabs AS "accessibleTabs",
-                      voter_permissions AS "voterPermissions", is_system_default AS "isSystemDefault",
+                      voter_permissions AS "voterPermissions", can_create_roles AS "canCreateRoles",
+                      is_system_default AS "isSystemDefault",
                       created_by AS "createdBy", created_at AS "createdAt", updated_at AS "updatedAt"
-               FROM tenant_user_roles`;
-    const params: any[] = [];
+               FROM tenant_user_roles
+               ORDER BY is_system_default DESC, created_at ASC`;
+      } else {
+        sql = `SELECT id, tenant_db_name AS "tenantDbName", role_name AS "roleName",
+                      role_key AS "roleKey", description, accessible_tabs AS "accessibleTabs",
+                      voter_permissions AS "voterPermissions", can_create_roles AS "canCreateRoles",
+                      is_system_default AS "isSystemDefault",
+                      created_by AS "createdBy", created_at AS "createdAt", updated_at AS "updatedAt"
+               FROM tenant_user_roles
+               ORDER BY created_at ASC`;
+      }
 
-    if (tenantDbName) {
-      sql += ` WHERE tenant_db_name = $1 OR tenant_db_name IS NULL ORDER BY created_at ASC`;
-      params.push(tenantDbName);
-    } else {
-      sql += ` ORDER BY created_at ASC`;
-    }
-
-    const res = await query(sql, params);
-    return res.rows;
+      const res = await executeRoleQuery(sql, params, tenantDbName);
+      return res.rows;
+    });
   }
 
-  static async getTenantUserRoleById(id: string): Promise<TenantUserRole | null> {
-    const res = await query(
+  static async getTenantUserRoleById(id: string, tenantDbName?: string): Promise<TenantUserRole | null> {
+    const res = await executeRoleQuery(
       `SELECT id, tenant_db_name AS "tenantDbName", role_name AS "roleName",
               role_key AS "roleKey", description, accessible_tabs AS "accessibleTabs",
-              voter_permissions AS "voterPermissions", is_system_default AS "isSystemDefault",
+              voter_permissions AS "voterPermissions", can_create_roles AS "canCreateRoles",
+              is_system_default AS "isSystemDefault",
               created_by AS "createdBy", created_at AS "createdAt", updated_at AS "updatedAt"
        FROM tenant_user_roles 
        WHERE id = $1`,
-      [id]
+      [id],
+      tenantDbName
     );
     return res.rows[0] || null;
   }
@@ -197,18 +218,20 @@ export class RoleQueries {
     description?: string;
     accessibleTabs: any;
     voterPermissions: any;
+    canCreateRoles?: string[];
     isSystemDefault?: boolean;
     createdBy?: string;
   }): Promise<TenantUserRole> {
-    const res = await query(
+    const res = await executeRoleQuery(
       `INSERT INTO tenant_user_roles (
         tenant_db_name, role_name, role_key, description, 
-        accessible_tabs, voter_permissions, is_system_default, created_by
+        accessible_tabs, voter_permissions, can_create_roles, is_system_default, created_by
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id, tenant_db_name AS "tenantDbName", role_name AS "roleName",
                  role_key AS "roleKey", description, accessible_tabs AS "accessibleTabs",
-                 voter_permissions AS "voterPermissions", is_system_default AS "isSystemDefault",
+                 voter_permissions AS "voterPermissions", can_create_roles AS "canCreateRoles",
+                 is_system_default AS "isSystemDefault",
                  created_by AS "createdBy", created_at AS "createdAt", updated_at AS "updatedAt"`,
       [
         data.tenantDbName || null,
@@ -217,21 +240,26 @@ export class RoleQueries {
         data.description || null,
         JSON.stringify(data.accessibleTabs),
         JSON.stringify(data.voterPermissions),
+        JSON.stringify(data.canCreateRoles || []),
         data.isSystemDefault ?? false,
         data.createdBy || null,
-      ]
+      ],
+      data.tenantDbName
     );
+    await CacheService.del(`ranniti:roles:${data.tenantDbName || 'master'}`);
     return res.rows[0];
   }
 
   static async updateTenantUserRole(
     id: string,
     data: {
+      tenantDbName?: string;
       roleName?: string;
       roleKey?: string;
       description?: string;
       accessibleTabs?: any;
       voterPermissions?: any;
+      canCreateRoles?: string[];
     }
   ): Promise<TenantUserRole | null> {
     const fields: string[] = [];
@@ -258,19 +286,29 @@ export class RoleQueries {
       fields.push(`voter_permissions = $${paramIdx++}`);
       values.push(JSON.stringify(data.voterPermissions));
     }
+    if (data.canCreateRoles !== undefined) {
+      fields.push(`can_create_roles = $${paramIdx++}`);
+      values.push(JSON.stringify(data.canCreateRoles));
+    }
 
-    if (fields.length === 0) return this.getTenantUserRoleById(id);
+    if (fields.length === 0) return this.getTenantUserRoleById(id, data.tenantDbName);
 
     fields.push(`updated_at = NOW()`);
     values.push(id);
 
-    const sql = `UPDATE tenant_user_roles SET ${fields.join(', ')} WHERE id = $${paramIdx} RETURNING id, tenant_db_name AS "tenantDbName", role_name AS "roleName", role_key AS "roleKey", description, accessible_tabs AS "accessibleTabs", voter_permissions AS "voterPermissions", is_system_default AS "isSystemDefault", created_by AS "createdBy", created_at AS "createdAt", updated_at AS "updatedAt"`;
-    const res = await query(sql, values);
+    const sql = `UPDATE tenant_user_roles SET ${fields.join(', ')} WHERE id = $${paramIdx} RETURNING id, tenant_db_name AS "tenantDbName", role_name AS "roleName", role_key AS "roleKey", description, accessible_tabs AS "accessibleTabs", voter_permissions AS "voterPermissions", can_create_roles AS "canCreateRoles", is_system_default AS "isSystemDefault", created_by AS "createdBy", created_at AS "createdAt", updated_at AS "updatedAt"`;
+    const res = await executeRoleQuery(sql, values, data.tenantDbName);
+    await CacheService.del(`ranniti:roles:${data.tenantDbName || 'master'}`);
     return res.rows[0] || null;
   }
 
-  static async deleteTenantUserRole(id: string): Promise<boolean> {
-    const res = await query(`DELETE FROM tenant_user_roles WHERE id = $1 AND is_system_default = false`, [id]);
+  static async deleteTenantUserRole(id: string, tenantDbName?: string): Promise<boolean> {
+    const res = await executeRoleQuery(
+      `DELETE FROM tenant_user_roles WHERE id = $1 AND is_system_default = false`,
+      [id],
+      tenantDbName
+    );
+    await CacheService.del(`ranniti:roles:${tenantDbName || 'master'}`);
     return (res.rowCount ?? 0) > 0;
   }
 }

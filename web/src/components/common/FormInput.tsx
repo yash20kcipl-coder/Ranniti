@@ -10,7 +10,7 @@ export interface Option {
 
 export interface FormInputProps {
   label?: string;
-  name: string;
+  name?: string;
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'select' | 'multiselect' | 'textarea' | 'file' | 'checkbox' | 'switch' | 'date' | 'autocomplete';
   searchable?: boolean;
   value?: any;
@@ -33,7 +33,7 @@ export interface FormInputProps {
 }
 
 interface SearchableSelectProps {
-  name: string;
+  name?: string;
   value?: any;
   onChange?: (e: { target: { name: string; value: any } }) => void;
   options: Option[];
@@ -46,7 +46,7 @@ interface SearchableSelectProps {
 }
 
 interface AutocompleteInputProps {
-  name: string;
+  name?: string;
   value?: string;
   onChange?: (e: { target: { name: string; value: any } }) => void;
   suggestions: string[];
@@ -117,12 +117,12 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange?.({ target: { name, value: e.target.value } });
+    onChange?.({ target: { name: name || '', value: e.target.value } });
     setIsOpen(true);
   };
 
   const handleSelect = (suggestion: string) => {
-    onChange?.({ target: { name, value: suggestion } });
+    onChange?.({ target: { name: name || '', value: suggestion } });
     setIsOpen(false);
     inputRef.current?.focus();
   };
@@ -300,7 +300,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   });
 
   const handleSelect = (optValue: string | number) => {
-    onChange?.({ target: { name, value: optValue } });
+    onChange?.({ target: { name: name || '', value: optValue } });
     setIsOpen(false);
     setSearchTerm('');
   };
@@ -429,7 +429,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
 export const FormInput: React.FC<FormInputProps> = ({
   label,
-  name,
+  name = '',
   type = 'text',
   searchable = true,
   value,

@@ -4,9 +4,9 @@ import { ALL_ROLES } from './auth.schema';
 export const createAdminUserSchema = z.object({
   body: z.object({
     name: z.string().min(2, 'Name must be at least 2 characters long'),
-    email: z.string().email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters long'),
-    role: z.enum(ALL_ROLES).default('user'),
+    email: z.string().email('Invalid email address').optional().or(z.literal('')),
+    password: z.string().min(6, 'Password must be at least 6 characters long').optional().or(z.literal('')),
+    role: z.enum(ALL_ROLES).default('supporter'),
     roleName: z.string().nullable().optional(),
     mobile: z.string().optional(),
     avatar: z.string().nullable().optional(),
@@ -27,6 +27,7 @@ export const updateAdminUserSchema = z.object({
     role: z.enum(ALL_ROLES).optional(),
     roleName: z.string().nullable().optional(),
     mobile: z.string().optional(),
+    avatar: z.string().nullable().optional(),
     status: z.enum(['active', 'inactive', 'suspended']).optional(),
     parentLeaderId: z.string().uuid().nullable().optional(),
     assignedAcId: z.string().uuid().nullable().optional(),

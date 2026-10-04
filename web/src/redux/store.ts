@@ -4,6 +4,7 @@ import voterReducer from './reducers/voter';
 import tenantReducer from './reducers/tenant';
 import masterreducers from './reducers/master';
 import settingsReducer from './reducers/settings';
+import volunteerReducer from './reducers/volunteer';
 import dashboardreducers from './reducers/dashboard';
 import importJobsReducer from './reducers/importJobs';
 import familyMappingReducer from './reducers/familyMapping';
@@ -19,6 +20,7 @@ export const store = configureStore({
     tenant: tenantReducer,
     master: masterreducers,
     settings: settingsReducer,
+    volunteer: volunteerReducer,
     dashboard: dashboardreducers,
     importJobs: importJobsReducer,
     familyMapping: familyMappingReducer,

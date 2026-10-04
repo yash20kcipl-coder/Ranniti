@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { config } from '../../config';
 import { logger } from '../../utils/logger';
+import { DataSourceTracker } from '../../utils/dataSourceTracker';
 
 interface CachedPool {
   pool: Pool;
@@ -38,6 +39,19 @@ export class TenantPoolManager {
       connectionTimeoutMillis: 5000,
       statement_timeout: 15000,
     });
+
+    // Instrument pool.query and pool.connect for transparent Tenant DB tracking
+    const origQuery = pool.query.bind(pool);
+    pool.query = (async (...args: any[]) => {
+      DataSourceTracker.record(`Tenant DB (${tenantDbName})`);
+      return (origQuery as any)(...args);
+    }) as any;
+
+    const origConnect = pool.connect.bind(pool);
+    pool.connect = (async (...args: any[]) => {
+      DataSourceTracker.record(`Tenant DB (${tenantDbName})`);
+      return (origConnect as any)(...args);
+    }) as any;
 
     pool.on('error', (err) => {
       logger.error(`[TenantPoolManager] Unexpected error on idle pool for tenant DB '${tenantDbName}':`, err);

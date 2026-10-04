@@ -57,10 +57,11 @@ export class TenantBoothService {
       'CREATE',
       {
         id: created.id,
-        boothNo: created.booth_number,
-        boothName: created.name,
+        boothNumber: created.booth_number,
+        name: created.name,
         acId: created.ac_id,
         wardId: created.ward_id,
+        villageId: created.village_id,
         totalVoters: created.total_voters,
       }
     ).catch((err) => {

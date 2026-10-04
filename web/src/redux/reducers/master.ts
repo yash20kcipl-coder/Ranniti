@@ -1,4 +1,4 @@
-import { SET_MASTER_TAB, SET_MASTER_DATA, SET_MASTER_LOADING, SET_MASTER_SEARCH, SET_MASTER_FETCHING } from '../actions/master';
+import { SET_MASTER_TAB, SET_MASTER_DATA, SET_MASTER_LOADING, SET_MASTER_SEARCH, SET_MASTER_FETCHING } from '../actions/masterSuperAdmin';
 
 export interface MasterState {
   activeTab: string;
@@ -6,6 +6,7 @@ export interface MasterState {
   loading: boolean;
   loadedCategories: Record<string, boolean>;
   fetchingCategories: Record<string, boolean>;
+  pagination: Record<string, { total: number; page: number; limit: number; totalPages: number }>;
   religions: any[];
   castes: any[];
   states: any[];
@@ -25,6 +26,7 @@ const initialState: MasterState = {
   loading: false,
   loadedCategories: {},
   fetchingCategories: {},
+  pagination: {},
   religions: [],
   castes: [],
   states: [],
@@ -63,15 +65,31 @@ export default function masterreducers(state = initialState, action: any): Maste
           [action.category]: action.isFetching,
         },
       };
-    case SET_MASTER_DATA:
+    case SET_MASTER_DATA: {
+      const existingPag = state.pagination?.[action.category] || { page: 1, limit: 25, total: 0, totalPages: 1 };
+      const fallbackTotal = Array.isArray(action.items) ? action.items.length : existingPag.total;
+      const fallbackLimit = existingPag.limit || 25;
+      const fallbackPages = Math.max(1, Math.ceil(fallbackTotal / fallbackLimit));
+
+      const finalPagination = action.pagination || {
+        ...existingPag,
+        total: fallbackTotal,
+        totalPages: fallbackPages,
+      };
+
       return {
         ...state,
         [action.category]: action.items,
+        pagination: {
+          ...state.pagination,
+          [action.category]: finalPagination,
+        },
         loadedCategories: {
           ...state.loadedCategories,
           [action.category]: true,
         },
       };
+    }
     default:
       return state;
   }

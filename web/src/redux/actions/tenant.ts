@@ -182,7 +182,7 @@ export const deleteTenantUser = (id: string) => {
 export const fetchTenantProfile = () => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get('/tenant-data/profile');
+      const res = await api.get('/tenant/data/profile');
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -197,7 +197,7 @@ export const fetchTenantProfile = () => {
 export const fetchTenantStats = () => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get('/tenant-data/stats');
+      const res = await api.get('/tenant/data/stats');
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -212,7 +212,7 @@ export const fetchTenantStats = () => {
 export const fetchTenantConstituencies = () => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get('/tenant-data/constituencies');
+      const res = await api.get('/tenant/data/constituencies');
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -227,7 +227,7 @@ export const fetchTenantConstituencies = () => {
 export const fetchTenantBooths = () => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get('/tenant-data/booths');
+      const res = await api.get('/tenant/data/booths');
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -237,12 +237,12 @@ export const fetchTenantBooths = () => {
 };
 
 /**
- * Fetch tenant voters directly from dedicated tenant API endpoint (/tenant-api/voters)
+ * Fetch tenant voters directly from dedicated tenant API endpoint (/tenant/voters)
  */
 export const fetchTenantVotersData = (params: Record<string, any> = {}) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get('/tenant-api/voters', { params });
+      const res = await api.get('/tenant/voters', { params });
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));

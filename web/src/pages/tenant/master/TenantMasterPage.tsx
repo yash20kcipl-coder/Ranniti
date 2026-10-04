@@ -1,7 +1,9 @@
-import { useAppSelector } from '@/redux/hooks';
 import React from 'react';
+import { useAppSelector } from '@/redux/hooks';
 import { Building2 } from 'lucide-react';
-import { TenantMasterCategoryView } from './TenantMasterCategoryView';
+import { TenantAcsPage } from './TenantAcsPage';
+import { TenantWardsPage } from './TenantWardsPage';
+import { TenantBoothsPage } from './TenantBoothsPage';
 
 type TenantMasterTabKey = 'acs' | 'wards' | 'booths';
 const TENANT_ALLOWED_KEYS: TenantMasterTabKey[] = ['acs', 'wards', 'booths'];
@@ -39,7 +41,15 @@ export const TenantMasterPage: React.FC<TenantMasterPageProps> = ({ defaultTab }
     );
   }
 
-  return <TenantMasterCategoryView categoryKey={activeTab} />;
+  switch (activeTab) {
+    case 'wards':
+      return <TenantWardsPage />;
+    case 'booths':
+      return <TenantBoothsPage />;
+    case 'acs':
+    default:
+      return <TenantAcsPage />;
+  }
 };
 
 export default TenantMasterPage;

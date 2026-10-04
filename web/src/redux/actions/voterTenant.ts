@@ -1,15 +1,17 @@
+import {
+  setVotersData,
+  setVotersLoading,
+  setVotersPagination,
+  setVoterStats,
+  setVoterBoothOptions,
+  setVoterBoothOptionsLoading,
+} from './voter';
 import api from '@/services/api';
 import { Loading } from './loader';
 import { errorHandler } from '../apiUtils';
 import type { AppDispatch } from '../store';
 import { startBulkImportJob } from './importJobs';
 import { toFormDataOrJson } from '@/utils/formData';
-import {
-  setVotersData,
-  setVotersLoading,
-  setVotersPagination,
-  setVoterStats,
-} from './voter';
 
 export const fetchTenantVotersData = (params: Record<string, any> = {}, showLoader = true) => {
   return async (dispatch: AppDispatch) => {
@@ -17,7 +19,7 @@ export const fetchTenantVotersData = (params: Record<string, any> = {}, showLoad
       dispatch(setVotersLoading(true));
     }
     try {
-      const res = await api.get('/voters', { params });
+      const res = await api.get('/tenant/voters', { params });
       const payload = res.data?.data || res.data || {};
       const voters = payload.voters || [];
       const pagination = payload.pagination || { total: 0, page: 1, limit: 25, totalPages: 1 };
@@ -42,7 +44,7 @@ export const fetchTenantVotersData = (params: Record<string, any> = {}, showLoad
 export const fetchTenantVoterStats = (params: Record<string, any> = {}) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get('/voters/stats', { params });
+      const res = await api.get('/tenant/voters/stats', { params });
       const stats = res.data?.data || res.data || {};
       dispatch(setVoterStats(stats));
       return stats;
@@ -57,7 +59,7 @@ export const fetchTenantVoterById = (id: string) => {
   return async (dispatch: AppDispatch) => {
     dispatch(Loading(true));
     try {
-      const res = await api.get(`/voters/${id}`);
+      const res = await api.get(`/tenant/voters/${id}`);
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -72,7 +74,7 @@ export const createTenantVoterItem = (payload: Record<string, any>, currentParam
   return async (dispatch: AppDispatch, getState: () => any) => {
     dispatch(Loading(true));
     try {
-      const res = await api.post('/voters', toFormDataOrJson(payload));
+      const res = await api.post('/tenant/voters', toFormDataOrJson(payload));
       const newVoter = res.data?.data || res.data;
       const params = Object.keys(currentParams).length > 0 ? currentParams : getState()?.voter?.filters || {};
       await dispatch(fetchTenantVotersData(params, false));
@@ -91,7 +93,7 @@ export const updateTenantVoterItem = (id: string, payload: Record<string, any>, 
   return async (dispatch: AppDispatch, getState: () => any) => {
     dispatch(Loading(true));
     try {
-      const res = await api.put(`/voters/${id}`, toFormDataOrJson(payload));
+      const res = await api.put(`/tenant/voters/${id}`, toFormDataOrJson(payload));
       const updated = res.data?.data || res.data;
       const params = Object.keys(currentParams).length > 0 ? currentParams : getState()?.voter?.filters || {};
       await dispatch(fetchTenantVotersData(params, false));
@@ -110,7 +112,7 @@ export const deleteTenantVoterItem = (id: string, currentParams: Record<string, 
   return async (dispatch: AppDispatch, getState: () => any) => {
     dispatch(Loading(true));
     try {
-      await api.delete(`/voters/${id}`);
+      await api.delete(`/tenant/voters/${id}`);
       const params = Object.keys(currentParams).length > 0 ? currentParams : getState()?.voter?.filters || {};
       await dispatch(fetchTenantVotersData(params, false));
       await dispatch(fetchTenantVoterStats(params));
@@ -123,10 +125,15 @@ export const deleteTenantVoterItem = (id: string, currentParams: Record<string, 
   };
 };
 
-export const importTenantVotersData = (records: Record<string, any>[], _currentParams: Record<string, any> = {}) => {
+export const importTenantVotersData = (records: Record<string, any>[], currentParams: Record<string, any> = {}) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const job = await dispatch(startBulkImportJob('voters', records));
+      const job = await dispatch(
+        startBulkImportJob('voters', records, () => {
+          dispatch(fetchTenantVotersData(currentParams, false)).catch(() => { });
+          dispatch(fetchTenantVoterStats(currentParams)).catch(() => { });
+        })
+      );
       return job;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -139,7 +146,7 @@ export const exportTenantVotersData = (params: Record<string, any> = {}) => {
   return async (dispatch: AppDispatch) => {
     dispatch(Loading(true));
     try {
-      const res = await api.get('/voters/export', {
+      const res = await api.get('/tenant/voters/export', {
         params,
         responseType: 'blob',
       });
@@ -167,7 +174,7 @@ export const exportTenantVotersData = (params: Record<string, any> = {}) => {
 export const fetchTenantInfluencerOptions = (params: { search?: string; boothId?: string; excludeId?: string; type?: string }) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get('/voters/influencer-options', { params });
+      const res = await api.get('/tenant/voters/influencer-options', { params });
       return res.data?.data || res.data || [];
     } catch (err) {
       dispatch(errorHandler(err));
@@ -183,7 +190,7 @@ export const bulkAssignTenantInfluencerAction = (payload: {
 }) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.post('/voters/bulk-assign-influencer', payload);
+      const res = await api.post('/tenant/voters/bulk-assign-influencer', payload);
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -195,7 +202,7 @@ export const bulkAssignTenantInfluencerAction = (payload: {
 export const fetchFamilyCandidatesAction = (params: Record<string, any>) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get('/voters/family-candidates', { params });
+      const res = await api.get('/tenant/voters/family-candidates', { params });
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -207,11 +214,36 @@ export const fetchFamilyCandidatesAction = (params: Record<string, any>) => {
 export const fetchSocialCandidatesAction = (params: Record<string, any>) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get('/voters/social-candidates', { params });
+      const res = await api.get('/tenant/voters/social-candidates', { params });
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
       throw err;
+    }
+  };
+};
+
+export const fetchTenantBoothOptions = (params: {
+  acId?: string;
+  wardId?: string;
+  search?: string;
+  limit?: number;
+  saveToStore?: boolean;
+}) => {
+  return async (dispatch: AppDispatch) => {
+    const shouldSave = params.saveToStore !== false;
+    if (shouldSave) dispatch(setVoterBoothOptionsLoading(true));
+    try {
+      const res = await api.get('/tenant/geography/booths/options', { params });
+      const options = res.data?.data || res.data || [];
+      if (shouldSave) dispatch(setVoterBoothOptions(options));
+      return options;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      if (shouldSave) dispatch(setVoterBoothOptions([]));
+      return [];
+    } finally {
+      if (shouldSave) dispatch(setVoterBoothOptionsLoading(false));
     }
   };
 };

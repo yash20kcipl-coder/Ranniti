@@ -25,7 +25,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { fetchMasterCategoryData } from '@/redux/actions/master';
+import { fetchSuperAdminMasterCategoryData as fetchMasterCategoryData } from '@/redux/actions/masterSuperAdmin';
 import { fetchTenantById, updateTenantStatus, deleteTenantUser, fetchTenantProvisioningStatus } from '@/redux/actions/tenant';
 
 export const TenantDetailPage: React.FC = () => {

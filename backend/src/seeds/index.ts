@@ -3,6 +3,7 @@ import { seedRoles } from './seeders/role.seeder';
 import { seedVoters } from './seeders/voter.seeder';
 import { seedMasters } from './seeders/master.seeder';
 import { seedAdminUsers, seedTenantDatabases } from './seeders/admin_user.seeder';
+import { seedVolunteers } from './seeders/volunteer.seeder';
 
 const runSeeders = async (): Promise<void> => {
   logger.info('==========================================');
@@ -15,6 +16,7 @@ const runSeeders = async (): Promise<void> => {
     await seedAdminUsers();
     await seedVoters(3500);
     await seedTenantDatabases();
+    await seedVolunteers();
     logger.info('==========================================');
     logger.info('✅ Database Seeding Completed Successfully');
     logger.info('==========================================');
@@ -26,4 +28,6 @@ const runSeeders = async (): Promise<void> => {
 };
 
 runSeeders();
+
+
 

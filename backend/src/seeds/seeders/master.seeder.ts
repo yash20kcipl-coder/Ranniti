@@ -9,11 +9,13 @@ import {
 } from '../data/masters.seed';
 import { logger } from '../../utils/logger';
 import { query } from '../../queries/dbPool';
-import { masterService } from '../../services/master.service';
+import { CacheService } from '../../services/cache.service';
+import { masterService } from '../../services/superAdmin/master.service';
 import { initialPcs, initialAcs, initialWards, initialTalukas, initialVillages, initialBooths } from '../data/geography.seed';
 
 export const seedMasters = async (): Promise<void> => {
-  logger.info('Resetting & Cleaning All Database Tables...');
+  logger.info('Resetting & Cleaning All Database Tables & Redis Cache...');
+  await CacheService.invalidatePattern('ranniti:*');
 
   // Reset all main database tables for a clean baseline rebuild
   try {
@@ -158,10 +160,11 @@ export const seedMasters = async (): Promise<void> => {
   }
 
   // Reload states map for reference
+  await CacheService.invalidatePattern('*');
   const states = await masterService.getStates();
   const stateNameToIdMap = new Map<string, string>();
   for (const s of states) {
-    stateNameToIdMap.set(s.name, s.id);
+    stateNameToIdMap.set(s.name.toLowerCase().trim(), s.id);
   }
 
   // Seed Districts
@@ -173,7 +176,7 @@ export const seedMasters = async (): Promise<void> => {
 
   let newDistrictsCount = 0;
   for (const dist of initialDistricts) {
-    const stateId = stateNameToIdMap.get(dist.stateName);
+    const stateId = stateNameToIdMap.get((dist.stateName || '').toLowerCase().trim());
     if (!stateId) {
       logger.warn(`State name '${dist.stateName}' not found for District '${dist.name}'`);
       continue;
@@ -235,7 +238,7 @@ export const seedMasters = async (): Promise<void> => {
 
   // Seed Villages
   const existingVillages = await masterService.getVillages();
-  const existingVillageSet = new Set(existingVillages.map((v) => `${v.talukaId}_${v.name.toLowerCase()}`));
+  const existingVillageSet = new Set((existingVillages as any[]).map((v: any) => `${v.talukaId}_${v.name.toLowerCase()}`));
   const villageNameToIdMap = new Map<string, string>();
   for (const v of existingVillages) {
     villageNameToIdMap.set(v.name, v.id);
@@ -278,7 +281,7 @@ export const seedMasters = async (): Promise<void> => {
 
   let newPcsCount = 0;
   for (const pc of initialPcs) {
-    const stateId = stateNameToIdMap.get(pc.stateName);
+    const stateId = stateNameToIdMap.get((pc.stateName || '').toLowerCase().trim());
     if (!stateId) {
       logger.warn(`State name '${pc.stateName}' not found for PC '${pc.name}'`);
       continue;
@@ -298,9 +301,11 @@ export const seedMasters = async (): Promise<void> => {
   logger.info(`Seeded ${newPcsCount} new Parliamentary Constituencies.`);
 
   // Reload PCs map
+  await CacheService.invalidatePattern('ranniti:*');
   const updatedPcs = await masterService.getPcs();
   for (const p of updatedPcs) {
-    pcNameToIdMap.set(p.name, p.id);
+    pcNameToIdMap.set(`${p.stateName}_${p.name}`.toLowerCase().trim(), p.id);
+    pcNameToIdMap.set(p.name.toLowerCase().trim(), p.id);
   }
 
   // Seed Assembly Constituencies (AC)
@@ -313,7 +318,8 @@ export const seedMasters = async (): Promise<void> => {
 
   let newAcsCount = 0;
   for (const ac of initialAcs) {
-    const pcId = pcNameToIdMap.get(ac.pcName);
+    const pcId = pcNameToIdMap.get(`${(ac as any).stateName}_${ac.pcName}`.toLowerCase().trim())
+      || pcNameToIdMap.get((ac.pcName || '').toLowerCase().trim());
     if (!pcId) {
       logger.warn(`PC name '${ac.pcName}' not found for AC '${ac.name}'`);
       continue;
@@ -349,7 +355,7 @@ export const seedMasters = async (): Promise<void> => {
 
   // Seed Wards
   const existingWards = await masterService.getWards();
-  const existingWardSet = new Set(existingWards.map((w) => `${w.acId}_${w.wardNumber}`));
+  const existingWardSet = new Set((existingWards as any[]).map((w: any) => `${w.acId}_${w.wardNumber}`));
   const wardNameToIdMap = new Map<string, string>();
   for (const w of existingWards) {
     wardNameToIdMap.set(`${w.acId}_${w.wardNumber}`, w.id);
@@ -388,7 +394,7 @@ export const seedMasters = async (): Promise<void> => {
 
   // Seed Polling Booths
   const existingBooths = await masterService.getBooths();
-  const existingBoothSet = new Set(existingBooths.map((b) => `${b.acId}_${b.boothNumber}`));
+  const existingBoothSet = new Set((existingBooths as any[]).map((b: any) => `${b.acId}_${b.boothNumber}`));
 
   let newBoothsCount = 0;
   for (const booth of initialBooths) {

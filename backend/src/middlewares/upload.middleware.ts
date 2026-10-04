@@ -90,6 +90,15 @@ export const coerceFormDataBody = (body: Record<string, any>) => {
       body[key] = false;
     } else if (
       typeof val === 'string' &&
+      ((val.startsWith('[') && val.endsWith(']')) || (val.startsWith('{') && val.endsWith('}')))
+    ) {
+      try {
+        body[key] = JSON.parse(val);
+      } catch {
+        // keep string if not valid json
+      }
+    } else if (
+      typeof val === 'string' &&
       /^-?\d+$/.test(val) &&
       ['age', 'serialNo', 'sectionNo', 'boothNumber', 'pcNumber', 'acNumber', 'totalVoters'].includes(key)
     ) {

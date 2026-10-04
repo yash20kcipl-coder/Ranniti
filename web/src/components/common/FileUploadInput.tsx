@@ -5,7 +5,7 @@ import { Upload, X, CheckCircle2, AlertCircle, Camera, FileText } from 'lucide-r
 
 export interface FileUploadInputProps {
   label?: string;
-  name: string;
+  name?: string;
   value?: File | string | null;
   onChange: (value: File | string | null) => void;
   variant?: 'default' | 'avatar';

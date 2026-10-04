@@ -26,10 +26,11 @@ const formatTemplatePayload = (item: any, req: Request): any => {
 export class TenantSettingsController {
   /**
    * GET /api/v1/tenant/settings
-   * Retrieve Tenant Settings from Tenant DB
+   * Retrieve Tenant Settings from Tenant DB or Redis
    */
   getTenantSettings = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const settings = await settingsQueries.getSettings();
+    const tenantDbName = req.user?.tenantDbName;
+    const settings = await settingsQueries.getSettings(tenantDbName);
 
     const safeSettings = {
       ...settings,
@@ -49,6 +50,7 @@ export class TenantSettingsController {
    * Update Tenant Settings in Tenant DB
    */
   updateTenantSettings = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.user?.tenantDbName;
     const data = req.body;
 
     if (data.fcmPrivateKey && data.fcmPrivateKey.includes('•••')) delete data.fcmPrivateKey;
@@ -56,7 +58,7 @@ export class TenantSettingsController {
     if (data.apnsAuthKey && data.apnsAuthKey.includes('•••')) delete data.apnsAuthKey;
     if (data.whatsappAccessToken && data.whatsappAccessToken.includes('•••')) delete data.whatsappAccessToken;
 
-    const updated = await settingsQueries.upsertSettings(data);
+    const updated = await settingsQueries.upsertSettings(data, tenantDbName);
     const safeUpdated = {
       ...updated,
       fcmPrivateKey: updated.fcmPrivateKey ? '••••••••••••••••••••' : null,
@@ -72,16 +74,17 @@ export class TenantSettingsController {
 
   /**
    * GET /api/v1/tenant/whatsapp/templates
-   * List Tenant WhatsApp Templates from Tenant DB
+   * List Tenant WhatsApp Templates from Tenant DB or Redis
    */
   getTenantWhatsAppTemplates = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.user?.tenantDbName;
     const { category, status, search } = req.query;
 
     const templates = await settingsQueries.getWhatsAppTemplates({
       category: category as string,
       status: status as string,
       search: search as string,
-    });
+    }, tenantDbName);
 
     const payload = formatTemplatePayload(templates, req);
     const response = ApiResponse.success(payload, 'Tenant WhatsApp templates retrieved successfully');
@@ -93,6 +96,7 @@ export class TenantSettingsController {
    * Create Tenant WhatsApp Template in Tenant DB
    */
   createTenantWhatsAppTemplate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.user?.tenantDbName;
     const { name, category, language, headerType, headerContent, bodyText, footerText, buttons, variables } = req.body;
 
     if (!name || !bodyText) {
@@ -110,7 +114,7 @@ export class TenantSettingsController {
       buttons,
       variables,
       metaStatus: 'APPROVED',
-    });
+    }, tenantDbName);
 
     const payload = formatTemplatePayload(created, req);
     const response = ApiResponse.success(payload, 'Tenant WhatsApp template created successfully', 201);
@@ -119,11 +123,12 @@ export class TenantSettingsController {
 
   /**
    * PUT /api/v1/tenant/whatsapp/templates/:id
-   * Update Tenant WhatsApp Template
+   * Update Tenant WhatsApp Template in Tenant DB
    */
   updateTenantWhatsAppTemplate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.user?.tenantDbName;
     const id = req.params.id as string;
-    const updated = await settingsQueries.updateWhatsAppTemplate(id, req.body);
+    const updated = await settingsQueries.updateWhatsAppTemplate(id, req.body, tenantDbName);
 
     if (!updated) {
       throw ApiError.notFound('WhatsApp template not found');
@@ -136,11 +141,12 @@ export class TenantSettingsController {
 
   /**
    * DELETE /api/v1/tenant/whatsapp/templates/:id
-   * Delete Tenant WhatsApp Template
+   * Delete Tenant WhatsApp Template from Tenant DB
    */
   deleteTenantWhatsAppTemplate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.user?.tenantDbName;
     const id = req.params.id as string;
-    const success = await settingsQueries.deleteWhatsAppTemplate(id);
+    const success = await settingsQueries.deleteWhatsAppTemplate(id, tenantDbName);
 
     if (!success) {
       throw ApiError.notFound('WhatsApp template not found');
@@ -155,7 +161,8 @@ export class TenantSettingsController {
    * Sync Tenant WhatsApp Templates from Meta
    */
   syncTenantWhatsAppTemplates = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const refreshed = await settingsQueries.syncMetaTemplateStatuses();
+    const tenantDbName = req.user?.tenantDbName;
+    const refreshed = await settingsQueries.syncMetaTemplateStatuses(tenantDbName);
     const payload = formatTemplatePayload(refreshed, req);
     const response = ApiResponse.success(payload, 'Tenant WhatsApp templates synchronized with Meta');
     res.status(response.statusCode).json(response.body);

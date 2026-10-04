@@ -1,9 +1,9 @@
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchMasterCategoryData } from '@/redux/actions/master';
-import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import type { MasterState } from '@/redux/reducers/master';
 import { API_ENDPOINTS } from '@/constants/apiEndpoints';
 import type { MasterCategoryKey } from './useMasterData';
+import type { MasterState } from '@/redux/reducers/master';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { fetchTenantMasterCategoryData as fetchMasterCategoryData } from '@/redux/actions/masterTenant';
 
 export type TenantMasterCategoryKey = MasterCategoryKey | 'wards';
 
@@ -12,7 +12,7 @@ export const TENANT_MASTER_ENDPOINTS: Record<TenantMasterCategoryKey, string> = 
   districts: API_ENDPOINTS.TENANT.MASTERS.DISTRICTS,
   talukas: API_ENDPOINTS.TENANT.MASTERS.TALUKAS,
   villages: API_ENDPOINTS.TENANT.MASTERS.VILLAGES,
-  pcs: API_ENDPOINTS.SUPER_ADMIN.MASTERS.PCS,
+  pcs: API_ENDPOINTS.TENANT.MASTERS.PCS,
   acs: API_ENDPOINTS.TENANT.MASTERS.ACS,
   wards: API_ENDPOINTS.TENANT.MASTERS.WARDS,
   booths: API_ENDPOINTS.TENANT.MASTERS.BOOTHS,

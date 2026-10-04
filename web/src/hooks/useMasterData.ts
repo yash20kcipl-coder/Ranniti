@@ -1,7 +1,7 @@
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchMasterCategoryData } from '@/redux/actions/master';
-import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import type { MasterState } from '@/redux/reducers/master';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { fetchSuperAdminMasterCategoryData as fetchMasterCategoryData } from '@/redux/actions/masterSuperAdmin';
 
 export type MasterCategoryKey =
   | 'states'
@@ -10,6 +10,7 @@ export type MasterCategoryKey =
   | 'villages'
   | 'pcs'
   | 'acs'
+  | 'wards'
   | 'booths'
   | 'religions'
   | 'castes'
@@ -22,6 +23,7 @@ export const MASTER_ENDPOINTS: Record<MasterCategoryKey, string> = {
   villages: '/masters/villages',
   pcs: '/masters/pcs',
   acs: '/masters/acs',
+  wards: '/masters/wards',
   booths: '/masters/booths',
   religions: '/masters/religions',
   castes: '/masters/castes',
@@ -35,6 +37,7 @@ export const DEFAULT_MASTER_CATEGORIES: MasterCategoryKey[] = [
   'villages',
   'pcs',
   'acs',
+  'wards',
   'booths',
   'religions',
   'castes',

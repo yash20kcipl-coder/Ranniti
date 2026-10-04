@@ -62,6 +62,10 @@ CREATE TABLE IF NOT EXISTS voters (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS pan_no VARCHAR(20);
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS ward_id UUID REFERENCES wards(id) ON DELETE SET NULL;
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS village_id UUID REFERENCES villages(id) ON DELETE SET NULL;
+
 -- Indexes for Sub-Millisecond Search & Roll Navigation
 CREATE UNIQUE INDEX IF NOT EXISTS idx_voters_epic_no ON voters(epic_no);
 CREATE INDEX IF NOT EXISTS idx_voters_booth_serial ON voters(booth_id, serial_no);

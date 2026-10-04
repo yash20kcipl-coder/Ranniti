@@ -27,8 +27,8 @@ export class TenantWardService {
   ): Promise<any> {
     const id = data.id || (await tenantPool.query(`SELECT gen_random_uuid() AS id`)).rows[0].id;
     const sql = `
-      INSERT INTO wards (id, ward_number, name, ac_id, total_voters, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      INSERT INTO wards (id, ward_number, name, ac_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
       RETURNING *
     `;
     const res = await tenantPool.query(sql, [
@@ -36,7 +36,6 @@ export class TenantWardService {
       data.wardNo,
       data.wardName,
       data.acId,
-      data.totalVoters || 0,
     ]);
 
     const created = res.rows[0];
@@ -49,10 +48,9 @@ export class TenantWardService {
       'CREATE',
       {
         id: created.id,
-        wardNo: created.ward_number,
-        wardName: created.name,
+        wardNumber: created.ward_number,
+        name: created.name,
         acId: created.ac_id,
-        totalVoters: created.total_voters,
       }
     ).catch((err) => {
       logger.error(`[TenantWardService] AutoSync error for Ward '${created.id}':`, err);

@@ -1,6 +1,6 @@
-import { query, closeDbPool } from '../queries/dbPool';
 import { logger } from '../utils/logger';
-import { FamilyMappingService } from '../services/familyMapping.service';
+import { query, closeDbPool } from '../queries/dbPool';
+import { FamilyMappingService } from '../services/tenant/familyMapping.service';
 
 export async function runFamilyIdBackfill() {
   logger.info('[Backfill] Starting Family ID backfill & booth auto-mapping process...');

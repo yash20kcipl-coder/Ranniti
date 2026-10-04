@@ -8,12 +8,14 @@ import {
   importTenantVotersData as importVotersData,
   exportTenantVotersData as exportVotersData,
   fetchTenantInfluencerOptions as fetchInfluencerOptions,
+  fetchTenantBoothOptions,
 } from '@/redux/actions/voterTenant';
-import { setVoterFilters } from '@/redux/actions/voter';
+import { setVoterFilters, setVoterBoothOptions } from '@/redux/actions/voter';
 import { useTenantMasterData } from '@/hooks/useTenantMasterData';
 import { initialVoterFilters } from '@/redux/reducers/voter';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { useFilterParams, cleanParams } from '@/hooks/useFilterParams';
 
 // Shared Standard Components
 import { FilterBar } from '@/components/common/FilterBar';
@@ -29,44 +31,61 @@ import {
   VoterStatsCards,
   VoterRowActions,
   VoterModals,
-} from './components';
+} from '@/components/common/voter/list';
 
 export const VotersPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { voters, loading, stats, pagination, filters: savedFilters, initialized } = useAppSelector((state) => state.voter);
-  const masterData = useTenantMasterData(['states', 'districts', 'pcs', 'acs', 'booths', 'religions', 'castes', 'parties']);
-
-  // Pagination State - initialized from Redux saved filters if available
-  const [page, setPage] = useState<number>(() => savedFilters?.page || 1);
-  const [limit, setLimit] = useState<number>(() => savedFilters?.limit || 25);
-
-  // Filters State - initialized from Redux saved filters to survive route changes
-  const [search, setSearch] = useState<string>(() => savedFilters?.search || '');
-  const [stateId, setStateId] = useState<string>(() => savedFilters?.stateId || '');
-  const [districtId, setDistrictId] = useState<string>(() => savedFilters?.districtId || '');
-  const [pcId, setPcId] = useState<string>(() => savedFilters?.pcId || '');
-  const [acId, setAcId] = useState<string>(() => savedFilters?.acId || '');
-  const [boothId, setBoothId] = useState<string>(() => savedFilters?.boothId || '');
-  const [gender, setGender] = useState<string>(() => savedFilters?.gender || '');
-  const [casteId, setCasteId] = useState<string>(() => savedFilters?.casteId || '');
-  const [voterType, setVoterType] = useState<string>(() => savedFilters?.voterType || '');
-  const [status, setStatus] = useState<string>(() => savedFilters?.status || '');
-  const [isDead, setIsDead] = useState<string>(() => savedFilters?.isDead || '');
-  const [partyId, setPartyId] = useState<string>(() => savedFilters?.partyId || '');
-  const [religionId, setReligionId] = useState<string>(() => savedFilters?.religionId || '');
-  const [ageGroup, setAgeGroup] = useState<string>(() => savedFilters?.ageGroup || '');
-  const [familyInfluencerId, setFamilyInfluencerId] = useState<string>(() => savedFilters?.familyInfluencerId || '');
-  const [socialInfluencerId, setSocialInfluencerId] = useState<string>(() => savedFilters?.socialInfluencerId || '');
-  const [isFamilyInfluencer, setIsFamilyInfluencer] = useState<string>(() => savedFilters?.isFamilyInfluencer || '');
-  const [isSocialInfluencer, setIsSocialInfluencer] = useState<string>(() => savedFilters?.isSocialInfluencer || '');
-  const [influencerStatus, setInfluencerStatus] = useState<string>(() => savedFilters?.influencerStatus || '');
-  const [influencerRole, setInfluencerRole] = useState<string>(() => savedFilters?.influencerRole || '');
-
-  // Track initial mount to prevent refetching already cached data
   const isInitialMountRef = React.useRef(true);
-
-  // Influencer & Actions Modals State
+  const {
+    voters,
+    loading,
+    stats,
+    pagination,
+    filters: savedFilters,
+    initialized,
+    boothOptions,
+    isBoothOptionsLoading,
+  } = useAppSelector((state) => state.voter);
+  const masterData = useTenantMasterData(['states', 'districts', 'pcs', 'acs', 'religions', 'castes', 'parties']);
+  const {
+    filterParams,
+    setFilter,
+    resetFilters,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getApiParams,
+    syncPage,
+  } = useFilterParams({
+    initialFilters: {
+      search: savedFilters?.search ?? '',
+      stateId: savedFilters?.stateId ?? '',
+      districtId: savedFilters?.districtId ?? '',
+      pcId: savedFilters?.pcId ?? '',
+      acId: savedFilters?.acId ?? '',
+      boothId: savedFilters?.boothId ?? '',
+      gender: savedFilters?.gender ?? '',
+      casteId: savedFilters?.casteId ?? '',
+      voterType: savedFilters?.voterType ?? '',
+      status: savedFilters?.status ?? '',
+      isDead: savedFilters?.isDead ?? '',
+      partyId: savedFilters?.partyId ?? '',
+      religionId: savedFilters?.religionId ?? '',
+      ageGroup: savedFilters?.ageGroup ?? '',
+      familyInfluencerId: savedFilters?.familyInfluencerId ?? '',
+      socialInfluencerId: savedFilters?.socialInfluencerId ?? '',
+      isFamilyInfluencer: savedFilters?.isFamilyInfluencer ?? '',
+      isSocialInfluencer: savedFilters?.isSocialInfluencer ?? '',
+      influencerStatus: savedFilters?.influencerStatus ?? '',
+      influencerRole: savedFilters?.influencerRole ?? '',
+    },
+    initialPage: savedFilters?.page ?? 1,
+    initialLimit: savedFilters?.limit ?? 25,
+  });
+  // ─── UI Modal State ──────────────────────────────────────────────────────────
+  const { boothId } = filterParams;
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [familyModalOpen, setFamilyModalOpen] = useState(false);
   const [socialModalOpen, setSocialModalOpen] = useState(false);
@@ -75,101 +94,87 @@ export const VotersPage: React.FC = () => {
   const [linkInfluencerType, setLinkInfluencerType] = useState<'family' | 'social'>('family');
   const [targetFamilyInfluencer, setTargetFamilyInfluencer] = useState<FamilyInfluencerTarget | null>(null);
   const [targetSocialInfluencer, setTargetSocialInfluencer] = useState<SocialInfluencerTarget | null>(null);
-
-  // Influencers list for dropdown filter
   const [familyInfluencers, setFamilyInfluencers] = useState<any[]>([]);
   const [socialInfluencers, setSocialInfluencers] = useState<any[]>([]);
-
-  // Deletion & Import Modal States
   const [selectedVoter, setSelectedVoter] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const prevStatsScopeRef = React.useRef({ boothId, acId: filterParams.acId, pcId: filterParams.pcId, districtId: filterParams.districtId, stateId: filterParams.stateId });
 
-  // Load influencer dropdown options debounced (Rule 9 + Rule 13)
-  useDebouncedEffect(() => {
-    if (!boothId) {
+  // Direct AC change handler for filter component
+  const handleAcChange = (newAcId: string) => {
+    setFilter('acId', newAcId);
+    setFilter('boothId', '');
+    setFamilyInfluencers([]);
+    setSocialInfluencers([]);
+    if (filterParams.familyInfluencerId) setFilter('familyInfluencerId', '');
+    if (filterParams.socialInfluencerId) setFilter('socialInfluencerId', '');
+    if (newAcId) {
+      dispatch(fetchTenantBoothOptions({ acId: newAcId }));
+    } else {
+      dispatch(setVoterBoothOptions([]));
+    }
+  };
+
+  // Direct Booth change handler for filter component
+  const handleBoothChange = (newBoothId: string) => {
+    setFilter('boothId', newBoothId);
+    if (filterParams.familyInfluencerId) setFilter('familyInfluencerId', '');
+    if (filterParams.socialInfluencerId) setFilter('socialInfluencerId', '');
+    if (newBoothId) {
+      dispatch(fetchInfluencerOptions({ boothId: newBoothId, type: 'family' }))
+        .then((opts: any[]) => setFamilyInfluencers(opts || []))
+        .catch(() => { });
+      dispatch(fetchInfluencerOptions({ boothId: newBoothId, type: 'social' }))
+        .then((opts: any[]) => setSocialInfluencers(opts || []))
+        .catch(() => { });
+    } else {
       setFamilyInfluencers([]);
       setSocialInfluencers([]);
-      if (familyInfluencerId) setFamilyInfluencerId('');
-      if (socialInfluencerId) setSocialInfluencerId('');
-      return;
+    }
+  };
+
+  // Recover options on initial mount / back navigation if acId or boothId is saved in Redux
+  React.useEffect(() => {
+    if (filterParams.acId && (!boothOptions || boothOptions.length === 0)) {
+      dispatch(fetchTenantBoothOptions({ acId: filterParams.acId }));
+    }
+    if (filterParams.boothId) {
+      dispatch(fetchInfluencerOptions({ boothId: filterParams.boothId, type: 'family' }))
+        .then((opts: any[]) => setFamilyInfluencers(opts || []))
+        .catch(() => { });
+      dispatch(fetchInfluencerOptions({ boothId: filterParams.boothId, type: 'social' }))
+        .then((opts: any[]) => setSocialInfluencers(opts || []))
+        .catch(() => { });
+    }
+  }, []);
+
+  useDebouncedEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      if (initialized && voters && voters.length > 0) return;
     }
 
-    dispatch(fetchInfluencerOptions({ boothId, type: 'family' }))
-      .then((options: any[]) => setFamilyInfluencers(options || []))
-      .catch(() => { });
-    dispatch(fetchInfluencerOptions({ boothId, type: 'social' }))
-      .then((options: any[]) => setSocialInfluencers(options || []))
-      .catch(() => { });
-  }, 200, [dispatch, boothId]);
+    const { activePage } = syncPage();
+    const params = { ...getApiParams(), page: activePage };
 
-  // Track previous filters to reset page to 1 when filters change
-  const prevFilterDepsRef = React.useRef({
-    search, stateId, districtId, pcId, acId, boothId, gender, voterType,
-    status, isDead, partyId, religionId, casteId, ageGroup, familyInfluencerId,
-    socialInfluencerId, isFamilyInfluencer, isSocialInfluencer, influencerStatus, influencerRole,
-  });
+    dispatch(setVoterFilters(params));
+    dispatch(fetchVotersData(params));
 
-  const prevStatsScopeRef = React.useRef({ boothId, acId, pcId, districtId, stateId });
+    const { acId, pcId, districtId, stateId } = filterParams;
+    const statsScopeChanged =
+      !initialized ||
+      prevStatsScopeRef.current.boothId !== boothId ||
+      prevStatsScopeRef.current.acId !== acId ||
+      prevStatsScopeRef.current.pcId !== pcId ||
+      prevStatsScopeRef.current.districtId !== districtId ||
+      prevStatsScopeRef.current.stateId !== stateId;
 
-  // Fetch Voters Data & Stats on mount & changes (Rule 13)
-  useDebouncedEffect(
-    () => {
-      if (isInitialMountRef.current) {
-        isInitialMountRef.current = false;
-        if (initialized && voters && voters.length > 0) {
-          return;
-        }
-      }
-
-      const currentFilters = {
-        search, stateId, districtId, pcId, acId, boothId, gender, voterType,
-        status, isDead, partyId, religionId, casteId, ageGroup, familyInfluencerId,
-        socialInfluencerId, isFamilyInfluencer, isSocialInfluencer, influencerStatus, influencerRole,
-      };
-
-      let activePage = page;
-      const filtersChanged = Object.keys(currentFilters).some(
-        (k) => (currentFilters as any)[k] !== (prevFilterDepsRef.current as any)[k]
-      );
-      if (filtersChanged) {
-        prevFilterDepsRef.current = currentFilters;
-        activePage = 1;
-        setPage(1);
-      }
-
-      const params: Record<string, any> = { ...currentFilters, page: activePage, limit };
-      dispatch(setVoterFilters(params));
-      dispatch(fetchVotersData(params));
-
-      const statsScopeChanged =
-        !initialized ||
-        prevStatsScopeRef.current.boothId !== boothId ||
-        prevStatsScopeRef.current.acId !== acId ||
-        prevStatsScopeRef.current.pcId !== pcId ||
-        prevStatsScopeRef.current.districtId !== districtId ||
-        prevStatsScopeRef.current.stateId !== stateId;
-
-      if (statsScopeChanged) {
-        prevStatsScopeRef.current = { boothId, acId, pcId, districtId, stateId };
-        dispatch(fetchVoterStats({ boothId, acId, pcId, districtId, stateId }));
-      }
-    },
-    200,
-    [
-      dispatch, page, limit, search, stateId, districtId, pcId, acId, boothId,
-      gender, voterType, status, isDead, partyId, religionId, casteId, ageGroup,
-      familyInfluencerId, socialInfluencerId, isFamilyInfluencer, isSocialInfluencer,
-      influencerStatus, influencerRole,
-    ]
-  );
-
-  const getCurrentFilterParams = () => ({
-    search, stateId, districtId, pcId, acId, boothId, gender, voterType,
-    status, isDead, partyId, religionId, casteId, ageGroup, familyInfluencerId,
-    socialInfluencerId, isFamilyInfluencer, isSocialInfluencer, influencerStatus, influencerRole,
-    page, limit,
-  });
+    if (statsScopeChanged) {
+      prevStatsScopeRef.current = { boothId, acId, pcId, districtId, stateId };
+      dispatch(fetchVoterStats(cleanParams({ boothId, acId, pcId, districtId, stateId })));
+    }
+  }, 200, [dispatch, page, limit, filterParams]);
 
   const handleOpenDelete = (voter: any) => {
     setSelectedVoter(voter);
@@ -179,57 +184,69 @@ export const VotersPage: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!selectedVoter) return;
     try {
-      await dispatch(deleteVoterItem(selectedVoter.id, getCurrentFilterParams()));
+      await dispatch(deleteVoterItem(selectedVoter.id, getApiParams()));
       setIsDeleteModalOpen(false);
-    } catch (err) { }
+    } catch (_) { }
   };
 
   const handleBulkImport = async (records: Record<string, any>[]) => {
-    await dispatch(importVotersData(records, getCurrentFilterParams()));
+    await dispatch(importVotersData(records, getApiParams()));
   };
 
   const handleExportVoters = () => {
-    dispatch(exportVotersData(getCurrentFilterParams()));
+    dispatch(exportVotersData(getApiParams()));
   };
 
   const handleInfluencerSuccess = () => {
-    const params = { page, limit, search, boothId, influencerStatus, isFamilyInfluencer, isSocialInfluencer };
+    const params = cleanParams({
+      boothId,
+      page, limit,
+      search: filterParams.search,
+      influencerStatus: filterParams.influencerStatus,
+      isFamilyInfluencer: filterParams.isFamilyInfluencer,
+      isSocialInfluencer: filterParams.isSocialInfluencer,
+    });
     dispatch(fetchVotersData(params));
     dispatch(fetchVoterStats(params));
   };
 
   const handleResetFilters = () => {
     isInitialMountRef.current = false;
-    setSearch(''); setStateId(''); setDistrictId(''); setPcId(''); setAcId(''); setBoothId('');
-    setGender(''); setVoterType(''); setStatus(''); setIsDead(''); setPartyId(''); setReligionId('');
-    setCasteId(''); setAgeGroup(''); setFamilyInfluencerId(''); setSocialInfluencerId('');
-    setIsFamilyInfluencer(''); setIsSocialInfluencer(''); setInfluencerStatus(''); setInfluencerRole('');
-    setPage(1);
+    resetFilters();
+    setFamilyInfluencers([]);
+    setSocialInfluencers([]);
+    dispatch(setVoterBoothOptions([]));
     dispatch(setVoterFilters(initialVoterFilters));
   };
 
-  const filterStateBundle = {
-    stateId, setStateId, districtId, setDistrictId, pcId, setPcId, acId, setAcId, boothId, setBoothId,
-    gender, setGender, ageGroup, setAgeGroup, religionId, setReligionId, casteId, setCasteId,
-    status, setStatus, isDead, setIsDead, voterType, setVoterType, partyId, setPartyId,
-    familyInfluencerId, setFamilyInfluencerId, socialInfluencerId, setSocialInfluencerId,
-    isFamilyInfluencer, setIsFamilyInfluencer, isSocialInfluencer, setIsSocialInfluencer,
-    influencerRole, setInfluencerRole, influencerStatus, setInfluencerStatus,
-  };
-
+  // ─── Filter Config ────────────────────────────────────────────────────────────
+  const columns = buildVoterTableColumns();
+  const filterPresets = buildVoterFilterPresets({
+    filterParams,
+    setFilter,
+    onAcChange: handleAcChange,
+    onBoothChange: handleBoothChange,
+  });
   const filterMasterBundle = {
     ...masterData,
+    booths: boothOptions,
+    isBoothsLoading: isBoothOptionsLoading,
     familyInfluencers,
     socialInfluencers,
   };
+  const filterFields = buildVoterFilterFields(
+    {
+      filterParams,
+      setFilter,
+      onAcChange: handleAcChange,
+      onBoothChange: handleBoothChange,
+    },
+    filterMasterBundle
+  );
 
-  const filterFields = buildVoterFilterFields(filterStateBundle, filterMasterBundle);
-  const filterPresets = buildVoterFilterPresets(filterStateBundle);
-  const columns = buildVoterTableColumns();
-
+  // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      {/* Reusable Page Header */}
       <PageHeader
         title="Voter Directory"
         icon={<Vote className="w-6 h-6" />}
@@ -242,20 +259,17 @@ export const VotersPage: React.FC = () => {
         addLabel="Add Voter"
       />
 
-      {/* Statistics Cards */}
       <VoterStatsCards stats={stats} />
 
-      {/* Filter Bar with Side Drawer */}
       <FilterBar
         searchPlaceholder="Search Name, EPIC No, Mobile, House..."
-        searchValue={search}
-        onSearchChange={setSearch}
+        searchValue={filterParams.search}
+        onSearchChange={(val) => setFilter('search', val)}
         filters={filterFields}
         presets={filterPresets}
         onReset={handleResetFilters}
       />
 
-      {/* Data Table */}
       <div className="rounded-2xl dark:bg-slate-900/60 dark:border dark:border-slate-800 dark:p-1">
         <DataTable
           columns={columns}
@@ -268,10 +282,7 @@ export const VotersPage: React.FC = () => {
             total: pagination?.total || 0,
             totalPages: pagination?.totalPages || 1,
             onPageChange: (newPage) => setPage(newPage),
-            onLimitChange: (newLimit) => {
-              setLimit(newLimit);
-              setPage(1);
-            },
+            onLimitChange: (newLimit) => { setLimit(newLimit); setPage(1); },
           }}
           actions={(row: any) => (
             <VoterRowActions
@@ -281,30 +292,15 @@ export const VotersPage: React.FC = () => {
               onView={() => navigate(`/dashboard/voters/${row.id}`)}
               onEdit={() => navigate(`/dashboard/voters/${row.id}/edit`)}
               onDelete={() => handleOpenDelete(row)}
-              onSetFamilyInfluencer={(target) => {
-                setTargetFamilyInfluencer(target);
-                setFamilyModalOpen(true);
-              }}
-              onSetSocialInfluencer={(target) => {
-                setTargetSocialInfluencer(target);
-                setSocialModalOpen(true);
-              }}
-              onLinkFamilyHead={(voterId) => {
-                setLinkTargetVoterIds([voterId]);
-                setLinkInfluencerType('family');
-                setLinkModalOpen(true);
-              }}
-              onLinkSocialLeader={(voterId) => {
-                setLinkTargetVoterIds([voterId]);
-                setLinkInfluencerType('social');
-                setLinkModalOpen(true);
-              }}
+              onSetFamilyInfluencer={(target) => { setTargetFamilyInfluencer(target); setFamilyModalOpen(true); }}
+              onSetSocialInfluencer={(target) => { setTargetSocialInfluencer(target); setSocialModalOpen(true); }}
+              onLinkFamilyHead={(voterId) => { setLinkTargetVoterIds([voterId]); setLinkInfluencerType('family'); setLinkModalOpen(true); }}
+              onLinkSocialLeader={(voterId) => { setLinkTargetVoterIds([voterId]); setLinkInfluencerType('social'); setLinkModalOpen(true); }}
             />
           )}
         />
       </div>
 
-      {/* Modals & Dialogs */}
       <VoterModals
         isDeleteModalOpen={isDeleteModalOpen}
         setIsDeleteModalOpen={setIsDeleteModalOpen}
@@ -327,6 +323,7 @@ export const VotersPage: React.FC = () => {
         setLinkTargetVoterIds={setLinkTargetVoterIds}
         linkInfluencerType={linkInfluencerType}
         onInfluencerSuccess={handleInfluencerSuccess}
+        sampleParams={{ acId: filterParams.acId, boothId: filterParams.boothId }}
       />
     </div>
   );

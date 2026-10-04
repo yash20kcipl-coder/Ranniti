@@ -4,6 +4,8 @@ import {
   SET_VOTERS_PAGINATION,
   SET_VOTER_STATS,
   SET_VOTER_FILTERS,
+  SET_VOTER_BOOTH_OPTIONS,
+  SET_VOTER_BOOTH_OPTIONS_LOADING,
 } from '../actions/voter';
 
 export interface VoterState {
@@ -23,6 +25,8 @@ export interface VoterState {
     otherVoters: number;
     voterTypeCounts: Record<string, number>;
   };
+  boothOptions: Array<{ id: string; boothNumber: number; name: string; acId: string }>;
+  isBoothOptionsLoading: boolean;
   filters: {
     search: string;
     stateId: string;
@@ -91,6 +95,8 @@ const initialState: VoterState = {
     otherVoters: 0,
     voterTypeCounts: {},
   },
+  boothOptions: [],
+  isBoothOptionsLoading: false,
   filters: initialVoterFilters,
 };
 
@@ -124,6 +130,16 @@ export default function voterReducer(state = initialState, action: any): VoterSt
           ...state.filters,
           ...action.filters,
         },
+      };
+    case SET_VOTER_BOOTH_OPTIONS:
+      return {
+        ...state,
+        boothOptions: action.options,
+      };
+    case SET_VOTER_BOOTH_OPTIONS_LOADING:
+      return {
+        ...state,
+        isBoothOptionsLoading: action.loading,
       };
     default:
       return state;

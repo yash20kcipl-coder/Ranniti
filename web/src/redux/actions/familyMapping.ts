@@ -47,7 +47,7 @@ export const fetchFamiliesAction = (params: Record<string, any> = {}, showLoader
       dispatch(setFamiliesLoading(true));
     }
     try {
-      const res = await api.get('/voters/family-mapping/families', { params });
+      const res = await api.get('/tenant/voters/family-mapping/families', { params });
       const payload = res.data?.data || res.data || {};
       const families = payload.families || [];
       const pagination = payload.pagination || { total: 0, page: 1, limit: 20, totalPages: 1 };
@@ -74,7 +74,7 @@ export const fetchFamiliesAction = (params: Record<string, any> = {}, showLoader
 export const fetchFamilyMembersAction = (headId: string) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.get(`/voters/family-mapping/families/${headId}`);
+      const res = await api.get(`/tenant/voters/family-mapping/families/${headId}`);
       const data = res.data?.data || res.data;
       dispatch(setSelectedFamily(data));
       return data;
@@ -92,7 +92,7 @@ export const autoMapFamiliesAction = (payload: { boothId: string; dryRun?: boole
   return async (dispatch: AppDispatch) => {
     dispatch(setFamilyMappingLoading(true));
     try {
-      const res = await api.post('/voters/family-mapping/auto-group', payload);
+      const res = await api.post('/tenant/voters/family-mapping/auto-group', payload);
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -109,7 +109,7 @@ export const autoMapFamiliesAction = (payload: { boothId: string; dryRun?: boole
 export const setNewFamilyHeadAction = (payload: { currentHeadId: string; newHeadId: string }) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.post('/voters/family-mapping/set-head', payload);
+      const res = await api.post('/tenant/voters/family-mapping/set-head', payload);
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));

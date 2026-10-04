@@ -3,6 +3,7 @@ import {
   createTenantVoterItem as createVoterItem,
   updateTenantVoterItem as updateVoterItem,
   fetchTenantInfluencerOptions as fetchInfluencerOptions,
+  fetchTenantBoothOptions,
 } from '@/redux/actions/voterTenant';
 import {
   FORM_GENDER_OPTIONS,
@@ -11,11 +12,11 @@ import {
   BLOOD_GROUP_OPTIONS,
 } from '@/constants/dropdownOptions';
 import { calculateAge } from '@/utils';
+import React, { useState } from 'react';
 import { useAppDispatch } from '@/redux/hooks';
-import React, { useState, useEffect } from 'react';
-import { useTenantMasterData } from '@/hooks/useTenantMasterData';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { useTenantMasterData } from '@/hooks/useTenantMasterData';
 
 // Shared Standard Components
 import type { Option } from '@/components/common/FormInput';
@@ -27,7 +28,7 @@ import {
   VoterGeographyFormSection,
   VoterInfluencerFormSection,
   VoterDemographicsFormSection,
-} from './components';
+} from '@/components/common/voter/form';
 
 // Icons
 import {
@@ -49,7 +50,10 @@ export const VoterFormPage: React.FC = () => {
   const isEditMode = Boolean(id);
 
   const dispatch = useAppDispatch();
-  const { booths, religions, castes, acs, states, districts, pcs, parties } = useTenantMasterData();
+  // Load master categories excluding heavy booths
+  const { religions, castes, acs, states, districts, pcs, parties } = useTenantMasterData([
+    'states', 'districts', 'pcs', 'acs', 'religions', 'castes', 'parties'
+  ]);
 
   const [submitting, setSubmitting] = useState(false);
   const [sameAddress, setSameAddress] = useState(false);
@@ -59,7 +63,8 @@ export const VoterFormPage: React.FC = () => {
   // Voter metadata (for influencer counts and linked info)
   const [voterMeta, setVoterMeta] = useState<any | null>(null);
 
-  // Influencer options state separated by type
+  // Booth & Influencer options local state (isolated from List Page)
+  const [boothOptions, setBoothOptions] = useState<Option[]>([]);
   const [familyInfluencers, setFamilyInfluencers] = useState<any[]>([]);
   const [socialInfluencers, setSocialInfluencers] = useState<any[]>([]);
 
@@ -140,23 +145,12 @@ export const VoterFormPage: React.FC = () => {
             let resolvedDistrictId = voter.districtId ? String(voter.districtId) : '';
             let resolvedStateId = voter.stateId ? String(voter.stateId) : '';
 
-            if (loadedBoothId && booths?.length) {
-              const b = booths.find((booth: any) => String(booth.id) === loadedBoothId);
-              if (b?.acId) {
-                resolvedAcId = String(b.acId);
-                const a = acs?.find((ac: any) => String(ac.id) === String(b.acId));
-                if (a) {
-                  if (a.pcId) resolvedPcId = String(a.pcId);
-                  if (a.districtId) resolvedDistrictId = String(a.districtId);
-                  if (a.stateId) resolvedStateId = String(a.stateId);
-                }
-              }
-            } else if (resolvedAcId && acs?.length) {
+            if (resolvedAcId && acs?.length) {
               const a = acs.find((ac: any) => String(ac.id) === resolvedAcId);
               if (a) {
-                if (a.pcId) resolvedPcId = String(a.pcId);
-                if (a.districtId) resolvedDistrictId = String(a.districtId);
-                if (a.stateId) resolvedStateId = String(a.stateId);
+                if (!resolvedPcId && a.pcId) resolvedPcId = String(a.pcId);
+                if (!resolvedDistrictId && a.districtId) resolvedDistrictId = String(a.districtId);
+                if (!resolvedStateId && a.stateId) resolvedStateId = String(a.stateId);
               }
             }
 
@@ -221,7 +215,31 @@ export const VoterFormPage: React.FC = () => {
           setLoadingVoter(false);
         });
     }
-  }, 150, [isEditMode, id, dispatch]);
+  }, 150, [isEditMode, id, dispatch, acs]);
+
+  // Load booth options on-demand whenever acId changes (Create & Edit mode)
+  useDebouncedEffect(
+    () => {
+      if (!formData.acId) {
+        setBoothOptions([]);
+        return;
+      }
+      dispatch(fetchTenantBoothOptions({ acId: formData.acId, saveToStore: false }))
+        .then((options: any[]) => {
+          setBoothOptions(
+            (options || []).map((b) => ({
+              label: `Booth #${b.boothNumber || b.boothNo || b.id} - ${b.name || b.boothName || 'Station'}`,
+              value: String(b.id),
+            }))
+          );
+        })
+        .catch(() => {
+          setBoothOptions([]);
+        });
+    },
+    150,
+    [dispatch, formData.acId]
+  );
 
   // Load family and social influencer dropdown options debounced (Rule 9 + Rule 13)
   useDebouncedEffect(
@@ -256,49 +274,16 @@ export const VoterFormPage: React.FC = () => {
         })
         .catch(() => { });
     },
-    200,
+    150,
     [dispatch, formData.boothId, id]
   );
-
-  // Auto-align geography hierarchy if boothId is present but parent fields are unselected
-  useEffect(() => {
-    if (!formData.boothId || !booths?.length) return;
-    const b = booths.find((booth: any) => String(booth.id) === String(formData.boothId));
-    if (!b?.acId) return;
-
-    const a = acs?.find((ac: any) => String(ac.id) === String(b.acId));
-    if (!a) return;
-
-    setFormData((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      if (!next.acId || next.acId !== String(b.acId)) {
-        next.acId = String(b.acId);
-        changed = true;
-      }
-      if (a.pcId && (!next.pcId || next.pcId !== String(a.pcId))) {
-        next.pcId = String(a.pcId);
-        changed = true;
-      }
-      if (a.districtId && (!next.districtId || next.districtId !== String(a.districtId))) {
-        next.districtId = String(a.districtId);
-        changed = true;
-      }
-      const stId = a.stateId || (a.districtId && districts?.find((d: any) => String(d.id) === String(a.districtId))?.stateId) || (a.pcId && pcs?.find((p: any) => String(p.id) === String(a.pcId))?.stateId);
-      if (stId && (!next.stateId || next.stateId !== String(stId))) {
-        next.stateId = String(stId);
-        changed = true;
-      }
-      return changed ? next : prev;
-    });
-  }, [formData.boothId, booths, acs, districts, pcs]);
 
   const handleChange = (e: any) => {
     const name = e.target.name;
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
 
     setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
+      const updated: any = { ...prev, [name]: value };
       if (name === 'fullAddress' && sameAddress) {
         updated.voterAddress = value;
       }
@@ -311,33 +296,47 @@ export const VoterFormPage: React.FC = () => {
         updated.isFamilyInfluencer = false;
       }
 
-      // Bidirectional Geography Auto-Selection
-      if (name === 'boothId' && value) {
-        const b = booths?.find((booth: any) => String(booth.id) === String(value));
-        if (b?.acId) {
-          updated.acId = String(b.acId);
-          const a = acs?.find((ac: any) => String(ac.id) === String(b.acId));
-          if (a) {
-            if (a.pcId) updated.pcId = String(a.pcId);
-            if (a.districtId) updated.districtId = String(a.districtId);
-            const stId = a.stateId || (a.districtId && districts?.find((d: any) => String(d.id) === String(a.districtId))?.stateId) || (a.pcId && pcs?.find((p: any) => String(p.id) === String(a.pcId))?.stateId);
-            if (stId) updated.stateId = String(stId);
+      // Smart cascading resets
+      if (name === 'stateId') {
+        updated.districtId = '';
+        updated.pcId = '';
+        updated.acId = '';
+        updated.boothId = '';
+        updated.familyInfluencerId = '';
+        updated.socialInfluencerId = '';
+      } else if (name === 'pcId') {
+        updated.acId = '';
+        updated.boothId = '';
+        updated.familyInfluencerId = '';
+        updated.socialInfluencerId = '';
+      } else if (name === 'districtId') {
+        if (updated.acId) {
+          const ac = acs?.find((a: any) => String(a.id) === String(updated.acId));
+          if (ac && ac.districtId && String(ac.districtId) !== String(value)) {
+            updated.acId = '';
+            updated.boothId = '';
+            updated.familyInfluencerId = '';
+            updated.socialInfluencerId = '';
           }
         }
-      } else if (name === 'acId' && value) {
-        const a = acs?.find((ac: any) => String(ac.id) === String(value));
-        if (a) {
-          if (a.pcId) updated.pcId = String(a.pcId);
-          if (a.districtId) updated.districtId = String(a.districtId);
-          const stId = a.stateId || (a.districtId && districts?.find((d: any) => String(d.id) === String(a.districtId))?.stateId) || (a.pcId && pcs?.find((p: any) => String(p.id) === String(a.pcId))?.stateId);
-          if (stId) updated.stateId = String(stId);
+      } else if (name === 'acId') {
+        updated.boothId = '';
+        updated.familyInfluencerId = '';
+        updated.socialInfluencerId = '';
+        if (value) {
+          const ac = acs?.find((a: any) => String(a.id) === String(value));
+          if (ac) {
+            if (!updated.stateId && ac.stateId) updated.stateId = String(ac.stateId);
+            if (!updated.pcId && ac.pcId) updated.pcId = String(ac.pcId);
+            if (!updated.districtId && ac.districtId) updated.districtId = String(ac.districtId);
+          }
         }
-      } else if (name === 'pcId' && value) {
-        const p = pcs?.find((pc: any) => String(pc.id) === String(value));
-        if (p?.stateId) updated.stateId = String(p.stateId);
-      } else if (name === 'districtId' && value) {
-        const d = districts?.find((dist: any) => String(dist.id) === String(value));
-        if (d?.stateId) updated.stateId = String(d.stateId);
+      } else if (name === 'boothId') {
+        updated.familyInfluencerId = '';
+        updated.socialInfluencerId = '';
+      } else if (name === 'religionId') {
+        updated.casteId = '';
+        updated.subcasteName = '';
       }
 
       return updated;
@@ -489,25 +488,19 @@ export const VoterFormPage: React.FC = () => {
       value: String(a.id),
     }));
 
-  const boothOptions: Option[] = (booths || [])
-    .filter((b: any) => {
-      if (formData.boothId && String(b.id) === String(formData.boothId)) return true;
-      return !formData.acId || String(b.acId) === String(formData.acId);
-    })
-    .map((b: any) => ({
-      label: `Booth #${b.boothNo || b.boothNumber || b.id} - ${b.boothName || b.name || 'Unnamed Station'}`,
-      value: String(b.id),
-    }));
+
 
   const religionOptions: Option[] = (religions || []).map((r: any) => ({
     label: r.religionName || r.name || `Religion #${r.id}`,
     value: String(r.id),
   }));
 
-  const casteOptions: Option[] = (castes || []).map((c: any) => ({
-    label: c.casteName || c.name || `Caste #${c.id}`,
-    value: String(c.id),
-  }));
+  const casteOptions: Option[] = (castes || [])
+    .filter((c: any) => !formData.religionId || String(c.religionId) === String(formData.religionId))
+    .map((c: any) => ({
+      label: c.casteName || c.name || `Caste #${c.id}`,
+      value: String(c.id),
+    }));
 
   const partyOptions: Option[] = (parties || []).map((p: any) => ({
     label: `${p.abbreviation || p.name} - ${p.name}`,

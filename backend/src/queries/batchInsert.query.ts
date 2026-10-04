@@ -21,6 +21,19 @@ export interface BatchInsertOptions {
    * Columns to update if conflictStrategy is 'DO UPDATE'
    */
   updateColumns?: string[];
+
+  /**
+   * If true, wraps each updated column with COALESCE so that a null
+   * value from the import never overwrites an existing non-null DB value.
+   * Default: true (safe mode on by default).
+   */
+  coalesceUpdate?: boolean;
+
+  /**
+   * Optional raw SQL expressions appended to the DO UPDATE SET clause,
+   * e.g. 'updated_at = NOW()'. Comma is added automatically.
+   */
+  extraUpdateSql?: string;
 }
 
 export interface BatchInsertResult {
@@ -69,10 +82,17 @@ export class BatchInsertQuery {
       const targetCols = options.conflictTarget.map((c) => `"${c}"`).join(', ');
 
       if (options.conflictStrategy === 'DO UPDATE' && options.updateColumns && options.updateColumns.length > 0) {
+        // coalesceUpdate defaults to TRUE — never overwrite existing data with nulls from import
+        const useCoalesce = options.coalesceUpdate !== false;
         const updateAssignments = options.updateColumns
-          .map((col) => `"${col}" = EXCLUDED."${col}"`)
+          .map((col) =>
+            useCoalesce
+              ? `"${col}" = COALESCE(EXCLUDED."${col}", "${tableName}"."${col}")`
+              : `"${col}" = EXCLUDED."${col}"`
+          )
           .join(', ');
-        sql += ` ON CONFLICT (${targetCols}) DO UPDATE SET ${updateAssignments}`;
+        const extraSql = options.extraUpdateSql ? `, ${options.extraUpdateSql}` : '';
+        sql += ` ON CONFLICT (${targetCols}) DO UPDATE SET ${updateAssignments}${extraSql}`;
       } else {
         sql += ` ON CONFLICT (${targetCols}) DO NOTHING`;
       }

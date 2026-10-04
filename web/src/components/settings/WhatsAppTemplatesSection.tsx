@@ -11,11 +11,11 @@ import {
   WhatsAppPreviewModal,
   TestWhatsAppModal,
 } from './components';
+import React, { useState } from 'react';
 import { useAppSelector } from '@/redux/hooks';
-import React, { useState, useEffect } from 'react';
 import { FormInput } from '@/components/common/FormInput';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
 import type { WhatsAppTemplate } from '@/types/settings.types';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 
 interface WhatsAppTemplatesSectionProps {
@@ -37,7 +37,7 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
   templates: customTemplates,
   loading: customLoading,
 }) => {
-  const storeSettings = useAppSelector((state) => state.settings || {});
+  const storeSettings = useAppSelector((state) => state.settings);
 
   const templates = customTemplates ?? storeSettings?.whatsappTemplates ?? [];
   const loading = customLoading ?? storeSettings?.loading ?? false;

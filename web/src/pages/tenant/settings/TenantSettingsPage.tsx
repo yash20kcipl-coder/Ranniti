@@ -34,7 +34,7 @@ type TenantSettingsTabKey = 'user-roles' | 'whatsapp-templates' | 'whatsapp-conf
 
 export const TenantSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { settings, saving, whatsappTemplates = [] } = useAppSelector((state) => state.settings || {});
+  const { settings, saving, whatsappTemplates = [] } = useAppSelector((state) => state.settings);
 
   const [isTestWhatsAppOpen, setIsTestWhatsAppOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TenantSettingsTabKey>('user-roles');
@@ -153,10 +153,10 @@ export const TenantSettingsPage: React.FC = () => {
       </div>
 
       {/* Reusable Tab Navigation Header & Active Views */}
-      <TabContainer
+      <TabContainer<TenantSettingsTabKey>
         tabs={navTabs}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tabId) => setActiveTab(tabId)}
         views={{
           'user-roles': <TenantUserRoleManager />,
           'whatsapp-templates': (

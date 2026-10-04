@@ -1,6 +1,5 @@
 import {
   Users,
-  Search,
   Database,
   Building,
   Mail,
@@ -12,17 +11,17 @@ import {
   Layers,
   Power,
   ShieldCheck,
-  Filter,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SafeImage } from '@/components/common/SafeImage';
-import { FormInput } from '@/components/common/FormInput';
 import { PageHeader } from '@/components/common/PageHeader';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
+import { DataTable, type Column } from '@/components/common/DataTable';
+import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 import { TableActions, TableActionButton } from '@/components/common/TableActions';
 import { fetchTenantUsers, updateTenantStatus, deleteTenantUser } from '@/redux/actions/tenant';
 
@@ -32,7 +31,7 @@ export const TenantsPage: React.FC = () => {
   const { tenants, loading } = useAppSelector((state) => state.tenant);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
   // Deletion Modal state
   const [selectedTenantForDelete, setSelectedTenantForDelete] = useState<any | null>(null);
@@ -98,7 +97,7 @@ export const TenantsPage: React.FC = () => {
       t.tenantDbName?.toLowerCase().includes(q);
 
     const matchesStatus =
-      statusFilter === 'all' ||
+      !statusFilter ||
       t.accountStatus === statusFilter ||
       t.provisioningStatus === statusFilter;
 
@@ -173,6 +172,97 @@ export const TenantsPage: React.FC = () => {
         );
     }
   };
+
+  // FilterBar fields
+  const filterFields: FilterField[] = [
+    {
+      key: 'statusFilter',
+      label: 'Account Status',
+      type: 'pills',
+      isPrimary: true,
+      value: statusFilter,
+      onChange: setStatusFilter,
+      options: [
+        { label: 'All', value: '' },
+        { label: 'Active', value: 'active' },
+        { label: 'Inactive', value: 'inactive' },
+        { label: 'Provisioning', value: 'provisioning' },
+      ],
+    },
+  ];
+
+  // DataTable column definitions
+  const columns: Column<any>[] = [
+    {
+      key: 'organizationName',
+      header: 'Organization & Admin',
+      sortable: true,
+      render: (t) => (
+        <div className="flex items-center gap-3">
+          <SafeImage
+            src={t.avatar}
+            alt={t.name}
+            fallbackText={t.name}
+            className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-800"
+          />
+          <div>
+            <p className="font-bold text-slate-900 dark:text-white">
+              {t.organizationName || 'Campaign Office'}
+            </p>
+            <p className="text-[11px] text-slate-500">{t.name}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'email',
+      header: 'Contact Info',
+      render: (t) => (
+        <div className="flex flex-col gap-0.5 text-slate-600 dark:text-slate-300">
+          <span className="flex items-center gap-1 font-medium">
+            <Mail size={12} className="text-slate-400 shrink-0" />
+            <span className="truncate max-w-[160px]">{t.email}</span>
+          </span>
+          <span className="flex items-center gap-1 text-[11px] text-slate-400">
+            <Phone size={11} className="shrink-0" />
+            <span>{t.mobile || 'N/A'}</span>
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'tenantDbName',
+      header: 'Database Allocation',
+      render: (t) => (
+        <div className="space-y-1">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono font-bold text-[11px]">
+            <Database size={11} />
+            <span className="truncate max-w-[140px]">
+              {t.tenantDbName || 'Pending Provision'}
+            </span>
+          </span>
+          <p className="text-[10px] text-slate-400">
+            {t.totalVotersCopied ? `${t.totalVotersCopied.toLocaleString()} Voters` : '0 Voters'}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'acIds',
+      header: 'Assigned Geography',
+      render: (t) => (
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+          <Layers size={12} className="text-indigo-500" />
+          {Array.isArray(t.acIds) ? t.acIds.length : 0} Assembly ACs
+        </span>
+      ),
+    },
+    {
+      key: 'accountStatus',
+      header: 'Status',
+      render: (t) => getStatusBadge(t),
+    },
+  ];
 
   return (
     <div className="w-full space-y-6 pb-20">
@@ -250,175 +340,47 @@ export const TenantsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter and Search Toolbar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        <div className="w-full md:w-80">
-          <FormInput
-            name="searchQuery"
-            placeholder="Search by name, email, or DB..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            icon={<Search size={16} />}
-          />
-        </div>
+      {/* FilterBar (Rule — uses shared FilterBar component) */}
+      <FilterBar
+        searchPlaceholder="Search by name, email, or DB..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={filterFields}
+        onReset={() => {
+          setSearchQuery('');
+          setStatusFilter('');
+        }}
+      />
 
-        {/* Status Filter Buttons */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          <span className="text-xs font-bold text-slate-400 mr-1 flex items-center gap-1">
-            <Filter size={12} /> Status:
-          </span>
-          {[
-            { label: 'All', value: 'all' },
-            { label: 'Active', value: 'active' },
-            { label: 'Inactive', value: 'inactive' },
-            { label: 'Provisioning', value: 'provisioning' },
-          ].map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              onClick={() => setStatusFilter(item.value)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === item.value
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-                }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Tenant Table View */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-12 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-            <p className="text-xs font-medium text-slate-500">Fetching tenant accounts...</p>
-          </div>
-        ) : filteredTenants.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
-              <Users className="w-6 h-6" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
-              No Tenant Accounts Found
-            </h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              {searchQuery
-                ? 'No tenant matches your search query. Try clearing filters.'
-                : 'Click "Add Tenant Account" above to provision your first campaign tenant.'}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Organization & Admin</th>
-                  <th className="py-3.5 px-4">Contact Info</th>
-                  <th className="py-3.5 px-4">Database Allocation</th>
-                  <th className="py-3.5 px-4">Assigned Geography</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                {filteredTenants.map((t: any) => (
-                  <tr
-                    key={t.id}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
-                  >
-                    {/* Organization & Admin */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <SafeImage
-                          src={t.avatar}
-                          alt={t.name}
-                          fallbackText={t.name}
-                          className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-800"
-                        />
-                        <div>
-                          <p className="font-bold text-slate-900 dark:text-white">
-                            {t.organizationName || 'Campaign Office'}
-                          </p>
-                          <p className="text-[11px] text-slate-500">{t.name}</p>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Contact */}
-                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="flex items-center gap-1 font-medium">
-                          <Mail size={12} className="text-slate-400 shrink-0" />
-                          <span className="truncate max-w-[160px]">{t.email}</span>
-                        </span>
-                        <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                          <Phone size={11} className="shrink-0" />
-                          <span>{t.mobile || 'N/A'}</span>
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Database */}
-                    <td className="py-3.5 px-4">
-                      <div className="space-y-1">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono font-bold text-[11px]">
-                          <Database size={11} />
-                          <span className="truncate max-w-[140px]">
-                            {t.tenantDbName || 'Pending Provision'}
-                          </span>
-                        </span>
-                        <p className="text-[10px] text-slate-400">
-                          {t.totalVotersCopied ? `${t.totalVotersCopied.toLocaleString()} Voters` : '0 Voters'}
-                        </p>
-                      </div>
-                    </td>
-
-                    {/* Geography */}
-                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
-                      <div className="flex flex-col gap-1">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                          <Layers size={12} className="text-indigo-500" />
-                          <span>
-                            {Array.isArray(t.acIds) ? t.acIds.length : 0} Assembly ACs
-                          </span>
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Status */}
-                    <td className="py-3.5 px-4">
-                      {getStatusBadge(t)}
-                    </td>
-
-                    {/* Reusable TableActions Component (Rule 19) */}
-                    <td className="py-3.5 px-4 text-right">
-                      <TableActions
-                        onView={() => navigate(`/dashboard/tenants/${t.id}`)}
-                        onEdit={() => navigate(`/dashboard/tenants/${t.id}/edit`)}
-                        onDelete={() => setSelectedTenantForDelete(t)}
-                        extra={
-                          <TableActionButton
-                            variant="custom"
-                            onClick={() => handleToggleStatus(t)}
-                            icon={Power}
-                            title={t.accountStatus === 'active' ? 'Disable Tenant' : 'Enable Tenant'}
-                            className={
-                              t.accountStatus === 'active'
-                                ? 'bg-amber-50/90 text-amber-600 border border-amber-200/90 hover:bg-amber-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-amber-500/80 dark:hover:text-white'
-                                : 'bg-emerald-50/90 text-emerald-600 border border-emerald-200/90 hover:bg-emerald-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-emerald-500/80 dark:hover:text-white'
-                            }
-                          />
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* DataTable (Rule — uses shared DataTable component) */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
+        <DataTable
+          columns={columns}
+          data={filteredTenants}
+          loading={loading}
+          showHeader={false}
+          searchPlaceholder="Search tenants..."
+          actions={(t) => (
+            <TableActions
+              onView={() => navigate(`/dashboard/tenants/${t.id}`)}
+              onEdit={() => navigate(`/dashboard/tenants/${t.id}/edit`)}
+              onDelete={() => setSelectedTenantForDelete(t)}
+              extra={
+                <TableActionButton
+                  variant="custom"
+                  onClick={() => handleToggleStatus(t)}
+                  icon={Power}
+                  title={t.accountStatus === 'active' ? 'Disable Tenant' : 'Enable Tenant'}
+                  className={
+                    t.accountStatus === 'active'
+                      ? 'bg-amber-50/90 text-amber-600 border border-amber-200/90 hover:bg-amber-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-amber-500/80 dark:hover:text-white'
+                      : 'bg-emerald-50/90 text-emerald-600 border border-emerald-200/90 hover:bg-emerald-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-emerald-500/80 dark:hover:text-white'
+                  }
+                />
+              }
+            />
+          )}
+        />
       </div>
 
       {/* Confirmation Modal for Deletion */}

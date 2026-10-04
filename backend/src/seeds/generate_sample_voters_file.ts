@@ -246,13 +246,21 @@ export const generateSampleVotersExcel = async (count: number, filePath: string)
         ac.name as "acName", 
         pc.name as "pcName", 
         d.name as "districtName", 
-        s.name as "stateName"
+        s.name as "stateName",
+        COALESCE(t.name, d.name || ' Division') as "talukaName",
+        COALESCE(v.name, ac.name) as "villageName"
       FROM booths b
       JOIN assembly_constituencies ac ON b.ac_id = ac.id
       JOIN parliamentary_constituencies pc ON ac.pc_id = pc.id
       JOIN districts d ON ac.district_id = d.id
       JOIN states s ON d.state_id = s.id
-      ORDER BY b.booth_number ASC
+      LEFT JOIN LATERAL (
+        SELECT name FROM talukas WHERE district_id = d.id LIMIT 1
+      ) t ON true
+      LEFT JOIN LATERAL (
+        SELECT v.name FROM villages v JOIN talukas t2 ON v.taluka_id = t2.id WHERE t2.district_id = d.id LIMIT 1
+      ) v ON true
+      ORDER BY b.booth_number ASC, b.name ASC
     `);
 
     if (dbBooths.rows.length > 0) {
@@ -263,8 +271,8 @@ export const generateSampleVotersExcel = async (count: number, filePath: string)
         pcName: r.pcName,
         districtName: r.districtName,
         stateName: r.stateName,
-        taluka: 'Haveli',
-        village: r.acName,
+        taluka: r.talukaName,
+        village: r.villageName,
       }));
     }
 
@@ -278,15 +286,21 @@ export const generateSampleVotersExcel = async (count: number, filePath: string)
       religionsToUse = dbReligions.rows.map((r) => r.name);
     }
 
-    const dbCastes = await query(`
-      SELECT c.name as caste, COALESCE(p.name, c.name) as parent_caste 
-      FROM castes c 
+    const dbCastesWithReligion = await query(`
+      SELECT 
+        COALESCE(p.name, c.name) as caste,
+        CASE WHEN p.name IS NOT NULL THEN c.name ELSE '' END as subcaste,
+        r.name as religion
+      FROM castes c
       LEFT JOIN castes p ON c.parent_caste_id = p.id
+      JOIN religions r ON COALESCE(c.religion_id, p.religion_id) = r.id
+      ORDER BY r.name, c.name
     `);
-    if (dbCastes.rows.length > 0) {
-      castesToUse = dbCastes.rows.map((c) => ({
-        caste: c.parent_caste,
-        subcaste: c.caste !== c.parent_caste ? c.caste : `${c.caste}-Sub`,
+    if (dbCastesWithReligion.rows.length > 0) {
+      castesToUse = dbCastesWithReligion.rows.map((c) => ({
+        caste: c.caste,
+        subcaste: c.subcaste,
+        religion: c.religion,
       }));
     }
   } catch (err: any) {
@@ -339,57 +353,75 @@ export const generateSampleVotersExcel = async (count: number, filePath: string)
 
   const rows: (string | number)[][] = [headers];
 
+  // Number of voters per booth to create realistic polling stations (~100-200 voters per booth)
+  const votersPerBooth = 150;
+
   for (let i = 0; i < count; i++) {
-    const isMale = i % 2 === 0;
+    // Group into natural households (2-4 voters per household)
+    const householdIndex = Math.floor(i / 3);
+    const memberInHousehold = i % 3;
+
+    // Household-shared attributes
+    const boothIdx = Math.floor(i / votersPerBooth) % boothsToUse.length;
+    const booth = boothsToUse[boothIdx];
+    const snObj = surnames[householdIndex % surnames.length];
+    const casteItem = castesToUse[householdIndex % castesToUse.length];
+    const religion = (casteItem as any).religion || religionsToUse[householdIndex % religionsToUse.length];
+    const houseNo = `${(householdIndex % 250) + 1}/${String.fromCharCode(65 + (householdIndex % 4))}`;
+    const sectionNo = ((householdIndex % 8) + 1);
+
+    // Individual attributes within the household
+    const isMale = memberInHousehold === 0 || (memberInHousehold === 2 && i % 2 === 0);
     const fnObj = isMale
-      ? firstNamesMale[i % firstNamesMale.length]
-      : firstNamesFemale[i % firstNamesFemale.length];
+      ? firstNamesMale[(i * 7 + memberInHousehold) % firstNamesMale.length]
+      : firstNamesFemale[(i * 7 + memberInHousehold) % firstNamesFemale.length];
     const mnObj = isMale
-      ? middleNamesMale[i % middleNamesMale.length]
-      : middleNamesFemale[i % middleNamesFemale.length];
-    const snObj = surnames[i % surnames.length];
+      ? middleNamesMale[(householdIndex * 3 + memberInHousehold) % middleNamesMale.length]
+      : middleNamesFemale[(householdIndex * 3 + memberInHousehold) % middleNamesFemale.length];
 
-    const booth = boothsToUse[i % boothsToUse.length];
-    const party = partiesToUse[i % partiesToUse.length];
-    const religion = religionsToUse[i % religionsToUse.length];
-    const casteItem = castesToUse[i % castesToUse.length];
-
-    const profCategory = professionMap[i % professionMap.length];
+    const party = partiesToUse[(i * 5) % partiesToUse.length];
+    const profCategory = professionMap[(i * 3) % professionMap.length];
     const profession = profCategory.professions[i % profCategory.professions.length];
 
     // Unique EPIC format: EX000001, EX000002...
     const epicNo = `EX${String(1000001 + i).slice(1)}`;
     const gender = isMale ? 'Male' : 'Female';
 
-    // Age & Clean DOB Text String: YYYY-MM-DD
-    const age = 18 + (i % 72);
+    // Age distribution: Head (~45-75), Spouse (~40-70), Child/Young adult (~18-35)
+    let age: number;
+    if (memberInHousehold === 0) {
+      age = 45 + (householdIndex % 30);
+    } else if (memberInHousehold === 1) {
+      age = 40 + (householdIndex % 28);
+    } else {
+      age = 18 + ((householdIndex * 7) % 20);
+    }
+
     const birthYear = 2026 - age;
     const month = String((i % 12) + 1).padStart(2, '0');
     const day = String((i % 28) + 1).padStart(2, '0');
     const dob = `${birthYear}-${month}-${day}`;
 
-    // Mobile & Aadhaar
+    // Mobile & Aadhaar & PAN
     const mobileNo = `9822${String(100000 + (i % 900000)).slice(0, 6)}`;
     const email = `voter.${epicNo.toLowerCase()}@domain.com`;
     const aadhaarNo = `8745${String(10000000 + (i % 90000000)).slice(0, 8)}`;
     const panNo = `ABCDE${String(1000 + (i % 8999))}F`;
 
-    // Electoral Roll Identifiers
-    const houseNo = `${(i % 180) + 1}/${String.fromCharCode(65 + (i % 4))}`;
-    const serialNo = (i % 1100) + 1;
-    const sectionNo = (i % 8) + 1;
+    // Serial No within booth (1..votersPerBooth)
+    const serialNo = (i % votersPerBooth) + 1;
 
     const voterType = voterTypes[i % voterTypes.length];
     const status = statuses[i % statuses.length];
-    const isDead = i % 67 === 0 ? 'YES' : 'NO';
+    const isDead = i % 89 === 0 ? 'YES' : 'NO';
     const bloodGroup = bloodGroups[i % bloodGroups.length];
 
-    // Designate ~6% Family Influencers & ~3% Community Influencers
-    const isFamilyInfluencer = i % 16 === 0 ? 'YES' : 'NO';
-    const isSocialInfluencer = i % 33 === 0 ? 'YES' : 'NO';
+    // Designate head of household (~1 in 3 voters) as Family Influencer candidate (~6%)
+    const isFamilyInfluencer = memberInHousehold === 0 && householdIndex % 5 === 0 ? 'YES' : 'NO';
+    const isSocialInfluencer = memberInHousehold === 0 && householdIndex % 11 === 0 ? 'YES' : 'NO';
 
-    const taluka = booth.taluka || 'Haveli';
-    const village = booth.village || 'Kothrud';
+    const taluka = booth.taluka;
+    const village = booth.village;
     const fullAddress = `House #${houseNo}, ${village}, ${taluka}, ${booth.districtName}, ${booth.stateName}`;
     const voterAddress = `Booth #${booth.boothNo} (${booth.boothName}), Section #${sectionNo}, ${village}`;
 
@@ -448,8 +480,8 @@ export const generateSampleVotersExcel = async (count: number, filePath: string)
 if (require.main === module) {
   (async () => {
     try {
-      const target10k = path.join(__dirname, '../../sample_data/voters_10000_sample.xlsx');
-      const target1k = path.join(__dirname, '../../sample_data/voters_1000_sample.xlsx');
+      const target10k = path.join(__dirname, '../../../xlsx/voters_10000_sample.xlsx');
+      const target1k = path.join(__dirname, '../../../xlsx/voters_1000_sample.xlsx');
 
       await generateSampleVotersExcel(10000, target10k);
       await generateSampleVotersExcel(1000, target1k);

@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/redux/hooks';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { fetchSuperAdminVoterById } from '@/redux/actions/voterSuperAdmin';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ArrowLeft, Edit, UserCheck, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Edit, UserCheck, ShieldAlert, AlertTriangle, Crown, Sparkles } from 'lucide-react';
 
-// Section Components (Reused from tenant voter components)
+// Section Components
 import {
   VoterProfileDetailCard,
   VoterAffiliationDetailCard,
@@ -14,7 +15,7 @@ import {
   VoterContactKycDetailCard,
   VoterFamilyNetworkDetailCard,
   VoterSocialInfluenceDetailCard,
-} from '@/pages/tenant/voters/components';
+} from '@/components/common/voter/detail';
 
 export const SuperAdminVoterDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,25 +26,42 @@ export const SuperAdminVoterDetailPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    dispatch(fetchSuperAdminVoterById(id))
-      .then((data: any) => {
-        if (!data) {
-          setError('Voter record not found');
-        } else {
-          setVoter(data);
-        }
-      })
-      .catch((err: any) => {
-        setError(err?.message || 'Failed to fetch voter details');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [dispatch, id]);
+  useDebouncedEffect(
+    () => {
+      if (!id) return;
+      setLoading(true);
+      setError(null);
+      dispatch(fetchSuperAdminVoterById(id))
+        .then((data: any) => {
+          if (!data) {
+            setError('Voter record not found');
+          } else {
+            setVoter(data);
+          }
+        })
+        .catch((err: any) => {
+          setError(err?.message || 'Failed to fetch voter details');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    },
+    200,
+    [dispatch, id]
+  );
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400';
+      case 'INACTIVE':
+        return 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400';
+      case 'SUSPENDED':
+        return 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400';
+      default:
+        return 'bg-slate-50 dark:bg-slate-500/10 border-slate-200 dark:border-slate-500/20 text-slate-700 dark:text-slate-400';
+    }
+  };
 
   if (loading) {
     return (
@@ -76,10 +94,43 @@ export const SuperAdminVoterDetailPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
+      {/* Deceased Warning Alert Banner */}
+      {voter.isDead && (
+        <div className="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-500/40 text-rose-800 dark:text-rose-200 shadow-sm dark:shadow-xl backdrop-blur-xl">
+          <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+          <div className="text-xs">
+            <span className="font-bold text-sm block">DECEASED VOTER RECORD</span>
+            <span>This voter has been marked as deceased on the electoral roll.</span>
+          </div>
+        </div>
+      )}
+
       <PageHeader
         title={engFullName}
-        subtitle={`EPIC No: ${voter.epicNo || 'N/A'} • Booth: ${voter.boothName || 'Unassigned'}`}
+        subtitle={localFullName ? `${localFullName} • EPIC No: ${voter.epicNo || 'N/A'}` : `EPIC No: ${voter.epicNo || 'N/A'}`}
         icon={<UserCheck className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
+        badge={
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-full border font-semibold text-xs ${getStatusBadge(voter.status)}`}>
+              {voter.status || 'ACTIVE'}
+            </span>
+            <span className="px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-semibold text-xs">
+              {voter.voterType || 'Voter'}
+            </span>
+            {Number(voter.familyInfluencedCount) > 0 && (
+              <span className="px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-400 font-semibold text-xs inline-flex items-center gap-1.5">
+                <Crown className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                Family Influencer ({voter.familyInfluencedCount})
+              </span>
+            )}
+            {Number(voter.socialInfluencedCount) > 0 && (
+              <span className="px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-400 font-semibold text-xs inline-flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                Social Influencer ({voter.socialInfluencedCount})
+              </span>
+            )}
+          </div>
+        }
         actions={
           <div className="flex items-center gap-3">
             <button
@@ -104,17 +155,19 @@ export const SuperAdminVoterDetailPage: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Profile Sidebar */}
         <div className="space-y-6 lg:col-span-1">
           <VoterProfileDetailCard voter={voter} engFullName={engFullName} localFullName={localFullName} />
           <VoterAffiliationDetailCard voter={voter} />
-          <VoterContactKycDetailCard voter={voter} />
-        </div>
-
-        <div className="space-y-6 lg:col-span-2">
-          <VoterDemographicsDetailCard voter={voter} />
-          <VoterGeographyDetailCard voter={voter} />
           <VoterFamilyNetworkDetailCard voter={voter} />
           <VoterSocialInfluenceDetailCard voter={voter} />
+        </div>
+
+        {/* Right Details Grid */}
+        <div className="space-y-6 lg:col-span-2">
+          <VoterGeographyDetailCard voter={voter} />
+          <VoterDemographicsDetailCard voter={voter} />
+          <VoterContactKycDetailCard voter={voter} />
         </div>
       </div>
     </div>

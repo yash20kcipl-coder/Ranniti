@@ -1,4 +1,5 @@
 import { query } from './dbPool';
+import { CacheService } from '../services/cache.service';
 import {
   Religion,
   Caste,
@@ -16,12 +17,14 @@ import {
 export class MasterQueries {
   // --- RELIGIONS ---
   static async getReligions(): Promise<Religion[]> {
-    const res = await query(
-      `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt" 
-       FROM religions 
-       ORDER BY name ASC`
-    );
-    return res.rows;
+    return CacheService.getOrSet('ranniti:masters:religions', 604800, async () => {
+      const res = await query(
+        `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt" 
+         FROM religions 
+         ORDER BY name ASC`
+      );
+      return res.rows;
+    });
   }
 
   static async getReligionById(id: string): Promise<Religion | null> {
@@ -41,6 +44,7 @@ export class MasterQueries {
        RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [name]
     );
+    await CacheService.invalidatePattern('ranniti:masters:religions*');
     return res.rows[0];
   }
 
@@ -52,33 +56,37 @@ export class MasterQueries {
        RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:religions*');
     return res.rows[0] || null;
   }
 
   static async deleteReligion(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM religions WHERE id = $1`, [id]);
+    await CacheService.invalidatePattern('ranniti:masters:religions*');
     return (res.rowCount || 0) > 0;
   }
 
   // --- CASTES ---
   static async getCastes(): Promise<Caste[]> {
-    const res = await query(
-      `SELECT 
-        c.id, 
-        c.name, 
-        c.category, 
-        c.religion_id AS "religionId", 
-        r.name AS "religionName",
-        c.parent_caste_id AS "parentCasteId",
-        pc.name AS "parentCasteName",
-        c.created_at AS "createdAt", 
-        c.updated_at AS "updatedAt" 
-       FROM castes c 
-       LEFT JOIN religions r ON c.religion_id = r.id
-       LEFT JOIN castes pc ON c.parent_caste_id = pc.id
-       ORDER BY c.category ASC, c.name ASC`
-    );
-    return res.rows;
+    return CacheService.getOrSet('ranniti:masters:castes', 86400, async () => {
+      const res = await query(
+        `SELECT 
+          c.id, 
+          c.name, 
+          c.category, 
+          c.religion_id AS "religionId", 
+          r.name AS "religionName",
+          c.parent_caste_id AS "parentCasteId",
+          pc.name AS "parentCasteName",
+          c.created_at AS "createdAt", 
+          c.updated_at AS "updatedAt" 
+         FROM castes c 
+         LEFT JOIN religions r ON c.religion_id = r.id
+         LEFT JOIN castes pc ON c.parent_caste_id = pc.id
+         ORDER BY c.category ASC, c.name ASC`
+      );
+      return res.rows;
+    });
   }
 
   static async createCaste(name: string, category: string, religionId?: string, parentCasteId?: string): Promise<Caste> {
@@ -93,12 +101,14 @@ export class MasterQueries {
 
   // --- STATES ---
   static async getStates(): Promise<State[]> {
-    const res = await query(
-      `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt" 
-       FROM states 
-       ORDER BY name ASC`
-    );
-    return res.rows;
+    return CacheService.getOrSet('ranniti:masters:states', 604800, async () => {
+      const res = await query(
+        `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt" 
+         FROM states 
+         ORDER BY name ASC`
+      );
+      return res.rows;
+    });
   }
 
   static async createState(name: string): Promise<State> {
@@ -108,35 +118,39 @@ export class MasterQueries {
        RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [name]
     );
+    await CacheService.invalidatePattern('ranniti:masters:states*');
     return res.rows[0];
   }
 
   // --- DISTRICTS ---
   static async getDistricts(stateId?: string): Promise<District[]> {
-    const params: any[] = [];
-    let whereClause = '';
+    const key = stateId ? `ranniti:masters:districts:state:${stateId}` : 'ranniti:masters:districts';
+    return CacheService.getOrSet(key, 86400, async () => {
+      const params: any[] = [];
+      let whereClause = '';
 
-    if (stateId) {
-      params.push(stateId);
-      whereClause = 'WHERE d.state_id = $1';
-    }
+      if (stateId) {
+        params.push(stateId);
+        whereClause = 'WHERE d.state_id = $1';
+      }
 
-    const sql = `
-      SELECT 
-        d.id, 
-        d.state_id AS "stateId", 
-        s.name AS "stateName",
-        d.name, 
-        d.created_at AS "createdAt", 
-        d.updated_at AS "updatedAt" 
-      FROM districts d
-      INNER JOIN states s ON d.state_id = s.id
-      ${whereClause}
-      ORDER BY s.name ASC, d.name ASC
-    `;
+      const sql = `
+        SELECT 
+          d.id, 
+          d.state_id AS "stateId", 
+          s.name AS "stateName",
+          d.name, 
+          d.created_at AS "createdAt", 
+          d.updated_at AS "updatedAt" 
+        FROM districts d
+        INNER JOIN states s ON d.state_id = s.id
+        ${whereClause}
+        ORDER BY s.name ASC, d.name ASC
+      `;
 
-    const res = await query(sql, params);
-    return res.rows;
+      const res = await query(sql, params);
+      return res.rows;
+    });
   }
 
   static async createDistrict(stateId: string, name: string): Promise<District> {
@@ -146,45 +160,49 @@ export class MasterQueries {
        RETURNING id, state_id AS "stateId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [stateId, name]
     );
+    await CacheService.invalidatePattern('ranniti:masters:districts*');
     return res.rows[0];
   }
 
   // --- TALUKAS ---
   static async getTalukas(districtId?: string, stateId?: string): Promise<Taluka[]> {
-    const params: any[] = [];
-    const conditions: string[] = [];
+    const key = `ranniti:masters:talukas:${districtId || 'all'}:${stateId || 'all'}`;
+    return CacheService.getOrSet(key, 86400, async () => {
+      const params: any[] = [];
+      const conditions: string[] = [];
 
-    if (districtId) {
-      params.push(districtId);
-      conditions.push(`t.district_id = $${params.length}`);
-    }
+      if (districtId) {
+        params.push(districtId);
+        conditions.push(`t.district_id = $${params.length}`);
+      }
 
-    if (stateId) {
-      params.push(stateId);
-      conditions.push(`d.state_id = $${params.length}`);
-    }
+      if (stateId) {
+        params.push(stateId);
+        conditions.push(`d.state_id = $${params.length}`);
+      }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const sql = `
-      SELECT 
-        t.id, 
-        t.district_id AS "districtId", 
-        d.name AS "districtName",
-        d.state_id AS "stateId",
-        s.name AS "stateName",
-        t.name, 
-        t.created_at AS "createdAt", 
-        t.updated_at AS "updatedAt" 
-      FROM talukas t
-      INNER JOIN districts d ON t.district_id = d.id
-      INNER JOIN states s ON d.state_id = s.id
-      ${whereClause}
-      ORDER BY s.name ASC, d.name ASC, t.name ASC
-    `;
+      const sql = `
+        SELECT 
+          t.id, 
+          t.district_id AS "districtId", 
+          d.name AS "districtName",
+          d.state_id AS "stateId",
+          s.name AS "stateName",
+          t.name, 
+          t.created_at AS "createdAt", 
+          t.updated_at AS "updatedAt" 
+        FROM talukas t
+        INNER JOIN districts d ON t.district_id = d.id
+        INNER JOIN states s ON d.state_id = s.id
+        ${whereClause}
+        ORDER BY s.name ASC, d.name ASC, t.name ASC
+      `;
 
-    const res = await query(sql, params);
-    return res.rows;
+      const res = await query(sql, params);
+      return res.rows;
+    });
   }
 
   static async getTalukaById(id: string): Promise<Taluka | null> {
@@ -214,6 +232,7 @@ export class MasterQueries {
        RETURNING id, district_id AS "districtId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [districtId, name]
     );
+    await CacheService.invalidatePattern('ranniti:masters:talukas*');
     return res.rows[0];
   }
 
@@ -225,11 +244,13 @@ export class MasterQueries {
        RETURNING id, district_id AS "districtId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, districtId || null, name || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:talukas*');
     return res.rows[0] || null;
   }
 
   static async deleteTaluka(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM talukas WHERE id = $1`, [id]);
+    await CacheService.invalidatePattern('ranniti:masters:talukas*');
     return (res.rowCount || 0) > 0;
   }
 
@@ -292,7 +313,29 @@ export class MasterQueries {
   }
 
   // --- VILLAGES ---
-  static async getVillages(talukaId?: string, districtId?: string, stateId?: string): Promise<Village[]> {
+  static async getVillages(
+    filterOrTalukaId?: string | { talukaId?: string; districtId?: string; stateId?: string; search?: string; page?: number; limit?: number },
+    districtIdParam?: string,
+    stateIdParam?: string
+  ): Promise<any> {
+    let talukaId: string | undefined;
+    let districtId: string | undefined = districtIdParam;
+    let stateId: string | undefined = stateIdParam;
+    let search: string | undefined;
+    let page: number | undefined;
+    let limit: number | undefined;
+
+    if (typeof filterOrTalukaId === 'object' && filterOrTalukaId !== null) {
+      talukaId = filterOrTalukaId.talukaId;
+      districtId = filterOrTalukaId.districtId;
+      stateId = filterOrTalukaId.stateId;
+      search = filterOrTalukaId.search;
+      page = filterOrTalukaId.page;
+      limit = filterOrTalukaId.limit;
+    } else {
+      talukaId = filterOrTalukaId as string | undefined;
+    }
+
     const params: any[] = [];
     const conditions: string[] = [];
 
@@ -311,30 +354,89 @@ export class MasterQueries {
       conditions.push(`d.state_id = $${params.length}`);
     }
 
+    if (search && search.trim()) {
+      params.push(`%${search.trim()}%`);
+      conditions.push(`v.name ILIKE $${params.length}`);
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const sql = `
-      SELECT 
-        v.id, 
-        v.taluka_id AS "talukaId", 
-        t.name AS "talukaName",
-        t.district_id AS "districtId",
-        d.name AS "districtName",
-        d.state_id AS "stateId",
-        s.name AS "stateName",
-        v.name, 
-        v.created_at AS "createdAt", 
-        v.updated_at AS "updatedAt" 
-      FROM villages v
-      INNER JOIN talukas t ON v.taluka_id = t.id
-      INNER JOIN districts d ON t.district_id = d.id
-      INNER JOIN states s ON d.state_id = s.id
-      ${whereClause}
-      ORDER BY s.name ASC, d.name ASC, t.name ASC, v.name ASC
-    `;
+    if (page && limit) {
+      const pageNum = Math.max(1, Number(page) || 1);
+      const limitNum = Math.max(1, Math.min(500, Number(limit) || 25));
+      const offsetNum = (pageNum - 1) * limitNum;
 
-    const res = await query(sql, params);
-    return res.rows;
+      const countSql = `
+        SELECT COUNT(*)::int AS total
+        FROM villages v
+        INNER JOIN talukas t ON v.taluka_id = t.id
+        INNER JOIN districts d ON t.district_id = d.id
+        INNER JOIN states s ON d.state_id = s.id
+        ${whereClause}
+      `;
+      const countRes = await query(countSql, params);
+      const total = countRes.rows[0]?.total || 0;
+
+      const dataParams = [...params, limitNum, offsetNum];
+      const dataSql = `
+        SELECT 
+          v.id, 
+          v.taluka_id AS "talukaId", 
+          t.name AS "talukaName",
+          t.district_id AS "districtId",
+          d.name AS "districtName",
+          d.state_id AS "stateId",
+          s.name AS "stateName",
+          v.name, 
+          v.created_at AS "createdAt", 
+          v.updated_at AS "updatedAt" 
+        FROM villages v
+        INNER JOIN talukas t ON v.taluka_id = t.id
+        INNER JOIN districts d ON t.district_id = d.id
+        INNER JOIN states s ON d.state_id = s.id
+        ${whereClause}
+        ORDER BY s.name ASC, d.name ASC, t.name ASC, v.name ASC
+        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}
+      `;
+
+      const dataRes = await query(dataSql, dataParams);
+      return {
+        villages: dataRes.rows,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum) || 1,
+        },
+      };
+    }
+
+    // Unpaginated fallback (with Redis cache)
+    const key = `ranniti:masters:villages:${talukaId || 'all'}:${districtId || 'all'}:${stateId || 'all'}:${search || 'all'}`;
+    return CacheService.getOrSet(key, 86400, async () => {
+      const sql = `
+        SELECT 
+          v.id, 
+          v.taluka_id AS "talukaId", 
+          t.name AS "talukaName",
+          t.district_id AS "districtId",
+          d.name AS "districtName",
+          d.state_id AS "stateId",
+          s.name AS "stateName",
+          v.name, 
+          v.created_at AS "createdAt", 
+          v.updated_at AS "updatedAt" 
+        FROM villages v
+        INNER JOIN talukas t ON v.taluka_id = t.id
+        INNER JOIN districts d ON t.district_id = d.id
+        INNER JOIN states s ON d.state_id = s.id
+        ${whereClause}
+        ORDER BY s.name ASC, d.name ASC, t.name ASC, v.name ASC
+      `;
+
+      const res = await query(sql, params);
+      return res.rows;
+    });
   }
 
   static async getVillageById(id: string): Promise<Village | null> {
@@ -367,6 +469,7 @@ export class MasterQueries {
        RETURNING id, taluka_id AS "talukaId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [talukaId, name]
     );
+    await CacheService.invalidatePattern('ranniti:masters:villages*');
     return res.rows[0];
   }
 
@@ -378,41 +481,46 @@ export class MasterQueries {
        RETURNING id, taluka_id AS "talukaId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, talukaId || null, name || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:villages*');
     return res.rows[0] || null;
   }
 
   static async deleteVillage(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM villages WHERE id = $1`, [id]);
+    await CacheService.invalidatePattern('ranniti:masters:villages*');
     return (res.rowCount || 0) > 0;
   }
 
   // --- PARLIAMENTARY CONSTITUENCIES (PC) ---
   static async getPcs(stateId?: string): Promise<ParliamentaryConstituency[]> {
-    const params: any[] = [];
-    let whereClause = '';
+    const key = stateId ? `ranniti:masters:pcs:state:${stateId}` : 'ranniti:masters:pcs';
+    return CacheService.getOrSet(key, 86400, async () => {
+      const params: any[] = [];
+      let whereClause = '';
 
-    if (stateId) {
-      params.push(stateId);
-      whereClause = 'WHERE p.state_id = $1';
-    }
+      if (stateId) {
+        params.push(stateId);
+        whereClause = 'WHERE p.state_id = $1';
+      }
 
-    const sql = `
-      SELECT 
-        p.id, 
-        p.state_id AS "stateId", 
-        s.name AS "stateName",
-        p.pc_number AS "pcNumber", 
-        p.name, 
-        p.created_at AS "createdAt", 
-        p.updated_at AS "updatedAt" 
-      FROM parliamentary_constituencies p
-      INNER JOIN states s ON p.state_id = s.id
-      ${whereClause}
-      ORDER BY p.pc_number ASC
-    `;
+      const sql = `
+        SELECT 
+          p.id, 
+          p.state_id AS "stateId", 
+          s.name AS "stateName",
+          p.pc_number AS "pcNumber", 
+          p.name, 
+          p.created_at AS "createdAt", 
+          p.updated_at AS "updatedAt" 
+        FROM parliamentary_constituencies p
+        INNER JOIN states s ON p.state_id = s.id
+        ${whereClause}
+        ORDER BY p.pc_number ASC
+      `;
 
-    const res = await query(sql, params);
-    return res.rows;
+      const res = await query(sql, params);
+      return res.rows;
+    });
   }
 
   static async createPc(stateId: string, pcNumber: number, name: string): Promise<ParliamentaryConstituency> {
@@ -422,53 +530,57 @@ export class MasterQueries {
        RETURNING id, state_id AS "stateId", pc_number AS "pcNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [stateId, pcNumber, name]
     );
+    await CacheService.invalidatePattern('ranniti:masters:pcs*');
     return res.rows[0];
   }
 
   // --- ASSEMBLY CONSTITUENCIES (AC) ---
   static async getAcs(pcId?: string, districtId?: string, stateId?: string): Promise<AssemblyConstituency[]> {
-    const params: any[] = [];
-    const conditions: string[] = [];
+    const key = `ranniti:masters:acs:${pcId || 'all'}:${districtId || 'all'}:${stateId || 'all'}`;
+    return CacheService.getOrSet(key, 86400, async () => {
+      const params: any[] = [];
+      const conditions: string[] = [];
 
-    if (pcId) {
-      params.push(pcId);
-      conditions.push(`a.pc_id = $${params.length}`);
-    }
-    if (districtId) {
-      params.push(districtId);
-      conditions.push(`a.district_id = $${params.length}`);
-    }
-    if (stateId) {
-      params.push(stateId);
-      conditions.push(`(p.state_id = $${params.length} OR d.state_id = $${params.length})`);
-    }
+      if (pcId) {
+        params.push(pcId);
+        conditions.push(`a.pc_id = $${params.length}`);
+      }
+      if (districtId) {
+        params.push(districtId);
+        conditions.push(`a.district_id = $${params.length}`);
+      }
+      if (stateId) {
+        params.push(stateId);
+        conditions.push(`(p.state_id = $${params.length} OR d.state_id = $${params.length})`);
+      }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const sql = `
-      SELECT 
-        a.id, 
-        a.pc_id AS "pcId", 
-        p.name AS "pcName",
-        a.district_id AS "districtId", 
-        d.name AS "districtName",
-        COALESCE(sp.id, sd.id) AS "stateId",
-        COALESCE(sp.name, sd.name) AS "stateName",
-        a.ac_number AS "acNumber", 
-        a.name, 
-        a.created_at AS "createdAt", 
-        a.updated_at AS "updatedAt" 
-      FROM assembly_constituencies a
-      LEFT JOIN parliamentary_constituencies p ON a.pc_id = p.id
-      LEFT JOIN states sp ON p.state_id = sp.id
-      LEFT JOIN districts d ON a.district_id = d.id
-      LEFT JOIN states sd ON d.state_id = sd.id
-      ${whereClause}
-      ORDER BY a.ac_number ASC
-    `;
+      const sql = `
+        SELECT 
+          a.id, 
+          a.pc_id AS "pcId", 
+          p.name AS "pcName",
+          a.district_id AS "districtId", 
+          d.name AS "districtName",
+          COALESCE(sp.id, sd.id) AS "stateId",
+          COALESCE(sp.name, sd.name) AS "stateName",
+          a.ac_number AS "acNumber", 
+          a.name, 
+          a.created_at AS "createdAt", 
+          a.updated_at AS "updatedAt" 
+        FROM assembly_constituencies a
+        LEFT JOIN parliamentary_constituencies p ON a.pc_id = p.id
+        LEFT JOIN states sp ON p.state_id = sp.id
+        LEFT JOIN districts d ON a.district_id = d.id
+        LEFT JOIN states sd ON d.state_id = sd.id
+        ${whereClause}
+        ORDER BY a.ac_number ASC
+      `;
 
-    const res = await query(sql, params);
-    return res.rows;
+      const res = await query(sql, params);
+      return res.rows;
+    });
   }
 
   static async createAc(pcId: string, acNumber: number, name: string, districtId?: string): Promise<AssemblyConstituency> {
@@ -478,17 +590,20 @@ export class MasterQueries {
        RETURNING id, pc_id AS "pcId", district_id AS "districtId", ac_number AS "acNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [pcId, acNumber, name, districtId || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:acs*');
     return res.rows[0];
   }
 
   // --- PARTIES ---
   static async getParties(): Promise<Party[]> {
-    const res = await query(
-      `SELECT id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt" 
-       FROM parties 
-       ORDER BY name ASC`
-    );
-    return res.rows;
+    return CacheService.getOrSet('ranniti:masters:parties', 86400, async () => {
+      const res = await query(
+        `SELECT id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt" 
+         FROM parties 
+         ORDER BY name ASC`
+      );
+      return res.rows;
+    });
   }
 
   static async getPartyById(id: string): Promise<Party | null> {
@@ -507,6 +622,7 @@ export class MasterQueries {
        RETURNING id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [name, abbreviation, symbolLogo || null, alliance || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:parties*');
     return res.rows[0];
   }
 
@@ -531,13 +647,116 @@ export class MasterQueries {
   }
 
   // --- WARDS ---
-  static async getWards(acId?: string): Promise<Ward[]> {
+  static async getWards(
+    filterOrAcId?: string | { acId?: string; pcId?: string; districtId?: string; stateId?: string; search?: string; page?: number; limit?: number },
+    acIdParam?: string
+  ): Promise<any> {
+    let acId: string | undefined = acIdParam;
+    let pcId: string | undefined;
+    let districtId: string | undefined;
+    let stateId: string | undefined;
+    let search: string | undefined;
+    let page: number | undefined;
+    let limit: number | undefined;
+
+    if (typeof filterOrAcId === 'object' && filterOrAcId !== null) {
+      acId = filterOrAcId.acId || acId;
+      pcId = filterOrAcId.pcId;
+      districtId = filterOrAcId.districtId;
+      stateId = filterOrAcId.stateId;
+      search = filterOrAcId.search;
+      page = filterOrAcId.page;
+      limit = filterOrAcId.limit;
+    } else {
+      acId = (filterOrAcId as string | undefined) || acId;
+    }
+
     const params: any[] = [];
-    let whereClause = '';
+    const conditions: string[] = [];
 
     if (acId) {
       params.push(acId);
-      whereClause = `WHERE w.ac_id = $1`;
+      conditions.push(`w.ac_id = $${params.length}`);
+    }
+
+    if (pcId) {
+      params.push(pcId);
+      conditions.push(`a.pc_id = $${params.length}`);
+    }
+
+    if (districtId) {
+      params.push(districtId);
+      conditions.push(`a.district_id = $${params.length}`);
+    }
+
+    if (stateId) {
+      params.push(stateId);
+      conditions.push(`(sp.id = $${params.length} OR sd.id = $${params.length})`);
+    }
+
+    if (search && search.trim()) {
+      params.push(`%${search.trim()}%`);
+      conditions.push(`(w.name ILIKE $${params.length} OR CAST(w.ward_number AS TEXT) ILIKE $${params.length})`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    if (page && limit) {
+      const pageNum = Math.max(1, Number(page) || 1);
+      const limitNum = Math.max(1, Math.min(500, Number(limit) || 25));
+      const offsetNum = (pageNum - 1) * limitNum;
+
+      const countSql = `
+        SELECT COUNT(*)::int AS total
+        FROM wards w
+        LEFT JOIN assembly_constituencies a ON w.ac_id = a.id
+        LEFT JOIN parliamentary_constituencies p ON a.pc_id = p.id
+        LEFT JOIN states sp ON p.state_id = sp.id
+        LEFT JOIN districts d ON a.district_id = d.id
+        LEFT JOIN states sd ON d.state_id = sd.id
+        ${whereClause}
+      `;
+      const countRes = await query(countSql, params);
+      const total = countRes.rows[0]?.total || 0;
+
+      const dataParams = [...params, limitNum, offsetNum];
+      const dataSql = `
+        SELECT 
+          w.id,
+          w.ac_id AS "acId",
+          a.name AS "acName",
+          a.ac_number AS "acNumber",
+          a.pc_id AS "pcId",
+          p.name AS "pcName",
+          a.district_id AS "districtId",
+          d.name AS "districtName",
+          COALESCE(sp.id, sd.id) AS "stateId",
+          COALESCE(sp.name, sd.name) AS "stateName",
+          w.ward_number AS "wardNumber",
+          w.name,
+          w.created_at AS "createdAt",
+          w.updated_at AS "updatedAt"
+        FROM wards w
+        LEFT JOIN assembly_constituencies a ON w.ac_id = a.id
+        LEFT JOIN parliamentary_constituencies p ON a.pc_id = p.id
+        LEFT JOIN states sp ON p.state_id = sp.id
+        LEFT JOIN districts d ON a.district_id = d.id
+        LEFT JOIN states sd ON d.state_id = sd.id
+        ${whereClause}
+        ORDER BY w.ward_number ASC, w.name ASC
+        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}
+      `;
+
+      const dataRes = await query(dataSql, dataParams);
+      return {
+        wards: dataRes.rows,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum) || 1,
+        },
+      };
     }
 
     const sql = `
@@ -629,7 +848,81 @@ export class MasterQueries {
   }
 
   // --- BOOTHS ---
-  static async getBooths(acId?: string, wardId?: string): Promise<Booth[]> {
+  static async getBoothOptions(filter: {
+    acId?: string;
+    wardId?: string;
+    search?: string;
+    limit?: number;
+  }): Promise<Array<{ id: string; boothNumber: number; name: string; acId: string }>> {
+    const { acId, wardId, search, limit = 500 } = filter;
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (acId) {
+      params.push(acId);
+      conditions.push(`b.ac_id = $${params.length}`);
+    }
+
+    if (wardId) {
+      params.push(wardId);
+      conditions.push(`b.ward_id = $${params.length}`);
+    }
+
+    if (search && search.trim()) {
+      params.push(`%${search.trim()}%`);
+      conditions.push(`(b.name ILIKE $${params.length} OR CAST(b.booth_number AS TEXT) ILIKE $${params.length})`);
+    }
+
+    // Guard: Prevent full table scan across millions of booths if no scoping param was supplied
+    if (conditions.length === 0) {
+      return [];
+    }
+
+    const maxLimit = Math.min(Math.max(1, limit), 1000);
+    params.push(maxLimit);
+
+    const sql = `
+      SELECT 
+        b.id,
+        b.booth_number AS "boothNumber",
+        b.name,
+        b.ac_id AS "acId"
+      FROM booths b
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY b.booth_number ASC
+      LIMIT $${params.length}
+    `;
+
+    const res = await query(sql, params);
+    return res.rows;
+  }
+
+  static async getBooths(
+    filterOrAcId?: string | { acId?: string; wardId?: string; pcId?: string; districtId?: string; stateId?: string; search?: string; page?: number; limit?: number },
+    wardIdParam?: string
+  ): Promise<any> {
+    let acId: string | undefined;
+    let wardId: string | undefined = wardIdParam;
+    let pcId: string | undefined;
+    let districtId: string | undefined;
+    let stateId: string | undefined;
+    let search: string | undefined;
+    let page: number | undefined;
+    let limit: number | undefined;
+
+    if (typeof filterOrAcId === 'object' && filterOrAcId !== null) {
+      acId = filterOrAcId.acId;
+      wardId = filterOrAcId.wardId;
+      pcId = filterOrAcId.pcId;
+      districtId = filterOrAcId.districtId;
+      stateId = filterOrAcId.stateId;
+      search = filterOrAcId.search;
+      page = filterOrAcId.page;
+      limit = filterOrAcId.limit;
+    } else {
+      acId = filterOrAcId as string | undefined;
+    }
+
     const params: any[] = [];
     const conditions: string[] = [];
 
@@ -643,8 +936,94 @@ export class MasterQueries {
       conditions.push(`b.ward_id = $${params.length}`);
     }
 
+    if (pcId) {
+      params.push(pcId);
+      conditions.push(`a.pc_id = $${params.length}`);
+    }
+
+    if (districtId) {
+      params.push(districtId);
+      conditions.push(`a.district_id = $${params.length}`);
+    }
+
+    if (stateId) {
+      params.push(stateId);
+      conditions.push(`(sp.id = $${params.length} OR sd.id = $${params.length})`);
+    }
+
+    if (search && search.trim()) {
+      params.push(`%${search.trim()}%`);
+      conditions.push(`(b.name ILIKE $${params.length} OR b.location_building ILIKE $${params.length} OR CAST(b.booth_number AS TEXT) ILIKE $${params.length})`);
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    if (page && limit) {
+      const pageNum = Math.max(1, Number(page) || 1);
+      const limitNum = Math.max(1, Math.min(500, Number(limit) || 25));
+      const offsetNum = (pageNum - 1) * limitNum;
+
+      const countSql = `
+        SELECT COUNT(*)::int AS total
+        FROM booths b
+        LEFT JOIN assembly_constituencies a ON b.ac_id = a.id
+        LEFT JOIN parliamentary_constituencies p ON a.pc_id = p.id
+        LEFT JOIN states sp ON p.state_id = sp.id
+        LEFT JOIN districts d ON a.district_id = d.id
+        LEFT JOIN states sd ON d.state_id = sd.id
+        LEFT JOIN wards w ON b.ward_id = w.id
+        ${whereClause}
+      `;
+      const countRes = await query(countSql, params);
+      const total = countRes.rows[0]?.total || 0;
+
+      const dataParams = [...params, limitNum, offsetNum];
+      const dataSql = `
+        SELECT 
+          b.id, 
+          b.ac_id AS "acId", 
+          a.name AS "acName",
+          a.ac_number AS "acNumber",
+          a.pc_id AS "pcId",
+          p.name AS "pcName",
+          a.district_id AS "districtId",
+          d.name AS "districtName",
+          COALESCE(sp.id, sd.id) AS "stateId",
+          COALESCE(sp.name, sd.name) AS "stateName",
+          b.ward_id AS "wardId",
+          w.name AS "wardName",
+          w.ward_number AS "wardNumber",
+          b.booth_number AS "boothNumber", 
+          b.name, 
+          b.location_building AS "locationBuilding", 
+          b.total_voters AS "totalVoters", 
+          b.created_at AS "createdAt", 
+          b.updated_at AS "updatedAt" 
+        FROM booths b
+        LEFT JOIN assembly_constituencies a ON b.ac_id = a.id
+        LEFT JOIN parliamentary_constituencies p ON a.pc_id = p.id
+        LEFT JOIN states sp ON p.state_id = sp.id
+        LEFT JOIN districts d ON a.district_id = d.id
+        LEFT JOIN states sd ON d.state_id = sd.id
+        LEFT JOIN wards w ON b.ward_id = w.id
+        ${whereClause}
+        ORDER BY b.booth_number ASC
+        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}
+      `;
+
+      const dataRes = await query(dataSql, dataParams);
+      return {
+        booths: dataRes.rows,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum) || 1,
+        },
+      };
+    }
+
+    // Unpaginated fallback
     const sql = `
       SELECT 
         b.id, 

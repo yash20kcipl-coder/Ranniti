@@ -33,7 +33,7 @@ type SettingsTabKey = 'tenant-roles' | 'whatsapp-templates' | 'whatsapp-config' 
 
 export const SuperAdminSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { settings, saving, whatsappTemplates = [] } = useAppSelector((state) => state.settings || {});
+  const { settings, saving, whatsappTemplates = [] } = useAppSelector((state) => state.settings);
 
   const [isTestWhatsAppOpen, setIsTestWhatsAppOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTabKey>('tenant-roles');
@@ -152,10 +152,10 @@ export const SuperAdminSettingsPage: React.FC = () => {
       </div>
 
       {/* Reusable Tab Navigation Header & Active Views */}
-      <TabContainer
+      <TabContainer<SettingsTabKey>
         tabs={navTabs}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tabId) => setActiveTab(tabId)}
         views={{
           'tenant-roles': <TenantRoleManager />,
           'whatsapp-templates': (

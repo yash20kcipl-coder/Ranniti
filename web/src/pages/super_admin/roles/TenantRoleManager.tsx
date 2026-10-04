@@ -11,7 +11,6 @@ import {
   fetchTenantRolePackages,
   saveTenantRolePackage,
   deleteTenantRolePackage,
-  setDefaultTenantRolePackage,
 } from '@/redux/actions/role';
 import { fetchTenantUsers, updateTenantUser } from '@/redux/actions/tenant';
 import type { TenantRolePackage } from '@/redux/reducers/role';
@@ -71,8 +70,8 @@ const TAB_LABEL_MAP: Record<string, string> = {
 
 export const TenantRoleManager: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { tenants = [] } = useAppSelector((state) => state.tenant || {});
-  const { tenantRoles = [] } = useAppSelector((state) => state.role || {});
+  const { tenants = [] } = useAppSelector((state) => state.tenant);
+  const { tenantRoles = [] } = useAppSelector((state) => state.role);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -9,8 +9,8 @@ import {
   exportSuperAdminVotersData,
   fetchSuperAdminInfluencerOptions,
 } from '@/redux/actions/voterSuperAdmin';
-import { setVoterFilters } from '@/redux/actions/voter';
 import { useMasterData } from '@/hooks/useMasterData';
+import { setVoterFilters } from '@/redux/actions/voter';
 import { initialVoterFilters } from '@/redux/reducers/voter';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
@@ -19,9 +19,10 @@ import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { FilterBar } from '@/components/common/FilterBar';
 import { DataTable } from '@/components/common/DataTable';
 import { PageHeader } from '@/components/common/PageHeader';
+import { fetchSuperAdminBoothOptions, setVoterBoothOptions } from '@/redux/actions/voter';
 import type { FamilyInfluencerTarget, SocialInfluencerTarget } from '@/components/common/influencer';
 
-// Screen Subcomponents & Utilities (reused from tenant/voters/components)
+// Screen Subcomponents & Utilities
 import {
   buildVoterFilterFields,
   buildVoterFilterPresets,
@@ -29,13 +30,22 @@ import {
   VoterStatsCards,
   VoterRowActions,
   VoterModals,
-} from '@/pages/tenant/voters/components';
+} from '@/components/common/voter/list';
 
 export const SuperAdminVotersPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { voters, loading, stats, pagination, filters: savedFilters, initialized } = useAppSelector((state) => state.voter);
-  const masterData = useMasterData(['states', 'districts', 'pcs', 'acs', 'booths', 'religions', 'castes', 'parties']);
+  const {
+    voters,
+    loading,
+    stats,
+    pagination,
+    filters: savedFilters,
+    initialized,
+    boothOptions,
+    isBoothOptionsLoading,
+  } = useAppSelector((state) => state.voter);
+  const masterData = useMasterData(['states', 'districts', 'pcs', 'acs', 'religions', 'castes', 'parties']);
 
   // Pagination State
   const [page, setPage] = useState<number>(() => savedFilters?.page || 1);
@@ -82,28 +92,54 @@ export const SuperAdminVotersPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  // Load influencer dropdown options debounced
-  useDebouncedEffect(
-    () => {
-      if (!boothId) {
-        setFamilyInfluencers([]);
-        setSocialInfluencers([]);
-        if (familyInfluencerId) setFamilyInfluencerId('');
-        if (socialInfluencerId) setSocialInfluencerId('');
-        return;
-      }
+  // Direct AC change handler for filter component
+  const handleAcChange = (newAcId: string) => {
+    setAcId(newAcId);
+    setBoothId('');
+    setFamilyInfluencers([]);
+    setSocialInfluencers([]);
+    if (familyInfluencerId) setFamilyInfluencerId('');
+    if (socialInfluencerId) setSocialInfluencerId('');
+    if (newAcId) {
+      dispatch(fetchSuperAdminBoothOptions({ acId: newAcId }));
+    } else {
+      dispatch(setVoterBoothOptions([]));
+    }
+  };
 
+  // Direct Booth change handler for filter component
+  const handleBoothChange = (newBoothId: string) => {
+    setBoothId(newBoothId);
+    if (familyInfluencerId) setFamilyInfluencerId('');
+    if (socialInfluencerId) setSocialInfluencerId('');
+    if (newBoothId) {
+      dispatch(fetchSuperAdminInfluencerOptions({ boothId: newBoothId, type: 'family' }))
+        .then((options: any[]) => setFamilyInfluencers(options || []))
+        .catch(() => { });
+
+      dispatch(fetchSuperAdminInfluencerOptions({ boothId: newBoothId, type: 'social' }))
+        .then((options: any[]) => setSocialInfluencers(options || []))
+        .catch(() => { });
+    } else {
+      setFamilyInfluencers([]);
+      setSocialInfluencers([]);
+    }
+  };
+
+  // Recover options on initial mount / back navigation if acId or boothId is saved in Redux
+  React.useEffect(() => {
+    if (acId && (!boothOptions || boothOptions.length === 0)) {
+      dispatch(fetchSuperAdminBoothOptions({ acId }));
+    }
+    if (boothId) {
       dispatch(fetchSuperAdminInfluencerOptions({ boothId, type: 'family' }))
         .then((options: any[]) => setFamilyInfluencers(options || []))
-        .catch(() => {});
-
+        .catch(() => { });
       dispatch(fetchSuperAdminInfluencerOptions({ boothId, type: 'social' }))
         .then((options: any[]) => setSocialInfluencers(options || []))
-        .catch(() => {});
-    },
-    200,
-    [dispatch, boothId]
-  );
+        .catch(() => { });
+    }
+  }, []);
 
   const prevFilterDepsRef = React.useRef({
     search, stateId, districtId, pcId, acId, boothId, gender, voterType,
@@ -182,7 +218,7 @@ export const SuperAdminVotersPage: React.FC = () => {
     try {
       await dispatch(deleteSuperAdminVoterItem(selectedVoter.id, getCurrentFilterParams()));
       setIsDeleteModalOpen(false);
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const handleBulkImport = async (records: Record<string, any>[]) => {
@@ -205,21 +241,44 @@ export const SuperAdminVotersPage: React.FC = () => {
     setGender(''); setVoterType(''); setStatus(''); setIsDead(''); setPartyId(''); setReligionId('');
     setCasteId(''); setAgeGroup(''); setFamilyInfluencerId(''); setSocialInfluencerId('');
     setIsFamilyInfluencer(''); setIsSocialInfluencer(''); setInfluencerStatus(''); setInfluencerRole('');
+    setFamilyInfluencers([]);
+    setSocialInfluencers([]);
+    dispatch(setVoterBoothOptions([]));
     setPage(1);
     dispatch(setVoterFilters(initialVoterFilters));
   };
 
+  const filterParams: Record<string, string> = {
+    stateId, districtId, pcId, acId, boothId,
+    gender, ageGroup, religionId, casteId,
+    status, isDead, voterType, partyId,
+    familyInfluencerId, socialInfluencerId,
+    isFamilyInfluencer, isSocialInfluencer,
+    influencerRole, influencerStatus,
+  };
+
+  const filterSetters: Record<string, React.Dispatch<React.SetStateAction<string>>> = {
+    stateId: setStateId, districtId: setDistrictId, pcId: setPcId, acId: setAcId, boothId: setBoothId,
+    gender: setGender, ageGroup: setAgeGroup, religionId: setReligionId, casteId: setCasteId,
+    status: setStatus, isDead: setIsDead, voterType: setVoterType, partyId: setPartyId,
+    familyInfluencerId: setFamilyInfluencerId, socialInfluencerId: setSocialInfluencerId,
+    isFamilyInfluencer: setIsFamilyInfluencer, isSocialInfluencer: setIsSocialInfluencer,
+    influencerRole: setInfluencerRole, influencerStatus: setInfluencerStatus,
+  };
+
+  const setFilter = (key: string, val: string) => filterSetters[key]?.(val);
+
   const filterStateBundle = {
-    stateId, setStateId, districtId, setDistrictId, pcId, setPcId, acId, setAcId, boothId, setBoothId,
-    gender, setGender, ageGroup, setAgeGroup, religionId, setReligionId, casteId, setCasteId,
-    status, setStatus, isDead, setIsDead, voterType, setVoterType, partyId, setPartyId,
-    familyInfluencerId, setFamilyInfluencerId, socialInfluencerId, setSocialInfluencerId,
-    isFamilyInfluencer, setIsFamilyInfluencer, isSocialInfluencer, setIsSocialInfluencer,
-    influencerRole, setInfluencerRole, influencerStatus, setInfluencerStatus,
+    filterParams,
+    setFilter,
+    onAcChange: handleAcChange,
+    onBoothChange: handleBoothChange,
   };
 
   const filterMasterBundle = {
     ...masterData,
+    booths: boothOptions,
+    isBoothsLoading: isBoothOptionsLoading,
     familyInfluencers,
     socialInfluencers,
   };
@@ -323,6 +382,7 @@ export const SuperAdminVotersPage: React.FC = () => {
         setLinkTargetVoterIds={setLinkTargetVoterIds}
         linkInfluencerType={linkInfluencerType}
         onInfluencerSuccess={handleInfluencerSuccess}
+        sampleParams={{ acId: filterParams.acId, boothId: filterParams.boothId }}
       />
     </div>
   );

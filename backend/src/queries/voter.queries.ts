@@ -1,7 +1,21 @@
 import { query, dbPool } from './dbPool';
 import { logger } from '../utils/logger';
-import { FamilyMappingService } from '../services/familyMapping.service';
+import { getTenantDbPool } from '../utils/tenantDbProvisioner';
+import { MasterAutoSyncService } from '../services/sync/masterAutoSync.service';
+import { FamilyMappingService } from '../services/tenant/familyMapping.service';
 import { Voter, VoterFilterParams, VoterStats, InfluencerOption, FamilyCandidateParams, SocialCandidateParams } from '../models/voter.model';
+
+async function executeVoterQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
+  if (tenantDbName && tenantDbName.trim()) {
+    const pool = getTenantDbPool(tenantDbName.trim());
+    try {
+      return await pool.query(sqlStr, queryValues);
+    } finally {
+      await pool.end();
+    }
+  }
+  return await query(sqlStr, queryValues);
+}
 
 export class VoterQueries {
   static async getVoters(params: VoterFilterParams): Promise<{
@@ -37,6 +51,10 @@ export class VoterQueries {
     if (params.acId) {
       conditions.push(`v.ac_id = $${paramIndex}`);
       values.push(params.acId);
+      paramIndex++;
+    } else if (params.acIds && params.acIds.length > 0) {
+      conditions.push(`v.ac_id = ANY($${paramIndex}::uuid[])`);
+      values.push(params.acIds);
       paramIndex++;
     }
 
@@ -263,8 +281,8 @@ export class VoterQueries {
     `;
 
     const [countRes, dataRes] = await Promise.all([
-      query(countSql, values),
-      query(dataSql, [...values, limit, offset]),
+      executeVoterQuery(countSql, values, params.tenantDbName),
+      executeVoterQuery(dataSql, [...values, limit, offset], params.tenantDbName),
     ]);
 
     const total = countRes.rows[0]?.total || 0;
@@ -278,8 +296,8 @@ export class VoterQueries {
     };
   }
 
-  static async getVoterById(id: string): Promise<Voter | null> {
-    const res = await query(
+  static async getVoterById(id: string, tenantDbName?: string | null): Promise<Voter | null> {
+    const res = await executeVoterQuery(
       `SELECT 
         v.id,
         v.epic_no AS "epicNo",
@@ -364,13 +382,14 @@ export class VoterQueries {
         SELECT COUNT(*)::int AS cnt FROM voters sv WHERE sv.social_influencer_id = v.id
       ) sic ON true
       WHERE v.id = $1`,
-      [id]
+      [id],
+      tenantDbName
     );
     return res.rows[0] || null;
   }
 
-  static async createVoter(data: Partial<Voter>): Promise<Voter> {
-    const res = await query(
+  static async createVoter(data: Partial<Voter>, tenantDbName?: string | null): Promise<Voter> {
+    const res = await executeVoterQuery(
       `INSERT INTO voters (
         epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
         first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname,
@@ -439,10 +458,34 @@ export class VoterQueries {
         data.isFamilyInfluencer || false,
         data.isSocialInfluencer || false,
         data.familyId || null,
-      ]
+      ],
+      tenantDbName
     );
 
-    return res.rows[0];
+    const created = res.rows[0];
+    if (created && tenantDbName && tenantDbName.trim()) {
+      const tenantPool = getTenantDbPool(tenantDbName.trim());
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'voter', created.id, 'CREATE', {
+        ...created,
+        stateId: data.stateId,
+        districtId: data.districtId,
+        pcId: data.pcId,
+        acId: data.acId,
+        boothId: data.boothId,
+        partyId: data.partyId,
+        religionId: data.religionId,
+        casteId: data.casteId,
+        subcasteName: data.subcasteName,
+        taluka: data.taluka,
+        village: data.village,
+        fullAddress: data.fullAddress,
+        voterAddress: data.voterAddress,
+      }).catch((err) => {
+        logger.error(`[VoterQueries] AutoSync error for voter create '${created.id}':`, err);
+      });
+    }
+
+    return created;
   }
 
   /**
@@ -450,7 +493,7 @@ export class VoterQueries {
    * Chunks queries in batches of 300 (safely below PostgreSQL's 65,535 parameter limit).
    * Falls back to single-row inserts for any failed chunk so valid records are never dropped.
    */
-  static async createVotersBatch(votersList: Partial<Voter>[]): Promise<{ inserted: number; errors: number }> {
+  static async createVotersBatch(votersList: Partial<Voter>[], tenantDbName?: string | null): Promise<{ inserted: number; errors: number }> {
     if (!votersList || votersList.length === 0) {
       return { inserted: 0, errors: 0 };
     }
@@ -572,13 +615,23 @@ export class VoterQueries {
       `;
 
       try {
-        const res = await query(sql, valuesParams);
+        const res = await executeVoterQuery(sql, valuesParams, tenantDbName);
         totalInserted += res.rowCount || res.rows.length;
+
+        // Auto-sync successfully inserted batch chunk from Tenant to Master DB
+        if (tenantDbName && chunk.length > 0) {
+          const { TenantPoolManager } = await import('../services/pool/tenantPoolManager');
+          const tenantPool = TenantPoolManager.getPool(tenantDbName);
+          MasterAutoSyncService.syncVotersBatchToMaster(tenantPool, chunk)
+            .catch((syncErr) => {
+              logger.error(`[VoterQueries.createVotersBatch] Master batch sync error:`, syncErr);
+            });
+        }
       } catch (chunkErr: any) {
         logger.warn(`[VoterQueries.createVotersBatch] Chunk insert failed (${chunkErr.message}), falling back to single-row inserts...`);
         for (const singleVoter of chunk) {
           try {
-            await VoterQueries.createVoter(singleVoter);
+            await VoterQueries.createVoter(singleVoter, tenantDbName);
             totalInserted++;
           } catch (singleErr: any) {
             totalErrors++;
@@ -591,8 +644,8 @@ export class VoterQueries {
     return { inserted: totalInserted, errors: totalErrors };
   }
 
-  static async updateVoter(id: string, data: Partial<Voter>): Promise<Voter | null> {
-    const res = await query(
+  static async updateVoter(id: string, data: Partial<Voter>, tenantDbName?: string | null): Promise<Voter | null> {
+    const res = await executeVoterQuery(
       `UPDATE voters SET
         epic_no = COALESCE($2, epic_no),
         state_id = COALESCE($3, state_id),
@@ -694,26 +747,37 @@ export class VoterQueries {
         data.familyInfluencerId !== undefined,
         data.socialInfluencerId !== undefined,
         data.partyId !== undefined,
-      ]
+      ],
+      tenantDbName
     );
 
     if (!res.rows[0]) return null;
 
     if (data.isFamilyInfluencer === false) {
-      await query(`UPDATE voters SET family_influencer_id = NULL WHERE family_influencer_id = $1`, [id]);
+      await executeVoterQuery(`UPDATE voters SET family_influencer_id = NULL WHERE family_influencer_id = $1`, [id], tenantDbName);
     }
     if (data.isSocialInfluencer === false) {
-      await query(`UPDATE voters SET social_influencer_id = NULL WHERE social_influencer_id = $1`, [id]);
+      await executeVoterQuery(`UPDATE voters SET social_influencer_id = NULL WHERE social_influencer_id = $1`, [id], tenantDbName);
     }
 
-    return this.getVoterById(id);
+    const updatedVoter = await this.getVoterById(id, tenantDbName);
+
+    if (updatedVoter && tenantDbName && tenantDbName.trim()) {
+      const tenantPool = getTenantDbPool(tenantDbName.trim());
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'voter', id, 'UPDATE', updatedVoter).catch((err) => {
+        logger.error(`[VoterQueries] AutoSync error for voter update '${id}':`, err);
+      });
+    }
+
+    return updatedVoter;
   }
 
   static async getInfluencerOptions(
     search?: string,
     boothId?: string,
     excludeId?: string,
-    type?: string
+    type?: string,
+    tenantDbName?: string | null
   ): Promise<InfluencerOption[]> {
     const conditions: string[] = [];
     const values: any[] = [];
@@ -769,36 +833,40 @@ export class VoterQueries {
       LIMIT 50
     `;
 
-    const res = await query(sql, values);
+    const res = await executeVoterQuery(sql, values, tenantDbName);
     return res.rows;
   }
 
   static async bulkAssignInfluencer(
     influencerId: string | null,
     influencerType: 'family' | 'social',
-    voterIds: string[]
+    voterIds: string[],
+    tenantDbName?: string | null
   ): Promise<number> {
     if (!voterIds || voterIds.length === 0) return 0;
 
     if (influencerType === 'social') {
-      const res = await query(
+      const res = await executeVoterQuery(
         `UPDATE voters 
          SET social_influencer_id = $1, updated_at = NOW() 
          WHERE id = ANY($2::uuid[])`,
-        [influencerId, voterIds]
+        [influencerId, voterIds],
+        tenantDbName
       );
 
       if (influencerId) {
-        await query(
+        await executeVoterQuery(
           `UPDATE voters SET is_social_influencer = TRUE, updated_at = NOW() WHERE id = $1`,
-          [influencerId]
+          [influencerId],
+          tenantDbName
         );
       }
       return res.rowCount || 0;
     }
 
     // --- Family Influencer Assignment ---
-    const client = await dbPool.connect();
+    const pool = tenantDbName && tenantDbName.trim() ? getTenantDbPool(tenantDbName.trim()) : dbPool;
+    const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
@@ -880,12 +948,22 @@ export class VoterQueries {
       throw err;
     } finally {
       client.release();
+      if (tenantDbName && tenantDbName.trim()) {
+        await pool.end();
+      }
     }
   }
 
-  static async deleteVoter(id: string): Promise<boolean> {
-    const res = await query(`DELETE FROM voters WHERE id = $1`, [id]);
-    return (res.rowCount || 0) > 0;
+  static async deleteVoter(id: string, tenantDbName?: string | null): Promise<boolean> {
+    const res = await executeVoterQuery(`DELETE FROM voters WHERE id = $1`, [id], tenantDbName);
+    const deleted = (res.rowCount || 0) > 0;
+    if (deleted && tenantDbName && tenantDbName.trim()) {
+      const tenantPool = getTenantDbPool(tenantDbName.trim());
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'voter', id, 'DELETE', { id }).catch((err) => {
+        logger.error(`[VoterQueries] AutoSync error for voter delete '${id}':`, err);
+      });
+    }
+    return deleted;
   }
 
   static async getVoterStats(params: Partial<VoterFilterParams>): Promise<VoterStats> {
@@ -951,7 +1029,7 @@ export class VoterQueries {
       FROM filtered_voters;
     `;
 
-    const res = await query(sql, values);
+    const res = await executeVoterQuery(sql, values, params.tenantDbName);
     const stats = res.rows[0] || {
       totalVoters: 0,
       maleVoters: 0,
@@ -1126,7 +1204,7 @@ export class VoterQueries {
       LEFT JOIN booths b ON v.booth_id = b.id
       WHERE v.id = $1
     `;
-    const infRes = await query(influencerSql, [params.influencerId]);
+    const infRes = await executeVoterQuery(influencerSql, [params.influencerId], params.tenantDbName);
     const influencer = infRes.rows[0] || null;
 
     const influencerHouseNo = influencer?.houseNo ? String(influencer.houseNo).trim() : null;
@@ -1203,7 +1281,7 @@ export class VoterQueries {
 
     // 3. Count total
     const countSql = `SELECT COUNT(*)::int AS total FROM voters v ${whereClause}`;
-    const countRes = await query(countSql, values);
+    const countRes = await executeVoterQuery(countSql, values, params.tenantDbName);
     const total = countRes.rows[0]?.total || 0;
     const totalPages = Math.ceil(total / limit) || 1;
 
@@ -1258,7 +1336,7 @@ export class VoterQueries {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    const dataRes = await query(dataSql, [...values, limit, offset]);
+    const dataRes = await executeVoterQuery(dataSql, [...values, limit, offset], params.tenantDbName);
 
     return {
       data: dataRes.rows,
@@ -1300,7 +1378,7 @@ export class VoterQueries {
       LEFT JOIN booths b ON v.booth_id = b.id
       WHERE v.id = $1
     `;
-    const infRes = await query(influencerSql, [params.influencerId]);
+    const infRes = await executeVoterQuery(influencerSql, [params.influencerId], params.tenantDbName);
     const influencer = infRes.rows[0] || null;
 
     const activeBoothId = params.boothId || influencer?.boothId || null;
@@ -1358,7 +1436,7 @@ export class VoterQueries {
 
     // 3. Count total
     const countSql = `SELECT COUNT(*)::int AS total FROM voters v ${whereClause}`;
-    const countRes = await query(countSql, values);
+    const countRes = await executeVoterQuery(countSql, values, params.tenantDbName);
     const total = countRes.rows[0]?.total || 0;
     const totalPages = Math.ceil(total / limit) || 1;
 
@@ -1405,7 +1483,7 @@ export class VoterQueries {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    const dataRes = await query(dataSql, [...values, limit, offset]);
+    const dataRes = await executeVoterQuery(dataSql, [...values, limit, offset], params.tenantDbName);
 
     return {
       data: dataRes.rows,

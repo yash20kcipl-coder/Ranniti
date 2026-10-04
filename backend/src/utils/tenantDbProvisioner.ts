@@ -3,6 +3,7 @@ import path from 'path';
 import { Pool } from 'pg';
 import { config } from '../config';
 import { logger } from './logger';
+import { DataSourceTracker } from './dataSourceTracker';
 import { dbPool, query as mainQuery } from '../queries/dbPool';
 
 /**
@@ -12,25 +13,40 @@ import { dbPool, query as mainQuery } from '../queries/dbPool';
 export const getTenantDbPool = (tenantDbName: string): Pool => {
   const baseConfig = config.dbHost && config.dbName
     ? {
-        host: config.dbHost,
-        port: config.dbPort,
-        user: config.dbUser,
-        password: config.dbPassword,
-        database: tenantDbName,
-      }
+      host: config.dbHost,
+      port: config.dbPort,
+      user: config.dbUser,
+      password: config.dbPassword,
+      database: tenantDbName,
+    }
     : {
-        connectionString: (config.databaseUrl || 'postgres://postgres:postgres@localhost:5432/ranniti_db').replace(
-          /\/[^/]+$/,
-          `/${tenantDbName}`
-        ),
-      };
+      connectionString: (config.databaseUrl || 'postgres://postgres:postgres@localhost:5432/ranniti_db').replace(
+        /\/[^/]+$/,
+        `/${tenantDbName}`
+      ),
+    };
 
-  return new Pool({
+  const pool = new Pool({
     ...baseConfig,
     max: 10,
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 5000,
   });
+
+  // Instrument pool.query and pool.connect for transparent Tenant DB tracking
+  const origQuery = pool.query.bind(pool);
+  pool.query = (async (...args: any[]) => {
+    DataSourceTracker.record(`Tenant DB (${tenantDbName})`);
+    return (origQuery as any)(...args);
+  }) as any;
+
+  const origConnect = pool.connect.bind(pool);
+  pool.connect = (async (...args: any[]) => {
+    DataSourceTracker.record(`Tenant DB (${tenantDbName})`);
+    return (origConnect as any)(...args);
+  }) as any;
+
+  return pool;
 };
 
 /**
@@ -74,6 +90,9 @@ export class TenantDbProvisioner {
       const migrationFiles = [
         'create_master_tables.sql',
         'create_voters_table.sql',
+        'create_campaign_settings_tables.sql',
+        'create_tenant_user_roles_table.sql',
+        'add_can_create_roles_to_tenant_user_roles.sql',
       ];
 
       const migrationsDir = path.join(__dirname, '../database/migrations');
@@ -85,6 +104,21 @@ export class TenantDbProvisioner {
           await tenantPool.query(sql);
           logger.info(`[TenantProvisioner] Executed migration '${fileName}' on '${tenantDbName}'`);
         }
+      }
+
+      // Seed default tenant user roles if empty
+      const roleCountRes = await tenantPool.query(`SELECT COUNT(*) as count FROM tenant_user_roles`);
+      if (parseInt(roleCountRes.rows[0]?.count || '0', 10) === 0) {
+        await tenantPool.query(`
+          INSERT INTO tenant_user_roles (role_name, role_key, description, accessible_tabs, voter_permissions, can_create_roles, is_system_default)
+          VALUES
+            ('PC Leader', 'pc_leader', 'Parliamentary Constituency Campaign Lead', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["ac_leader","sub_leader","supporter"]'::jsonb, true),
+            ('AC Leader', 'ac_leader', 'Assembly Constituency Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["sub_leader","supporter"]'::jsonb, true),
+            ('Sub-Leader / Ward Coordinator', 'sub_leader', 'Ward & Prabhag Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":true,"canExportData":false}'::jsonb, '["supporter"]'::jsonb, true),
+            ('Campaign Supporter / Volunteer', 'supporter', 'Booth Level Field Worker', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":false,"canExportData":false}'::jsonb, '[]'::jsonb, true)
+          ON CONFLICT DO NOTHING;
+        `);
+        logger.info(`[TenantProvisioner] Seeded default system roles for '${tenantDbName}'`);
       }
 
       // Ensure tenant_sync_outbox table exists

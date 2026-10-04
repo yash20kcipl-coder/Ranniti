@@ -106,7 +106,7 @@ export const seedAdminUsers = async (): Promise<void> => {
  * Provisions dedicated PostgreSQL databases and copies voter datasets for all seeded tenant admins.
  */
 export const seedTenantDatabases = async (): Promise<void> => {
-  const { tenantProvisioningService } = await import('../../services/tenantProvisioning.service');
+  const { tenantProvisioningService } = await import('../../services/superAdmin/tenantProvisioning.service');
   logger.info('==========================================');
   logger.info('📦 Seeding Tenant Databases & Transferring Voters...');
   logger.info('==========================================');

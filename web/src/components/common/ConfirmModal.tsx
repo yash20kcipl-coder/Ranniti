@@ -10,11 +10,14 @@ export interface ConfirmModalProps {
   onConfirm: () => void | Promise<void>;
   title?: string;
   description?: string;
+  message?: string;
   itemName?: string;
   confirmText?: string;
   cancelText?: string;
   variant?: ConfirmVariant;
+  confirmVariant?: ConfirmVariant;
   isLoading?: boolean;
+  loading?: boolean;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -22,13 +25,20 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onClose,
   onConfirm,
   title = 'Are you sure?',
-  description = 'This action cannot be undone.',
+  description,
+  message,
   itemName,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  variant = 'danger',
-  isLoading = false,
+  variant,
+  confirmVariant,
+  isLoading,
+  loading,
 }) => {
+  const actualDescription = description || message || 'This action cannot be undone.';
+  const actualVariant = variant || confirmVariant || 'danger';
+  const actualIsLoading = isLoading ?? loading ?? false;
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -36,7 +46,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     document.body.style.overflow = 'hidden';
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isLoading) {
+      if (e.key === 'Escape' && !actualIsLoading) {
         onClose();
       }
     };
@@ -47,12 +57,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, isLoading, onClose]);
+  }, [isOpen, actualIsLoading, onClose]);
 
   if (!isOpen) return null;
 
   const getVariantStyles = () => {
-    switch (variant) {
+    switch (actualVariant) {
       case 'danger':
         return {
           iconBg: 'bg-red-500/10 text-red-500 border-red-500/20',
@@ -86,7 +96,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn"
       onClick={(e) => {
-        if (!isLoading && e.target === e.currentTarget) {
+        if (!actualIsLoading && e.target === e.currentTarget) {
           onClose();
         }
       }}
@@ -95,7 +105,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          disabled={isLoading}
+          disabled={actualIsLoading}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <X size={18} />
@@ -107,7 +117,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </div>
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{description}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{actualDescription}</p>
             {itemName && (
               <div className="inline-block mt-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-lg text-xs font-semibold text-indigo-700 dark:text-indigo-300">
                 "{itemName}"
@@ -120,7 +130,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            disabled={isLoading}
+            disabled={actualIsLoading}
             className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
           >
             {cancelText}
@@ -128,11 +138,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={actualIsLoading}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${styles.btnBg} disabled:opacity-50`}
           >
-            {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-            <span>{isLoading ? 'Processing...' : confirmText}</span>
+            {actualIsLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+            <span>{actualIsLoading ? 'Processing...' : confirmText}</span>
           </button>
         </div>
       </div>

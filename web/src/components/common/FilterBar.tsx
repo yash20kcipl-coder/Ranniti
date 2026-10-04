@@ -85,8 +85,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   }).length;
 
   // Primary filters shown inline
-  const primaryFilters = filters.filter((f) => f.isPrimary);
+  const hasExplicitPrimary = filters.some((f) => f.isPrimary);
   const totalFiltersCount = filters.length;
+  const inlineFilters: FilterField[] = totalFiltersCount <= 4
+    ? filters
+    : hasExplicitPrimary
+    ? filters.filter((f) => f.isPrimary).slice(0, 2)
+    : [];
 
   // Group filters by category
   const categoriesMap = new Map<string, { icon?: React.ReactNode; fields: FilterField[] }>();
@@ -460,21 +465,25 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         {/* Inline Primary Filters + Drawer Trigger */}
         <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2.5 flex-1">
-          {primaryFilters.slice(0, 2).map((field) => (
-            <div key={field.key} className="w-full sm:w-44 flex-shrink-0">
-              <FormInput
-                name={field.key}
-                type={field.type === 'pills' || field.type === 'notice' ? 'select' : (field.type || 'select')}
-                value={field.value}
-                onChange={(e) => field.onChange((e.target as any)?.value ?? e)}
-                options={resolveFieldOptions(field, filters.reduce((acc, f) => ({ ...acc, [f.key]: f.value }), {}))}
-                placeholder={field.placeholder}
-              />
-            </div>
-          ))}
+          {inlineFilters.map((field) => {
+            const activeFilterValues = filters.reduce((acc, f) => ({ ...acc, [f.key]: f.value }), {});
+            return (
+              <div key={field.key} className="w-full sm:w-44 flex-shrink-0">
+                <FormInput
+                  name={field.key}
+                  type={field.type === 'pills' || field.type === 'notice' ? 'select' : (field.type || 'select')}
+                  value={field.value}
+                  onChange={(e) => field.onChange((e.target as any)?.value ?? e)}
+                  options={resolveFieldOptions(field, activeFilterValues)}
+                  placeholder={field.placeholder}
+                  disabled={resolveFieldDisabled(field, activeFilterValues)}
+                />
+              </div>
+            );
+          })}
 
-          {/* Side Drawer Toggle Button */}
-          {totalFiltersCount > 0 && (
+          {/* Side Drawer / Popup Toggle Button (always shown when > 4 filters or presets exist) */}
+          {(totalFiltersCount > 4 || presets.length > 0 || hasExplicitPrimary) && (
             <button
               type="button"
               onClick={() => setIsDrawerOpen(true)}
@@ -484,7 +493,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 }`}
             >
               <Filter className="w-4 h-4" />
-              <span>All Filters</span>
+              <span>Filters</span>
               {activeFiltersCount > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/30 text-white text-[10px] font-bold">
                   {activeFiltersCount}

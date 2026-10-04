@@ -48,7 +48,7 @@ export const sendTestPushNotification = (payload: {
 }) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.post('/tenant-api/settings/push/test', payload);
+      const res = await api.post('/tenant/settings/push/test', payload);
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -64,7 +64,7 @@ export const sendTestWhatsAppMessage = (payload: {
 }) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.post('/tenant-api/settings/whatsapp/test', payload);
+      const res = await api.post('/tenant/settings/whatsapp/test', payload);
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));
@@ -208,7 +208,7 @@ export const fetchTenantSettings = (showLoader = true) => {
   return async (dispatch: AppDispatch) => {
     if (showLoader) dispatch(setSettingsLoading(true));
     try {
-      const res = await api.get('/tenant-api/settings');
+      const res = await api.get('/tenant/settings');
       const data = res.data?.data || res.data;
       dispatch(setSettingsData(data));
       return data;
@@ -225,7 +225,7 @@ export const updateTenantSettings = (payload: Partial<CampaignSettings>) => {
   return async (dispatch: AppDispatch) => {
     dispatch(setSettingsSaving(true));
     try {
-      const res = await api.put('/tenant-api/settings', payload);
+      const res = await api.put('/tenant/settings', payload);
       const data = res.data?.data || res.data;
       dispatch(setSettingsData(data));
       return data;
@@ -247,7 +247,7 @@ export const fetchTenantWhatsAppTemplates = (filters?: { category?: string; stat
       if (filters?.status) params.append('status', filters.status);
       if (filters?.search) params.append('search', filters.search);
 
-      const res = await api.get(`/tenant-api/settings/whatsapp/templates?${params.toString()}`);
+      const res = await api.get(`/tenant/settings/whatsapp/templates?${params.toString()}`);
       const data = res.data?.data || res.data || [];
       dispatch(setWhatsAppTemplates(Array.isArray(data) ? data : []));
       return data;
@@ -264,7 +264,7 @@ export const createTenantWhatsAppTemplate = (payload: Partial<WhatsAppTemplate>)
   return async (dispatch: AppDispatch) => {
     dispatch(setSettingsSaving(true));
     try {
-      const res = await api.post('/tenant-api/settings/whatsapp/templates', payload);
+      const res = await api.post('/tenant/settings/whatsapp/templates', payload);
       const created = res.data?.data || res.data;
       await dispatch(fetchTenantWhatsAppTemplates());
       return created;
@@ -281,7 +281,7 @@ export const updateTenantWhatsAppTemplate = (id: string, payload: Partial<WhatsA
   return async (dispatch: AppDispatch) => {
     dispatch(setSettingsSaving(true));
     try {
-      const res = await api.put(`/tenant-api/settings/whatsapp/templates/${id}`, payload);
+      const res = await api.put(`/tenant/settings/whatsapp/templates/${id}`, payload);
       const updated = res.data?.data || res.data;
       await dispatch(fetchTenantWhatsAppTemplates());
       return updated;
@@ -298,7 +298,7 @@ export const deleteTenantWhatsAppTemplate = (id: string) => {
   return async (dispatch: AppDispatch) => {
     dispatch(setSettingsSaving(true));
     try {
-      await api.delete(`/tenant-api/settings/whatsapp/templates/${id}`);
+      await api.delete(`/tenant/settings/whatsapp/templates/${id}`);
       await dispatch(fetchTenantWhatsAppTemplates());
       return true;
     } catch (err) {
@@ -314,7 +314,7 @@ export const syncTenantMetaTemplates = () => {
   return async (dispatch: AppDispatch) => {
     dispatch(setWhatsAppSyncing(true));
     try {
-      const res = await api.post('/tenant-api/settings/whatsapp/templates/sync');
+      const res = await api.post('/tenant/settings/whatsapp/templates/sync');
       const data = res.data?.data || res.data || [];
       dispatch(setWhatsAppTemplates(Array.isArray(data) ? data : []));
       return data;

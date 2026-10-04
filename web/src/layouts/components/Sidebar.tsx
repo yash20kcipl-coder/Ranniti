@@ -22,8 +22,8 @@ import {
 } from 'lucide-react';
 import { logout } from '@/redux/actions/auth';
 import React, { useState, useEffect } from 'react';
-import { setMasterTab } from '@/redux/actions/master';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { setMasterTab } from '@/redux/actions/masterSuperAdmin';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 export interface NavItem {
@@ -37,6 +37,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/dashboard/voters', label: 'Voter Directory', icon: Vote },
+  { path: '/dashboard/volunteers', label: 'Volunteers', icon: UserCheck },
   { path: '/dashboard/tenants', label: 'Tenant Accounts', icon: Users },
   { path: '/dashboard/master', label: 'Master Data', icon: Database, isMaster: true },
   { path: '/dashboard/tenant-master', label: 'Master Data', icon: Database, isTenantMaster: true },
@@ -225,6 +226,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 const isSuperAdmin = role === 'super_admin';
 
                 if (item.path === '/dashboard/tenants') return isSuperAdmin;
+                if (item.path === '/dashboard/volunteers') return !isSuperAdmin; // Tenant admin only
                 if (item.isMaster) return isSuperAdmin;       // Super admin: full master data
                 if (item.isTenantMaster) {                    // Tenant: role-scoped master data
                   if (isSuperAdmin) return false;

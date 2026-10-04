@@ -13,9 +13,10 @@ import {
   VoterDetailPage,
   VoterFormPage,
 } from '@/pages/tenant/voters';
+import { TenantMasterPage } from '@/pages/tenant/master';
 import { TenantUserRoleManager } from '@/pages/tenant/roles';
 import { TenantSettingsPage } from '@/pages/tenant/settings';
-import { TenantMasterPage } from '@/pages/tenant/master';
+import { TenantVolunteersPage } from '@/pages/tenant/volunteers/TenantVolunteersPage';
 
 // Page Imports - Super Admin Features
 import { SuperAdminSettingsPage } from '@/pages/super_admin/settings/SuperAdminSettingsPage';
@@ -115,6 +116,11 @@ export const AppRoutes: React.FC = () => {
             <Route path="tenant-master/acs" element={<TenantMasterPage defaultTab="acs" />} />
             <Route path="tenant-master/wards" element={<TenantMasterPage defaultTab="wards" />} />
             <Route path="tenant-master/booths" element={<TenantMasterPage defaultTab="booths" />} />
+          </Route>
+
+          {/* Tenant Volunteers & Field Cadre Management */}
+          <Route element={<ProtectedRoute allowedRoles={[...TENANT_ROLES]} />}>
+            <Route path="volunteers" element={<TenantVolunteersPage />} />
           </Route>
 
           {/* Tenant Settings & Role Management */}

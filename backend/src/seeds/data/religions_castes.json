@@ -6,92 +6,669 @@
     { "name": "Sikhism" },
     { "name": "Buddhism" },
     { "name": "Jainism" },
+    { "name": "Zoroastrianism (Parsi)" },
+    { "name": "Sarna / Tribal Beliefs" },
     { "name": "Other" }
   ],
   "castes": [
     {
-      "name": "Maratha",
-      "category": "General",
-      "religionName": "Hinduism",
-      "subcastes": ["96 Kuli Maratha", "Deshmukh", "Kunbi Maratha", "Patil"]
-    },
-    {
       "name": "Brahmin",
       "category": "General",
       "religionName": "Hinduism",
-      "subcastes": ["Deshastha", "Kokanastha (Chitpavan)", "Karhade", "Saraswat", "Gaur Brahmin"]
+      "subcastes": [
+        "Deshastha",
+        "Kokanastha (Chitpavan)",
+        "Karhade",
+        "Saraswat",
+        "Gaur Brahmin",
+        "Kanyakubja",
+        "Maithil",
+        "Anavil",
+        "Audichya",
+        "Nambudiri",
+        "Smartha",
+        "Iyengar",
+        "Iyer",
+        "Utkal Brahmin",
+        "Sanadhya",
+        "Tyagi",
+        "Pushkarna",
+        "Nagar Brahmin",
+        "Havyaka",
+        "Shivalli",
+        "Vaidiki",
+        "Niyogi",
+        "Barendra",
+        "Rarhi"
+      ]
     },
     {
-      "name": "OBC (Other Backward Class)",
+      "name": "Rajput / Kshatriya",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Chauhan",
+        "Rathore",
+        "Parmar",
+        "Gehlot / Sisodia",
+        "Tomar",
+        "Solanki",
+        "Thakur",
+        "Jadeja",
+        "Shekhawat",
+        "Bundela",
+        "Bhati",
+        "Chandel",
+        "Kachwaha"
+      ]
+    },
+    {
+      "name": "Maratha",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "96 Kuli Maratha",
+        "Deshmukh",
+        "Patil",
+        "Shahannav Kule",
+        "Jadhav",
+        "Bhosle",
+        "Pawar",
+        "Shinde",
+        "Gaikwad",
+        "More",
+        "Kadam"
+      ]
+    },
+    {
+      "name": "Vaishya / Bania",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Agarwal",
+        "Maheshwari",
+        "Khandelwal",
+        "Oswal",
+        "Porwal",
+        "Gupta",
+        "Barnwal",
+        "Rastogi",
+        "Shah",
+        "Agrahari",
+        "Lingayat Banajiga",
+        "Komati (Arya Vysya)",
+        "Mahajan"
+      ]
+    },
+    {
+      "name": "Kayastha",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Saxena",
+        "Srivastava",
+        "Mathur",
+        "Nigam",
+        "Bhatnagar",
+        "Ambastha",
+        "Gaur Kayastha",
+        "Karan",
+        "Sen"
+      ]
+    },
+    {
+      "name": "Bhumihar",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Gautam",
+        "Sandilya",
+        "Kashyap",
+        "Shandilya"
+      ]
+    },
+    {
+      "name": "Kamma",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Chowdary",
+        "Vasireddy",
+        "Kamma Naidu"
+      ]
+    },
+    {
+      "name": "Reddy",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Pedakanti",
+        "Pokanati",
+        "Desuru",
+        "Gudati",
+        "Motati"
+      ]
+    },
+    {
+      "name": "Velama",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Padmanayaka Velama",
+        "Koppala Velama"
+      ]
+    },
+    {
+      "name": "Nair",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Kiryathil",
+        "Illathu",
+        "Swaroopathil",
+        "Menonkath",
+        "Pillai"
+      ]
+    },
+    {
+      "name": "Jat",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Dahiya",
+        "Malik",
+        "Chaudhary",
+        "Punia",
+        "Ahlawat",
+        "Gill",
+        "Sidhu",
+        "Mann",
+        "Pawar",
+        "Sangwan"
+      ]
+    },
+    {
+      "name": "Patidar / Patel",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Leuva Patel",
+        "Kadva Patel",
+        "Anjana Chaudhari"
+      ]
+    },
+    {
+      "name": "Vokkaliga",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Gangatkar",
+        "Morasu",
+        "Dasappa",
+        "Kunchitiga"
+      ]
+    },
+    {
+      "name": "Khatri / Arora",
+      "category": "General",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Malhotra",
+        "Kapoor",
+        "Khanna",
+        "Sethi",
+        "Tandon",
+        "Puri",
+        "Mehra",
+        "Talwar",
+        "Sahni"
+      ]
+    },
+    {
+      "name": "Yadav / Ahir",
       "category": "OBC",
       "religionName": "Hinduism",
-      "subcastes": ["Mali", "Teli", "Dhangar", "Bhandari", "Gurjar", "Yadav", "Kurmi", "Koli"]
+      "subcastes": [
+        "Krishnaut",
+        "Majhraut",
+        "Gwalvanshi",
+        "Yaduvanshi",
+        "Rao",
+        "Ahir",
+        "Sadgop",
+        "Golla"
+      ]
+    },
+    {
+      "name": "Kurmi",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Patel",
+        "Mahato",
+        "Awadhia",
+        "Ghorcharra",
+        "Kochisa",
+        "Jaiswar"
+      ]
+    },
+    {
+      "name": "Gurjar / Gujjar",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Poswal",
+        "Bhati",
+        "Chechi",
+        "Tanwar",
+        "Chauhan"
+      ]
+    },
+    {
+      "name": "Mali / Saini",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Saini",
+        "Phule",
+        "Bhagat",
+        "Maurya"
+      ]
+    },
+    {
+      "name": "Kushwaha / Koeri / Maurya",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Kushwaha",
+        "Koeri",
+        "Maurya",
+        "Shakya",
+        "Saini"
+      ]
+    },
+    {
+      "name": "Teli / Sahu",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Sahu",
+        "Rathore Teli",
+        "Gupta"
+      ]
+    },
+    {
+      "name": "Lingayat",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Banajiga",
+        "Panchamasali",
+        "Sadar",
+        "Nolamba",
+        "Dikshawardha"
+      ]
+    },
+    {
+      "name": "Ezhava / Thiyya",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Ezhava",
+        "Thiyya",
+        "Chovva"
+      ]
+    },
+    {
+      "name": "Vanniyar",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Vannia Gounder",
+        "Padayachi",
+        "Naicker"
+      ]
+    },
+    {
+      "name": "Gounder (Kongu Vellalar)",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Chendalai",
+        "Padaithali",
+        "Karunkani"
+      ]
+    },
+    {
+      "name": "Thevar / Mukkulathor",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Kallar",
+        "Maravar",
+        "Agamudayar"
+      ]
+    },
+    {
+      "name": "Kumbhar / Prajapati",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Prajapati",
+        "Pandit",
+        "Kumhar"
+      ]
+    },
+    {
+      "name": "Dhangar / Shepherd",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Khutekar",
+        "Ahir Dhangar",
+        "Mahatkar",
+        "Gadaria"
+      ]
+    },
+    {
+      "name": "Kunbi",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Tillori Kunbi",
+        "Maratha Kunbi",
+        "Dhanoje Kunbi",
+        "Lonari Kunbi"
+      ]
+    },
+    {
+      "name": "Koli",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Mahadev Koli",
+        "Son Koli",
+        "Mangela Koli"
+      ]
+    },
+    {
+      "name": "Vishwakarma",
+      "category": "OBC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Suthar",
+        "Tarkhan",
+        "Lohar",
+        "Panchal",
+        "Khati",
+        "Swarnakar"
+      ]
     },
     {
       "name": "Scheduled Caste (SC)",
       "category": "SC",
       "religionName": "Hinduism",
-      "subcastes": ["Mahar", "Matang", "Chambhar", "Jatav", "Valmiki"]
+      "subcastes": [
+        "Mahar",
+        "Matang",
+        "Chambhar",
+        "Jatav",
+        "Valmiki",
+        "Chamar",
+        "Paswan (Dusadh)",
+        "Meghwal",
+        "Arunthathiyar",
+        "Madiga",
+        "Mala",
+        "Adi Dravida",
+        "Mochi"
+      ]
+    },
+    {
+      "name": "Paswan / Dusadh",
+      "category": "SC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Dusadh",
+        "Bhagat",
+        "Dharhi"
+      ]
+    },
+    {
+      "name": "Valmiki / Bhangi",
+      "category": "SC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Valmiki",
+        "Mazhabi",
+        "Bhangi",
+        "Lal Begi"
+      ]
+    },
+    {
+      "name": "Pasi",
+      "category": "SC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Rajpasi",
+        "Trishulia",
+        "Kaithwas",
+        "Boriya"
+      ]
+    },
+    {
+      "name": "Madiga",
+      "category": "SC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Madiga",
+        "Matangi"
+      ]
+    },
+    {
+      "name": "Mala",
+      "category": "SC",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Mala",
+        "Mala Dasari"
+      ]
     },
     {
       "name": "Scheduled Tribe (ST)",
       "category": "ST",
       "religionName": "Hinduism",
-      "subcastes": ["Bhil", "Gond", "Mahadev Koli", "Warli", "Korku", "Munda", "Santhal"]
+      "subcastes": [
+        "Bhil",
+        "Gond",
+        "Mahadev Koli",
+        "Warli",
+        "Korku",
+        "Munda",
+        "Santhal",
+        "Oraon",
+        "Ho",
+        "Meena",
+        "Bhilala",
+        "Vasava",
+        "Tadvi"
+      ]
+    },
+    {
+      "name": "Meena",
+      "category": "ST",
+      "religionName": "Hinduism",
+      "subcastes": [
+        "Zamindar Meena",
+        "Chowkidar Meena"
+      ]
     },
     {
       "name": "Sunni",
       "category": "General",
       "religionName": "Islam",
-      "subcastes": ["Sheikh", "Khan", "Pathan", "Syed"]
+      "subcastes": [
+        "Sheikh",
+        "Khan",
+        "Pathan",
+        "Syed",
+        "Mughal",
+        "Rohilla"
+      ]
     },
     {
       "name": "Shia",
       "category": "General",
       "religionName": "Islam",
-      "subcastes": ["Bohra", "Khoja", "Imami"]
+      "subcastes": [
+        "Bohra (Dawoodi Bohra)",
+        "Khoja",
+        "Twelver (Asna Ashari)"
+      ]
+    },
+    {
+      "name": "Pasmanda Muslim",
+      "category": "OBC",
+      "religionName": "Islam",
+      "subcastes": [
+        "Ansari (Weaver)",
+        "Qureshi (Butcher)",
+        "Rayeen (Kunjra)",
+        "Mansoori (Dhunia)",
+        "Siddiqui",
+        "Saifi",
+        "Malik"
+      ]
     },
     {
       "name": "Catholic",
       "category": "General",
       "religionName": "Christianity",
-      "subcastes": ["Goan Catholic", "Mangalorean Catholic", "East Indian"]
+      "subcastes": [
+        "Goan Catholic",
+        "Mangalorean Catholic",
+        "East Indian",
+        "Syrian Catholic (Syro-Malabar)",
+        "Syro-Malankara",
+        "Latin Catholic"
+      ]
     },
     {
       "name": "Protestant",
       "category": "General",
       "religionName": "Christianity",
-      "subcastes": ["Church of North India", "Methodist", "Baptist"]
+      "subcastes": [
+        "Church of South India (CSI)",
+        "Church of North India (CNI)",
+        "Methodist",
+        "Baptist",
+        "Pentecostal",
+        "Dalit Christian"
+      ]
     },
     {
       "name": "Jat Sikh",
       "category": "General",
       "religionName": "Sikhism",
-      "subcastes": ["Gill", "Sidhu", "Dhillon", "Grewal", "Sandhu"]
+      "subcastes": [
+        "Gill",
+        "Sidhu",
+        "Dhillon",
+        "Grewal",
+        "Sandhu",
+        "Brar",
+        "Bains",
+        "Cheema",
+        "Virk"
+      ]
     },
     {
-      "name": "Ramdasia Sikh",
+      "name": "Khatri / Ramgarhia Sikh",
+      "category": "General",
+      "religionName": "Sikhism",
+      "subcastes": [
+        "Bedi",
+        "Sodhi",
+        "Ahluwalia",
+        "Ramgarhia",
+        "Tarkhan Sikh"
+      ]
+    },
+    {
+      "name": "Ramdasia Sikh / Mazhabi",
       "category": "SC",
       "religionName": "Sikhism",
-      "subcastes": ["Chamar Sikh", "Ramdasia"]
+      "subcastes": [
+        "Chamar Sikh",
+        "Ramdasia",
+        "Mazhabi Sikh"
+      ]
     },
     {
       "name": "Neo-Buddhist",
       "category": "SC",
       "religionName": "Buddhism",
-      "subcastes": ["Navayana", "Ambedkarite"]
+      "subcastes": [
+        "Navayana",
+        "Ambedkarite",
+        "Mahar Buddhist"
+      ]
+    },
+    {
+      "name": "Traditional Himalayan Buddhist",
+      "category": "ST",
+      "religionName": "Buddhism",
+      "subcastes": [
+        "Sherpa",
+        "Bhutia",
+        "Lepcha",
+        "Ladakhi",
+        "Tamang"
+      ]
     },
     {
       "name": "Digambara",
       "category": "General",
       "religionName": "Jainism",
-      "subcastes": ["Oswal", "Khandelwal", "Parwar"]
+      "subcastes": [
+        "Oswal",
+        "Khandelwal",
+        "Parwar",
+        "Humad"
+      ]
     },
     {
       "name": "Svetambara",
       "category": "General",
       "religionName": "Jainism",
-      "subcastes": ["Oswal", "Porwal", "Shrimali"]
+      "subcastes": [
+        "Oswal",
+        "Porwal",
+        "Shrimali",
+        "Sthanakvasi"
+      ]
+    },
+    {
+      "name": "Parsi",
+      "category": "General",
+      "religionName": "Zoroastrianism (Parsi)",
+      "subcastes": [
+        "Shahanshahi",
+        "Kadmi",
+        "Fasli"
+      ]
+    },
+    {
+      "name": "Sarna / Tribal Community",
+      "category": "ST",
+      "religionName": "Sarna / Tribal Beliefs",
+      "subcastes": [
+        "Santhal",
+        "Munda",
+        "Oraon",
+        "Ho",
+        "Chero"
+      ]
     }
   ]
 }

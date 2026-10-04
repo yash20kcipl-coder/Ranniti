@@ -1,4 +1,3 @@
-export * from './MasterCategoryView';
 export * from './ReligionsPage';
 export * from './CastesPage';
 export * from './DistrictsPage';

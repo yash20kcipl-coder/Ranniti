@@ -1,6 +1,7 @@
 import { config } from '../config';
 import { logger } from '../utils/logger';
 import { Pool, QueryResult, QueryResultRow } from 'pg';
+import { DataSourceTracker } from '../utils/dataSourceTracker';
 
 export const dbPool = new Pool(
   config.dbHost && config.dbName
@@ -24,6 +25,18 @@ export const dbPool = new Pool(
       }
 );
 
+// Instrument pool.query and pool.connect for transparent Master DB tracking
+const origPoolQuery = dbPool.query.bind(dbPool);
+dbPool.query = (async (...args: any[]) => {
+  DataSourceTracker.record('Master DB');
+  return (origPoolQuery as any)(...args);
+}) as any;
+
+const origPoolConnect = dbPool.connect.bind(dbPool);
+dbPool.connect = (async (...args: any[]) => {
+  DataSourceTracker.record('Master DB');
+  return (origPoolConnect as any)(...args);
+}) as any;
 
 dbPool.on('error', (err) => {
   logger.error('Unexpected error on idle PostgreSQL client pool', err);
@@ -36,6 +49,7 @@ export const query = async <T extends QueryResultRow = any>(
   text: string,
   params: any[] = []
 ): Promise<QueryResult<T>> => {
+  DataSourceTracker.record('Master DB');
   const start = process.hrtime.bigint();
   try {
     const res = await dbPool.query<T>(text, params);
@@ -54,6 +68,13 @@ export const query = async <T extends QueryResultRow = any>(
  * Gracefully close the PostgreSQL connection pool (prevents open connections/zombies)
  */
 export const closeDbPool = async (): Promise<void> => {
+  try {
+    const { TenantPoolManager } = await import('../utils/tenantPoolManager');
+    await TenantPoolManager.closeAllPools();
+  } catch (err) {
+    logger.error('Error closing tenant database pools:', err);
+  }
+
   try {
     logger.info('Closing PostgreSQL database connection pool...');
     await dbPool.end();

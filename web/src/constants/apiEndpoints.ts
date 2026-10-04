@@ -54,6 +54,7 @@ export const API_ENDPOINTS = {
     VOTERS: `${API_TIERS.TENANT}/voters`,
     DATA_STATS: `${API_TIERS.TENANT}/data/stats`,
     MASTERS: {
+      PCS: `${API_TIERS.TENANT}/pcs`,
       ACS: `${API_TIERS.TENANT}/acs`,
       WARDS: `${API_TIERS.TENANT}/wards`,
       BOOTHS: `${API_TIERS.TENANT}/booths`,

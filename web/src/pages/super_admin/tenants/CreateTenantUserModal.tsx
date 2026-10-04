@@ -19,9 +19,9 @@ import { FormInput } from '@/components/common/FormInput';
 import { provisionTenantUser } from '@/redux/actions/tenant';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { fetchMasterCategoryData } from '@/redux/actions/master';
 import { fetchTenantRolePackages } from '@/redux/actions/role';
 import { FileUploadInput } from '@/components/common/FileUploadInput';
+import { fetchSuperAdminMasterCategoryData as fetchMasterCategoryData } from '@/redux/actions/masterSuperAdmin';
 
 interface CreateTenantUserModalProps {
   isOpen: boolean;

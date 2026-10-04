@@ -1,56 +1,36 @@
 import { Router } from 'express';
 import { authRoutes } from './auth.routes';
-import { voterRoutes } from './voter.routes';
 import { healthRoutes } from './health.routes';
-import { masterRoutes } from './master.routes';
 import { uploadRoutes } from './upload.routes';
-import { tenantRoutes } from './tenant.routes';
-import { tenantApiRoutes } from './tenantApi.routes';
-import { volunteerRoutes } from './volunteer.routes';
-import { adminUserRoutes } from './admin_user.routes';
 import { mobileAuthRoutes } from './mobileAuth.routes';
-import { tenantDataRoutes } from './tenantData.routes';
-import superAdminRoleRoutes from './superAdminRole.routes';
-import tenantUserRoleRoutes from './tenantUserRole.routes';
-import { superAdminTenantRoutes } from './superAdminTenant.routes';
-import { superAdminRoutes } from './superAdmin.routes';
+import { superAdminRouter } from './superAdmin';
+import { tenantRouter } from './tenant';
+import { superAdminMasterRoutes } from './superAdmin/master.routes';
+import { tenantVoterRoutes } from './tenant/voter.routes';
+import { tenantVolunteerRoutes } from './tenant/volunteer.routes';
+import { tenantDataRoutes } from './tenant/data.routes';
+import { tenantUserRoutes } from './tenant/user.routes';
 
 const router = Router();
-// Health routes
+
+// Health & File Upload System Utility Routes
 router.use('/health', healthRoutes);
-// Authentication routes
-router.use('/auth', authRoutes);
-router.use('/mobile/auth', mobileAuthRoutes);
-// 3-Tier API Security Architecture Routes
-router.use('/super-admin', superAdminRoutes);
-router.use('/tenant', tenantRoutes);
-router.use('/volunteer', volunteerRoutes);
-// Dedicated Tenant API Scoped Routes (ACs, Wards, Booths, Geography, Masters, Voters)
-router.use('/tenant', tenantApiRoutes);
-router.use('/tenant-api', tenantApiRoutes);
-// Super Admin Dedicated Sub-Routes
-router.use('/super-admin/tenants', superAdminTenantRoutes);
-router.use('/super-admin/tenant-roles', superAdminRoleRoutes);
-router.use('/super-admin/masters', masterRoutes);
-// Tenant User Custom Roles & Field Permissions
-router.use('/tenant/user-roles', tenantUserRoleRoutes);
-// Dedicated Tenant Campaign Data Routes
-router.use('/tenant-data', tenantDataRoutes);
-// Volunteer Onboarding & Booth Assignment Legacy
-router.use('/volunteers', volunteerRoutes);
-// Master data routes
-router.use('/masters', masterRoutes);
-// Admin user routes
-router.use('/admin-users', adminUserRoutes);
-// Tenant user routes
-router.use('/tenants', tenantRoutes);
-// Voter routes
-router.use('/voters', voterRoutes);
-// Upload routes
 router.use('/uploads', uploadRoutes);
 
+// Authentication Routes
+router.use('/auth', authRoutes);
+router.use('/mobile/auth', mobileAuthRoutes);
+
+// Dedicated Domain Architecture Routes
+router.use('/super-admin', superAdminRouter);
+router.use('/tenant', tenantRouter);
+
+// Legacy Alias Fallback Mounts (for seamless backward compatibility with existing clients)
+router.use('/tenant-api', tenantRouter);
+router.use('/tenant-data', tenantDataRoutes);
+router.use('/volunteers', tenantVolunteerRoutes);
+router.use('/voters', tenantVoterRoutes);
+router.use('/masters', superAdminMasterRoutes);
+router.use('/admin-users', tenantUserRoutes);
+
 export const apiRouter = router;
-
-
-
-

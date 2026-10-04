@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import { attachFileUrls } from '../utils/fileUrl';
 import { ApiResponse } from '../utils/apiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
-import { masterService } from '../services/master.service';
 import { MasterSyncService } from '../services/masterSync.service';
+import { masterService } from '../services/superAdmin/master.service';
 
 export class MasterController {
   // AUTO-SYNC ALL MASTERS
@@ -180,8 +180,12 @@ export class MasterController {
     const talukaId = req.query.talukaId as string | undefined;
     const districtId = req.query.districtId as string | undefined;
     const stateId = req.query.stateId as string | undefined;
-    const villages = await masterService.getVillages(talukaId, districtId, stateId);
-    const response = ApiResponse.success(villages, 'Villages retrieved successfully');
+    const search = req.query.search as string | undefined;
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+
+    const result = await masterService.getVillages({ talukaId, districtId, stateId, search, page, limit });
+    const response = ApiResponse.success(result, 'Villages retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
 
@@ -311,8 +315,15 @@ export class MasterController {
   // WARDS
   getWards = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const acId = req.query.acId as string | undefined;
-    const wards = await masterService.getWards(acId);
-    const response = ApiResponse.success(wards, 'Wards retrieved successfully');
+    const pcId = req.query.pcId as string | undefined;
+    const districtId = req.query.districtId as string | undefined;
+    const stateId = req.query.stateId as string | undefined;
+    const search = req.query.search as string | undefined;
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+
+    const result = await masterService.getWards({ acId, pcId, districtId, stateId, search, page, limit });
+    const response = ApiResponse.success(result, 'Wards retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
 
@@ -350,11 +361,29 @@ export class MasterController {
   });
 
   // BOOTHS
+  getBoothOptions = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const acId = req.query.acId as string | undefined;
+    const wardId = req.query.wardId as string | undefined;
+    const search = req.query.search as string | undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+
+    const result = await masterService.getBoothOptions({ acId, wardId, search, limit });
+    const response = ApiResponse.success(result, 'Booth options retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
   getBooths = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const acId = req.query.acId as string | undefined;
     const wardId = req.query.wardId as string | undefined;
-    const booths = await masterService.getBooths(acId, wardId);
-    const response = ApiResponse.success(booths, 'Booths retrieved successfully');
+    const pcId = req.query.pcId as string | undefined;
+    const districtId = req.query.districtId as string | undefined;
+    const stateId = req.query.stateId as string | undefined;
+    const search = req.query.search as string | undefined;
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+
+    const result = await masterService.getBooths({ acId, wardId, pcId, districtId, stateId, search, page, limit });
+    const response = ApiResponse.success(result, 'Booths retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
 

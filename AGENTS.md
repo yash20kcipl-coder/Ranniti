@@ -101,5 +101,11 @@
 - Shared global components used across multiple screens must continue to be placed in `app/src/components/`.
 - Screen index files (`index.tsx`) must remain clean, modular, and concise by delegating section layouts to dedicated subcomponents.
 
+### 22. Standard Spreadsheet Format Standard (`.xlsx`) & Central Storage (`xlsx/`)
+- Always use `.xlsx` as the mandatory standard file format for all bulk import templates, sample datasets, export files, and spreadsheet data operations across the entire application.
+- Never produce, require, or default to `.csv` or `.xls` format for spreadsheet imports or exports. All tools, generators, and endpoints must process and emit `.xlsx` files using `ExcelJS` or standard Excel parser utilities.
+- All generated `.xlsx` sample datasets, import template files, seed spreadsheets, and export files must be saved and maintained inside the dedicated `xlsx/` directory located at the project root (`/Users/mac-yash/Documents/GitHub/Ranniti/xlsx/`).
+
+
 
 

@@ -29,15 +29,44 @@ export interface ImportJob {
   startTimeClient: number;
 }
 
-export const startBulkImportJob = (category: string, records: Record<string, any>[]) => {
+const jobCompletionCallbacks = new Map<string, () => void>();
+
+export const executeJobCallback = (jobId: string) => {
+  const cb = jobCompletionCallbacks.get(jobId);
+  if (cb) {
+    try {
+      cb();
+    } catch (err) {
+      console.error('Failed to execute import job completion callback:', err);
+    }
+    jobCompletionCallbacks.delete(jobId);
+  }
+};
+
+export const startBulkImportJob = (
+  category: string,
+  records: Record<string, any>[],
+  onComplete?: () => void,
+  context?: Record<string, any>
+) => {
   return async (dispatch: AppDispatch) => {
-    const response = await api.post(`/masters/bulk-import/${category}`, { records });
+    const cleanContext = context
+      ? Object.fromEntries(Object.entries(context).filter(([_, v]) => v !== undefined && v !== null && v !== ''))
+      : undefined;
+    const response = await api.post(`/super-admin/masters/bulk-import/${category}`, {
+      records,
+      context: cleanContext,
+    });
     const jobData = response.data?.data || response.data?.body?.data || response.data;
     const job: ImportJob = {
       ...jobData,
       category: jobData?.category || category,
       startTimeClient: Date.now(),
     };
+
+    if (onComplete && job.jobId) {
+      jobCompletionCallbacks.set(job.jobId, onComplete);
+    }
 
     dispatch({
       type: START_IMPORT_JOB,
@@ -50,7 +79,7 @@ export const startBulkImportJob = (category: string, records: Record<string, any
 
 export const fetchJobStatus = (jobId: string) => {
   return async (dispatch: AppDispatch) => {
-    const response = await api.get(`/masters/bulk-import/status/${jobId}`);
+    const response = await api.get(`/super-admin/masters/bulk-import/status/${jobId}`);
     const rawData = response.data?.data || response.data?.body?.data || response.data;
     const job: ImportJob = rawData;
 
@@ -72,9 +101,15 @@ export const clearCompletedJobs = () => ({
   type: CLEAR_COMPLETED_JOBS,
 });
 
-export const downloadSampleTemplate = (categoryKey: string) => {
+export const downloadSampleTemplate = (categoryKey: string, params?: Record<string, any>) => {
   return async () => {
-    const res = await api.get(`/masters/sample-template/${categoryKey}`, { responseType: 'blob' });
+    const cleanParams = params
+      ? Object.fromEntries(Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== ''))
+      : undefined;
+    const res = await api.get(`/super-admin/masters/sample-template/${categoryKey}`, {
+      params: cleanParams,
+      responseType: 'blob',
+    });
     const blob = new Blob([res.data], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
@@ -89,3 +124,4 @@ export const downloadSampleTemplate = (categoryKey: string) => {
     return res;
   };
 };
+

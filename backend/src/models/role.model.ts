@@ -39,6 +39,7 @@ export interface TenantUserRole {
   description?: string;
   accessibleTabs: AccessibleTabsJson;
   voterPermissions: VoterPermissionsJson;
+  canCreateRoles?: string[];
   isSystemDefault: boolean;
   createdBy?: string;
   createdAt: Date;

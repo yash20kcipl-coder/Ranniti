@@ -2,6 +2,7 @@ import {
   fetchSuperAdminVoterById,
   createSuperAdminVoterItem,
   updateSuperAdminVoterItem,
+  fetchSuperAdminBoothOptions,
   fetchSuperAdminInfluencerOptions,
 } from '@/redux/actions/voterSuperAdmin';
 import {
@@ -11,7 +12,7 @@ import {
   BLOOD_GROUP_OPTIONS,
 } from '@/constants/dropdownOptions';
 import { calculateAge } from '@/utils';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAppDispatch } from '@/redux/hooks';
 import { useMasterData } from '@/hooks/useMasterData';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -21,13 +22,13 @@ import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import type { Option } from '@/components/common/FormInput';
 import { PageHeader } from '@/components/common/PageHeader';
 
-// Section Components (Reused from tenant voter components)
+// Section Components
 import {
   VoterIdentificationFormSection,
   VoterGeographyFormSection,
   VoterInfluencerFormSection,
   VoterDemographicsFormSection,
-} from '@/pages/tenant/voters/components';
+} from '@/components/common/voter/form';
 
 // Icons
 import {
@@ -48,7 +49,10 @@ export const SuperAdminVoterFormPage: React.FC = () => {
   const isEditMode = Boolean(id);
 
   const dispatch = useAppDispatch();
-  const { booths, religions, castes, acs, states, districts, pcs, parties } = useMasterData();
+  // Load master categories excluding heavy booths
+  const { religions, castes, acs, states, districts, pcs, parties } = useMasterData([
+    'states', 'districts', 'pcs', 'acs', 'religions', 'castes', 'parties'
+  ]);
 
   const [submitting, setSubmitting] = useState(false);
   const [sameAddress, setSameAddress] = useState(false);
@@ -56,10 +60,14 @@ export const SuperAdminVoterFormPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [voterMeta, setVoterMeta] = useState<any | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [familyModalOpen, setFamilyModalOpen] = useState(false);
   const [socialModalOpen, setSocialModalOpen] = useState(false);
+  const [showFamilyPicker, setShowFamilyPicker] = useState(false);
+  const [showSocialPicker, setShowSocialPicker] = useState(false);
+  const [assignModalType, setAssignModalType] = useState<'family' | 'social'>('family');
   const [linkInfluencerType, setLinkInfluencerType] = useState<'family' | 'social'>('family');
 
   const [formData, setFormData] = useState<Record<string, any>>({
@@ -138,9 +146,102 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     socialInfluencerLeaderName: '',
   });
 
+  // Local state for on-demand Booths and Influencers (isolated from List Page)
+  const [boothOptions, setBoothOptions] = useState<Option[]>([]);
   const [familyInfluencers, setFamilyInfluencers] = useState<Option[]>([]);
   const [socialInfluencers, setSocialInfluencers] = useState<Option[]>([]);
 
+  // In-memory filtered dropdown options
+  const filteredDistricts = useMemo(() => {
+    if (!formData.stateId) return districts;
+    return districts.filter((d: any) => String(d.stateId) === String(formData.stateId));
+  }, [districts, formData.stateId]);
+
+  const districtOptions: Option[] = useMemo(() => {
+    return filteredDistricts.map((d: any) => ({
+      label: d.name || d.districtName || `District #${d.id}`,
+      value: String(d.id),
+    }));
+  }, [filteredDistricts]);
+
+  const filteredPcs = useMemo(() => {
+    if (!formData.stateId) return pcs;
+    return pcs.filter((p: any) => String(p.stateId) === String(formData.stateId));
+  }, [pcs, formData.stateId]);
+
+  const pcOptions: Option[] = useMemo(() => {
+    return filteredPcs.map((p: any) => ({
+      label: p.name || p.pcName || `PC #${p.id}`,
+      value: String(p.id),
+    }));
+  }, [filteredPcs]);
+
+  const filteredAcs = useMemo(() => {
+    return acs.filter((a: any) => {
+      if (formData.acId && String(a.id) === String(formData.acId)) return true;
+      if (formData.pcId && a.pcId && String(a.pcId) !== String(formData.pcId)) return false;
+      if (formData.districtId && a.districtId && String(a.districtId) !== String(formData.districtId)) return false;
+      if (formData.stateId && a.stateId && String(a.stateId) !== String(formData.stateId)) return false;
+      return true;
+    });
+  }, [acs, formData.acId, formData.pcId, formData.districtId, formData.stateId]);
+
+  const acOptions: Option[] = useMemo(() => {
+    return filteredAcs.map((a: any) => ({
+      label: `${a.acNumber || a.acNo ? `[AC-${a.acNumber || a.acNo}] ` : ''}${a.name || a.acName || `AC #${a.id}`}`,
+      value: String(a.id),
+    }));
+  }, [filteredAcs]);
+
+  const filteredCastes = useMemo(() => {
+    if (!formData.religionId) return castes;
+    return castes.filter((c: any) => String(c.religionId) === String(formData.religionId));
+  }, [castes, formData.religionId]);
+
+  const casteOptions: Option[] = useMemo(() => {
+    return filteredCastes.map((c: any) => ({
+      label: c.name || c.casteName || `Caste #${c.id}`,
+      value: String(c.id),
+    }));
+  }, [filteredCastes]);
+
+  const stateOptions: Option[] = useMemo(() => {
+    return states.map((s: any) => ({ label: s.name || s.stateName, value: String(s.id) }));
+  }, [states]);
+
+  const religionOptions: Option[] = useMemo(() => {
+    return religions.map((r: any) => ({ label: r.name || r.religionName, value: String(r.id) }));
+  }, [religions]);
+
+  const partyOptions: Option[] = useMemo(() => {
+    return parties.map((p: any) => ({ label: `${p.abbreviation || p.name} - ${p.name}`, value: String(p.id) }));
+  }, [parties]);
+
+  // Load booth options on-demand whenever acId changes (Create & Edit mode)
+  useDebouncedEffect(
+    () => {
+      if (!formData.acId) {
+        setBoothOptions([]);
+        return;
+      }
+      dispatch(fetchSuperAdminBoothOptions({ acId: formData.acId, saveToStore: false }))
+        .then((options: any[]) => {
+          setBoothOptions(
+            (options || []).map((b) => ({
+              label: `Booth #${b.boothNumber || b.boothNo || b.id} - ${b.name || b.boothName || 'Station'}`,
+              value: String(b.id),
+            }))
+          );
+        })
+        .catch(() => {
+          setBoothOptions([]);
+        });
+    },
+    150,
+    [dispatch, formData.acId]
+  );
+
+  // Load family and social influencer options on-demand whenever boothId changes
   useDebouncedEffect(
     () => {
       if (!formData.boothId) {
@@ -158,12 +259,12 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         .then((options: any[]) =>
           setFamilyInfluencers(
             (options || []).map((opt) => ({
-              label: `${opt.name} (${opt.epicNo})`,
-              value: opt.id,
+              label: `${opt.name} (${opt.epicNo})${opt.houseNo ? ` - H.No: ${opt.houseNo}` : ''}`,
+              value: String(opt.id),
             }))
           )
         )
-        .catch(() => {});
+        .catch(() => setFamilyInfluencers([]));
 
       dispatch(
         fetchSuperAdminInfluencerOptions({
@@ -175,14 +276,14 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         .then((options: any[]) =>
           setSocialInfluencers(
             (options || []).map((opt) => ({
-              label: `${opt.name} (${opt.epicNo})`,
-              value: opt.id,
+              label: `${opt.name} (${opt.epicNo})${opt.houseNo ? ` - H.No: ${opt.houseNo}` : ''}`,
+              value: String(opt.id),
             }))
           )
         )
-        .catch(() => {});
+        .catch(() => setSocialInfluencers([]));
     },
-    200,
+    150,
     [dispatch, formData.boothId, id]
   );
 
@@ -193,6 +294,21 @@ export const SuperAdminVoterFormPage: React.FC = () => {
       .then((data: any) => {
         if (!data) return;
         setVoterMeta(data);
+
+        const loadedAcId = data.acId ? String(data.acId) : '';
+        let resolvedStateId = data.stateId ? String(data.stateId) : '';
+        let resolvedDistrictId = data.districtId ? String(data.districtId) : '';
+        let resolvedPcId = data.pcId ? String(data.pcId) : '';
+
+        if (loadedAcId && acs?.length) {
+          const a = acs.find((ac: any) => String(ac.id) === loadedAcId);
+          if (a) {
+            if (!resolvedStateId && a.stateId) resolvedStateId = String(a.stateId);
+            if (!resolvedDistrictId && a.districtId) resolvedDistrictId = String(a.districtId);
+            if (!resolvedPcId && a.pcId) resolvedPcId = String(a.pcId);
+          }
+        }
+
         setFormData({
           epicNo: data.epicNo || '',
           voterIdNo: data.voterIdNo || '',
@@ -217,11 +333,11 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           casteId: data.casteId || '',
           subCaste: data.subCaste || '',
 
-          stateId: data.stateId || '',
-          districtId: data.districtId || '',
-          pcId: data.pcId || '',
-          acId: data.acId || '',
-          boothId: data.boothId || '',
+          stateId: resolvedStateId,
+          districtId: resolvedDistrictId,
+          pcId: resolvedPcId,
+          acId: loadedAcId,
+          boothId: data.boothId ? String(data.boothId) : '',
 
           guardianName: data.guardianName || '',
           relationType: data.relationType || 'Father',
@@ -278,15 +394,60 @@ export const SuperAdminVoterFormPage: React.FC = () => {
       .finally(() => {
         setLoadingVoter(false);
       });
-  }, [dispatch, id, isEditMode]);
+  }, [dispatch, id, isEditMode, acs]);
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setFormData((prev) => {
-      const next = { ...prev, [name]: value };
+      const next: Record<string, any> = { ...prev, [name]: value };
+
       if (name === 'dob' && value) {
         next.age = String(calculateAge(value));
       }
+
+      // Smart cascading resets
+      if (name === 'stateId') {
+        next.districtId = '';
+        next.pcId = '';
+        next.acId = '';
+        next.boothId = '';
+        next.familyInfluencerId = '';
+        next.socialInfluencerId = '';
+      } else if (name === 'pcId') {
+        next.acId = '';
+        next.boothId = '';
+        next.familyInfluencerId = '';
+        next.socialInfluencerId = '';
+      } else if (name === 'districtId') {
+        if (next.acId) {
+          const ac = acs.find((a: any) => String(a.id) === String(next.acId));
+          if (ac && ac.districtId && String(ac.districtId) !== String(value)) {
+            next.acId = '';
+            next.boothId = '';
+            next.familyInfluencerId = '';
+            next.socialInfluencerId = '';
+          }
+        }
+      } else if (name === 'acId') {
+        next.boothId = '';
+        next.familyInfluencerId = '';
+        next.socialInfluencerId = '';
+        if (value) {
+          const ac = acs.find((a: any) => String(a.id) === String(value));
+          if (ac) {
+            if (!next.stateId && ac.stateId) next.stateId = String(ac.stateId);
+            if (!next.pcId && ac.pcId) next.pcId = String(ac.pcId);
+            if (!next.districtId && ac.districtId) next.districtId = String(ac.districtId);
+          }
+        }
+      } else if (name === 'boothId') {
+        next.familyInfluencerId = '';
+        next.socialInfluencerId = '';
+      } else if (name === 'religionId') {
+        next.casteId = '';
+        next.subCaste = '';
+      }
+
       return next;
     });
   };
@@ -309,6 +470,12 @@ export const SuperAdminVoterFormPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: Record<string, string> = {};
+    if (!formData.epicNo?.trim()) newErrors.epicNo = 'EPIC Voter ID is required';
+    if (!formData.engFirstName?.trim()) newErrors.engFirstName = 'First Name is required';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
     setSubmitting(true);
     setToastMessage(null);
 
@@ -402,44 +569,58 @@ export const SuperAdminVoterFormPage: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <VoterIdentificationFormSection
           formData={formData}
+          errors={errors}
           handleChange={handleChange}
-          formVoterTypeOptions={FORM_VOTER_TYPE_OPTIONS}
-          statusOptions={STATUS_OPTIONS}
-          parties={parties}
+          setFormData={setFormData}
+          statusOptions={STATUS_OPTIONS.filter((s) => s.value !== '')}
+          voterTypeOptions={FORM_VOTER_TYPE_OPTIONS}
+          genderOptions={FORM_GENDER_OPTIONS}
+          bloodGroupOptions={BLOOD_GROUP_OPTIONS}
         />
 
         <VoterGeographyFormSection
           formData={formData}
+          errors={errors}
           handleChange={handleChange}
-          states={states}
-          districts={districts}
-          pcs={pcs}
-          acs={acs}
-          booths={booths}
+          stateOptions={stateOptions}
+          districtOptions={districtOptions}
+          pcOptions={pcOptions}
+          acOptions={acOptions}
+          boothOptions={boothOptions}
           sameAddress={sameAddress}
-          handleCopyPresentAddress={handleCopyPresentAddress}
+          handleSameAddressToggle={(e) => handleCopyPresentAddress(e.target.checked)}
         />
 
         <VoterDemographicsFormSection
           formData={formData}
+          errors={errors}
           handleChange={handleChange}
-          formGenderOptions={FORM_GENDER_OPTIONS}
-          religions={religions}
-          castes={castes}
-          bloodGroupOptions={BLOOD_GROUP_OPTIONS}
+          religionOptions={religionOptions}
+          casteOptions={casteOptions}
         />
 
         <VoterInfluencerFormSection
           formData={formData}
           handleChange={handleChange}
-          familyInfluencers={familyInfluencers}
-          socialInfluencers={socialInfluencers}
-          onOpenFamilyAssignModal={() => setFamilyModalOpen(true)}
-          onOpenSocialAssignModal={() => setSocialModalOpen(true)}
-          onOpenLinkModal={(type) => {
-            setLinkInfluencerType(type);
-            setLinkModalOpen(true);
+          setFormData={setFormData}
+          partyOptions={partyOptions}
+          voterMeta={voterMeta}
+          isEditMode={isEditMode}
+          familyInfluencerOptions={familyInfluencers}
+          socialInfluencerOptions={socialInfluencers}
+          showFamilyPicker={showFamilyPicker}
+          setShowFamilyPicker={setShowFamilyPicker}
+          showSocialPicker={showSocialPicker}
+          setShowSocialPicker={setShowSocialPicker}
+          setLinkModalOpen={setLinkModalOpen}
+          setAssignModalOpen={(open) => {
+            if (assignModalType === 'family') setFamilyModalOpen(open);
+            else setSocialModalOpen(open);
           }}
+          setAssignModalType={setAssignModalType}
+          setLinkInfluencerType={setLinkInfluencerType}
+          linkedFamilyHead={null}
+          linkedSocialLeader={null}
         />
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">

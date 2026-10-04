@@ -3,6 +3,8 @@ export const SET_VOTER_STATS = 'SET_VOTER_STATS';
 export const SET_VOTER_FILTERS = 'SET_VOTER_FILTERS';
 export const SET_VOTERS_LOADING = 'SET_VOTERS_LOADING';
 export const SET_VOTERS_PAGINATION = 'SET_VOTERS_PAGINATION';
+export const SET_VOTER_BOOTH_OPTIONS = 'SET_VOTER_BOOTH_OPTIONS';
+export const SET_VOTER_BOOTH_OPTIONS_LOADING = 'SET_VOTER_BOOTH_OPTIONS_LOADING';
 
 export const setVotersData = (voters: any[]) => ({
   type: SET_VOTERS_DATA,
@@ -34,6 +36,16 @@ export const setVoterFilters = (filters: Record<string, any>) => ({
   filters,
 });
 
+export const setVoterBoothOptions = (options: any[]) => ({
+  type: SET_VOTER_BOOTH_OPTIONS,
+  options,
+});
+
+export const setVoterBoothOptionsLoading = (loading: boolean) => ({
+  type: SET_VOTER_BOOTH_OPTIONS_LOADING,
+  loading,
+});
+
 // Re-export specific Tenant & Super Admin Redux actions
 export * from './voterTenant';
 export * from './voterSuperAdmin';
@@ -50,4 +62,5 @@ export {
   exportTenantVotersData as exportVotersData,
   fetchTenantInfluencerOptions as fetchInfluencerOptions,
   bulkAssignTenantInfluencerAction as bulkAssignInfluencerAction,
+  fetchTenantBoothOptions as fetchBoothOptions,
 } from './voterTenant';

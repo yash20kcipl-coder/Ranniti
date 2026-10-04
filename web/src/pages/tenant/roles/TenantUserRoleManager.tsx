@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, Eye, Edit3, Smartphone, ShieldCheck, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, UserCheck, Edit3, Smartphone, ShieldCheck, Lock, UserPlus } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { PageHeader } from '@/components/common/PageHeader';
 import { TableActions } from '@/components/common/TableActions';
@@ -14,17 +14,10 @@ import {
 import type { TenantUserRole, VoterPermissions } from '@/redux/reducers/role';
 import toast from 'react-hot-toast';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-
-// Static dropdown options for Role Key (Rule #15)
-const ROLE_KEY_OPTIONS = [
-  { label: 'PC Leader (Parliamentary)', value: 'pc_leader' },
-  { label: 'AC Leader (Assembly)', value: 'ac_leader' },
-  { label: 'Sub-Leader / Ward Coordinator', value: 'sub_leader' },
-  { label: 'Supporter / Volunteer', value: 'supporter' },
-  { label: 'Data Entry Operator (DEO)', value: 'deo' },
-  { label: 'Data Analyst', value: 'analyst' },
-  { label: 'Custom Custom Role', value: 'custom' },
-];
+import {
+  FORM_VOLUNTEER_ROLE_OPTIONS,
+  SUBORDINATE_ROLE_DELEGATION_OPTIONS,
+} from '@/constants/dropdownOptions';
 
 const VOTER_PERM_DEFINITIONS: { key: keyof VoterPermissions; label: string; desc: string }[] = [
   { key: 'canViewVoter', label: 'View Voter Records', desc: 'Allows viewing voter profiles, booth details, and list items.' },
@@ -36,37 +29,17 @@ const VOTER_PERM_DEFINITIONS: { key: keyof VoterPermissions; label: string; desc
   { key: 'canExportData', label: 'Export Voter Lists', desc: 'Allows downloading voter lists as PDF or Excel files.' },
 ];
 
-const AVAILABLE_WEB_TABS = [
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'voter_directory', label: 'Voter Directory' },
-  { key: 'master_data', label: 'Master Data' },
-  { key: 'settings', label: 'Settings' },
-];
-
-const AVAILABLE_MASTER_SUB_TABS = [
-  { key: 'districts', label: 'Districts' },
-  { key: 'talukas', label: 'Talukas' },
-  { key: 'villages', label: 'Villages' },
-  { key: 'pcs', label: 'Parliamentary (PC)' },
-  { key: 'acs', label: 'Assembly (AC)' },
-  { key: 'wards', label: 'Wards' },
-  { key: 'booths', label: 'Polling Booths' },
-  { key: 'religions', label: 'Religions' },
-  { key: 'castes', label: 'Castes' },
-  { key: 'parties', label: 'Parties' },
-];
-
 const AVAILABLE_MOBILE_SCREENS = [
-  { key: 'voter_search', label: 'Voter Search' },
-  { key: 'family_tree', label: 'Family Tree' },
-  { key: 'survey', label: 'Cadre Survey' },
+  { key: 'voter_search', label: 'Voter Search & Directory' },
+  { key: 'family_tree', label: 'Family Tree Mapping' },
+  { key: 'survey', label: 'Cadre / Voter Survey' },
   { key: 'booth_analytics', label: 'Booth Analytics' },
   { key: 'gate_meetings', label: 'Gate Meetings' },
 ];
 
 export const TenantUserRoleManager: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { tenantUserRoles = [] } = useAppSelector((state) => state.role || {});
+  const { tenantUserRoles = [] } = useAppSelector((state) => state.role);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Partial<TenantUserRole> | null>(null);
@@ -83,9 +56,9 @@ export const TenantUserRoleManager: React.FC = () => {
       roleKey: 'sub_leader',
       description: '',
       accessibleTabs: {
-        webTabs: ['dashboard', 'voter_directory'],
-        masterSubTabs: ['booths'],
-        mobileScreens: ['voter_search', 'survey'],
+        webTabs: [],
+        masterSubTabs: [],
+        mobileScreens: ['voter_search', 'family_tree', 'survey'],
       },
       voterPermissions: {
         canViewVoter: true,
@@ -96,6 +69,7 @@ export const TenantUserRoleManager: React.FC = () => {
         canManageFamily: true,
         canExportData: false,
       },
+      canCreateRoles: ['supporter'],
       isSystemDefault: false,
     });
     setIsModalOpen(true);
@@ -108,8 +82,8 @@ export const TenantUserRoleManager: React.FC = () => {
       roleKey: role.roleKey,
       description: role.description,
       accessibleTabs: {
-        webTabs: role.accessibleTabs?.webTabs || [],
-        masterSubTabs: role.accessibleTabs?.masterSubTabs || [],
+        webTabs: [],
+        masterSubTabs: [],
         mobileScreens: role.accessibleTabs?.mobileScreens || [],
       },
       voterPermissions: {
@@ -121,6 +95,7 @@ export const TenantUserRoleManager: React.FC = () => {
         canManageFamily: role.voterPermissions?.canManageFamily ?? false,
         canExportData: role.voterPermissions?.canExportData ?? false,
       },
+      canCreateRoles: role.canCreateRoles || [],
       isSystemDefault: role.isSystemDefault,
     });
     setIsModalOpen(true);
@@ -137,45 +112,33 @@ export const TenantUserRoleManager: React.FC = () => {
     });
   };
 
-  const handleToggleWebTab = (key: string) => {
+  const handleToggleMobileScreen = (screenKey: string) => {
     if (!editingRole) return;
-    const current = editingRole.accessibleTabs?.webTabs || [];
-    const updated = current.includes(key) ? current.filter((k) => k !== key) : [...current, key];
+    const currentScreens = editingRole.accessibleTabs?.mobileScreens || [];
+    const nextScreens = currentScreens.includes(screenKey)
+      ? currentScreens.filter((s) => s !== screenKey)
+      : [...currentScreens, screenKey];
+
     setEditingRole({
       ...editingRole,
       accessibleTabs: {
-        webTabs: updated,
-        masterSubTabs: editingRole.accessibleTabs?.masterSubTabs || [],
-        mobileScreens: editingRole.accessibleTabs?.mobileScreens || [],
+        webTabs: [],
+        masterSubTabs: [],
+        mobileScreens: nextScreens,
       },
     });
   };
 
-  const handleToggleMasterSubTab = (key: string) => {
+  const handleToggleCreatableRole = (roleKey: string) => {
     if (!editingRole) return;
-    const current = editingRole.accessibleTabs?.masterSubTabs || [];
-    const updated = current.includes(key) ? current.filter((k) => k !== key) : [...current, key];
-    setEditingRole({
-      ...editingRole,
-      accessibleTabs: {
-        webTabs: editingRole.accessibleTabs?.webTabs || [],
-        masterSubTabs: updated,
-        mobileScreens: editingRole.accessibleTabs?.mobileScreens || [],
-      },
-    });
-  };
+    const currentRoles = editingRole.canCreateRoles || [];
+    const nextRoles = currentRoles.includes(roleKey)
+      ? currentRoles.filter((r) => r !== roleKey)
+      : [...currentRoles, roleKey];
 
-  const handleToggleMobileScreen = (key: string) => {
-    if (!editingRole) return;
-    const current = editingRole.accessibleTabs?.mobileScreens || [];
-    const updated = current.includes(key) ? current.filter((k) => k !== key) : [...current, key];
     setEditingRole({
       ...editingRole,
-      accessibleTabs: {
-        webTabs: editingRole.accessibleTabs?.webTabs || [],
-        masterSubTabs: editingRole.accessibleTabs?.masterSubTabs || [],
-        mobileScreens: updated,
-      },
+      canCreateRoles: nextRoles,
     });
   };
 
@@ -186,10 +149,19 @@ export const TenantUserRoleManager: React.FC = () => {
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      await dispatch(saveTenantUserRole(editingRole));
-      toast.success(editingRole.id ? 'User role updated successfully!' : 'New user role created successfully!');
+      setIsSubmitting(true);
+      await dispatch(
+        saveTenantUserRole({
+          ...editingRole,
+          accessibleTabs: {
+            webTabs: [],
+            masterSubTabs: [],
+            mobileScreens: editingRole.accessibleTabs?.mobileScreens || [],
+          },
+        })
+      );
+      toast.success(editingRole.id ? 'User role updated successfully' : 'Custom user role created successfully');
       setIsModalOpen(false);
       setEditingRole(null);
     } catch (err: any) {
@@ -214,15 +186,15 @@ export const TenantUserRoleManager: React.FC = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Page Header Standard */}
       <PageHeader
-        title="Tenant User Roles & Field Permissions"
-        subtitle="Manage custom roles for PC/AC Leaders, Sub-Leaders, and Supporters with granular voter editing controls"
+        title="Field Roles & Volunteer Permissions"
+        subtitle="Manage fixed mobile roles (PC Leader, AC Leader, Sub-Leader, Supporter) and field delegation rights"
         icon={<UserCheck size={22} />}
         onAddClick={handleOpenCreateModal}
-        addLabel="Create User Role"
+        addLabel="Create Custom Role"
       />
 
       {/* Role Cards List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
         {tenantUserRoles.map((role) => (
           <div
             key={role.id}
@@ -261,10 +233,31 @@ export const TenantUserRoleManager: React.FC = () => {
                 {role.description || 'No description provided.'}
               </p>
 
+              {/* Delegation & Onboarding Rights Badge */}
+              <div className="mb-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 text-xs">
+                <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <UserPlus size={13} className="text-indigo-500" /> Authorized to Onboard:
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {role.canCreateRoles && role.canCreateRoles.length > 0 ? (
+                    role.canCreateRoles.map((rk) => (
+                      <span
+                        key={rk}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                      >
+                        +{rk.replace('_', ' ').toUpperCase()}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[11px] text-slate-400 italic">None (Leaf Field Worker)</span>
+                  )}
+                </div>
+              </div>
+
               {/* Permissions Quick Matrix Badges */}
               <div className="space-y-2 py-3 border-t border-b border-slate-100 dark:border-slate-800/80 text-xs">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Voter Editing Rights
+                  Voter Editing Rights (Mobile)
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {VOTER_PERM_DEFINITIONS.map((def) => {
@@ -286,7 +279,9 @@ export const TenantUserRoleManager: React.FC = () => {
             </div>
 
             <div className="mt-4 pt-2 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Web Tabs: <strong className="text-slate-700 dark:text-slate-200">{role.accessibleTabs?.webTabs?.length || 0}</strong></span>
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <Smartphone size={13} /> Mobile Only Access
+              </span>
               <span>Mobile Screens: <strong className="text-slate-700 dark:text-slate-200">{role.accessibleTabs?.mobileScreens?.length || 0}</strong></span>
             </div>
           </div>
@@ -297,11 +292,11 @@ export const TenantUserRoleManager: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingRole?.id ? 'Edit User Role & Permissions' : 'Create Custom User Role'}
-        subtitle="Configure role hierarchy, accessible tabs, and voter data edit permissions"
+        title={editingRole?.id ? 'Edit Volunteer Role & Field Permissions' : 'Create Custom Volunteer Role'}
+        subtitle="Configure mobile screen access, voter editing rights, and subordinate delegation controls"
         onSubmit={handleSubmit}
         isLoading={isSubmitting}
-        maxWidth="4xl"
+        maxWidth="3xl"
         submitText={editingRole?.id ? 'Update Role' : 'Create Role'}
       >
         {editingRole && (
@@ -312,7 +307,7 @@ export const TenantUserRoleManager: React.FC = () => {
                 name="roleName"
                 value={editingRole.roleName || ''}
                 onChange={(e) => setEditingRole({ ...editingRole, roleName: e.target.value })}
-                placeholder="e.g. Ward 12 Coordinator"
+                placeholder="e.g. Ward Coordinator"
                 required
               />
 
@@ -320,7 +315,7 @@ export const TenantUserRoleManager: React.FC = () => {
                 label="Role Category / Key"
                 name="roleKey"
                 type="select"
-                options={ROLE_KEY_OPTIONS}
+                options={FORM_VOLUNTEER_ROLE_OPTIONS}
                 value={editingRole.roleKey || 'sub_leader'}
                 onChange={(e) => setEditingRole({ ...editingRole, roleKey: e.target.value })}
                 required
@@ -334,20 +329,83 @@ export const TenantUserRoleManager: React.FC = () => {
               rows={2}
               value={editingRole.description || ''}
               onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
-              placeholder="Describe responsibilities and boundary scope..."
+              placeholder="Describe field responsibilities and booth assignment scope..."
             />
+
+            {/* Subordinate Role Delegation Matrix (can_create_roles) */}
+            <div className="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/60 space-y-3">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                  <UserPlus size={16} /> User Delegation & Onboarding Rights
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Select which subordinate roles this leader is authorized to onboard and assign booths to from the mobile app
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {SUBORDINATE_ROLE_DELEGATION_OPTIONS.map((subRole) => {
+                  const isChecked = editingRole.canCreateRoles?.includes(subRole.key);
+                  return (
+                    <div
+                      key={subRole.key}
+                      onClick={() => handleToggleCreatableRole(subRole.key)}
+                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex flex-col justify-between gap-2 ${isChecked
+                        ? 'bg-white dark:bg-slate-900 border-indigo-500 dark:border-indigo-500 shadow-sm'
+                        : 'bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-70'
+                        }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className={`font-semibold ${isChecked ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-700 dark:text-slate-300'}`}>
+                          {subRole.label}
+                        </span>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${isChecked ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-700'}`}>
+                          {isChecked && <span className="text-[9px] font-bold">✓</span>}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{subRole.desc}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mobile App Screens Access */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <Smartphone size={14} /> Mobile App Screen Access
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {AVAILABLE_MOBILE_SCREENS.map((screen) => {
+                  const isChecked = editingRole.accessibleTabs?.mobileScreens?.includes(screen.key);
+                  return (
+                    <div
+                      key={screen.key}
+                      onClick={() => handleToggleMobileScreen(screen.key)}
+                      className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${isChecked
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-semibold'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
+                    >
+                      <span className="truncate">{screen.label}</span>
+                      <div className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white shrink-0 ml-1 ${isChecked ? 'bg-emerald-600' : 'border border-slate-300 dark:border-slate-700'}`}>
+                        {isChecked && <span className="text-[9px] font-bold">✓</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Voter Data Editing & Field Action Matrix */}
             <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-slate-50 to-violet-50/70 dark:from-slate-800/80 dark:to-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
-                    <ShieldCheck size={16} /> Voter Data Action & Edit Permission Matrix
-                  </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Controls what field leaders and supporters can view or modify on voters in Mobile & Web apps
-                  </p>
-                </div>
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                  <ShieldCheck size={16} /> Voter Data Action & Edit Permission Matrix
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Controls what field leaders and supporters can view or modify on voters in the mobile app
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -372,90 +430,6 @@ export const TenantUserRoleManager: React.FC = () => {
 
                       <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all ${isChecked ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-700'}`}>
                         {isChecked && <span className="text-[10px] font-bold">✓</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Web & Master Tab Access Subsets */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Web Main Tabs */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Eye size={14} /> Web Main Tabs Visibility
-                </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {AVAILABLE_WEB_TABS.map((tab) => {
-                    const isChecked = editingRole.accessibleTabs?.webTabs?.includes(tab.key);
-                    return (
-                      <div
-                        key={tab.key}
-                        onClick={() => handleToggleWebTab(tab.key)}
-                        className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${isChecked
-                          ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 font-semibold'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                          }`}
-                      >
-                        <span className="truncate">{tab.label}</span>
-                        <div className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white shrink-0 ml-1 ${isChecked ? 'bg-indigo-600' : 'border border-slate-300 dark:border-slate-700'}`}>
-                          {isChecked && <span className="text-[9px] font-bold">✓</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Mobile App Screens */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                  <Smartphone size={14} /> Mobile App Screen Access
-                </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {AVAILABLE_MOBILE_SCREENS.map((screen) => {
-                    const isChecked = editingRole.accessibleTabs?.mobileScreens?.includes(screen.key);
-                    return (
-                      <div
-                        key={screen.key}
-                        onClick={() => handleToggleMobileScreen(screen.key)}
-                        className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${isChecked
-                          ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-semibold'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                          }`}
-                      >
-                        <span className="truncate">{screen.label}</span>
-                        <div className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white shrink-0 ml-1 ${isChecked ? 'bg-emerald-600' : 'border border-slate-300 dark:border-slate-700'}`}>
-                          {isChecked && <span className="text-[9px] font-bold">✓</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Master Sub-Tabs Checklist */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                Master Data Sub-Tabs Access
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {AVAILABLE_MASTER_SUB_TABS.map((sub) => {
-                  const isChecked = editingRole.accessibleTabs?.masterSubTabs?.includes(sub.key);
-                  return (
-                    <div
-                      key={sub.key}
-                      onClick={() => handleToggleMasterSubTab(sub.key)}
-                      className={`p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${isChecked
-                        ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200 font-semibold'
-                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                        }`}
-                    >
-                      <span className="truncate">{sub.label}</span>
-                      <div className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white shrink-0 ml-1 ${isChecked ? 'bg-purple-600' : 'border border-slate-300 dark:border-slate-700'}`}>
-                        {isChecked && <span className="text-[9px] font-bold">✓</span>}
                       </div>
                     </div>
                   );

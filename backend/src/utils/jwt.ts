@@ -9,6 +9,7 @@ export interface JwtPayload {
   tenantUserRoleId?: string | null;
   parentLeaderId?: string | null;
   assignedAcId?: string | null;
+  assignedAcIds?: string[] | null;
   assignedBoothIds?: string[];
 }
 

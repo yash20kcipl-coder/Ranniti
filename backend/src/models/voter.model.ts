@@ -123,6 +123,8 @@ export interface VoterFilterParams {
   districtId?: string;
   pcId?: string;
   acId?: string;
+  acIds?: string[];
+  tenantDbName?: string | null;
   boothId?: string;
   sectionNo?: number | string;
   gender?: string;
@@ -176,6 +178,7 @@ export interface FamilyCandidateParams {
   gender?: string;
   page?: number;
   limit?: number;
+  tenantDbName?: string | null;
 }
 
 export interface SocialCandidateParams {
@@ -189,4 +192,5 @@ export interface SocialCandidateParams {
   unassignedOnly?: boolean | string;
   page?: number;
   limit?: number;
+  tenantDbName?: string | null;
 }
