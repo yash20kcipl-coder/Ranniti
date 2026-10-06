@@ -64,7 +64,50 @@ export class RoleQueries {
        ORDER BY created_at ASC 
        LIMIT 1`
     );
-    return fallbackRes.rows[0] || null;
+    if (fallbackRes.rows[0]) {
+      await query(`UPDATE tenant_roles SET is_default = true WHERE id = $1`, [fallbackRes.rows[0].id]).catch(() => {});
+      return { ...fallbackRes.rows[0], isDefault: true };
+    }
+
+    // Auto-seed Tier 1 system default role packages if table is completely empty
+    try {
+      const seededRole = await this.createTenantRole({
+        roleName: 'Full Political Campaign Suite',
+        description: 'Complete access to all web tabs (incl. settings), tenant master sub-tabs (AC, Ward, Booth), voter directory, and mobile field capabilities.',
+        allowedTabs: {
+          webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
+          masterSubTabs: ['acs', 'wards', 'booths'],
+        },
+        isActive: true,
+        isDefault: true,
+      });
+
+      await this.createTenantRole({
+        roleName: 'Standard Campaign Package',
+        description: 'Access to Dashboard, Voter Directory, Ward & Booth master data, and settings.',
+        allowedTabs: {
+          webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
+          masterSubTabs: ['wards', 'booths'],
+        },
+        isActive: true,
+        isDefault: false,
+      });
+
+      await this.createTenantRole({
+        roleName: 'Voter Directory & Field Survey Package',
+        description: 'Focused package for field operations with Voter Directory and Booth reference access. No settings access.',
+        allowedTabs: {
+          webTabs: ['dashboard', 'voter_directory'],
+          masterSubTabs: ['booths'],
+        },
+        isActive: true,
+        isDefault: false,
+      });
+
+      return seededRole;
+    } catch {
+      return null;
+    }
   }
 
   static async setDefaultTenantRole(id: string): Promise<TenantRole | null> {

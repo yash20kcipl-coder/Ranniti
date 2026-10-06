@@ -1117,14 +1117,20 @@ export class MasterBulkService {
                   casteId,
                   partyId,
                   serialNo,
-                  sectionNo,
-                  houseNo: row['House No'] || row['HouseNo'] || row['houseNo'] || undefined,
+                  houseNo: (() => {
+                    const h = row['House No'] || row['HouseNo'] || row['houseNo'] || row['makan'];
+                    if (h === undefined || h === null) return undefined;
+                    const cleaned = String(h).replace(/[\u0ACD\u0AB0\u0A81-\u0A83\u0ABC\u0ABE-\u0AC9\u0ACD\u0AE2\u0AE3]/g, '').trim();
+                    return cleaned || String(h).trim();
+                  })(),
                   engFirstName: row['First Name (Eng)'] || row['EngFname'] || row['Eng Fname'] || row['engFirstName'] || undefined,
                   engMiddleName: row['Middle Name (Eng)'] || row['EngMname'] || row['Eng Mname'] || row['engMiddleName'] || undefined,
                   engSurname: row['Surname (Eng)'] || row['EngSname'] || row['Eng Sname'] || row['engSurname'] || undefined,
                   firstName: row['First Name (Local)'] || row['FName'] || row['Fname'] || row['firstName'] || undefined,
                   middleName: row['Middle Name (Local)'] || row['MName'] || row['Mname'] || row['middleName'] || undefined,
                   surname: row['Surname (Local)'] || row['SName'] || row['Sname'] || row['surname'] || undefined,
+                  relation: (row['Relation'] || row['relation'] || '').toString().trim() || undefined,
+                  guardianName: (row['Guardian Name'] || row['GuardianName'] || row['Father Name'] || row['FatherName'] || row['guardianName'] || row['guardian_name'] || '').toString().trim() || undefined,
                   gender,
                   dob: formattedDob,
                   age: finalAge,
@@ -1178,6 +1184,8 @@ export class MasterBulkService {
                     eng_middle_name: v.engMiddleName || null,
                     surname: v.surname || null,
                     eng_surname: v.engSurname || null,
+                    relation: v.relation || null,
+                    guardian_name: v.guardianName || null,
                     gender: v.gender || null,
                     dob: v.dob || null,
                     age: v.age || null,

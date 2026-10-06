@@ -1,4 +1,5 @@
 import { query } from './dbPool';
+import { RoleQueries } from './role.queries';
 import { Tenant } from '../models/tenant.model';
 
 // ─── Shared SELECT projection (no JOIN to admin_users) ────────────────────────
@@ -40,6 +41,14 @@ export class TenantQueries {
     avatar?: string | null;
     tenantRoleId?: string | null;
   }): Promise<Tenant> {
+    let resolvedRoleId = data.tenantRoleId || null;
+    if (!resolvedRoleId) {
+      const defaultRole = await RoleQueries.getDefaultTenantRole();
+      if (defaultRole) {
+        resolvedRoleId = defaultRole.id;
+      }
+    }
+
     const res = await query(
       `INSERT INTO tenants
          (name, email, password_hash, mobile, avatar, organization_name, tenant_db_name, pc_ids, ac_ids, tenant_role_id, status)
@@ -55,7 +64,7 @@ export class TenantQueries {
         data.tenantDbName,
         data.pcIds,
         data.acIds,
-        data.tenantRoleId || null,
+        resolvedRoleId,
       ]
     );
 
@@ -175,16 +184,40 @@ export class TenantQueries {
   static async updateTenant(
     tenantId: string,
     data: {
-      name: string;
-      email: string;
-      mobile: string;
-      organizationName: string;
-      pcIds: string[];
-      acIds: string[];
+      name?: string;
+      email?: string;
+      mobile?: string;
+      organizationName?: string;
+      pcIds?: string[];
+      acIds?: string[];
       tenantRoleId?: string | null;
       avatar?: string | null;
     }
   ): Promise<Tenant | null> {
+    const existing = await this.getById(tenantId);
+    if (!existing) return null;
+
+    const name = data.name !== undefined ? data.name : existing.name;
+    const email = data.email !== undefined ? data.email.toLowerCase().trim() : existing.email;
+    const mobile = data.mobile !== undefined ? data.mobile : existing.mobile;
+    const organizationName = data.organizationName !== undefined ? data.organizationName : existing.organizationName;
+    const pcIds = data.pcIds !== undefined ? data.pcIds : (existing.pcIds || []);
+    const acIds = data.acIds !== undefined ? data.acIds : (existing.acIds || []);
+
+    let resolvedRoleId: string | null = null;
+    if (data.tenantRoleId !== undefined) {
+      resolvedRoleId = data.tenantRoleId;
+    } else {
+      resolvedRoleId = existing.tenantRoleId || null;
+    }
+
+    if (!resolvedRoleId) {
+      const defaultRole = await RoleQueries.getDefaultTenantRole();
+      if (defaultRole) {
+        resolvedRoleId = defaultRole.id;
+      }
+    }
+
     await query(
       `UPDATE tenants
        SET name              = $1,
@@ -198,13 +231,13 @@ export class TenantQueries {
            updated_at        = NOW()
        WHERE id = $9`,
       [
-        data.name,
-        data.email,
-        data.mobile,
-        data.organizationName,
-        data.pcIds,
-        data.acIds,
-        data.tenantRoleId || null,
+        name,
+        email,
+        mobile,
+        organizationName,
+        pcIds,
+        acIds,
+        resolvedRoleId,
         data.avatar ?? null,
         tenantId,
       ]

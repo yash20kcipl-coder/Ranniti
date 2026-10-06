@@ -588,7 +588,7 @@ export function buildVoterTableColumns(): Column<any>[] {
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-semibold text-slate-900 dark:text-slate-100">
-                  {engName || locName || 'Unnamed Voter'}
+                  {locName || 'Unnamed Voter'}
                 </span>
                 {(row.gender || row.age) && (
                   <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -603,8 +603,8 @@ export function buildVoterTableColumns(): Column<any>[] {
                   </span>
                 )}
               </div>
-              {locName && engName !== locName && (
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">{locName}</span>
+              {engName && engName !== locName && (
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">{engName}</span>
               )}
             </div>
           </div>

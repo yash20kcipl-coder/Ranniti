@@ -167,8 +167,17 @@ export class TenantController {
       throw new ApiError(404, 'Tenant not found');
     }
 
-    let newAcIds: string[] = Array.isArray(acIds) ? [...acIds] : [];
-    let newPcIds: string[] = Array.isArray(pcIds) ? [...pcIds] : [];
+    const effectiveName = name !== undefined ? name.trim() : existing.name;
+    const effectiveEmail = email !== undefined ? email.trim().toLowerCase() : existing.email;
+    const effectiveMobile = mobile !== undefined ? mobile.trim() : existing.mobile;
+    const effectiveOrgName = organizationName !== undefined ? organizationName.trim() : existing.organizationName;
+
+    if (!effectiveName || !effectiveEmail || !effectiveOrgName) {
+      throw new ApiError(400, 'Name, email, and organization name are required');
+    }
+
+    let newAcIds: string[] = acIds !== undefined ? (Array.isArray(acIds) ? [...acIds] : []) : (existing.acIds || []);
+    let newPcIds: string[] = pcIds !== undefined ? (Array.isArray(pcIds) ? [...pcIds] : []) : (existing.pcIds || []);
 
     // Auto-resolve ACs from PCs or vice-versa
     if (newAcIds.length === 0 && newPcIds.length > 0) {
@@ -188,7 +197,7 @@ export class TenantController {
     let addedAcIds: string[] = [];
     let removedAcIds: string[] = [];
 
-    if (existing.tenantDbName) {
+    if (existing.tenantDbName && (acIds !== undefined || pcIds !== undefined)) {
       let tenantPool: Pool | null = null;
       try {
         tenantPool = getTenantDbPool(existing.tenantDbName);
@@ -209,20 +218,16 @@ export class TenantController {
           await tenantPool.end().catch(() => { });
         }
       }
-    } else {
-      const existingAcIds: string[] = Array.isArray(existing.acIds) ? existing.acIds : [];
-      addedAcIds = newAcIds.filter((ac) => !existingAcIds.includes(ac));
-      removedAcIds = existingAcIds.filter((ac) => !newAcIds.includes(ac));
     }
 
     const updated = await TenantQueries.updateTenant(id, {
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      mobile: mobile.trim(),
-      organizationName: organizationName.trim(),
+      name: effectiveName,
+      email: effectiveEmail,
+      mobile: effectiveMobile,
+      organizationName: effectiveOrgName,
       pcIds: newPcIds,
       acIds: newAcIds,
-      tenantRoleId: tenantRoleId || null,
+      tenantRoleId: tenantRoleId !== undefined ? tenantRoleId : existing.tenantRoleId,
       avatar: avatar ?? null,
     });
 

@@ -1,16 +1,16 @@
 import { Modal } from './Modal';
 import toast from 'react-hot-toast';
+import { FormInput } from './FormInput';
+import type { MasterField } from '@/config/masterConfig';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import type { MasterField } from '@/config/masterConfig';
-import { downloadSampleTemplate } from '@/redux/actions/importJobs';
-import { parseExcelFile, downloadSampleExcelTemplate } from '@/utils/exportImport';
-import { Upload, Download, FileSpreadsheet, AlertCircle, Trash2, Loader2, SlidersHorizontal } from 'lucide-react';
-import { FormInput } from './FormInput';
-import { useMasterData, type MasterCategoryKey } from '@/hooks/useMasterData';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { fetchSuperAdminBoothOptions } from '@/redux/actions/voterSuperAdmin';
 import { fetchTenantBoothOptions } from '@/redux/actions/voterTenant';
+import { fetchSuperAdminBoothOptions } from '@/redux/actions/voterSuperAdmin';
+import { useMasterData, type MasterCategoryKey } from '@/hooks/useMasterData';
+import { parseExcelFile, downloadSampleExcelTemplate } from '@/utils/exportImport';
+import { downloadSampleTemplate, startBulkImportFileJob } from '@/redux/actions/importJobs';
+import { Upload, Download, FileSpreadsheet, AlertCircle, Trash2, Loader2, SlidersHorizontal } from 'lucide-react';
 
 export interface ImportModalProps {
   isOpen: boolean;
@@ -42,6 +42,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<Record<string, any>[]>([]);
+  const [isLargeFile, setIsLargeFile] = useState(false);
+
+  /** Files over this threshold are uploaded raw to the server — no client-side parsing */
+  const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024; // 20 MB
 
   // Hierarchy Selection State for Dual-Mode (Scoped vs Generic)
   const [stateId, setStateId] = useState<string>('');
@@ -280,6 +284,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     setErrorMsg(null);
     setIsParsing(false);
     setIsSubmitting(false);
+    setIsLargeFile(false);
   };
 
   const handleModalClose = () => {
@@ -292,16 +297,25 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
     setFile(selectedFile);
     setErrorMsg(null);
+    setIsLargeFile(false);
+    setParsedData([]);
+
+    const fileNameLower = selectedFile.name.toLowerCase();
+    if (!fileNameLower.endsWith('.xlsx') && !fileNameLower.endsWith('.xls')) {
+      setErrorMsg('Invalid file format. Only Excel spreadsheets (.xlsx / .xls) are allowed.');
+      return;
+    }
+
+    // Large files: skip client-side parsing — backend will stream them
+    if (selectedFile.size > LARGE_FILE_THRESHOLD) {
+      setIsLargeFile(true);
+      toast.success(`Large file detected (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB) — will upload directly to server.`);
+      return;
+    }
+
     setIsParsing(true);
-
     try {
-      const fileNameLower = selectedFile.name.toLowerCase();
-      if (!fileNameLower.endsWith('.xlsx') && !fileNameLower.endsWith('.xls')) {
-        throw new Error('Invalid file format. Only Excel spreadsheets (.xlsx / .xls) are allowed.');
-      }
-
       const records = await parseExcelFile(selectedFile);
-
       if (records.length === 0) {
         setErrorMsg('The selected Excel file contains no valid data rows.');
         setParsedData([]);
@@ -348,8 +362,17 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     setIsSubmitting(true);
     try {
       const mergedContext = { ...sampleParams, ...activeContext };
+
       if (onSubmit) {
         await onSubmit(file, parsedData, mergedContext);
+      } else if (isLargeFile && categoryKey) {
+        // Large file path: upload raw file to backend streaming endpoint
+        await dispatch(
+          startBulkImportFileJob(categoryKey, file, undefined, mergedContext)
+        );
+        toast.success('Large file upload started. Track progress in the import jobs panel.');
+        handleModalClose();
+        return;
       } else if (onImport) {
         if (parsedData.length === 0) {
           toast.error('No records available to import.');
@@ -389,7 +412,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       isOpen={isOpen}
       onClose={handleModalClose}
       onSubmit={handleSubmitImport}
-      submitText={isSubmitting ? 'Importing...' : `Import ${parsedData.length} Records`}
+      submitText={isSubmitting ? 'Uploading...' : isLargeFile ? `Upload File (${file ? (file.size / 1024 / 1024).toFixed(1) : 0} MB)` : `Import ${parsedData.length} Records`}
     >
       <div className="space-y-4 text-left">
         {/* Top helper bar with download sample template */}
@@ -539,7 +562,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
               Click to select or drag and drop Excel file (.XLSX) here
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">.XLSX or .XLS up to 10MB</p>
+            <p className="text-[11px] text-slate-500 mt-1">.XLSX or .XLS — up to 200 MB (large files upload to server)</p>
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -555,7 +578,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 <div>
                   <p className="text-xs font-semibold text-slate-900 dark:text-white">{file.name}</p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {(file.size / 1024).toFixed(1)} KB • {parsedData.length} records parsed
+                    {(file.size / 1024 / 1024).toFixed(1)} MB •{' '}
+                    {isLargeFile ? (
+                      <span className="text-blue-500 font-semibold">Ready to upload to server ↑</span>
+                    ) : (
+                      `${parsedData.length} records parsed`
+                    )}
                   </p>
                 </div>
               </div>

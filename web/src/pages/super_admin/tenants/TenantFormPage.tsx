@@ -32,10 +32,11 @@ import { Modal } from '@/components/common/Modal';
 import { SafeImage } from '@/components/common/SafeImage';
 import { FormInput } from '@/components/common/FormInput';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
+import { fetchTenantRolePackages } from '@/redux/actions/role';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { FileUploadInput } from '@/components/common/FileUploadInput';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { fetchSuperAdminMasterCategoryData as fetchMasterCategoryData } from '@/redux/actions/masterSuperAdmin';
@@ -57,6 +58,7 @@ export const TenantFormPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [organizationName, setOrganizationName] = useState('');
+  const [tenantRoleId, setTenantRoleId] = useState('');
   const [avatar, setAvatar] = useState<File | string | null>(null);
   const [selectedPcIds, setSelectedPcIds] = useState<string[]>([]);
   const [selectedAcIds, setSelectedAcIds] = useState<string[]>([]);
@@ -80,16 +82,18 @@ export const TenantFormPage: React.FC = () => {
   const [tenantDbName, setTenantDbName] = useState('');
   const [existingAvatarUrl, setExistingAvatarUrl] = useState<string | null>(null);
 
-  // Redux master categories for PCs and ACs
+  // Redux master categories for PCs and ACs & Tier 1 Role Packages
   const pcs = useAppSelector((state) => (state.master as any)?.pcs || []);
   const acs = useAppSelector((state) => (state.master as any)?.acs || []);
+  const tenantRoles = useAppSelector((state) => state.role.tenantRoles || []);
 
   // Fetch PC & AC master data and existing tenant data if in Edit mode
   useDebouncedEffect(
     () => {
-      // Always fetch fresh PC & AC master datasets from backend
+      // Always fetch fresh PC & AC master datasets and role packages from backend
       dispatch(fetchMasterCategoryData('pcs', '/masters/pcs', false));
       dispatch(fetchMasterCategoryData('acs', '/masters/acs', false));
+      dispatch(fetchTenantRolePackages());
 
       if (isEditMode && id) {
         setFetching(true);
@@ -100,6 +104,7 @@ export const TenantFormPage: React.FC = () => {
               setEmail(data.email || '');
               setMobile(data.mobile || '');
               setOrganizationName(data.organizationName || '');
+              setTenantRoleId(data.tenantRoleId || '');
               const pcList = Array.isArray(data.pcIds) ? Array.from(new Set(data.pcIds)) as string[] : [];
               const acList = Array.isArray(data.acIds) ? Array.from(new Set(data.acIds)) as string[] : [];
               setSelectedPcIds(pcList);
@@ -121,6 +126,30 @@ export const TenantFormPage: React.FC = () => {
     200,
     [id, isEditMode]
   );
+
+  // Auto-preselect default tenant role in create mode
+  useEffect(() => {
+    if (!isEditMode && !tenantRoleId && tenantRoles.length > 0) {
+      const defaultRole = tenantRoles.find((r) => r.isDefault) || tenantRoles[0];
+      if (defaultRole) {
+        setTenantRoleId(defaultRole.id);
+      }
+    }
+  }, [isEditMode, tenantRoleId, tenantRoles]);
+
+  const roleOptions = useMemo(() => {
+    return [
+      { label: '-- Select Tenant Feature Package --', value: '' },
+      ...tenantRoles.map((r: any) => ({
+        label: `${r.roleName} ${r.isDefault ? '★ (Default)' : ''} (${r.allowedTabs?.webTabs?.length || 0} Tabs)`,
+        value: r.id,
+      })),
+    ];
+  }, [tenantRoles]);
+
+  const selectedRole = useMemo(() => {
+    return tenantRoles.find((r: any) => r.id === tenantRoleId) || null;
+  }, [tenantRoles, tenantRoleId]);
 
   // Helper: get all ACs under a specific PC ID
   const getAcsForPc = useCallback(
@@ -427,6 +456,7 @@ export const TenantFormPage: React.FC = () => {
         organizationName: organizationName.trim(),
         pcIds: effectivePcIds,
         acIds: selectedAcIds,
+        tenantRoleId: tenantRoleId || undefined,
       };
 
       if (avatar instanceof File) {
@@ -550,6 +580,47 @@ export const TenantFormPage: React.FC = () => {
                     required
                     icon={<Phone size={16} />}
                   />
+
+                  {/* Tenant Feature Package (Tier 1 Super Admin Role) */}
+                  <div className="space-y-2">
+                    <FormInput
+                      name="tenantRoleId"
+                      label="Tenant Feature Package (Role)"
+                      type="select"
+                      options={roleOptions}
+                      value={tenantRoleId}
+                      onChange={(e) => setTenantRoleId(e.target.value)}
+                      required
+                      icon={<Shield size={16} />}
+                    />
+                    {selectedRole && (
+                      <div className="p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs flex flex-col gap-1.5 mt-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-indigo-900 dark:text-indigo-200">
+                            {selectedRole.roleName}
+                          </span>
+                          {selectedRole.isDefault && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white shadow-xs">
+                              Default Package
+                            </span>
+                          )}
+                        </div>
+                        {selectedRole.description && (
+                          <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+                            {selectedRole.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1.5 pt-1 border-t border-indigo-100/60 dark:border-indigo-900/40">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Enabled Tabs:
+                          </span>
+                          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            {selectedRole.allowedTabs?.webTabs?.length || 0} Web Tabs, {selectedRole.allowedTabs?.masterSubTabs?.length || 0} Sub-Tabs
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

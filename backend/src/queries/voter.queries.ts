@@ -211,6 +211,8 @@ export class VoterQueries {
         v.eng_middle_name AS "engMiddleName",
         v.surname AS "surname",
         v.eng_surname AS "engSurname",
+        v.relation AS "relation",
+        v.guardian_name AS "guardianName",
         v.gender,
         v.dob,
         v.age,
@@ -317,6 +319,8 @@ export class VoterQueries {
         v.eng_middle_name AS "engMiddleName",
         v.surname AS "surname",
         v.eng_surname AS "engSurname",
+        v.relation AS "relation",
+        v.guardian_name AS "guardianName",
         v.gender,
         v.dob,
         v.age,
@@ -388,7 +392,7 @@ export class VoterQueries {
     const res = await executeVoterQuery(
       `INSERT INTO voters (
         epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
-        first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname,
+        first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname, relation, guardian_name,
         gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
         profession_type, profession, religion_id, caste_id, subcaste_name, voter_type,
         status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
@@ -396,16 +400,16 @@ export class VoterQueries {
         is_family_influencer, is_social_influencer, family_id
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, $14, $15,
-        $16, $17, $18, $19, $20, $21, $22,
-        $23, $24, $25, $26, $27, $28,
-        $29, $30, $31, $32, $33, $34, $35, $36,
-        $37, $38, $39, $40, $41, $42
+        $10, $11, $12, $13, $14, $15, $16, $17,
+        $18, $19, $20, $21, $22, $23, $24,
+        $25, $26, $27, $28, $29, $30,
+        $31, $32, $33, $34, $35, $36, $37, $38,
+        $39, $40, $41, $42, $43, $44
       )
       RETURNING 
         id, epic_no AS "epicNo", serial_no AS "serialNo", section_no AS "sectionNo", house_no AS "houseNo",
         first_name AS "firstName", eng_first_name AS "engFirstName", middle_name AS "middleName", eng_middle_name AS "engMiddleName",
-        surname, eng_surname AS "engSurname", gender, dob, age, mobile_no AS "mobileNo", email,
+        surname, eng_surname AS "engSurname", relation, guardian_name AS "guardianName", gender, dob, age, mobile_no AS "mobileNo", email,
         aadhaar_no AS "aadhaarNo", pan_no AS "panNo", profession_type AS "professionType", profession,
         voter_type AS "voterType", status, is_dead AS "isDead", blood_group AS "bloodGroup", avatar,
         is_family_influencer AS "isFamilyInfluencer", is_social_influencer AS "isSocialInfluencer",
@@ -427,6 +431,8 @@ export class VoterQueries {
         data.engMiddleName || null,
         data.surname || null,
         data.engSurname || null,
+        data.relation || null,
+        data.guardianName || null,
         data.gender || null,
         data.dob || null,
         data.age || null,
@@ -505,7 +511,7 @@ export class VoterQueries {
       let pIndex = 1;
 
       for (const data of chunk) {
-        const tuplePlaceholders = Array.from({ length: 42 }, (_, idx) => `$${pIndex + idx}`).join(', ');
+        const tuplePlaceholders = Array.from({ length: 44 }, (_, idx) => `$${pIndex + idx}`).join(', ');
         valueTuples.push(`(${tuplePlaceholders})`);
 
         valuesParams.push(
@@ -524,6 +530,8 @@ export class VoterQueries {
           data.engMiddleName || null,
           data.surname || null,
           data.engSurname || null,
+          data.relation || null,
+          data.guardianName || null,
           data.gender || null,
           data.dob || null,
           data.age || null,
@@ -553,13 +561,13 @@ export class VoterQueries {
           data.familyId || null
         );
 
-        pIndex += 42;
+        pIndex += 44;
       }
 
       const sql = `
         INSERT INTO voters (
           epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
-          first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname,
+          first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname, relation, guardian_name,
           gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
           profession_type, profession, religion_id, caste_id, subcaste_name, voter_type,
           status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
@@ -582,6 +590,8 @@ export class VoterQueries {
           eng_middle_name = EXCLUDED.eng_middle_name,
           surname = EXCLUDED.surname,
           eng_surname = EXCLUDED.eng_surname,
+          relation = EXCLUDED.relation,
+          guardian_name = EXCLUDED.guardian_name,
           gender = EXCLUDED.gender,
           dob = EXCLUDED.dob,
           age = EXCLUDED.age,
@@ -679,21 +689,23 @@ export class VoterQueries {
         village = COALESCE($35, village),
         full_address = COALESCE($36, full_address),
         voter_address = COALESCE($37, voter_address),
-        party_id = CASE WHEN $45 = TRUE THEN $38 ELSE party_id END,
+        relation = COALESCE($38, relation),
+        guardian_name = COALESCE($39, guardian_name),
+        party_id = CASE WHEN $47 = TRUE THEN $40 ELSE party_id END,
         family_influencer_id = CASE 
-          WHEN COALESCE($41, is_family_influencer) = TRUE THEN NULL 
-          WHEN $43 = TRUE THEN $39 
+          WHEN COALESCE($43, is_family_influencer) = TRUE THEN NULL 
+          WHEN $45 = TRUE THEN $41 
           ELSE family_influencer_id 
         END,
         social_influencer_id = CASE 
-          WHEN $44 = TRUE THEN $40 
+          WHEN $46 = TRUE THEN $42 
           ELSE social_influencer_id 
         END,
         is_family_influencer = CASE 
-          WHEN $39 IS NOT NULL AND ($41 IS NULL OR $41 = FALSE) THEN FALSE 
-          ELSE COALESCE($41, is_family_influencer) 
+          WHEN $41 IS NOT NULL AND ($43 IS NULL OR $43 = FALSE) THEN FALSE 
+          ELSE COALESCE($43, is_family_influencer) 
         END,
-        is_social_influencer = COALESCE($42, is_social_influencer),
+        is_social_influencer = COALESCE($44, is_social_influencer),
         updated_at = NOW()
       WHERE id = $1
       RETURNING id, epic_no AS "epicNo", updated_at AS "updatedAt"`,
@@ -735,6 +747,8 @@ export class VoterQueries {
         data.village !== undefined ? data.village : null,
         data.fullAddress !== undefined ? data.fullAddress : null,
         data.voterAddress !== undefined ? data.voterAddress : null,
+        data.relation !== undefined ? data.relation : null,
+        data.guardianName !== undefined ? data.guardianName : null,
         data.partyId !== undefined ? data.partyId : null,
         data.familyInfluencerId !== undefined ? data.familyInfluencerId : null,
         data.socialInfluencerId !== undefined ? data.socialInfluencerId : null,
@@ -1225,6 +1239,8 @@ export class VoterQueries {
         v.eng_middle_name AS "engMiddleName",
         v.surname AS "surname",
         v.eng_surname AS "engSurname",
+        v.relation AS "relation",
+        v.guardian_name AS "guardianName",
         v.gender,
         v.dob,
         v.age,

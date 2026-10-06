@@ -1,3 +1,5 @@
+import fs from 'fs';
+import ExcelJS from 'exceljs';
 import { logger } from '../../utils/logger';
 import { Request, Response } from 'express';
 import { ApiResponse } from '../../utils/apiResponse';
@@ -45,6 +47,128 @@ export class MasterBulkController {
     } catch (err: any) {
       logger.error('[MasterBulkController] Error starting bulk import job:', err);
       const errResp = ApiResponse.error(err.message || 'Failed to start bulk import job', 500);
+      res.status(errResp.statusCode).json(errResp.body);
+    }
+  }
+
+  /**
+   * POST /api/v1/masters/bulk-import-file/:category
+   * Accepts a raw .xlsx file upload (multipart/form-data field: "file").
+   * Streams the Excel using ExcelJS — handles files of any size without OOM.
+   * Context (stateId, acId, etc.) passed as query params or form fields.
+   */
+  static async startBulkImportFile(req: Request, res: Response): Promise<void> {
+    const uploadedPath = (req.file as Express.Multer.File | undefined)?.path;
+
+    try {
+      const categoryStr = Array.isArray(req.params.category) ? req.params.category[0] : req.params.category;
+
+      if (!req.file || !uploadedPath) {
+        res.status(400).json(ApiResponse.error('No file uploaded. Send an .xlsx file in the "file" field.'));
+        return;
+      }
+
+      const ext = req.file.originalname.split('.').pop()?.toLowerCase();
+      if (ext !== 'xlsx' && ext !== 'xls') {
+        fs.unlink(uploadedPath, () => {});
+        res.status(400).json(ApiResponse.error('Only .xlsx / .xls files are supported.'));
+        return;
+      }
+
+      // Extract optional context (stateId, acId, boothId, etc.) from query or body
+      const context: Record<string, any> = {
+        ...((req.query as Record<string, any>) || {}),
+        ...((req.body as Record<string, any>) || {}),
+      };
+      // Remove the file field from context if accidentally included
+      delete context['file'];
+
+      // Create the job immediately and return 202 so the client can poll progress
+      const job = importJobTracker.createJob(categoryStr, 0 /* total unknown until streaming */);
+
+      // Stream and process in background (fire-and-forget)
+      setImmediate(async () => {
+        try {
+          const records: Record<string, any>[] = [];
+
+          const workbookReader = new ExcelJS.stream.xlsx.WorkbookReader(uploadedPath, {
+            sharedStrings: 'cache',
+            hyperlinks: 'ignore',
+            styles: 'ignore',
+            worksheets: 'emit',
+          });
+
+          let headers: string[] = [];
+          let firstRow = true;
+          let sheetFound = false;
+
+          for await (const worksheetReader of workbookReader) {
+            if (sheetFound) break;
+            sheetFound = true; // Use the first sheet with data
+
+            for await (const row of worksheetReader) {
+              const values = (row as ExcelJS.Row).values as any[];
+              const cells = Array.isArray(values) ? values.slice(1) : [];
+
+              if (firstRow) {
+                headers = cells.map((v) => (v != null ? String(v).trim() : ''));
+                firstRow = false;
+                continue;
+              }
+
+              const rowObj: Record<string, any> = {};
+              for (let i = 0; i < headers.length; i++) {
+                const key = headers[i];
+                if (!key) continue;
+                const val = cells[i];
+                if (val && typeof val === 'object' && val.richText) {
+                  rowObj[key] = val.richText.map((rt: any) => rt.text).join('');
+                } else if (val && typeof val === 'object' && val.text != null) {
+                  rowObj[key] = val.text;
+                } else {
+                  rowObj[key] = val != null ? val : '';
+                }
+              }
+
+              // Skip entirely empty rows
+              const hasData = Object.values(rowObj).some((v) => v !== '' && v != null);
+              if (hasData) records.push(rowObj);
+            }
+          }
+
+          // Update total now that we know it
+          job.totalRecords = records.length;
+
+          await MasterBulkService.processBulkImportJob(
+            job.jobId,
+            categoryStr,
+            records,
+            context
+          );
+        } catch (err) {
+          logger.error(`[MasterBulkController] File import job ${job.jobId} failed:`, err);
+          importJobTracker.failJob(job.jobId, (err as Error).message);
+        } finally {
+          // Clean up uploaded temp file
+          fs.unlink(uploadedPath, () => {});
+        }
+      });
+
+      const response = ApiResponse.success(
+        {
+          jobId: job.jobId,
+          category: job.category,
+          status: job.status,
+          startedAt: job.startedAt,
+        },
+        'File bulk import job initiated in background.',
+        202
+      );
+      res.status(response.statusCode).json(response.body);
+    } catch (err: any) {
+      if (uploadedPath) fs.unlink(uploadedPath, () => {});
+      logger.error('[MasterBulkController] Error starting file bulk import:', err);
+      const errResp = ApiResponse.error(err.message || 'Failed to start file bulk import', 500);
       res.status(errResp.statusCode).json(errResp.body);
     }
   }

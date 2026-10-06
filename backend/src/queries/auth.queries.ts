@@ -18,6 +18,11 @@ export interface UserRecord {
   avatar?: string;
   status: string;
   tenantDbName?: string | null;
+  tenantRoleId?: string | null;
+  tenantRoleName?: string | null;
+  allowedTabs?: any;
+  allowedWebTabs?: string[];
+  allowedMasterSubTabs?: string[];
   parentLeaderId?: string | null;
   assignedAcId?: string | null;
   assignedAcName?: string | null;

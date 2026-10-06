@@ -21,9 +21,17 @@ if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = constructedDbUrl;
 }
 
+const parseCorsOrigin = (raw?: string): boolean | string | string[] => {
+  if (!raw || raw.trim() === '*' || raw.trim() === '') return true;
+  if (raw.includes(',')) {
+    return raw.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+  return raw.trim();
+};
+
 export const config = {
   env: process.env.NODE_ENV || 'development',
-  corsOrigin: process.env.CORS_ORIGIN || '*',
+  corsOrigin: parseCorsOrigin(process.env.CORS_ORIGIN),
   databaseUrl: process.env.DATABASE_URL || constructedDbUrl,
   dbDialect,
   dbHost,

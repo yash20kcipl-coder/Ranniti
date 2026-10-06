@@ -60,6 +60,8 @@ export const createVoterSchema = z.object({
     engMiddleName: z.string().optional().nullable(),
     surname: z.string().optional().nullable(),
     engSurname: z.string().optional().nullable(),
+    relation: z.string().optional().nullable(),
+    guardianName: z.string().optional().nullable(),
 
     gender: z.string().optional().nullable(),
     dob: z.string().optional().nullable(),

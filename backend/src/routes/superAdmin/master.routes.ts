@@ -18,8 +18,8 @@ import {
   createBoothSchema,
 } from '../../schemas/master.schema';
 import { validate } from '../../middlewares/validate.middleware';
-import { optionalUpload } from '../../middlewares/upload.middleware';
 import { masterController } from '../../controllers/master.controller';
+import { optionalUpload, excelUpload } from '../../middlewares/upload.middleware';
 import { MasterBulkController } from '../../controllers/superAdmin/masterBulk.controller';
 
 const router = Router();
@@ -28,6 +28,8 @@ const router = Router();
 router.get('/bulk-import/jobs', MasterBulkController.getAllImportJobs);
 router.post('/bulk-import/:category', MasterBulkController.startBulkImport);
 router.get('/bulk-import/status/:jobId', MasterBulkController.getBulkImportStatus);
+// File-upload route: accepts raw .xlsx via multipart — handles files of any size (up to 200 MB)
+router.post('/bulk-import-file/:category', excelUpload.single('file'), MasterBulkController.startBulkImportFile);
 router.get('/sample-template/:category', MasterBulkController.downloadSampleTemplate);
 
 // --- MASTER DATA AUTO-SYNC ---

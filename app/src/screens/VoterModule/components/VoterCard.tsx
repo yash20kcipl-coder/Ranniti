@@ -51,13 +51,11 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
             </Text>
           )}
 
-          <View style={styles.badgeRow}>
-            <View style={styles.epicBadge}>
-              <Text style={styles.epicText}>EPIC: {voter.epicNo}</Text>
-            </View>
-            <View style={styles.metaBadge}>
-              <Text style={styles.metaText}>{voter.gender} • {voter.age} yrs</Text>
-            </View>
+
+          <View style={styles.locationRow}>
+            <Text style={styles.locationText} numberOfLines={1}>
+              {voter.boothNo} • {voter.wardNo} • {voter.acName}
+            </Text>
           </View>
         </View>
 
@@ -74,13 +72,14 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
 
       {/* Bottom Row: Location on Left & Quick Actions on Right */}
       <View style={styles.bottomRow}>
-        <View style={styles.locationRow}>
-          <MapPin {...({ size: 12, color: "#64748B" } as any)} />
-          <Text style={styles.locationText} numberOfLines={1}>
-            {voter.boothNo} • {voter.wardNo} • {voter.acName}
-          </Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.epicBadge}>
+            <Text style={styles.epicText}>EPIC: {voter.epicNo}</Text>
+          </View>
+          <View style={styles.metaBadge}>
+            <Text style={styles.metaText}>{voter.gender} • {voter.age} yrs</Text>
+          </View>
         </View>
-
         <View style={styles.actionsBar}>
           <TouchableOpacity
             style={styles.actionBtn}

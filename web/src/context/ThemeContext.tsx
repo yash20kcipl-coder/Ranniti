@@ -22,7 +22,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {
       // Fallback if localStorage access is denied
     }
-    return 'dark'; // Default to dark theme
+    return 'light'; // Default to dark theme
   });
 
   const applyTheme = (targetTheme: Theme) => {

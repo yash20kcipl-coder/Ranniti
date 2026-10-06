@@ -63,6 +63,38 @@ export const uploadSingle = multer({
 });
 
 /**
+ * Multer instance for Excel/spreadsheet file uploads.
+ * Stores files to disk in uploads/imports/ with a 200MB size limit.
+ */
+const excelStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.join(process.cwd(), 'uploads', 'imports');
+    ensureDirExists(dir);
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const base = path.basename(file.originalname, ext).toLowerCase().replace(/[^a-z0-9]/g, '_');
+    cb(null, `${base}_${Date.now()}${ext}`);
+  },
+});
+
+const excelFileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (['.xlsx', '.xls'].includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new ApiError(400, `Only Excel files (.xlsx, .xls) are accepted for bulk import.`));
+  }
+};
+
+export const excelUpload = multer({
+  storage: excelStorage,
+  fileFilter: excelFileFilter,
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB max
+});
+
+/**
  * Coerces string data from multipart/form-data requests into correct Javascript primitives.
  */
 export const coerceFormDataBody = (body: Record<string, any>) => {

@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS voters (
 ALTER TABLE voters ADD COLUMN IF NOT EXISTS pan_no VARCHAR(20);
 ALTER TABLE voters ADD COLUMN IF NOT EXISTS ward_id UUID REFERENCES wards(id) ON DELETE SET NULL;
 ALTER TABLE voters ADD COLUMN IF NOT EXISTS village_id UUID REFERENCES villages(id) ON DELETE SET NULL;
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS relation VARCHAR(100);
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS guardian_name VARCHAR(255);
 
 -- Indexes for Sub-Millisecond Search & Roll Navigation
 CREATE UNIQUE INDEX IF NOT EXISTS idx_voters_epic_no ON voters(epic_no);
@@ -91,6 +93,8 @@ CREATE INDEX IF NOT EXISTS idx_voters_family_inf ON voters(family_influencer_id)
 CREATE INDEX IF NOT EXISTS idx_voters_social_inf ON voters(social_influencer_id);
 CREATE INDEX IF NOT EXISTS idx_voters_family_id ON voters(family_id);
 CREATE INDEX IF NOT EXISTS idx_voters_booth_family_id ON voters(booth_id, family_id);
+CREATE INDEX IF NOT EXISTS idx_voters_relation ON voters(relation);
+CREATE INDEX IF NOT EXISTS idx_voters_guardian_name ON voters(guardian_name);
 
 -- GIN Trigram Search Indexes for Fast Search
 CREATE INDEX IF NOT EXISTS idx_voters_eng_fname_trgm ON voters USING gin(eng_first_name gin_trgm_ops);

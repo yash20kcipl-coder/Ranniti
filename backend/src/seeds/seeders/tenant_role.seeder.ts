@@ -32,8 +32,83 @@ export const seedTenantRoles = async (): Promise<void> => {
     }
   }
 
-  logger.info('Ensured tenant_roles table migration schema executed. Skipping automatic data seeding to keep table empty.');
-  logger.info('✅ Successfully created tenant_roles table.');
+  // Seed or ensure standard Tier 1 tenant roles exist
+  const existingRoles = await query(`SELECT id, role_name, is_default FROM tenant_roles`);
+  let defaultRoleId: string | null = null;
+
+  if (existingRoles.rowCount === 0) {
+    logger.info('Seeding default Super Admin Tenant Role Packages...');
+    const insertSuite = await query(
+      `INSERT INTO tenant_roles (role_name, description, allowed_tabs, is_active, is_default)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (role_name) DO UPDATE SET is_default = EXCLUDED.is_default
+       RETURNING id`,
+      [
+        'Full Political Campaign Suite',
+        'Complete access to all web tabs (incl. settings), tenant master sub-tabs (AC, Ward, Booth), voter directory, and mobile field capabilities.',
+        JSON.stringify({
+          webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
+          masterSubTabs: ['acs', 'wards', 'booths'],
+        }),
+        true,
+        true,
+      ]
+    );
+    defaultRoleId = insertSuite.rows[0]?.id || null;
+
+    await query(
+      `INSERT INTO tenant_roles (role_name, description, allowed_tabs, is_active, is_default)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (role_name) DO NOTHING`,
+      [
+        'Standard Campaign Package',
+        'Access to Dashboard, Voter Directory, Ward & Booth master data, and settings.',
+        JSON.stringify({
+          webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
+          masterSubTabs: ['wards', 'booths'],
+        }),
+        true,
+        false,
+      ]
+    );
+
+    await query(
+      `INSERT INTO tenant_roles (role_name, description, allowed_tabs, is_active, is_default)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (role_name) DO NOTHING`,
+      [
+        'Voter Directory & Field Survey Package',
+        'Focused package for field operations with Voter Directory and Booth reference access. No settings access.',
+        JSON.stringify({
+          webTabs: ['dashboard', 'voter_directory'],
+          masterSubTabs: ['booths'],
+        }),
+        true,
+        false,
+      ]
+    );
+  } else {
+    const defaultRow = existingRoles.rows.find((r: any) => r.is_default);
+    if (defaultRow) {
+      defaultRoleId = defaultRow.id;
+    } else {
+      defaultRoleId = existingRoles.rows[0].id;
+      await query(`UPDATE tenant_roles SET is_default = true WHERE id = $1`, [defaultRoleId]);
+    }
+  }
+
+  // Backfill any tenant records in tenants table missing a role assignment
+  if (defaultRoleId) {
+    const updateRes = await query(
+      `UPDATE tenants SET tenant_role_id = $1 WHERE tenant_role_id IS NULL`,
+      [defaultRoleId]
+    );
+    if ((updateRes.rowCount || 0) > 0) {
+      logger.info(`Assigned default role package to ${updateRes.rowCount} tenant(s) missing role.`);
+    }
+  }
+
+  logger.info('✅ Successfully verified and seeded tenant_roles table.');
 };
 
 if (require.main === module || (process.argv[1] && process.argv[1].endsWith('tenant_role.seeder.ts'))) {

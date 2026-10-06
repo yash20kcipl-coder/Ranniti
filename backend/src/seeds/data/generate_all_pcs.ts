@@ -109,7 +109,7 @@ export const allPcs = [
   { stateName: "Goa", pcNumber: 2, name: "South Goa" },
 
   // Gujarat (26)
-  { stateName: "Gujarat", pcNumber: 1, name: "Kutch" },
+  { stateName: "Gujarat", pcNumber: 1, name: "Kachchh" },
   { stateName: "Gujarat", pcNumber: 2, name: "Banaskantha" },
   { stateName: "Gujarat", pcNumber: 3, name: "Patan" },
   { stateName: "Gujarat", pcNumber: 4, name: "Mahesana" },

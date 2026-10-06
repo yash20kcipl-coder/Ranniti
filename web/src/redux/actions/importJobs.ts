@@ -77,6 +77,52 @@ export const startBulkImportJob = (
   };
 };
 
+/**
+ * Uploads a raw .xlsx file to the backend for streaming import.
+ * Supports files of any size (up to 200 MB server-side limit).
+ * Context params (stateId, acId, etc.) are appended as query strings.
+ */
+export const startBulkImportFileJob = (
+  category: string,
+  file: File,
+  onComplete?: () => void,
+  context?: Record<string, any>
+) => {
+  return async (dispatch: AppDispatch) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Build query string from non-empty context values
+    const params = context
+      ? Object.fromEntries(Object.entries(context).filter(([_, v]) => v !== undefined && v !== null && v !== ''))
+      : {};
+
+    const response = await api.post(`/super-admin/masters/bulk-import-file/${category}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      params,
+    });
+
+    const jobData = response.data?.data || response.data?.body?.data || response.data;
+    const job: ImportJob = {
+      ...jobData,
+      category: jobData?.category || category,
+      startTimeClient: Date.now(),
+    };
+
+    if (onComplete && job.jobId) {
+      jobCompletionCallbacks.set(job.jobId, onComplete);
+    }
+
+    dispatch({
+      type: START_IMPORT_JOB,
+      payload: job,
+    });
+
+    return job;
+  };
+};
+
+
 export const fetchJobStatus = (jobId: string) => {
   return async (dispatch: AppDispatch) => {
     const response = await api.get(`/super-admin/masters/bulk-import/status/${jobId}`);

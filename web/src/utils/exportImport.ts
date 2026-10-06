@@ -44,23 +44,47 @@ export const exportToExcel = (
   XLSX.writeFile(workbook, `${filename.replace(/\.xlsx$/i, '')}.xlsx`);
 };
 
+/** Maximum file size the browser can parse in-memory (~20 MB). Larger files must be uploaded to backend. */
+const MAX_BROWSER_PARSE_BYTES = 20 * 1024 * 1024;
+
 /**
  * Parses an Excel (.xlsx / .xls) file into an array of key-value objects.
+ * - Rejects files over 20 MB (browser OOM risk).
+ * - Scans all sheets and picks the first one with actual data rows.
  */
 export const parseExcelFile = async (file: File): Promise<Record<string, any>[]> => {
+  if (file.size > MAX_BROWSER_PARSE_BYTES) {
+    return Promise.reject(
+      new Error(
+        `This file is ${(file.size / 1024 / 1024).toFixed(1)} MB — too large for in-browser parsing. ` +
+        `It will be uploaded directly to the server for streaming import.`
+      )
+    );
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        if (!firstSheetName) {
+
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
           resolve([]);
           return;
         }
-        const worksheet = workbook.Sheets[firstSheetName];
-        const jsonRecords = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '' });
+
+        // Scan all sheets and pick the first one that has data rows
+        let jsonRecords: Record<string, any>[] = [];
+        for (const sheetName of workbook.SheetNames) {
+          const worksheet = workbook.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '' });
+          if (rows.length > 0) {
+            jsonRecords = rows;
+            break;
+          }
+        }
+
         resolve(jsonRecords);
       } catch (err) {
         reject(new Error('Failed to parse Excel file format. Please upload a valid .xlsx file.'));

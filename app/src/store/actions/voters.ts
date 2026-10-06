@@ -1,24 +1,57 @@
 import {
-  SET_VOTERS_LIST,
-  SET_VOTER_FILTERS,
-  TOGGLE_VOTED_STATUS,
-  UPDATE_VOTER_PARTY,
-  ADD_NEW_VOTER,
-  UPDATE_VOTER_DETAILS,
-  SET_VOTERS_LOADING,
   Voter,
+  ADD_NEW_VOTER,
+  SET_VOTERS_LIST,
+  APPEND_VOTERS_LIST,
+  SET_VOTER_FILTERS,
+  UPDATE_VOTER_PARTY,
+  SET_VOTERS_LOADING,
+  SET_VOTERS_LOADING_MORE,
+  SET_VOTERS_PAGINATION,
+  TOGGLE_VOTED_STATUS,
+  UPDATE_VOTER_DETAILS,
+  VoterPagination,
 } from "../reducers/voters";
 import { Dispatch } from "redux";
 import { RootState } from "../store";
 import toast from "../../utils/toast";
 import apiClient from "../../api/apiClient";
 
-export const fetchVotersAction = () => {
+export interface FetchVotersOptions {
+  page?: number;
+  limit?: number;
+  isLoadMore?: boolean;
+}
+
+export const fetchVotersAction = (
+  pageOrOptions: number | FetchVotersOptions = 1,
+  isLoadMore: boolean = false,
+  customLimit?: number
+) => {
   return async (dispatch: Dispatch, getState: () => RootState) => {
-    dispatch({ type: SET_VOTERS_LOADING, payload: true });
+    const options: FetchVotersOptions =
+      typeof pageOrOptions === 'object' && pageOrOptions !== null
+        ? pageOrOptions
+        : { page: pageOrOptions, isLoadMore, limit: customLimit };
+
+    const targetPage = Math.max(1, options.page ?? 1);
+    const loadMore = Boolean(options.isLoadMore);
+
+    if (loadMore) {
+      dispatch({ type: SET_VOTERS_LOADING_MORE, payload: true });
+    } else {
+      dispatch({ type: SET_VOTERS_LOADING, payload: true });
+    }
+
     try {
-      const { filters } = getState().voters;
-      const params: any = {};
+      const { filters, pagination } = getState().voters;
+      const targetLimit = options.limit || pagination?.limit || 25;
+
+      const params: any = {
+        page: targetPage,
+        limit: targetLimit,
+      };
+
       if (filters.search) params.search = filters.search;
       if (filters.boothNo && filters.boothNo !== 'All') params.boothId = filters.boothNo;
       if (filters.supportingParty && filters.supportingParty !== 'All') params.voterType = filters.supportingParty;
@@ -27,6 +60,7 @@ export const fetchVotersAction = () => {
 
       const response = await apiClient.get('/mobile/voters', { params });
       const apiData = response?.data?.data?.voters || response?.data?.voters || [];
+      const apiPagination = response?.data?.data?.pagination || response?.data?.pagination;
 
       const mappedVoters: Voter[] = apiData.map((item: any) => ({
         id: item.id,
@@ -52,14 +86,49 @@ export const fetchVotersAction = () => {
         familyId: item.familyId || undefined,
       }));
 
-      dispatch({ type: SET_VOTERS_LIST, payload: mappedVoters });
+      const total = apiPagination?.total ?? (loadMore ? (pagination?.total || 0) : mappedVoters.length);
+      const totalPages = apiPagination?.totalPages ?? Math.max(1, Math.ceil(total / targetLimit));
+      const currentPage = apiPagination?.page ?? targetPage;
+
+      dispatch({
+        type: SET_VOTERS_PAGINATION,
+        payload: {
+          page: currentPage,
+          limit: targetLimit,
+          total,
+          totalPages,
+          hasMore: currentPage < totalPages,
+        },
+      });
+
+      if (loadMore) {
+        dispatch({ type: APPEND_VOTERS_LIST, payload: mappedVoters });
+      } else {
+        dispatch({ type: SET_VOTERS_LIST, payload: mappedVoters });
+      }
     } catch (e: any) {
       console.error('Fetch voters failed:', e);
       toast.error(e?.response?.data?.message || "Failed to load voters directory.");
-      dispatch({ type: SET_VOTERS_LIST, payload: [] });
+      if (!loadMore) {
+        dispatch({ type: SET_VOTERS_LIST, payload: [] });
+      }
     } finally {
-      dispatch({ type: SET_VOTERS_LOADING, payload: false });
+      if (loadMore) {
+        dispatch({ type: SET_VOTERS_LOADING_MORE, payload: false });
+      } else {
+        dispatch({ type: SET_VOTERS_LOADING, payload: false });
+      }
     }
+  };
+};
+
+export const loadMoreVotersAction = () => {
+  return async (dispatch: Dispatch, getState: () => RootState) => {
+    const { pagination, loading, loadingMore } = getState().voters;
+    if (loading || loadingMore || !pagination?.hasMore) {
+      return;
+    }
+    (fetchVotersAction(pagination.page + 1, true) as any)(dispatch, getState);
   };
 };
 
@@ -69,7 +138,7 @@ export const setVoterFiltersAction = (filters: any) => {
       type: SET_VOTER_FILTERS,
       payload: filters,
     });
-    (fetchVotersAction() as any)(dispatch, getState);
+    (fetchVotersAction(1, false) as any)(dispatch, getState);
   };
 };
 

@@ -42,231 +42,281 @@ export function getSystemAllACs(): ACRecord[] {
 
   // 1. ANDHRA PRADESH (175 ACs, 25 PCs x 7)
   addStateACs("Andhra Pradesh", [
-    { pcNumber: 1, pcName: "Araku", acList: [
-      { acNumber: 10, acName: "Palakonda", districtName: "Parvathipuram Manyam", reservation: "ST" },
-      { acNumber: 11, acName: "Kurupam", districtName: "Parvathipuram Manyam", reservation: "ST" },
-      { acNumber: 12, acName: "Parvathipuram", districtName: "Parvathipuram Manyam", reservation: "SC" },
-      { acNumber: 13, acName: "Salur", districtName: "Parvathipuram Manyam", reservation: "ST" },
-      { acNumber: 28, acName: "Araku Valley", districtName: "Alluri Sitharama Raju", reservation: "ST" },
-      { acNumber: 29, acName: "Paderu", districtName: "Alluri Sitharama Raju", reservation: "ST" },
-      { acNumber: 53, acName: "Rampachodavaram", districtName: "Alluri Sitharama Raju", reservation: "ST" }
-    ]},
-    { pcNumber: 2, pcName: "Srikakulam", acList: [
-      { acNumber: 1, acName: "Ichchapuram", districtName: "Srikakulam" },
-      { acNumber: 2, acName: "Palasa", districtName: "Srikakulam" },
-      { acNumber: 3, acName: "Tekkali", districtName: "Srikakulam" },
-      { acNumber: 4, acName: "Pathapatnam", districtName: "Srikakulam" },
-      { acNumber: 5, acName: "Srikakulam", districtName: "Srikakulam" },
-      { acNumber: 6, acName: "Amadalavalasa", districtName: "Srikakulam" },
-      { acNumber: 7, acName: "Etcherla", districtName: "Srikakulam" }
-    ]},
-    { pcNumber: 3, pcName: "Vizianagaram", acList: [
-      { acNumber: 8, acName: "Narasannapeta", districtName: "Srikakulam" },
-      { acNumber: 9, acName: "Rajam", districtName: "Vizianagaram", reservation: "SC" },
-      { acNumber: 14, acName: "Bobbili", districtName: "Vizianagaram" },
-      { acNumber: 15, acName: "Cheepurupalli", districtName: "Vizianagaram" },
-      { acNumber: 16, acName: "Gajapathinagaram", districtName: "Vizianagaram" },
-      { acNumber: 17, acName: "Nellimarla", districtName: "Vizianagaram" },
-      { acNumber: 18, acName: "Vizianagaram", districtName: "Vizianagaram" }
-    ]},
-    { pcNumber: 4, pcName: "Visakhapatnam", acList: [
-      { acNumber: 19, acName: "Srungavarapukota", districtName: "Vizianagaram" },
-      { acNumber: 20, acName: "Bhimili", districtName: "Visakhapatnam" },
-      { acNumber: 21, acName: "Visakhapatnam East", districtName: "Visakhapatnam" },
-      { acNumber: 22, acName: "Visakhapatnam South", districtName: "Visakhapatnam" },
-      { acNumber: 23, acName: "Visakhapatnam North", districtName: "Visakhapatnam" },
-      { acNumber: 24, acName: "Visakhapatnam West", districtName: "Visakhapatnam" },
-      { acNumber: 25, acName: "Gajuwaka", districtName: "Visakhapatnam" }
-    ]},
-    { pcNumber: 5, pcName: "Anakapalle", acList: [
-      { acNumber: 26, acName: "Chodavaram", districtName: "Anakapalli" },
-      { acNumber: 27, acName: "Madugula", districtName: "Anakapalli" },
-      { acNumber: 30, acName: "Anakapalle", districtName: "Anakapalli" },
-      { acNumber: 31, acName: "Pendurthi", districtName: "Visakhapatnam" },
-      { acNumber: 32, acName: "Yelamanchili", districtName: "Anakapalli" },
-      { acNumber: 33, acName: "Payakaraopet", districtName: "Anakapalli", reservation: "SC" },
-      { acNumber: 34, acName: "Narsipatnam", districtName: "Anakapalli" }
-    ]},
-    { pcNumber: 6, pcName: "Kakinada", acList: [
-      { acNumber: 35, acName: "Tuni", districtName: "Kakinada" },
-      { acNumber: 36, acName: "Prathipadu", districtName: "Kakinada" },
-      { acNumber: 37, acName: "Pithapuram", districtName: "Kakinada" },
-      { acNumber: 38, acName: "Kakinada Rural", districtName: "Kakinada" },
-      { acNumber: 39, acName: "Peddapuram", districtName: "Kakinada" },
-      { acNumber: 41, acName: "Kakinada City", districtName: "Kakinada" },
-      { acNumber: 52, acName: "Jaggampeta", districtName: "Kakinada" }
-    ]},
-    { pcNumber: 7, pcName: "Amalapuram", acList: [
-      { acNumber: 42, acName: "Ramachandrapuram", districtName: "Konaseema" },
-      { acNumber: 43, acName: "Mummidivaram", districtName: "Konaseema" },
-      { acNumber: 44, acName: "Amalapuram", districtName: "Konaseema", reservation: "SC" },
-      { acNumber: 45, acName: "Razole", districtName: "Konaseema", reservation: "SC" },
-      { acNumber: 46, acName: "Gannavaram (Konaseema)", districtName: "Konaseema", reservation: "SC" },
-      { acNumber: 47, acName: "Kothapeta", districtName: "Konaseema" },
-      { acNumber: 48, acName: "Mandapeta", districtName: "Konaseema" }
-    ]},
-    { pcNumber: 8, pcName: "Rajahmundry", acList: [
-      { acNumber: 40, acName: "Anaparthy", districtName: "East Godavari" },
-      { acNumber: 49, acName: "Rajanagaram", districtName: "East Godavari" },
-      { acNumber: 50, acName: "Rajahmundry City", districtName: "East Godavari" },
-      { acNumber: 51, acName: "Rajahmundry Rural", districtName: "East Godavari" },
-      { acNumber: 54, acName: "Kovvur", districtName: "East Godavari", reservation: "SC" },
-      { acNumber: 55, acName: "Nidadavole", districtName: "East Godavari" },
-      { acNumber: 66, acName: "Gopalapuram", districtName: "East Godavari", reservation: "SC" }
-    ]},
-    { pcNumber: 9, pcName: "Narsapuram", acList: [
-      { acNumber: 57, acName: "Achanta", districtName: "West Godavari" },
-      { acNumber: 58, acName: "Palakollu", districtName: "West Godavari" },
-      { acNumber: 59, acName: "Narsapuram", districtName: "West Godavari" },
-      { acNumber: 60, acName: "Bhimavaram", districtName: "West Godavari" },
-      { acNumber: 61, acName: "Undi", districtName: "West Godavari" },
-      { acNumber: 62, acName: "Tanuku", districtName: "West Godavari" },
-      { acNumber: 63, acName: "Tadepalligudem", districtName: "West Godavari" }
-    ]},
-    { pcNumber: 10, pcName: "Eluru", acList: [
-      { acNumber: 64, acName: "Unguturu", districtName: "Eluru" },
-      { acNumber: 65, acName: "Denduluru", districtName: "Eluru" },
-      { acNumber: 66, acName: "Eluru", districtName: "Eluru" },
-      { acNumber: 67, acName: "Polavaram", districtName: "Eluru", reservation: "ST" },
-      { acNumber: 68, acName: "Chintalapudi", districtName: "Eluru", reservation: "SC" },
-      { acNumber: 69, acName: "Nuzvid", districtName: "Eluru" },
-      { acNumber: 70, acName: "Kaikalur", districtName: "Eluru" }
-    ]},
-    { pcNumber: 11, pcName: "Machilipatnam", acList: [
-      { acNumber: 71, acName: "Gannavaram (Krishna)", districtName: "Krishna" },
-      { acNumber: 72, acName: "Gudivada", districtName: "Krishna" },
-      { acNumber: 73, acName: "Pedana", districtName: "Krishna" },
-      { acNumber: 74, acName: "Machilipatnam", districtName: "Krishna" },
-      { acNumber: 75, acName: "Avanigadda", districtName: "Krishna" },
-      { acNumber: 76, acName: "Pamarru", districtName: "Krishna", reservation: "SC" },
-      { acNumber: 77, acName: "Penamaluru", districtName: "Krishna" }
-    ]},
-    { pcNumber: 12, pcName: "Vijayawada", acList: [
-      { acNumber: 78, acName: "Tiruvuru", districtName: "NTR", reservation: "SC" },
-      { acNumber: 79, acName: "Vijayawada West", districtName: "NTR" },
-      { acNumber: 80, acName: "Vijayawada Central", districtName: "NTR" },
-      { acNumber: 81, acName: "Vijayawada East", districtName: "NTR" },
-      { acNumber: 82, acName: "Mylavaram", districtName: "NTR" },
-      { acNumber: 83, acName: "Nandigama", districtName: "NTR", reservation: "SC" },
-      { acNumber: 84, acName: "Jaggayyapeta", districtName: "NTR" }
-    ]},
-    { pcNumber: 13, pcName: "Guntur", acList: [
-      { acNumber: 85, acName: "Tadikonda", districtName: "Guntur", reservation: "SC" },
-      { acNumber: 86, acName: "Mangalagiri", districtName: "Guntur" },
-      { acNumber: 87, acName: "Ponnur", districtName: "Guntur" },
-      { acNumber: 88, acName: "Tenali", districtName: "Guntur" },
-      { acNumber: 89, acName: "Prathipadu (Guntur)", districtName: "Guntur", reservation: "SC" },
-      { acNumber: 90, acName: "Guntur West", districtName: "Guntur" },
-      { acNumber: 91, acName: "Guntur East", districtName: "Guntur" }
-    ]},
-    { pcNumber: 14, pcName: "Narasaraopet", acList: [
-      { acNumber: 92, acName: "Pedakurapadu", districtName: "Palnadu" },
-      { acNumber: 93, acName: "Chilakaluripet", districtName: "Palnadu" },
-      { acNumber: 94, acName: "Narasaraopet", districtName: "Palnadu" },
-      { acNumber: 95, acName: "Sattenapalle", districtName: "Palnadu" },
-      { acNumber: 96, acName: "Vinukonda", districtName: "Palnadu" },
-      { acNumber: 97, acName: "Gurazala", districtName: "Palnadu" },
-      { acNumber: 98, acName: "Macherla", districtName: "Palnadu" }
-    ]},
-    { pcNumber: 15, pcName: "Bapatla", acList: [
-      { acNumber: 99, acName: "Vemuru", districtName: "Bapatla", reservation: "SC" },
-      { acNumber: 100, acName: "Repalle", districtName: "Bapatla" },
-      { acNumber: 101, acName: "Bapatla", districtName: "Bapatla" },
-      { acNumber: 102, acName: "Parchur", districtName: "Bapatla" },
-      { acNumber: 103, acName: "Addanki", districtName: "Bapatla" },
-      { acNumber: 104, acName: "Chirala", districtName: "Bapatla" },
-      { acNumber: 105, acName: "Santhanuthalapadu", districtName: "Prakasam", reservation: "SC" }
-    ]},
-    { pcNumber: 16, pcName: "Ongole", acList: [
-      { acNumber: 106, acName: "Yerragondapalem", districtName: "Prakasam", reservation: "SC" },
-      { acNumber: 107, acName: "Darsi", districtName: "Prakasam" },
-      { acNumber: 108, acName: "Ongole", districtName: "Prakasam" },
-      { acNumber: 109, acName: "Kondapi", districtName: "Prakasam", reservation: "SC" },
-      { acNumber: 110, acName: "Markapuram", districtName: "Prakasam" },
-      { acNumber: 111, acName: "Giddalur", districtName: "Prakasam" },
-      { acNumber: 112, acName: "Kanigiri", districtName: "Prakasam" }
-    ]},
-    { pcNumber: 17, pcName: "Nandyal", acList: [
-      { acNumber: 113, acName: "Allagadda", districtName: "Nandyal" },
-      { acNumber: 114, acName: "Srisailam", districtName: "Nandyal" },
-      { acNumber: 115, acName: "Nandikotkur", districtName: "Nandyal", reservation: "SC" },
-      { acNumber: 116, acName: "Panyam", districtName: "Nandyal" },
-      { acNumber: 117, acName: "Nandyal", districtName: "Nandyal" },
-      { acNumber: 118, acName: "Banaganapalle", districtName: "Nandyal" },
-      { acNumber: 119, acName: "Dhone", districtName: "Nandyal" }
-    ]},
-    { pcNumber: 18, pcName: "Kurnool", acList: [
-      { acNumber: 120, acName: "Kurnool", districtName: "Kurnool" },
-      { acNumber: 121, acName: "Pattikonda", districtName: "Kurnool" },
-      { acNumber: 122, acName: "Kodumur", districtName: "Kurnool", reservation: "SC" },
-      { acNumber: 123, acName: "Yemmiganur", districtName: "Kurnool" },
-      { acNumber: 124, acName: "Mantralayam", districtName: "Kurnool" },
-      { acNumber: 125, acName: "Adoni", districtName: "Kurnool" },
-      { acNumber: 126, acName: "Alur", districtName: "Kurnool" }
-    ]},
-    { pcNumber: 19, pcName: "Anantapur", acList: [
-      { acNumber: 127, acName: "Rayadurg", districtName: "Ananthapuramu" },
-      { acNumber: 128, acName: "Uravakonda", districtName: "Ananthapuramu" },
-      { acNumber: 129, acName: "Guntakal", districtName: "Ananthapuramu" },
-      { acNumber: 130, acName: "Tadpatri", districtName: "Ananthapuramu" },
-      { acNumber: 131, acName: "Singanamala", districtName: "Ananthapuramu", reservation: "SC" },
-      { acNumber: 132, acName: "Anantapur Urban", districtName: "Ananthapuramu" },
-      { acNumber: 133, acName: "Kalyandurg", districtName: "Ananthapuramu" }
-    ]},
-    { pcNumber: 20, pcName: "Hindupur", acList: [
-      { acNumber: 134, acName: "Madakasira", districtName: "Sri Sathya Sai", reservation: "SC" },
-      { acNumber: 135, acName: "Hindupur", districtName: "Sri Sathya Sai" },
-      { acNumber: 136, acName: "Penukonda", districtName: "Sri Sathya Sai" },
-      { acNumber: 137, acName: "Puttaparthi", districtName: "Sri Sathya Sai" },
-      { acNumber: 138, acName: "Dharmavaram", districtName: "Sri Sathya Sai" },
-      { acNumber: 139, acName: "Kadiri", districtName: "Sri Sathya Sai" },
-      { acNumber: 140, acName: "Raptadu", districtName: "Ananthapuramu" }
-    ]},
-    { pcNumber: 21, pcName: "Kadapa", acList: [
-      { acNumber: 141, acName: "Badvel", districtName: "YSR Kadapa", reservation: "SC" },
-      { acNumber: 142, acName: "Kadapa", districtName: "YSR Kadapa" },
-      { acNumber: 143, acName: "Pulivendula", districtName: "YSR Kadapa" },
-      { acNumber: 144, acName: "Kamalapuram", districtName: "YSR Kadapa" },
-      { acNumber: 145, acName: "Jammalamadugu", districtName: "YSR Kadapa" },
-      { acNumber: 146, acName: "Proddatur", districtName: "YSR Kadapa" },
-      { acNumber: 147, acName: "Mydukur", districtName: "YSR Kadapa" }
-    ]},
-    { pcNumber: 22, pcName: "Nellore", acList: [
-      { acNumber: 148, acName: "Kavali", districtName: "SPSR Nellore" },
-      { acNumber: 149, acName: "Atmakur", districtName: "SPSR Nellore" },
-      { acNumber: 150, acName: "Kovur", districtName: "SPSR Nellore" },
-      { acNumber: 151, acName: "Nellore City", districtName: "SPSR Nellore" },
-      { acNumber: 152, acName: "Nellore Rural", districtName: "SPSR Nellore" },
-      { acNumber: 153, acName: "Sarvepalli", districtName: "SPSR Nellore" },
-      { acNumber: 154, acName: "Kandukur", districtName: "SPSR Nellore" }
-    ]},
-    { pcNumber: 23, pcName: "Tirupati", acList: [
-      { acNumber: 155, acName: "Gudur", districtName: "Tirupati", reservation: "SC" },
-      { acNumber: 156, acName: "Sullurpeta", districtName: "Tirupati", reservation: "SC" },
-      { acNumber: 157, acName: "Venkatagiri", districtName: "Tirupati" },
-      { acNumber: 158, acName: "Tirupati", districtName: "Tirupati" },
-      { acNumber: 159, acName: "Srikalahasti", districtName: "Tirupati" },
-      { acNumber: 160, acName: "Satyavedu", districtName: "Tirupati", reservation: "SC" },
-      { acNumber: 161, acName: "Chandragiri East", districtName: "Tirupati" }
-    ]},
-    { pcNumber: 24, pcName: "Rajampet", acList: [
-      { acNumber: 162, acName: "Rajampet", districtName: "Annamayya" },
-      { acNumber: 163, acName: "Kodur", districtName: "Annamayya", reservation: "SC" },
-      { acNumber: 164, acName: "Rayachoti", districtName: "Annamayya" },
-      { acNumber: 165, acName: "Thamballapalle", districtName: "Annamayya" },
-      { acNumber: 166, acName: "Pileru", districtName: "Annamayya" },
-      { acNumber: 167, acName: "Madanapalle", districtName: "Annamayya" },
-      { acNumber: 168, acName: "Punganur", districtName: "Chittoor" }
-    ]},
-    { pcNumber: 25, pcName: "Chittoor", acList: [
-      { acNumber: 169, acName: "Nagari", districtName: "Chittoor" },
-      { acNumber: 170, acName: "GD Nellore", districtName: "Chittoor", reservation: "SC" },
-      { acNumber: 171, acName: "Chittoor", districtName: "Chittoor" },
-      { acNumber: 172, acName: "Puthalapattu", districtName: "Chittoor", reservation: "SC" },
-      { acNumber: 173, acName: "Palamaner", districtName: "Chittoor" },
-      { acNumber: 174, acName: "Kuppam", districtName: "Chittoor" },
-      { acNumber: 175, acName: "Chandragiri", districtName: "Tirupati" }
-    ]}
+    {
+      pcNumber: 1, pcName: "Araku", acList: [
+        { acNumber: 10, acName: "Palakonda", districtName: "Parvathipuram Manyam", reservation: "ST" },
+        { acNumber: 11, acName: "Kurupam", districtName: "Parvathipuram Manyam", reservation: "ST" },
+        { acNumber: 12, acName: "Parvathipuram", districtName: "Parvathipuram Manyam", reservation: "SC" },
+        { acNumber: 13, acName: "Salur", districtName: "Parvathipuram Manyam", reservation: "ST" },
+        { acNumber: 28, acName: "Araku Valley", districtName: "Alluri Sitharama Raju", reservation: "ST" },
+        { acNumber: 29, acName: "Paderu", districtName: "Alluri Sitharama Raju", reservation: "ST" },
+        { acNumber: 53, acName: "Rampachodavaram", districtName: "Alluri Sitharama Raju", reservation: "ST" }
+      ]
+    },
+    {
+      pcNumber: 2, pcName: "Srikakulam", acList: [
+        { acNumber: 1, acName: "Ichchapuram", districtName: "Srikakulam" },
+        { acNumber: 2, acName: "Palasa", districtName: "Srikakulam" },
+        { acNumber: 3, acName: "Tekkali", districtName: "Srikakulam" },
+        { acNumber: 4, acName: "Pathapatnam", districtName: "Srikakulam" },
+        { acNumber: 5, acName: "Srikakulam", districtName: "Srikakulam" },
+        { acNumber: 6, acName: "Amadalavalasa", districtName: "Srikakulam" },
+        { acNumber: 7, acName: "Etcherla", districtName: "Srikakulam" }
+      ]
+    },
+    {
+      pcNumber: 3, pcName: "Vizianagaram", acList: [
+        { acNumber: 8, acName: "Narasannapeta", districtName: "Srikakulam" },
+        { acNumber: 9, acName: "Rajam", districtName: "Vizianagaram", reservation: "SC" },
+        { acNumber: 14, acName: "Bobbili", districtName: "Vizianagaram" },
+        { acNumber: 15, acName: "Cheepurupalli", districtName: "Vizianagaram" },
+        { acNumber: 16, acName: "Gajapathinagaram", districtName: "Vizianagaram" },
+        { acNumber: 17, acName: "Nellimarla", districtName: "Vizianagaram" },
+        { acNumber: 18, acName: "Vizianagaram", districtName: "Vizianagaram" }
+      ]
+    },
+    {
+      pcNumber: 4, pcName: "Visakhapatnam", acList: [
+        { acNumber: 19, acName: "Srungavarapukota", districtName: "Vizianagaram" },
+        { acNumber: 20, acName: "Bhimili", districtName: "Visakhapatnam" },
+        { acNumber: 21, acName: "Visakhapatnam East", districtName: "Visakhapatnam" },
+        { acNumber: 22, acName: "Visakhapatnam South", districtName: "Visakhapatnam" },
+        { acNumber: 23, acName: "Visakhapatnam North", districtName: "Visakhapatnam" },
+        { acNumber: 24, acName: "Visakhapatnam West", districtName: "Visakhapatnam" },
+        { acNumber: 25, acName: "Gajuwaka", districtName: "Visakhapatnam" }
+      ]
+    },
+    {
+      pcNumber: 5, pcName: "Anakapalle", acList: [
+        { acNumber: 26, acName: "Chodavaram", districtName: "Anakapalli" },
+        { acNumber: 27, acName: "Madugula", districtName: "Anakapalli" },
+        { acNumber: 30, acName: "Anakapalle", districtName: "Anakapalli" },
+        { acNumber: 31, acName: "Pendurthi", districtName: "Visakhapatnam" },
+        { acNumber: 32, acName: "Yelamanchili", districtName: "Anakapalli" },
+        { acNumber: 33, acName: "Payakaraopet", districtName: "Anakapalli", reservation: "SC" },
+        { acNumber: 34, acName: "Narsipatnam", districtName: "Anakapalli" }
+      ]
+    },
+    {
+      pcNumber: 6, pcName: "Kakinada", acList: [
+        { acNumber: 35, acName: "Tuni", districtName: "Kakinada" },
+        { acNumber: 36, acName: "Prathipadu", districtName: "Kakinada" },
+        { acNumber: 37, acName: "Pithapuram", districtName: "Kakinada" },
+        { acNumber: 38, acName: "Kakinada Rural", districtName: "Kakinada" },
+        { acNumber: 39, acName: "Peddapuram", districtName: "Kakinada" },
+        { acNumber: 41, acName: "Kakinada City", districtName: "Kakinada" },
+        { acNumber: 52, acName: "Jaggampeta", districtName: "Kakinada" }
+      ]
+    },
+    {
+      pcNumber: 7, pcName: "Amalapuram", acList: [
+        { acNumber: 42, acName: "Ramachandrapuram", districtName: "Konaseema" },
+        { acNumber: 43, acName: "Mummidivaram", districtName: "Konaseema" },
+        { acNumber: 44, acName: "Amalapuram", districtName: "Konaseema", reservation: "SC" },
+        { acNumber: 45, acName: "Razole", districtName: "Konaseema", reservation: "SC" },
+        { acNumber: 46, acName: "Gannavaram (Konaseema)", districtName: "Konaseema", reservation: "SC" },
+        { acNumber: 47, acName: "Kothapeta", districtName: "Konaseema" },
+        { acNumber: 48, acName: "Mandapeta", districtName: "Konaseema" }
+      ]
+    },
+    {
+      pcNumber: 8, pcName: "Rajahmundry", acList: [
+        { acNumber: 40, acName: "Anaparthy", districtName: "East Godavari" },
+        { acNumber: 49, acName: "Rajanagaram", districtName: "East Godavari" },
+        { acNumber: 50, acName: "Rajahmundry City", districtName: "East Godavari" },
+        { acNumber: 51, acName: "Rajahmundry Rural", districtName: "East Godavari" },
+        { acNumber: 54, acName: "Kovvur", districtName: "East Godavari", reservation: "SC" },
+        { acNumber: 55, acName: "Nidadavole", districtName: "East Godavari" },
+        { acNumber: 66, acName: "Gopalapuram", districtName: "East Godavari", reservation: "SC" }
+      ]
+    },
+    {
+      pcNumber: 9, pcName: "Narsapuram", acList: [
+        { acNumber: 57, acName: "Achanta", districtName: "West Godavari" },
+        { acNumber: 58, acName: "Palakollu", districtName: "West Godavari" },
+        { acNumber: 59, acName: "Narsapuram", districtName: "West Godavari" },
+        { acNumber: 60, acName: "Bhimavaram", districtName: "West Godavari" },
+        { acNumber: 61, acName: "Undi", districtName: "West Godavari" },
+        { acNumber: 62, acName: "Tanuku", districtName: "West Godavari" },
+        { acNumber: 63, acName: "Tadepalligudem", districtName: "West Godavari" }
+      ]
+    },
+    {
+      pcNumber: 10, pcName: "Eluru", acList: [
+        { acNumber: 64, acName: "Unguturu", districtName: "Eluru" },
+        { acNumber: 65, acName: "Denduluru", districtName: "Eluru" },
+        { acNumber: 66, acName: "Eluru", districtName: "Eluru" },
+        { acNumber: 67, acName: "Polavaram", districtName: "Eluru", reservation: "ST" },
+        { acNumber: 68, acName: "Chintalapudi", districtName: "Eluru", reservation: "SC" },
+        { acNumber: 69, acName: "Nuzvid", districtName: "Eluru" },
+        { acNumber: 70, acName: "Kaikalur", districtName: "Eluru" }
+      ]
+    },
+    {
+      pcNumber: 11, pcName: "Machilipatnam", acList: [
+        { acNumber: 71, acName: "Gannavaram (Krishna)", districtName: "Krishna" },
+        { acNumber: 72, acName: "Gudivada", districtName: "Krishna" },
+        { acNumber: 73, acName: "Pedana", districtName: "Krishna" },
+        { acNumber: 74, acName: "Machilipatnam", districtName: "Krishna" },
+        { acNumber: 75, acName: "Avanigadda", districtName: "Krishna" },
+        { acNumber: 76, acName: "Pamarru", districtName: "Krishna", reservation: "SC" },
+        { acNumber: 77, acName: "Penamaluru", districtName: "Krishna" }
+      ]
+    },
+    {
+      pcNumber: 12, pcName: "Vijayawada", acList: [
+        { acNumber: 78, acName: "Tiruvuru", districtName: "NTR", reservation: "SC" },
+        { acNumber: 79, acName: "Vijayawada West", districtName: "NTR" },
+        { acNumber: 80, acName: "Vijayawada Central", districtName: "NTR" },
+        { acNumber: 81, acName: "Vijayawada East", districtName: "NTR" },
+        { acNumber: 82, acName: "Mylavaram", districtName: "NTR" },
+        { acNumber: 83, acName: "Nandigama", districtName: "NTR", reservation: "SC" },
+        { acNumber: 84, acName: "Jaggayyapeta", districtName: "NTR" }
+      ]
+    },
+    {
+      pcNumber: 13, pcName: "Guntur", acList: [
+        { acNumber: 85, acName: "Tadikonda", districtName: "Guntur", reservation: "SC" },
+        { acNumber: 86, acName: "Mangalagiri", districtName: "Guntur" },
+        { acNumber: 87, acName: "Ponnur", districtName: "Guntur" },
+        { acNumber: 88, acName: "Tenali", districtName: "Guntur" },
+        { acNumber: 89, acName: "Prathipadu (Guntur)", districtName: "Guntur", reservation: "SC" },
+        { acNumber: 90, acName: "Guntur West", districtName: "Guntur" },
+        { acNumber: 91, acName: "Guntur East", districtName: "Guntur" }
+      ]
+    },
+    {
+      pcNumber: 14, pcName: "Narasaraopet", acList: [
+        { acNumber: 92, acName: "Pedakurapadu", districtName: "Palnadu" },
+        { acNumber: 93, acName: "Chilakaluripet", districtName: "Palnadu" },
+        { acNumber: 94, acName: "Narasaraopet", districtName: "Palnadu" },
+        { acNumber: 95, acName: "Sattenapalle", districtName: "Palnadu" },
+        { acNumber: 96, acName: "Vinukonda", districtName: "Palnadu" },
+        { acNumber: 97, acName: "Gurazala", districtName: "Palnadu" },
+        { acNumber: 98, acName: "Macherla", districtName: "Palnadu" }
+      ]
+    },
+    {
+      pcNumber: 15, pcName: "Bapatla", acList: [
+        { acNumber: 99, acName: "Vemuru", districtName: "Bapatla", reservation: "SC" },
+        { acNumber: 100, acName: "Repalle", districtName: "Bapatla" },
+        { acNumber: 101, acName: "Bapatla", districtName: "Bapatla" },
+        { acNumber: 102, acName: "Parchur", districtName: "Bapatla" },
+        { acNumber: 103, acName: "Addanki", districtName: "Bapatla" },
+        { acNumber: 104, acName: "Chirala", districtName: "Bapatla" },
+        { acNumber: 105, acName: "Santhanuthalapadu", districtName: "Prakasam", reservation: "SC" }
+      ]
+    },
+    {
+      pcNumber: 16, pcName: "Ongole", acList: [
+        { acNumber: 106, acName: "Yerragondapalem", districtName: "Prakasam", reservation: "SC" },
+        { acNumber: 107, acName: "Darsi", districtName: "Prakasam" },
+        { acNumber: 108, acName: "Ongole", districtName: "Prakasam" },
+        { acNumber: 109, acName: "Kondapi", districtName: "Prakasam", reservation: "SC" },
+        { acNumber: 110, acName: "Markapuram", districtName: "Prakasam" },
+        { acNumber: 111, acName: "Giddalur", districtName: "Prakasam" },
+        { acNumber: 112, acName: "Kanigiri", districtName: "Prakasam" }
+      ]
+    },
+    {
+      pcNumber: 17, pcName: "Nandyal", acList: [
+        { acNumber: 113, acName: "Allagadda", districtName: "Nandyal" },
+        { acNumber: 114, acName: "Srisailam", districtName: "Nandyal" },
+        { acNumber: 115, acName: "Nandikotkur", districtName: "Nandyal", reservation: "SC" },
+        { acNumber: 116, acName: "Panyam", districtName: "Nandyal" },
+        { acNumber: 117, acName: "Nandyal", districtName: "Nandyal" },
+        { acNumber: 118, acName: "Banaganapalle", districtName: "Nandyal" },
+        { acNumber: 119, acName: "Dhone", districtName: "Nandyal" }
+      ]
+    },
+    {
+      pcNumber: 18, pcName: "Kurnool", acList: [
+        { acNumber: 120, acName: "Kurnool", districtName: "Kurnool" },
+        { acNumber: 121, acName: "Pattikonda", districtName: "Kurnool" },
+        { acNumber: 122, acName: "Kodumur", districtName: "Kurnool", reservation: "SC" },
+        { acNumber: 123, acName: "Yemmiganur", districtName: "Kurnool" },
+        { acNumber: 124, acName: "Mantralayam", districtName: "Kurnool" },
+        { acNumber: 125, acName: "Adoni", districtName: "Kurnool" },
+        { acNumber: 126, acName: "Alur", districtName: "Kurnool" }
+      ]
+    },
+    {
+      pcNumber: 19, pcName: "Anantapur", acList: [
+        { acNumber: 127, acName: "Rayadurg", districtName: "Ananthapuramu" },
+        { acNumber: 128, acName: "Uravakonda", districtName: "Ananthapuramu" },
+        { acNumber: 129, acName: "Guntakal", districtName: "Ananthapuramu" },
+        { acNumber: 130, acName: "Tadpatri", districtName: "Ananthapuramu" },
+        { acNumber: 131, acName: "Singanamala", districtName: "Ananthapuramu", reservation: "SC" },
+        { acNumber: 132, acName: "Anantapur Urban", districtName: "Ananthapuramu" },
+        { acNumber: 133, acName: "Kalyandurg", districtName: "Ananthapuramu" }
+      ]
+    },
+    {
+      pcNumber: 20, pcName: "Hindupur", acList: [
+        { acNumber: 134, acName: "Madakasira", districtName: "Sri Sathya Sai", reservation: "SC" },
+        { acNumber: 135, acName: "Hindupur", districtName: "Sri Sathya Sai" },
+        { acNumber: 136, acName: "Penukonda", districtName: "Sri Sathya Sai" },
+        { acNumber: 137, acName: "Puttaparthi", districtName: "Sri Sathya Sai" },
+        { acNumber: 138, acName: "Dharmavaram", districtName: "Sri Sathya Sai" },
+        { acNumber: 139, acName: "Kadiri", districtName: "Sri Sathya Sai" },
+        { acNumber: 140, acName: "Raptadu", districtName: "Ananthapuramu" }
+      ]
+    },
+    {
+      pcNumber: 21, pcName: "Kadapa", acList: [
+        { acNumber: 141, acName: "Badvel", districtName: "YSR Kadapa", reservation: "SC" },
+        { acNumber: 142, acName: "Kadapa", districtName: "YSR Kadapa" },
+        { acNumber: 143, acName: "Pulivendula", districtName: "YSR Kadapa" },
+        { acNumber: 144, acName: "Kamalapuram", districtName: "YSR Kadapa" },
+        { acNumber: 145, acName: "Jammalamadugu", districtName: "YSR Kadapa" },
+        { acNumber: 146, acName: "Proddatur", districtName: "YSR Kadapa" },
+        { acNumber: 147, acName: "Mydukur", districtName: "YSR Kadapa" }
+      ]
+    },
+    {
+      pcNumber: 22, pcName: "Nellore", acList: [
+        { acNumber: 148, acName: "Kavali", districtName: "SPSR Nellore" },
+        { acNumber: 149, acName: "Atmakur", districtName: "SPSR Nellore" },
+        { acNumber: 150, acName: "Kovur", districtName: "SPSR Nellore" },
+        { acNumber: 151, acName: "Nellore City", districtName: "SPSR Nellore" },
+        { acNumber: 152, acName: "Nellore Rural", districtName: "SPSR Nellore" },
+        { acNumber: 153, acName: "Sarvepalli", districtName: "SPSR Nellore" },
+        { acNumber: 154, acName: "Kandukur", districtName: "SPSR Nellore" }
+      ]
+    },
+    {
+      pcNumber: 23, pcName: "Tirupati", acList: [
+        { acNumber: 155, acName: "Gudur", districtName: "Tirupati", reservation: "SC" },
+        { acNumber: 156, acName: "Sullurpeta", districtName: "Tirupati", reservation: "SC" },
+        { acNumber: 157, acName: "Venkatagiri", districtName: "Tirupati" },
+        { acNumber: 158, acName: "Tirupati", districtName: "Tirupati" },
+        { acNumber: 159, acName: "Srikalahasti", districtName: "Tirupati" },
+        { acNumber: 160, acName: "Satyavedu", districtName: "Tirupati", reservation: "SC" },
+        { acNumber: 161, acName: "Chandragiri East", districtName: "Tirupati" }
+      ]
+    },
+    {
+      pcNumber: 24, pcName: "Rajampet", acList: [
+        { acNumber: 162, acName: "Rajampet", districtName: "Annamayya" },
+        { acNumber: 163, acName: "Kodur", districtName: "Annamayya", reservation: "SC" },
+        { acNumber: 164, acName: "Rayachoti", districtName: "Annamayya" },
+        { acNumber: 165, acName: "Thamballapalle", districtName: "Annamayya" },
+        { acNumber: 166, acName: "Pileru", districtName: "Annamayya" },
+        { acNumber: 167, acName: "Madanapalle", districtName: "Annamayya" },
+        { acNumber: 168, acName: "Punganur", districtName: "Chittoor" }
+      ]
+    },
+    {
+      pcNumber: 25, pcName: "Chittoor", acList: [
+        { acNumber: 169, acName: "Nagari", districtName: "Chittoor" },
+        { acNumber: 170, acName: "GD Nellore", districtName: "Chittoor", reservation: "SC" },
+        { acNumber: 171, acName: "Chittoor", districtName: "Chittoor" },
+        { acNumber: 172, acName: "Puthalapattu", districtName: "Chittoor", reservation: "SC" },
+        { acNumber: 173, acName: "Palamaner", districtName: "Chittoor" },
+        { acNumber: 174, acName: "Kuppam", districtName: "Chittoor" },
+        { acNumber: 175, acName: "Chandragiri", districtName: "Tirupati" }
+      ]
+    }
   ]);
 
   // 2. ARUNACHAL PRADESH (60 ACs, 2 PCs x 30)
@@ -379,10 +429,10 @@ export function getSystemAllACs(): ACRecord[] {
 
   // 7. GUJARAT (182 ACs, 26 PCs x 7)
   const gujaratPcs = [
-    "Kachchh", "Banaskantha", "Patan", "Patan South (Patan)", "Mahesana", "Sabarkantha", "Gandhinagar",
+    "Kachchh", "Banaskantha", "Patan", "Mahesana", "Sabarkantha", "Gandhinagar",
     "Ahmedabad East", "Ahmedabad West", "Surendranagar", "Rajkot", "Porbandar", "Jamnagar", "Junagadh",
     "Amreli", "Bhavnagar", "Anand", "Kheda", "Panchmahal", "Dahod", "Vadodara", "Chhota Udaipur",
-    "Bharuch", "Bardoli", "Surat", "Navsari"
+    "Bharuch", "Bardoli", "Surat", "Navsari", "Valsad"
   ];
   let gujAcCount = 1;
   const gujPcList = gujaratPcs.map((pcName, idx) => {
@@ -604,8 +654,7 @@ async function generateAllFiles() {
   console.log(`=========================================`);
 
   const projectRoot = path.resolve(__dirname, '../../../..');
-  const xlsxPath = path.join(projectRoot, 'all_4123_assembly_constituencies.xlsx');
-  const csvPath = path.join(projectRoot, 'all_4123_assembly_constituencies.csv');
+  const xlsxPath = path.join(projectRoot, 'xlsx', 'all_4123_assembly_constituencies.xlsx');
   const jsonPath = path.resolve(__dirname, 'assembly_constituencies.json');
 
   // 1. Generate Excel (.xlsx) file using ExcelJS
@@ -613,7 +662,7 @@ async function generateAllFiles() {
   workbook.creator = 'Ranniti System';
   workbook.lastModifiedBy = 'Ranniti System';
   workbook.created = new Date();
-  
+
   const worksheet = workbook.addWorksheet('Assembly Constituencies');
   worksheet.columns = [
     { header: 'State Name', key: 'stateName', width: 25 },
@@ -639,15 +688,6 @@ async function generateAllFiles() {
 
   await workbook.xlsx.writeFile(xlsxPath);
   console.log(`✅ Excel file written successfully to: ${xlsxPath}`);
-
-  // 2. Generate CSV file
-  const csvHeader = 'State Name,PC Number,PC Name,AC Number,AC Name,District Name,Reservation\n';
-  const csvRows = acData.map(r => 
-    `"${r.stateName}",${r.pcNumber},"${r.pcName}",${r.acNumber},"${r.acName}","${r.districtName}","${r.reservation}"`
-  ).join('\n');
-  
-  fs.writeFileSync(csvPath, csvHeader + csvRows, 'utf8');
-  console.log(`✅ CSV file written successfully to: ${csvPath}`);
 
   // 3. Update assembly_constituencies.json
   const formattedJson = acData.map(r => ({

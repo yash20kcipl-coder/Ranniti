@@ -26,6 +26,8 @@ Primary database entity for storing voter information across electoral constitue
 | `eng_middle_name`      | `VARCHAR(150)` | Yes      | `NULL`              | English language middle name                                            |
 | `surname`              | `VARCHAR(150)` | Yes      | `NULL`              | Local language surname/last name                                        |
 | `eng_surname`          | `VARCHAR(150)` | Yes      | `NULL`              | English language surname                                                |
+| `guardian_name`        | `VARCHAR(255)` | Yes      | `NULL`              | Local/English language father/husband/guardian name                     |
+| `relation`             | `VARCHAR(100)` | Yes      | `NULL`              | Guardian / family relation (e.g. Father, Husband, Mother)                |
 | `gender`               | `VARCHAR(10)`  | Yes      | `NULL`              | Gender (`Male`, `Female`, `Other`)                                      |
 | `dob`                  | `DATE`         | Yes      | `NULL`              | Date of Birth                                                           |
 | `age`                  | `INT`          | Yes      | `NULL`              | Computed or recorded age                                                |
@@ -90,4 +92,5 @@ Primary database entity for storing voter information across electoral constitue
 | `idx_voters_surname_trgm` | `GIN` | `surname gin_trgm_ops` | Sub-millisecond fuzzy wildcard search on local surname |
 | `idx_voters_family_id` | `B-Tree` | `family_id` | Fast household cluster lookup by family ID |
 | `idx_voters_booth_family_id` | `B-Tree` | `(booth_id, family_id)` | Fast booth-level household filtering |
+| `idx_voters_guardian_name` | `B-Tree` | `guardian_name` | Fast guardian name lookup |
 

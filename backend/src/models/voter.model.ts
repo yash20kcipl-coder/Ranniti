@@ -22,6 +22,8 @@ export interface Voter {
   engMiddleName?: string | null;
   surname?: string | null;
   engSurname?: string | null;
+  relation?: string | null;
+  guardianName?: string | null;
 
   gender?: string | null;
   dob?: string | null;

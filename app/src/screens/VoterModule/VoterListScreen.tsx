@@ -1,11 +1,11 @@
 import {
   MdFlatList,
-  ScrollableFilterPills,
   SearchHeaderWithFilter,
   Fab,
 } from '../../components';
 import {
   fetchVotersAction,
+  loadMoreVotersAction,
   toggleVotedStatusAction,
   updateVoterPartyAction,
   setVoterFiltersAction,
@@ -14,12 +14,13 @@ import { voterListStyles } from './styles';
 import { useLanguage } from '../../languages';
 import { RootState } from '../../store/store';
 import VoterCard from './components/VoterCard';
+import React, { useState, useCallback } from 'react';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import VoterSkeleton from './components/VoterSkeleton';
 import { useSelector, useDispatch } from 'react-redux';
 import VoterFilterModal from './components/VoterFilterModal';
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
+import { View, Text, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 
 const PARTIES = ['Party A', 'Party B', 'Independent', 'Undecided'];
 
@@ -29,16 +30,22 @@ export const VoterListScreen: React.FC<any> = ({ navigation }) => {
   const [partyModalVoterId, setPartyModalVoterId] = useState<string | null>(null);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-  const { voters, filters, loading } = useSelector((state: RootState) => state.voters);
-  const { styles } = useAppTheme<ReturnType<typeof voterListStyles>>(voterListStyles);
+  const { voters, filters, loading, loadingMore, pagination } = useSelector((state: RootState) => state.voters);
+  const { theme, styles } = useAppTheme<ReturnType<typeof voterListStyles>>(voterListStyles);
 
-  useEffect(() => {
-    dispatch(fetchVotersAction());
-  }, [dispatch]);
+  useDebouncedEffect(() => {
+    dispatch(fetchVotersAction(1, false));
+  }, [dispatch], 200);
 
   const handleRefresh = useCallback(() => {
-    dispatch(fetchVotersAction());
+    dispatch(fetchVotersAction(1, false));
   }, [dispatch]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loading && !loadingMore && pagination?.hasMore) {
+      dispatch(loadMoreVotersAction());
+    }
+  }, [dispatch, loading, loadingMore, pagination]);
 
   const filteredVoters = voters.filter((voter) => {
     const searchLower = (filters.search || '').toLowerCase();
@@ -94,10 +101,10 @@ export const VoterListScreen: React.FC<any> = ({ navigation }) => {
 
   const renderVoterItem = useCallback(({ item }: { item: any }) => (
     <VoterCard
+      t={t}
       voter={item}
       onSelectParty={handleOpenPartyModal}
       onToggleVoted={handleToggleVoted}
-      t={t}
     />
   ), [handleOpenPartyModal, handleToggleVoted, t]);
 
@@ -127,11 +134,18 @@ export const VoterListScreen: React.FC<any> = ({ navigation }) => {
         data={filteredVoters}
         refresh={handleRefresh}
         renderItem={renderVoterItem}
-        paginationProps={{ count: 30 }}
         showsVerticalScrollIndicator={false}
         renderSkeleton={renderVoterSkeleton}
         keyExtractor={(item: any) => item.id}
         contentContainerStyle={styles.listPadding}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={loadingMore ? () =>
+        (
+          <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          </View>
+        ) : undefined}
       />
 
       {/* Reusable Common Floating Action Button */}

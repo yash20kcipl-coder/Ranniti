@@ -22,7 +22,9 @@
     "generate:parties": "tsx src/seeds/generate_parties_import.ts",
     "create_religions_and_castes_tables": "tsx src/scripts/createReligionsAndCastesTables.ts",
     "create_voters_table": "tsx src/scripts/createVotersTable.ts",
-    "clean:table": "tsx src/scripts/cleanTable.ts"
+    "clean:table": "tsx src/scripts/cleanTable.ts",
+    "convert:101": "tsx src/scripts/convert101ExcelToRannitiFormat.ts",
+    "import:101": "tsx src/scripts/importAc101Voters.ts"
   },
   "keywords": [
     "nodejs",
