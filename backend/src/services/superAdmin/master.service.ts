@@ -46,8 +46,15 @@ export class MasterService {
     return MasterQueries.getCastes();
   }
 
-  async createCaste(name: string, category: 'General' | 'OBC' | 'SC' | 'ST' | 'Other', religionId?: string, parentCasteId?: string): Promise<Caste> {
-    return MasterQueries.createCaste(name, category, religionId, parentCasteId);
+  async createCaste(
+    name: string,
+    category: 'General' | 'OBC' | 'SC' | 'ST' | 'Other',
+    religionId?: string,
+    parentCasteId?: string,
+    religionName?: string,
+    parentCasteName?: string
+  ): Promise<Caste> {
+    return MasterQueries.createCaste(name, category, religionId, parentCasteId, religionName, parentCasteName);
   }
 
   async updateCaste(id: string, name?: string, category?: string, religionId?: string, parentCasteId?: string): Promise<Caste> {

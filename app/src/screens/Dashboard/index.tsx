@@ -8,14 +8,14 @@ import {
   GenderDemographicsSection
 } from './components';
 import React, { useEffect } from 'react';
-import { ScrollView } from 'react-native';
 import { dashboardStyles } from './styles';
 import { RootState } from '../../store/store';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
-import { AppHeader, SafeView } from '../../components';
+import { AppHeader, SafeView, ScrollView } from '../../components';
 import { useNavigation } from '@react-navigation/native';
 import { fetchDashboardMetricsAction } from '../../store/actions/dashboard';
+import { fetchProfileAndRoleAccessAction } from '../../store/actions/auth';
 
 export const Dashboard: React.FC = () => {
   const dispatch = useDispatch<any>();
@@ -62,6 +62,10 @@ export const Dashboard: React.FC = () => {
           style={styles.container}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.contentContainer}
+          refreshApi={() => {
+            dispatch(fetchDashboardMetricsAction())
+            dispatch(fetchProfileAndRoleAccessAction())
+          }}
         >
           {/* Header Profile Card Section */}
           <DashboardProfileCard
@@ -90,12 +94,16 @@ export const Dashboard: React.FC = () => {
           />
 
           {/* Political Views Analytics Breakdown Section */}
-          <PoliticalViewsSection
+          {/* <PoliticalViewsSection
             politicalViews={dashboard.politicalViews}
-          />
+          /> */}
 
           {/* Gender Demographics & Age Analytics Section */}
-          <GenderDemographicsSection />
+          <GenderDemographicsSection
+            ageData={dashboard.ageData}
+            genderData={dashboard.genderData}
+            turnoutData={dashboard?.turnoutData}
+          />
         </ScrollView>
       )}
     </SafeView>

@@ -1,15 +1,17 @@
 import { Router } from 'express';
+import { tenantRouter } from './tenant';
 import { authRoutes } from './auth.routes';
 import { healthRoutes } from './health.routes';
 import { uploadRoutes } from './upload.routes';
-import { mobileAuthRoutes } from './mobileAuth.routes';
 import { superAdminRouter } from './superAdmin';
-import { tenantRouter } from './tenant';
-import { superAdminMasterRoutes } from './superAdmin/master.routes';
+import { mobileAuthRoutes } from './mobileAuth.routes';
+import { tenantUserRoutes } from './tenant/user.routes';
+import { tenantDataRoutes } from './tenant/data.routes';
 import { tenantVoterRoutes } from './tenant/voter.routes';
 import { tenantVolunteerRoutes } from './tenant/volunteer.routes';
-import { tenantDataRoutes } from './tenant/data.routes';
-import { tenantUserRoutes } from './tenant/user.routes';
+import { superAdminMasterRoutes } from './superAdmin/master.routes';
+
+import { mobileRouter } from './mobile';
 
 const router = Router();
 
@@ -17,9 +19,9 @@ const router = Router();
 router.use('/health', healthRoutes);
 router.use('/uploads', uploadRoutes);
 
-// Authentication Routes
+// Authentication & Mobile Application Routes
 router.use('/auth', authRoutes);
-router.use('/mobile/auth', mobileAuthRoutes);
+router.use('/mobile', mobileRouter);
 
 // Dedicated Domain Architecture Routes
 router.use('/super-admin', superAdminRouter);

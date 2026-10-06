@@ -28,9 +28,9 @@ export interface GenderDemographicsProps {
 const screenWidth = Dimensions.get('window').width - 48;
 
 export const GenderDemographicsSection: React.FC<GenderDemographicsProps> = memo(({
-  genderData = { male: 25400, female: 22800, other: 10000 },
-  ageData = { youth: 16200, adult: 21500, senior: 10800 },
-  turnoutData = { votedCount: 31200, totalVoters: 48500 },
+  genderData = { male: 0, female: 0, other: 0 },
+  ageData = { youth: 0, adult: 0, senior: 0 },
+  turnoutData = { votedCount: 0, totalVoters: 0 },
 }) => {
   const { t } = useLanguage();
   const { theme } = useAppTheme(() => ({}));

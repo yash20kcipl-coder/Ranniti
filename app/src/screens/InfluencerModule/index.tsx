@@ -48,7 +48,13 @@ export const InfluencerMappingScreen: React.FC = () => {
           <View style={styles.card}>
             {/* Influencer Details */}
             <View style={styles.influencerHeader}>
-              <SafeImage src={item.photo} alt={item.name} style={styles.photo} />
+              <SafeImage
+                src={item.photo}
+                name={item.name}
+                alt={item.name}
+                placeholderType="avatar"
+                style={styles.photo}
+              />
               <View style={styles.infoCol}>
                 <View style={styles.badgeRow}>
                   <Text style={styles.badgeText}>{item.supportingParty}</Text>

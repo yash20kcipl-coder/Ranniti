@@ -2,12 +2,12 @@ import { Pool } from 'pg';
 import { logger } from '../../utils/logger';
 import { Request, Response } from 'express';
 import { ApiError } from '../../utils/apiError';
+import { hashPassword } from '../../utils/password';
 import { attachFileUrls } from '../../utils/fileUrl';
 import { ApiResponse } from '../../utils/apiResponse';
 import { sendWelcomeEmail } from '../../utils/mailer';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { RoleQueries } from '../../queries/role.queries';
-import { authService } from '../../services/auth.service';
 import { query as masterQuery } from '../../queries/dbPool';
 import { TenantQueries } from '../../queries/tenant.queries';
 import { generateTenantPassword } from '../../utils/password';
@@ -16,7 +16,7 @@ import { tenantProvisioningService } from '../../services/superAdmin/tenantProvi
 
 export class TenantController {
   /**
-   * Provision a new tenant user account (Phase 1)
+   * Provision a new tenant account — inserts directly into tenants table.
    */
   provisionTenantUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { name, email, mobile, organizationName, pcIds, acIds, tenantRoleId, avatar } = req.body;
@@ -28,7 +28,7 @@ export class TenantController {
     let resolvedAcIds: string[] = Array.isArray(acIds) ? [...acIds] : [];
     const resolvedPcIds: string[] = Array.isArray(pcIds) ? [...pcIds] : [];
 
-    // Auto-resolve child ACs if PC is provided and ACs are empty
+    // Auto-resolve child ACs if only PCs are provided
     if (resolvedAcIds.length === 0 && resolvedPcIds.length > 0) {
       const acRes = await masterQuery(
         'SELECT id FROM assembly_constituencies WHERE pc_id = ANY($1)',
@@ -51,7 +51,7 @@ export class TenantController {
       throw new ApiError(400, 'At least one Assembly Constituency (AC) or Parliamentary Constituency (PC) must be selected');
     }
 
-    // Determine target tenant role package: if not provided, auto-assign default role package
+    // Auto-assign default role package if not specified
     let assignedRoleId = tenantRoleId || null;
     if (!assignedRoleId) {
       const defaultRole = await RoleQueries.getDefaultTenantRole();
@@ -60,106 +60,91 @@ export class TenantController {
       }
     }
 
-    // Generate auto password (e.g. Rajesh3210@)
+    // Generate auto password and tenant DB name
     const rawPassword = generateTenantPassword(name, mobile);
+    const passwordHash = await hashPassword(rawPassword);
 
-    // Derive clean tenant database name: ranniti_tenant_[firstname]_[last4phone]
     const cleanFirstName = name.trim().split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
     const cleanDigits = mobile.replace(/\D/g, '').slice(-4);
     const tenantDbName = `ranniti_tenant_${cleanFirstName}_${cleanDigits}`;
 
-    // 1. Register user in admin_users with role='tenant_admin' and role_name='Tenant Admin'
-    const user = await authService.registerUser({
+    // Create tenant row directly in tenants table (no admin_users involvement)
+    const tenant = await TenantQueries.createTenant({
       name: name.trim(),
       email: email.trim().toLowerCase(),
+      passwordHash,
       mobile: mobile.trim(),
-      password: rawPassword,
-      role: 'tenant_admin',
-      roleName: 'Tenant Admin',
-      avatar: avatar || null,
-    });
-
-    // 2. Create tenant_assignments record
-    const assignment = await TenantQueries.createTenantAssignment({
-      userId: user.id,
       organizationName: organizationName.trim(),
       tenantDbName,
       pcIds: resolvedPcIds,
       acIds: resolvedAcIds,
+      avatar: avatar || null,
       tenantRoleId: assignedRoleId,
     });
 
-    // 3. Update tenant_db_name on admin_users row
-    await TenantQueries.updateUserTenantDbName(user.id, tenantDbName);
-
-    // 4. Trigger background async tenant database creation, schema init, & voter data copy (non-blocking)
+    // Trigger background DB creation + schema init + voter copy (non-blocking)
     tenantProvisioningService
-      .provisionTenantDataAsync(user.id, tenantDbName, resolvedAcIds, resolvedPcIds)
+      .provisionTenantDataAsync(tenant.id, tenantDbName, resolvedAcIds, resolvedPcIds)
       .catch((err) => {
-        logger.error(`[TenantController] Background provisioning error for user '${user.id}':`, err);
+        logger.error(`[TenantController] Background provisioning error for tenant '${tenant.id}':`, err);
       });
 
-
-    // 5. Send Welcome Email asynchronously with login link & credentials (non-blocking)
+    // Send welcome email asynchronously
     const loginUrl = `${process.env.APP_FRONTEND_URL || 'http://localhost:5173'}/login`;
-    sendWelcomeEmail(user.email, user.name, rawPassword, loginUrl).catch((err) => {
-      logger.error('Background welcome email send failed:', err);
+    sendWelcomeEmail(tenant.email, tenant.name, rawPassword, loginUrl).catch((err) => {
+      logger.error('[TenantController] Welcome email send failed:', err);
     });
 
-    const combinedData = {
-      ...user,
-      tenantDbName,
-      assignment,
-      autoGeneratedPassword: rawPassword, // Returned for super admin UI display/copy convenience
-    };
-
-    const formattedData = attachFileUrls(combinedData, ['avatar'], req);
-    const response = ApiResponse.success(formattedData, 'Tenant user created successfully', 201);
+    const formattedData = attachFileUrls(
+      { ...tenant, autoGeneratedPassword: rawPassword },
+      ['avatar'],
+      req
+    );
+    const response = ApiResponse.success(formattedData, 'Tenant created successfully', 201);
     res.status(response.statusCode).json(response.body);
   });
 
   /**
-   * Get all tenant users with assignment details
+   * Get all tenants.
    */
   getAllTenantUsers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const tenants = await TenantQueries.getAllTenantUsers();
+    const tenants = await TenantQueries.getAllTenants();
     const formattedTenants = attachFileUrls(tenants, ['avatar'], req);
-    const response = ApiResponse.success(formattedTenants, 'Tenant users retrieved successfully');
+    const response = ApiResponse.success(formattedTenants, 'Tenants retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
 
   /**
-   * Get tenant user details by ID
+   * Get tenant by ID.
    */
   getTenantUserById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const tenant = await TenantQueries.getTenantUserByUserId(id);
+    const tenant = await TenantQueries.getById(id);
     if (!tenant) {
-      throw new ApiError(404, 'Tenant user not found');
+      throw new ApiError(404, 'Tenant not found');
     }
     const formattedTenant = attachFileUrls(tenant, ['avatar'], req);
-    const response = ApiResponse.success(formattedTenant, 'Tenant user retrieved successfully');
+    const response = ApiResponse.success(formattedTenant, 'Tenant retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
 
   /**
-   * Get real-time tenant database provisioning status and progress metrics
+   * Get real-time tenant database provisioning status.
    */
   getTenantProvisioningStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const tenant = await TenantQueries.getTenantUserByUserId(id);
+    const tenant = await TenantQueries.getById(id);
     if (!tenant) {
-      throw new ApiError(404, 'Tenant user not found');
+      throw new ApiError(404, 'Tenant not found');
     }
     const statusData = {
       id: tenant.id,
       tenantDbName: tenant.tenantDbName,
-      provisioningStatus: tenant.provisioningStatus || 'pending',
-      provisioningProgress: tenant.provisioningProgress || 0,
-      totalVotersCopied: tenant.totalVotersCopied || 0,
-      currentStep: tenant.currentStep || '',
+      provisioningStatus: tenant.status,
+      provisioningProgress: tenant.provisioningProgress,
+      totalVotersCopied: tenant.totalVotersCopied,
+      currentStep: tenant.currentStep,
       errorMessage: tenant.errorMessage || null,
-      accountStatus: tenant.accountStatus || 'active',
       updatedAt: tenant.updatedAt,
     };
     const response = ApiResponse.success(statusData, 'Tenant provisioning status retrieved successfully');
@@ -167,7 +152,7 @@ export class TenantController {
   });
 
   /**
-   * Update tenant user details
+   * Update tenant profile and constituency scope.
    */
   updateTenantUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
@@ -177,15 +162,15 @@ export class TenantController {
       throw new ApiError(400, 'Name, email, mobile, and organization name are required');
     }
 
-    const existing = await TenantQueries.getTenantUserByUserId(id);
+    const existing = await TenantQueries.getById(id);
     if (!existing) {
-      throw new ApiError(404, 'Tenant user not found');
+      throw new ApiError(404, 'Tenant not found');
     }
 
     let newAcIds: string[] = Array.isArray(acIds) ? [...acIds] : [];
     let newPcIds: string[] = Array.isArray(pcIds) ? [...pcIds] : [];
 
-    // Auto-resolve child ACs if PC is provided and ACs are empty
+    // Auto-resolve ACs from PCs or vice-versa
     if (newAcIds.length === 0 && newPcIds.length > 0) {
       const acRes = await masterQuery(
         'SELECT id FROM assembly_constituencies WHERE pc_id = ANY($1)',
@@ -215,7 +200,7 @@ export class TenantController {
 
         addedAcIds = newAcIds.filter((ac) => !tenantAcIds.includes(ac) || !tenantAcWithVoters.includes(ac));
         removedAcIds = tenantAcIds.filter((ac) => !newAcIds.includes(ac));
-      } catch (e) {
+      } catch {
         const existingAcIds: string[] = Array.isArray(existing.acIds) ? existing.acIds : [];
         addedAcIds = newAcIds.filter((ac) => !existingAcIds.includes(ac));
         removedAcIds = existingAcIds.filter((ac) => !newAcIds.includes(ac));
@@ -230,7 +215,7 @@ export class TenantController {
       removedAcIds = existingAcIds.filter((ac) => !newAcIds.includes(ac));
     }
 
-    const updated = await TenantQueries.updateTenantUser(id, {
+    const updated = await TenantQueries.updateTenant(id, {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       mobile: mobile.trim(),
@@ -242,7 +227,6 @@ export class TenantController {
     });
 
     if (existing.tenantDbName) {
-      // Remove voters + booths + ACs for de-scoped ACs (synchronous data safety)
       if (removedAcIds.length > 0) {
         logger.info(`[TenantController] ${removedAcIds.length} AC(s) removed for tenant '${id}' — purging scoped data...`);
         tenantProvisioningService
@@ -252,9 +236,8 @@ export class TenantController {
           });
       }
 
-      // Sync voters + master data for newly added / missing ACs
       if (addedAcIds.length > 0) {
-        logger.info(`[TenantController] ${addedAcIds.length} new/missing AC(s) added for tenant '${id}' — triggering incremental voter sync...`);
+        logger.info(`[TenantController] ${addedAcIds.length} new AC(s) added for tenant '${id}' — triggering incremental voter sync...`);
         tenantProvisioningService
           .syncNewAcVoters(id, existing.tenantDbName, addedAcIds, newPcIds)
           .catch((err) => {
@@ -264,48 +247,47 @@ export class TenantController {
     }
 
     const formatted = attachFileUrls(updated, ['avatar'], req);
-    const response = ApiResponse.success(formatted, 'Tenant user updated successfully');
+    const response = ApiResponse.success(formatted, 'Tenant updated successfully');
     res.status(response.statusCode).json(response.body);
   });
 
-
   /**
-   * Update tenant account status (active, inactive, suspended)
+   * Update tenant account status (active, suspended, failed).
    */
   updateTenantStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const { status } = req.body;
 
-    if (!status || !['active', 'inactive', 'suspended'].includes(status)) {
-      throw new ApiError(400, 'Valid status (active, inactive, suspended) is required');
+    const validStatuses = ['pending', 'provisioning', 'active', 'failed', 'suspended'];
+    if (!status || !validStatuses.includes(status)) {
+      throw new ApiError(400, `Valid status (${validStatuses.join(', ')}) is required`);
     }
 
-    const existing = await TenantQueries.getTenantUserByUserId(id);
+    const existing = await TenantQueries.getById(id);
     if (!existing) {
-      throw new ApiError(404, 'Tenant user not found');
+      throw new ApiError(404, 'Tenant not found');
     }
 
     const updated = await TenantQueries.updateTenantStatus(id, status);
     const formatted = attachFileUrls(updated, ['avatar'], req);
-    const response = ApiResponse.success(formatted, `Tenant user status updated to ${status}`);
+    const response = ApiResponse.success(formatted, `Tenant status updated to ${status}`);
     res.status(response.statusCode).json(response.body);
   });
 
   /**
-   * Delete tenant account
+   * Delete a tenant account.
    */
   deleteTenantUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const existing = await TenantQueries.getTenantUserByUserId(id);
+    const existing = await TenantQueries.getById(id);
     if (!existing) {
-      throw new ApiError(404, 'Tenant user not found');
+      throw new ApiError(404, 'Tenant not found');
     }
 
-    await TenantQueries.deleteTenantUser(id);
+    await TenantQueries.deleteTenant(id);
     const response = ApiResponse.success({ id }, 'Tenant account deleted successfully');
     res.status(response.statusCode).json(response.body);
   });
 }
 
 export const tenantController = new TenantController();
-

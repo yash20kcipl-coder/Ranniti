@@ -12,11 +12,12 @@ import {
   BLOOD_GROUP_OPTIONS,
 } from '@/constants/dropdownOptions';
 import { calculateAge } from '@/utils';
-import React, { useState } from 'react';
 import { useAppDispatch } from '@/redux/hooks';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { useTenantMasterData } from '@/hooks/useTenantMasterData';
+import { fetchTenantMasterCategoryData } from '@/redux/actions/masterTenant';
+import { useTenantMasterData, TENANT_MASTER_ENDPOINTS } from '@/hooks/useTenantMasterData';
 
 // Shared Standard Components
 import type { Option } from '@/components/common/FormInput';
@@ -105,7 +106,9 @@ export const VoterFormPage: React.FC = () => {
     professionType: '',
     profession: '',
     religionId: '',
+    religionName: '',
     casteId: '',
+    casteName: '',
     subcasteName: '',
     voterType: 'Voter',
 
@@ -184,7 +187,9 @@ export const VoterFormPage: React.FC = () => {
               professionType: voter.professionType || '',
               profession: voter.profession || '',
               religionId: voter.religionId ? String(voter.religionId) : '',
+              religionName: voter.religionName || '',
               casteId: voter.casteId ? String(voter.casteId) : '',
+              casteName: voter.casteName || '',
               subcasteName: voter.subcasteName || '',
               voterType: voter.voterType || 'Voter',
 
@@ -215,7 +220,7 @@ export const VoterFormPage: React.FC = () => {
           setLoadingVoter(false);
         });
     }
-  }, 150, [isEditMode, id, dispatch, acs]);
+  }, 150, [dispatch, id, isEditMode]);
 
   // Load booth options on-demand whenever acId changes (Create & Edit mode)
   useDebouncedEffect(
@@ -334,9 +339,37 @@ export const VoterFormPage: React.FC = () => {
       } else if (name === 'boothId') {
         updated.familyInfluencerId = '';
         updated.socialInfluencerId = '';
-      } else if (name === 'religionId') {
-        updated.casteId = '';
-        updated.subcasteName = '';
+      } else if (name === 'religion' || name === 'religionName') {
+        const matchingRel = (religions || []).find(
+          (r: any) => (r.religionName || r.name || '').trim().toLowerCase() === String(value).trim().toLowerCase()
+        );
+        updated.religionName = value;
+        updated.religionId = matchingRel ? String(matchingRel.id) : '';
+      } else if (name === 'caste' || name === 'casteName') {
+        const matchingCaste = (castes || []).find(
+          (c: any) => (c.casteName || c.name || '').trim().toLowerCase() === String(value).trim().toLowerCase()
+        );
+        updated.casteName = value;
+        updated.casteId = matchingCaste ? String(matchingCaste.id) : '';
+        if (matchingCaste && matchingCaste.religionId && !updated.religionId) {
+          const rel = (religions || []).find((r: any) => String(r.id) === String(matchingCaste.religionId));
+          if (rel) {
+            updated.religionId = String(rel.id);
+            updated.religionName = rel.religionName || rel.name;
+          }
+        }
+      } else if (name === 'subcasteName') {
+        updated.subcasteName = value;
+        const matchingSub = (castes || []).find(
+          (c: any) => c.parentCasteId && (c.casteName || c.name || '').trim().toLowerCase() === String(value).trim().toLowerCase()
+        );
+        if (matchingSub && matchingSub.parentCasteId && !updated.casteId) {
+          const parentC = (castes || []).find((c: any) => String(c.id) === String(matchingSub.parentCasteId));
+          if (parentC) {
+            updated.casteId = String(parentC.id);
+            updated.casteName = parentC.casteName || parentC.name;
+          }
+        }
       }
 
       return updated;
@@ -410,7 +443,9 @@ export const VoterFormPage: React.FC = () => {
       professionType: formData.professionType.trim() || null,
       profession: formData.profession.trim() || null,
       religionId: formData.religionId ? formData.religionId : null,
+      religionName: formData.religionName?.trim() || null,
       casteId: formData.casteId ? formData.casteId : null,
+      casteName: formData.casteName?.trim() || null,
       subcasteName: formData.subcasteName.trim() || null,
       voterType: formData.voterType,
       status: formData.status,
@@ -436,6 +471,10 @@ export const VoterFormPage: React.FC = () => {
         await dispatch(createVoterItem(payload));
         setToastMessage({ type: 'success', text: 'New voter created successfully!' });
       }
+
+      // Auto-refresh master categories in Redux store for newly added values (non-blocking)
+      dispatch(fetchTenantMasterCategoryData('religions', TENANT_MASTER_ENDPOINTS.religions, false)).catch(() => { });
+      dispatch(fetchTenantMasterCategoryData('castes', TENANT_MASTER_ENDPOINTS.castes, false)).catch(() => { });
       setTimeout(() => {
         navigate('/dashboard/voters');
       }, 1000);
@@ -489,6 +528,32 @@ export const VoterFormPage: React.FC = () => {
     }));
 
 
+
+  const religionSuggestions: string[] = useMemo(() => {
+    return Array.from(new Set((religions || []).map((r: any) => r.religionName || r.name).filter(Boolean)));
+  }, [religions]);
+
+  const casteSuggestions: string[] = useMemo(() => {
+    const primaryCastes = (castes || []).filter((c: any) => !c.parentCasteId);
+    if (!formData.religionId && !formData.religionName) {
+      return Array.from(new Set(primaryCastes.map((c: any) => c.casteName || c.name).filter(Boolean)));
+    }
+    const targetRelId = formData.religionId;
+    const relMatches = primaryCastes.filter((c: any) => targetRelId && String(c.religionId) === String(targetRelId)).map((c: any) => c.casteName || c.name);
+    const others = primaryCastes.filter((c: any) => !targetRelId || String(c.religionId) !== String(targetRelId)).map((c: any) => c.casteName || c.name);
+    return Array.from(new Set([...relMatches, ...others].filter(Boolean)));
+  }, [castes, formData.religionId, formData.religionName]);
+
+  const subcasteSuggestions: string[] = useMemo(() => {
+    const subcastes = (castes || []).filter((c: any) => Boolean(c.parentCasteId));
+    if (!formData.casteId && !formData.casteName) {
+      return Array.from(new Set(subcastes.map((c: any) => c.casteName || c.name).filter(Boolean)));
+    }
+    const targetCasteId = formData.casteId;
+    const casteMatches = subcastes.filter((c: any) => targetCasteId && String(c.parentCasteId) === String(targetCasteId)).map((c: any) => c.casteName || c.name);
+    const others = subcastes.filter((c: any) => !targetCasteId || String(c.parentCasteId) !== String(targetCasteId)).map((c: any) => c.casteName || c.name);
+    return Array.from(new Set([...casteMatches, ...others].filter(Boolean)));
+  }, [castes, formData.casteId, formData.casteName]);
 
   const religionOptions: Option[] = (religions || []).map((r: any) => ({
     label: r.religionName || r.name || `Religion #${r.id}`,
@@ -662,6 +727,9 @@ export const VoterFormPage: React.FC = () => {
             formData={formData}
             errors={errors}
             handleChange={handleChange}
+            religionSuggestions={religionSuggestions}
+            casteSuggestions={casteSuggestions}
+            subcasteSuggestions={subcasteSuggestions}
             religionOptions={religionOptions}
             casteOptions={casteOptions}
           />

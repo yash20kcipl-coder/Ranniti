@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/redux/hooks';
+import { useParams, useNavigate } from 'react-router-dom';
+import { PageHeader } from '@/components/common/PageHeader';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { fetchSuperAdminVoterById } from '@/redux/actions/voterSuperAdmin';
-import { PageHeader } from '@/components/common/PageHeader';
 import { ArrowLeft, Edit, UserCheck, ShieldAlert, AlertTriangle, Crown, Sparkles } from 'lucide-react';
 
 // Section Components
@@ -79,11 +79,11 @@ export const SuperAdminVoterDetailPage: React.FC = () => {
         <p className="text-sm text-slate-500">{error || 'The requested voter record could not be retrieved.'}</p>
         <button
           type="button"
-          onClick={() => navigate('/dashboard/super-admin/voters')}
+          onClick={() => navigate('/dashboard/voters')}
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-xl shadow-md hover:bg-blue-700 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Super Admin Directory
+          Back to Voter Directory
         </button>
       </div>
     );
@@ -93,7 +93,7 @@ export const SuperAdminVoterDetailPage: React.FC = () => {
   const localFullName = [voter.firstName, voter.middleName, voter.surname].filter(Boolean).join(' ');
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12">
+    <div className="space-y-6">
       {/* Deceased Warning Alert Banner */}
       {voter.isDead && (
         <div className="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-500/40 text-rose-800 dark:text-rose-200 shadow-sm dark:shadow-xl backdrop-blur-xl">
@@ -135,7 +135,7 @@ export const SuperAdminVoterDetailPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate('/dashboard/super-admin/voters')}
+              onClick={() => navigate('/dashboard/voters')}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -144,7 +144,7 @@ export const SuperAdminVoterDetailPage: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => navigate(`/dashboard/super-admin/voters/${voter.id}/edit`)}
+              onClick={() => navigate(`/dashboard/voters/${voter.id}/edit`)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition-colors cursor-pointer"
             >
               <Edit className="w-4 h-4" />

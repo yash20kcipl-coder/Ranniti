@@ -257,7 +257,7 @@ export const TenantRoleManager: React.FC = () => {
   const defaultPackage = tenantRoles.find((r) => r.isDefault);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6">
       {/* Page Header Standard */}
       <PageHeader
         title="Tenant Feature Packages (Super Admin)"

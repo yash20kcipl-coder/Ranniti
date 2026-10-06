@@ -17,7 +17,7 @@ export class MobileAuthController {
     const result = await mobileAuthService.mobileLogin(identifier, password);
     const formattedUser = attachFileUrls(result.user, undefined, req);
     const response = ApiResponse.success(
-      { user: formattedUser, token: result.token },
+      { user: formattedUser, token: result.token, access: result.access },
       'Mobile authentication successful'
     );
     res.status(response.statusCode).json(response.body);
@@ -25,9 +25,20 @@ export class MobileAuthController {
 
   getProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const userId = req.user!.userId;
-    const user = await mobileAuthService.getMobileProfile(userId);
+    const tenantDbName = req.user?.tenantDbName;
+    const user = await mobileAuthService.getMobileProfile(userId, tenantDbName);
     const formattedUser = attachFileUrls(user, undefined, req);
     const response = ApiResponse.success(formattedUser, 'Mobile user profile retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  updateProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user!.userId;
+    const tenantDbName = req.user?.tenantDbName;
+    const { name, mobile, avatar } = req.body;
+    const user = await mobileAuthService.updateMobileProfile(userId, { name, mobile, avatar }, tenantDbName);
+    const formattedUser = attachFileUrls(user, undefined, req);
+    const response = ApiResponse.success(formattedUser, 'Mobile user profile updated successfully');
     res.status(response.statusCode).json(response.body);
   });
 }

@@ -72,7 +72,9 @@ export const createVoterSchema = z.object({
     professionType: z.string().optional().nullable(),
     profession: z.string().optional().nullable(),
     religionId: preprocessUuid(),
+    religionName: z.string().optional().nullable(),
     casteId: preprocessUuid(),
+    casteName: z.string().optional().nullable(),
     subcasteName: z.string().optional().nullable(),
     voterType: z.string().optional().default('Voter'),
 
@@ -123,6 +125,7 @@ export const voterQuerySchema = z.object({
     isFamilyInfluencer: z.string().optional(),
     isSocialInfluencer: z.string().optional(),
     influencerStatus: z.string().optional(),
+    influencerRole: z.string().optional(),
     type: z.string().optional(),
   }),
 });

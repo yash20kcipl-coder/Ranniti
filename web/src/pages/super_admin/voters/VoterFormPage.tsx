@@ -12,8 +12,8 @@ import {
   BLOOD_GROUP_OPTIONS,
 } from '@/constants/dropdownOptions';
 import { calculateAge } from '@/utils';
-import React, { useState, useEffect, useMemo } from 'react';
 import { useAppDispatch } from '@/redux/hooks';
+import React, { useState, useMemo } from 'react';
 import { useMasterData } from '@/hooks/useMasterData';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
@@ -76,9 +76,10 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     serialNo: 0,
     sectionNo: 0,
     partNo: '',
-    isDead: 'false',
+    isDead: false,
     status: 'ACTIVE',
     voterType: 'General Voter',
+    partyId: '',
     partyAffiliationId: '',
 
     engFirstName: '',
@@ -91,7 +92,12 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     age: '',
     gender: 'Male',
     religionId: '',
+    religionName: '',
+    religion: '',
     casteId: '',
+    casteName: '',
+    caste: '',
+    subcasteName: '',
     subCaste: '',
 
     stateId: '',
@@ -107,6 +113,8 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     mobileNo: '',
     alternateMobileNo: '',
     email: '',
+    aadhaarNo: '',
+    panNo: '',
 
     houseNo: '',
     houseName: '',
@@ -115,6 +123,10 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     cityTown: '',
     postOffice: '',
     pinCode: '',
+    taluka: '',
+    village: '',
+    fullAddress: '',
+    voterAddress: '',
 
     permHouseNo: '',
     permHouseName: '',
@@ -127,11 +139,13 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     maritalStatus: 'Single',
     bloodGroup: '',
     education: '',
+    professionType: '',
+    profession: '',
     occupation: '',
     annualIncome: '',
 
-    isFamilyInfluencer: 'false',
-    isSocialInfluencer: 'false',
+    isFamilyInfluencer: false,
+    isSocialInfluencer: false,
     influencerCategory: '',
     influencerNotes: '',
     influencerRole: '',
@@ -213,6 +227,32 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     return religions.map((r: any) => ({ label: r.name || r.religionName, value: String(r.id) }));
   }, [religions]);
 
+  const religionSuggestions: string[] = useMemo(() => {
+    return Array.from(new Set(religions.map((r: any) => r.name || r.religionName).filter(Boolean)));
+  }, [religions]);
+
+  const casteSuggestions: string[] = useMemo(() => {
+    const primaryCastes = (castes || []).filter((c: any) => !c.parentCasteId);
+    if (!formData.religionId && !formData.religionName) {
+      return Array.from(new Set(primaryCastes.map((c: any) => c.name || c.casteName).filter(Boolean)));
+    }
+    const targetRelId = formData.religionId;
+    const relMatches = primaryCastes.filter((c: any) => targetRelId && String(c.religionId) === String(targetRelId)).map((c: any) => c.name || c.casteName);
+    const others = primaryCastes.filter((c: any) => !targetRelId || String(c.religionId) !== String(targetRelId)).map((c: any) => c.name || c.casteName);
+    return Array.from(new Set([...relMatches, ...others].filter(Boolean)));
+  }, [castes, formData.religionId, formData.religionName]);
+
+  const subcasteSuggestions: string[] = useMemo(() => {
+    const subcastes = (castes || []).filter((c: any) => Boolean(c.parentCasteId));
+    if (!formData.casteId && !formData.casteName) {
+      return Array.from(new Set(subcastes.map((c: any) => c.name || c.casteName).filter(Boolean)));
+    }
+    const targetCasteId = formData.casteId;
+    const casteMatches = subcastes.filter((c: any) => targetCasteId && String(c.parentCasteId) === String(targetCasteId)).map((c: any) => c.name || c.casteName);
+    const others = subcastes.filter((c: any) => !targetCasteId || String(c.parentCasteId) !== String(targetCasteId)).map((c: any) => c.name || c.casteName);
+    return Array.from(new Set([...casteMatches, ...others].filter(Boolean)));
+  }, [castes, formData.casteId, formData.casteName]);
+
   const partyOptions: Option[] = useMemo(() => {
     return parties.map((p: any) => ({ label: `${p.abbreviation || p.name} - ${p.name}`, value: String(p.id) }));
   }, [parties]);
@@ -287,7 +327,7 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     [dispatch, formData.boothId, id]
   );
 
-  useEffect(() => {
+  useDebouncedEffect(() => {
     if (!isEditMode || !id) return;
     setLoadingVoter(true);
     dispatch(fetchSuperAdminVoterById(id))
@@ -312,13 +352,14 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         setFormData({
           epicNo: data.epicNo || '',
           voterIdNo: data.voterIdNo || '',
-          serialNo: data.serialNo || 0,
-          sectionNo: data.sectionNo || 0,
+          serialNo: data.serialNo ?? 0,
+          sectionNo: data.sectionNo ?? 0,
           partNo: data.partNo || '',
-          isDead: String(data.isDead ?? false),
+          isDead: Boolean(data.isDead),
           status: data.status || 'ACTIVE',
           voterType: data.voterType || 'General Voter',
-          partyAffiliationId: data.partyAffiliationId || '',
+          partyId: data.partyId ? String(data.partyId) : (data.partyAffiliationId ? String(data.partyAffiliationId) : ''),
+          partyAffiliationId: data.partyAffiliationId || data.partyId || '',
 
           engFirstName: data.engFirstName || '',
           engMiddleName: data.engMiddleName || '',
@@ -329,9 +370,14 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           dob: data.dob ? data.dob.slice(0, 10) : '',
           age: data.age != null ? String(data.age) : '',
           gender: data.gender || 'Male',
-          religionId: data.religionId || '',
-          casteId: data.casteId || '',
-          subCaste: data.subCaste || '',
+          religionId: data.religionId ? String(data.religionId) : '',
+          religionName: data.religionName || '',
+          religion: data.religionName || '',
+          casteId: data.casteId ? String(data.casteId) : '',
+          casteName: data.casteName || '',
+          caste: data.casteName || '',
+          subcasteName: data.subcasteName || data.subCaste || '',
+          subCaste: data.subcasteName || data.subCaste || '',
 
           stateId: resolvedStateId,
           districtId: resolvedDistrictId,
@@ -346,6 +392,8 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           mobileNo: data.mobileNo || '',
           alternateMobileNo: data.alternateMobileNo || '',
           email: data.email || '',
+          aadhaarNo: data.aadhaarNo || '',
+          panNo: data.panNo || '',
 
           houseNo: data.houseNo || '',
           houseName: data.houseName || '',
@@ -354,6 +402,10 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           cityTown: data.cityTown || '',
           postOffice: data.postOffice || '',
           pinCode: data.pinCode || '',
+          taluka: data.taluka || '',
+          village: data.village || '',
+          fullAddress: data.fullAddress || '',
+          voterAddress: data.voterAddress || '',
 
           permHouseNo: data.permHouseNo || '',
           permHouseName: data.permHouseName || '',
@@ -366,11 +418,13 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           maritalStatus: data.maritalStatus || 'Single',
           bloodGroup: data.bloodGroup || '',
           education: data.education || '',
+          professionType: data.professionType || '',
+          profession: data.profession || '',
           occupation: data.occupation || '',
           annualIncome: data.annualIncome || '',
 
-          isFamilyInfluencer: String(data.isFamilyInfluencer ?? false),
-          isSocialInfluencer: String(data.isSocialInfluencer ?? false),
+          isFamilyInfluencer: Boolean(data.isFamilyInfluencer || Number(data.familyInfluencedCount) > 0),
+          isSocialInfluencer: Boolean(data.isSocialInfluencer || Number(data.socialInfluencedCount) > 0),
           influencerCategory: data.influencerCategory || '',
           influencerNotes: data.influencerNotes || '',
           influencerRole: data.influencerRole || '',
@@ -379,9 +433,9 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           mappedFamilyMembersCount: data.mappedFamilyMembersCount || 0,
           mappedSocialVotersCount: data.mappedSocialVotersCount || 0,
 
-          familyInfluencerId: data.familyInfluencerId || '',
+          familyInfluencerId: data.familyInfluencerId ? String(data.familyInfluencerId) : '',
           familyInfluencerHeadName: data.familyInfluencerHeadName || '',
-          socialInfluencerId: data.socialInfluencerId || '',
+          socialInfluencerId: data.socialInfluencerId ? String(data.socialInfluencerId) : '',
           socialInfluencerLeaderName: data.socialInfluencerLeaderName || '',
         });
       })
@@ -394,12 +448,13 @@ export const SuperAdminVoterFormPage: React.FC = () => {
       .finally(() => {
         setLoadingVoter(false);
       });
-  }, [dispatch, id, isEditMode, acs]);
+  }, 150, [dispatch, id, isEditMode]);
 
   const handleChange = (e: any) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const finalValue = type === 'checkbox' ? checked : value;
     setFormData((prev) => {
-      const next: Record<string, any> = { ...prev, [name]: value };
+      const next: Record<string, any> = { ...prev, [name]: finalValue };
 
       if (name === 'dob' && value) {
         next.age = String(calculateAge(value));
@@ -443,9 +498,38 @@ export const SuperAdminVoterFormPage: React.FC = () => {
       } else if (name === 'boothId') {
         next.familyInfluencerId = '';
         next.socialInfluencerId = '';
-      } else if (name === 'religionId') {
-        next.casteId = '';
-        next.subCaste = '';
+      } else if (name === 'religion' || name === 'religionName') {
+        const matchingRel = (religions || []).find(
+          (r: any) => (r.name || r.religionName || '').trim().toLowerCase() === String(value).trim().toLowerCase()
+        );
+        next.religionName = value;
+        next.religionId = matchingRel ? String(matchingRel.id) : '';
+      } else if (name === 'caste' || name === 'casteName') {
+        const matchingCaste = (castes || []).find(
+          (c: any) => (c.name || c.casteName || '').trim().toLowerCase() === String(value).trim().toLowerCase()
+        );
+        next.casteName = value;
+        next.casteId = matchingCaste ? String(matchingCaste.id) : '';
+        if (matchingCaste && matchingCaste.religionId && !next.religionId) {
+          const rel = (religions || []).find((r: any) => String(r.id) === String(matchingCaste.religionId));
+          if (rel) {
+            next.religionId = String(rel.id);
+            next.religionName = rel.name || rel.religionName;
+          }
+        }
+      } else if (name === 'subcasteName' || name === 'subCaste') {
+        next.subcasteName = value;
+        next.subCaste = value;
+        const matchingSub = (castes || []).find(
+          (c: any) => c.parentCasteId && (c.name || c.casteName || '').trim().toLowerCase() === String(value).trim().toLowerCase()
+        );
+        if (matchingSub && matchingSub.parentCasteId && !next.casteId) {
+          const parentC = (castes || []).find((c: any) => String(c.id) === String(matchingSub.parentCasteId));
+          if (parentC) {
+            next.casteId = String(parentC.id);
+            next.casteName = parentC.name || parentC.casteName;
+          }
+        }
       }
 
       return next;
@@ -485,9 +569,15 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         serialNo: Number(formData.serialNo) || 0,
         sectionNo: Number(formData.sectionNo) || 0,
         age: formData.age ? Number(formData.age) : undefined,
-        isDead: formData.isDead === 'true',
-        isFamilyInfluencer: formData.isFamilyInfluencer === 'true',
-        isSocialInfluencer: formData.isSocialInfluencer === 'true',
+        partyId: formData.partyId || formData.partyAffiliationId || null,
+        taluka: formData.taluka?.trim() || null,
+        village: formData.village?.trim() || null,
+        religionName: formData.religionName?.trim() || formData.religion?.trim() || null,
+        casteName: formData.casteName?.trim() || formData.caste?.trim() || null,
+        subcasteName: formData.subcasteName?.trim() || formData.subCaste?.trim() || null,
+        isDead: Boolean(formData.isDead),
+        isFamilyInfluencer: Boolean(formData.isFamilyInfluencer),
+        isSocialInfluencer: Boolean(formData.isSocialInfluencer),
         influenceReachCount: Number(formData.influenceReachCount) || 0,
       };
 
@@ -500,7 +590,7 @@ export const SuperAdminVoterFormPage: React.FC = () => {
       }
 
       setTimeout(() => {
-        navigate('/dashboard/super-admin/voters');
+        navigate('/dashboard/voters');
       }, 1000);
     } catch (err: any) {
       setToastMessage({
@@ -522,25 +612,25 @@ export const SuperAdminVoterFormPage: React.FC = () => {
 
   const targetInfluencerObj = voterMeta
     ? {
-        id: voterMeta.id,
-        name: [voterMeta.engFirstName, voterMeta.engSurname].filter(Boolean).join(' ') || voterMeta.voterName || 'Voter',
-        epicNo: voterMeta.epicNo,
-        boothId: voterMeta.boothId,
-        boothName: voterMeta.boothName,
-        sectionNo: voterMeta.sectionNo,
-        houseNo: voterMeta.houseNo,
-      }
+      id: voterMeta.id,
+      name: [voterMeta.engFirstName, voterMeta.engSurname].filter(Boolean).join(' ') || voterMeta.voterName || 'Voter',
+      epicNo: voterMeta.epicNo,
+      boothId: voterMeta.boothId,
+      boothName: voterMeta.boothName,
+      sectionNo: voterMeta.sectionNo,
+      houseNo: voterMeta.houseNo,
+    }
     : null;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12">
+    <div className="space-y-6">
       <PageHeader
         title={isEditMode ? 'Edit Super Admin Voter Record' : 'Add New Super Admin Voter'}
         subtitle="Manage master voter records across all electoral constituencies"
         actions={
           <button
             type="button"
-            onClick={() => navigate('/dashboard/super-admin/voters')}
+            onClick={() => navigate('/dashboard/voters')}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -551,11 +641,10 @@ export const SuperAdminVoterFormPage: React.FC = () => {
 
       {toastMessage && (
         <div
-          className={`p-4 rounded-xl border flex items-center gap-3 ${
-            toastMessage.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-              : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-          }`}
+          className={`p-4 rounded-xl border flex items-center gap-3 ${toastMessage.type === 'success'
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+            : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+            }`}
         >
           {toastMessage.type === 'success' ? (
             <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -592,11 +681,14 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         />
 
         <VoterDemographicsFormSection
-          formData={formData}
           errors={errors}
+          formData={formData}
           handleChange={handleChange}
-          religionOptions={religionOptions}
           casteOptions={casteOptions}
+          religionOptions={religionOptions}
+          casteSuggestions={casteSuggestions}
+          religionSuggestions={religionSuggestions}
+          subcasteSuggestions={subcasteSuggestions}
         />
 
         <VoterInfluencerFormSection
@@ -626,7 +718,7 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
           <button
             type="button"
-            onClick={() => navigate('/dashboard/super-admin/voters')}
+            onClick={() => navigate('/dashboard/voters')}
             className="px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
             Cancel

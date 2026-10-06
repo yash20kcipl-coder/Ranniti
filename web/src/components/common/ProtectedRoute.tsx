@@ -15,7 +15,6 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
-  console.log(allowedRoles)
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

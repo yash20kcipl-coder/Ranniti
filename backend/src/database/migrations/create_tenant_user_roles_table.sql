@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS tenant_user_roles (
         "can_manage_family": false,
         "can_export_data": false
     }'::jsonb,
+    can_create_roles    JSONB NOT NULL DEFAULT '[]'::jsonb,
     is_system_default   BOOLEAN NOT NULL DEFAULT false,
     created_by          UUID,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),

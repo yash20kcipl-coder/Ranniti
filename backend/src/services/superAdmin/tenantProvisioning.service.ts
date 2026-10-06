@@ -1,6 +1,5 @@
 import { Pool } from 'pg';
 import { logger } from '../../utils/logger';
-import { AuthQueries } from '../../queries/auth.queries';
 import { query as masterQuery } from '../../queries/dbPool';
 import { TenantQueries } from '../../queries/tenant.queries';
 import { sendProvisioningReadyEmail } from '../../utils/mailer';
@@ -52,7 +51,10 @@ async function bulkUpsert(
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // Syncs all master lookup tables into a tenant pool (idempotent bulk upsert)
+// PCs, ACs, Wards, Booths: ONLY assigned to tenant
+// Other master tables (states, districts, talukas, villages, religions, castes, parties): COPY ALL
 // ---------------------------------------------------------------------------
 async function syncMasterLookupTables(
   tenantPool: Pool,
@@ -60,8 +62,36 @@ async function syncMasterLookupTables(
   acIds: string[],
   progressBase: number,
   progressRange: number,
-  shouldTruncate: boolean = true
+  shouldTruncate: boolean = true,
+  pcIds: string[] = []
 ): Promise<void> {
+  // Resolve assigned scope:
+  // 1. Resolve PC IDs (from directly assigned pcIds + parent PCs of acIds)
+  const pcIdSet = new Set<string>((pcIds || []).filter(Boolean));
+  if (acIds && acIds.length > 0) {
+    const parentPcRes = await masterQuery(
+      `SELECT DISTINCT pc_id FROM assembly_constituencies WHERE id = ANY($1::uuid[]) AND pc_id IS NOT NULL`,
+      [acIds]
+    );
+    for (const r of parentPcRes.rows) {
+      if (r.pc_id) pcIdSet.add(r.pc_id);
+    }
+  }
+  const resolvedPcIds = Array.from(pcIdSet);
+
+  // 2. Resolve AC IDs (from directly assigned acIds + child ACs of pcIds)
+  const acIdSet = new Set<string>((acIds || []).filter(Boolean));
+  if (pcIds && pcIds.length > 0) {
+    const childAcRes = await masterQuery(
+      `SELECT id FROM assembly_constituencies WHERE pc_id = ANY($1::uuid[])`,
+      [pcIds]
+    );
+    for (const r of childAcRes.rows) {
+      if (r.id) acIdSet.add(r.id);
+    }
+  }
+  const resolvedAcIds = Array.from(acIdSet);
+
   // Cleanly clear existing lookup data to prevent duplicate key constraint conflicts when master IDs change (full provisioning only)
   if (shouldTruncate) {
     await tenantPool.query(`
@@ -116,25 +146,57 @@ async function syncMasterLookupTables(
       label: 'Syncing Parliamentary Constituencies',
       table: 'parliamentary_constituencies',
       cols: ['id', 'state_id', 'pc_number', 'name', 'created_at', 'updated_at'],
-      fetch: async () => (await masterQuery(`SELECT id, state_id, pc_number, name, created_at, updated_at FROM parliamentary_constituencies`)).rows,
+      fetch: async () =>
+        resolvedPcIds.length > 0
+          ? (
+              await masterQuery(
+                `SELECT id, state_id, pc_number, name, created_at, updated_at FROM parliamentary_constituencies WHERE id = ANY($1::uuid[])`,
+                [resolvedPcIds]
+              )
+            ).rows
+          : [],
     },
     {
       label: 'Syncing Assembly Constituencies',
       table: 'assembly_constituencies',
       cols: ['id', 'pc_id', 'district_id', 'ac_number', 'name', 'created_at', 'updated_at'],
-      fetch: async () => (await masterQuery(`SELECT id, pc_id, district_id, ac_number, name, created_at, updated_at FROM assembly_constituencies WHERE id = ANY($1)`, [acIds])).rows,
+      fetch: async () =>
+        resolvedAcIds.length > 0
+          ? (
+              await masterQuery(
+                `SELECT id, pc_id, district_id, ac_number, name, created_at, updated_at FROM assembly_constituencies WHERE id = ANY($1::uuid[])`,
+                [resolvedAcIds]
+              )
+            ).rows
+          : [],
     },
     {
       label: 'Syncing Wards',
       table: 'wards',
       cols: ['id', 'ac_id', 'ward_number', 'name', 'created_at', 'updated_at'],
-      fetch: async () => (await masterQuery(`SELECT id, ac_id, ward_number, name, created_at, updated_at FROM wards WHERE ac_id = ANY($1)`, [acIds])).rows,
+      fetch: async () =>
+        resolvedAcIds.length > 0
+          ? (
+              await masterQuery(
+                `SELECT id, ac_id, ward_number, name, created_at, updated_at FROM wards WHERE ac_id = ANY($1::uuid[])`,
+                [resolvedAcIds]
+              )
+            ).rows
+          : [],
     },
     {
       label: 'Syncing Polling Booths',
       table: 'booths',
       cols: ['id', 'ac_id', 'ward_id', 'village_id', 'booth_number', 'name', 'location_building', 'total_voters', 'created_at', 'updated_at'],
-      fetch: async () => (await masterQuery(`SELECT id, ac_id, ward_id, village_id, booth_number, name, location_building, total_voters, created_at, updated_at FROM booths WHERE ac_id = ANY($1)`, [acIds])).rows,
+      fetch: async () =>
+        resolvedAcIds.length > 0
+          ? (
+              await masterQuery(
+                `SELECT id, ac_id, ward_id, village_id, booth_number, name, location_building, total_voters, created_at, updated_at FROM booths WHERE ac_id = ANY($1::uuid[])`,
+                [resolvedAcIds]
+              )
+            ).rows
+          : [],
     },
   ];
 
@@ -143,34 +205,61 @@ async function syncMasterLookupTables(
       label: 'Syncing Parliamentary Constituencies',
       table: 'parliamentary_constituencies',
       cols: ['id', 'state_id', 'pc_number', 'name', 'created_at', 'updated_at'],
-      fetch: async () => (await masterQuery(`
-        SELECT id, state_id, pc_number, name, created_at, updated_at 
-        FROM parliamentary_constituencies 
-        WHERE id IN (SELECT DISTINCT pc_id FROM assembly_constituencies WHERE id = ANY($1) AND pc_id IS NOT NULL)
-      `, [acIds])).rows,
+      fetch: async () =>
+        resolvedPcIds.length > 0
+          ? (
+              await masterQuery(
+                `SELECT id, state_id, pc_number, name, created_at, updated_at FROM parliamentary_constituencies WHERE id = ANY($1::uuid[])`,
+                [resolvedPcIds]
+              )
+            ).rows
+          : [],
     },
     {
       label: 'Syncing Assembly Constituencies',
       table: 'assembly_constituencies',
       cols: ['id', 'pc_id', 'district_id', 'ac_number', 'name', 'created_at', 'updated_at'],
-      fetch: async () => (await masterQuery(`SELECT id, pc_id, district_id, ac_number, name, created_at, updated_at FROM assembly_constituencies WHERE id = ANY($1)`, [acIds])).rows,
+      fetch: async () =>
+        resolvedAcIds.length > 0
+          ? (
+              await masterQuery(
+                `SELECT id, pc_id, district_id, ac_number, name, created_at, updated_at FROM assembly_constituencies WHERE id = ANY($1::uuid[])`,
+                [resolvedAcIds]
+              )
+            ).rows
+          : [],
     },
     {
       label: 'Syncing Wards',
       table: 'wards',
       cols: ['id', 'ac_id', 'ward_number', 'name', 'created_at', 'updated_at'],
-      fetch: async () => (await masterQuery(`SELECT id, ac_id, ward_number, name, created_at, updated_at FROM wards WHERE ac_id = ANY($1)`, [acIds])).rows,
+      fetch: async () =>
+        resolvedAcIds.length > 0
+          ? (
+              await masterQuery(
+                `SELECT id, ac_id, ward_number, name, created_at, updated_at FROM wards WHERE ac_id = ANY($1::uuid[])`,
+                [resolvedAcIds]
+              )
+            ).rows
+          : [],
     },
     {
       label: 'Syncing Polling Booths',
       table: 'booths',
       cols: ['id', 'ac_id', 'ward_id', 'village_id', 'booth_number', 'name', 'location_building', 'total_voters', 'created_at', 'updated_at'],
-      fetch: async () => (await masterQuery(`SELECT id, ac_id, ward_id, village_id, booth_number, name, location_building, total_voters, created_at, updated_at FROM booths WHERE ac_id = ANY($1)`, [acIds])).rows,
+      fetch: async () =>
+        resolvedAcIds.length > 0
+          ? (
+              await masterQuery(
+                `SELECT id, ac_id, ward_id, village_id, booth_number, name, location_building, total_voters, created_at, updated_at FROM booths WHERE ac_id = ANY($1::uuid[])`,
+                [resolvedAcIds]
+              )
+            ).rows
+          : [],
     },
   ];
 
   const steps = shouldTruncate ? fullProvisioningSteps : incrementalSteps;
-
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
@@ -188,11 +277,14 @@ async function syncMasterLookupTables(
     logger.info(`[TenantProvisioningService] ${step.label} — ${rows.length} rows synced.`);
   }
 
-  // Prune out-of-scope legacy booths, wards, and ACs from previous runs (full provisioning only)
-  if (shouldTruncate && acIds.length > 0) {
-    await tenantPool.query(`DELETE FROM booths WHERE NOT (ac_id = ANY($1))`, [acIds]);
-    await tenantPool.query(`DELETE FROM wards WHERE NOT (ac_id = ANY($1))`, [acIds]);
-    await tenantPool.query(`DELETE FROM assembly_constituencies WHERE NOT (id = ANY($1))`, [acIds]);
+  // Prune out-of-scope legacy booths, wards, ACs, and PCs from previous runs (full provisioning only)
+  if (shouldTruncate && resolvedAcIds.length > 0) {
+    await tenantPool.query(`DELETE FROM booths WHERE NOT (ac_id = ANY($1::uuid[]))`, [resolvedAcIds]);
+    await tenantPool.query(`DELETE FROM wards WHERE NOT (ac_id = ANY($1::uuid[]))`, [resolvedAcIds]);
+    await tenantPool.query(`DELETE FROM assembly_constituencies WHERE NOT (id = ANY($1::uuid[]))`, [resolvedAcIds]);
+    if (resolvedPcIds.length > 0) {
+      await tenantPool.query(`DELETE FROM parliamentary_constituencies WHERE NOT (id = ANY($1::uuid[]))`, [resolvedPcIds]);
+    }
   }
 
   // Ensure "There will be always ward for booth" in tenant database
@@ -333,16 +425,16 @@ export class TenantProvisioningService {
    * Used when a tenant account is first created.
    */
   async provisionTenantDataAsync(
-    userId: string,
+    tenantId: string,
     tenantDbName: string,
     acIds: string[],
     pcIds: string[]
   ): Promise<void> {
-    logger.info(`[TenantProvisioningService] Starting full provisioning for user '${userId}' [DB: ${tenantDbName}]`);
+    logger.info(`[TenantProvisioningService] Starting full provisioning for tenant '${tenantId}' [DB: ${tenantDbName}]`);
 
     try {
       // Step 1 — Create DB + initialize schema (0–25%)
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'provisioning',
         provisioningProgress: 5,
         currentStep: 'Creating Tenant Database',
@@ -350,7 +442,7 @@ export class TenantProvisioningService {
 
       await TenantDbProvisioner.createTenantDatabase(tenantDbName);
 
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'provisioning',
         provisioningProgress: 15,
         currentStep: 'Initializing Schema',
@@ -361,19 +453,31 @@ export class TenantProvisioningService {
       // Step 2 — Sync all master lookup tables (25–50%)
       const tenantPool = getTenantDbPool(tenantDbName);
       try {
-        await syncMasterLookupTables(tenantPool, userId, acIds, 25, 25);
+        await syncMasterLookupTables(tenantPool, tenantId, acIds, 25, 25, true, pcIds);
       } finally {
         await tenantPool.end();
       }
 
       // Step 3 — Copy voters (50–95%)
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'provisioning',
         provisioningProgress: 50,
         currentStep: 'Loading Voters from Master DB',
       });
 
-      const votersRes = await masterQuery(`SELECT * FROM voters WHERE ac_id = ANY($1)`, [acIds]);
+      // Resolve all assigned AC IDs (direct acIds + child ACs of pcIds)
+      const acIdSet = new Set<string>((acIds || []).filter(Boolean));
+      if (pcIds && pcIds.length > 0) {
+        const childAcRes = await masterQuery(`SELECT id FROM assembly_constituencies WHERE pc_id = ANY($1::uuid[])`, [pcIds]);
+        for (const r of childAcRes.rows) {
+          if (r.id) acIdSet.add(r.id);
+        }
+      }
+      const resolvedAcIds = Array.from(acIdSet);
+
+      const votersRes = resolvedAcIds.length > 0
+        ? await masterQuery(`SELECT * FROM voters WHERE ac_id = ANY($1::uuid[])`, [resolvedAcIds])
+        : { rowCount: 0, rows: [] };
       const totalVoters = votersRes.rowCount || 0;
       logger.info(`[TenantProvisioningService] Found ${totalVoters} voters to copy to '${tenantDbName}'.`);
 
@@ -381,7 +485,7 @@ export class TenantProvisioningService {
       if (totalVoters > 0) {
         const copyPool = getTenantDbPool(tenantDbName);
         try {
-          copiedVotersCount = await copyVotersToBatch(copyPool, votersRes.rows, userId, totalVoters, 50, 45);
+          copiedVotersCount = await copyVotersToBatch(copyPool, votersRes.rows, tenantId, totalVoters, 50, 45);
         } finally {
           await copyPool.end();
         }
@@ -389,26 +493,26 @@ export class TenantProvisioningService {
 
 
       // Step 4 — Mark complete (100%)
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'active',
         provisioningProgress: 100,
         totalVotersCopied: copiedVotersCount,
         currentStep: 'Provisioning Complete',
       });
 
-      logger.info(`[TenantProvisioningService] ✅ Provisioning complete for user '${userId}'. Copied ${copiedVotersCount} voters to '${tenantDbName}'.`);
+      logger.info(`[TenantProvisioningService] ✅ Provisioning complete for tenant '${tenantId}'. Copied ${copiedVotersCount} voters to '${tenantDbName}'.`);
 
       // Step 5 — Send welcome email (non-blocking)
-      const user = await AuthQueries.findUserById(userId);
-      if (user) {
-        sendProvisioningReadyEmail(user.email, user.name, {
-          acCount: acIds.length,
+      const tenant = await TenantQueries.getById(tenantId);
+      if (tenant) {
+        sendProvisioningReadyEmail(tenant.email, tenant.name, {
+          acCount: resolvedAcIds.length,
           voterCount: copiedVotersCount,
         }).catch((err) => logger.error('[TenantProvisioning] Email notification error:', err));
       }
     } catch (err: any) {
-      logger.error(`[TenantProvisioningService] ❌ Provisioning failed for user '${userId}':`, err);
-      await TenantQueries.updateProvisioningStatus(userId, {
+      logger.error(`[TenantProvisioningService] ❌ Provisioning failed for tenant '${tenantId}':`, err);
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'failed',
         currentStep: '',
         errorMessage: err.message || 'Provisioning failed unexpectedly',
@@ -421,7 +525,7 @@ export class TenantProvisioningService {
    * Called when a super-admin adds new ACs to an existing tenant via the edit flow.
    */
   async syncNewAcVoters(
-    userId: string,
+    tenantId: string,
     tenantDbName: string,
     newAcIds: string[],
     pcIds: string[]
@@ -430,7 +534,7 @@ export class TenantProvisioningService {
 
     try {
       // Step 1 — Sync master lookup tables + new ACs + booths (0–40%)
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'provisioning',
         provisioningProgress: 5,
         currentStep: 'Preparing Master Data Sync',
@@ -438,13 +542,13 @@ export class TenantProvisioningService {
 
       const tenantPool = getTenantDbPool(tenantDbName);
       try {
-        await syncMasterLookupTables(tenantPool, userId, newAcIds, 5, 35, false);
+        await syncMasterLookupTables(tenantPool, tenantId, newAcIds, 5, 35, false, pcIds);
       } finally {
         await tenantPool.end();
       }
 
       // Step 2 — Copy voters for new ACs only (40–95%)
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'provisioning',
         provisioningProgress: 40,
         currentStep: 'Loading New Voters from Master DB',
@@ -458,7 +562,7 @@ export class TenantProvisioningService {
       if (totalVoters > 0) {
         const copyPool = getTenantDbPool(tenantDbName);
         try {
-          copiedCount = await copyVotersToBatch(copyPool, votersRes.rows, userId, totalVoters, 40, 55, false);
+          copiedCount = await copyVotersToBatch(copyPool, votersRes.rows, tenantId, totalVoters, 40, 55, false);
         } finally {
           await copyPool.end();
         }
@@ -476,7 +580,7 @@ export class TenantProvisioningService {
       }
 
       // Step 3 — Done (100%)
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'active',
         provisioningProgress: 100,
         totalVotersCopied: totalInDb,
@@ -486,25 +590,26 @@ export class TenantProvisioningService {
       logger.info(`[TenantProvisioningService] ✅ Incremental sync complete for '${tenantDbName}'. Copied ${copiedCount} new voters (total in DB: ${totalInDb}).`);
     } catch (err: any) {
       logger.error(`[TenantProvisioningService] ❌ Incremental sync failed for '${tenantDbName}':`, err);
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'failed',
         currentStep: '',
         errorMessage: err.message || 'Incremental sync failed unexpectedly',
       });
     }
   }
+
   /**
    * Purges all voters, booths, and AC records from a tenant DB for de-scoped ACs.
    * Called when a super-admin removes ACs from an existing tenant assignment via edit.
    */
   async removeAcVoters(
-    userId: string,
+    tenantId: string,
     tenantDbName: string,
     removedAcIds: string[]
   ): Promise<void> {
     logger.info(`[TenantProvisioningService] Purging data for ${removedAcIds.length} removed AC(s) from '${tenantDbName}'`);
 
-    await TenantQueries.updateProvisioningStatus(userId, {
+    await TenantQueries.updateProvisioningStatus(tenantId, {
       status: 'provisioning',
       currentStep: `Removing ${removedAcIds.length} de-scoped AC(s)`,
     });
@@ -525,17 +630,30 @@ export class TenantProvisioningService {
       );
       logger.info(`[TenantProvisioningService] Removed ${boothDel.rowCount} booths for de-scoped ACs.`);
 
+      // Delete wards scoped to the removed ACs
+      const wardDel = await tenantPool.query(
+        `DELETE FROM wards WHERE ac_id = ANY($1::uuid[])`,
+        [removedAcIds]
+      );
+      logger.info(`[TenantProvisioningService] Removed ${wardDel.rowCount} wards for de-scoped ACs.`);
+
       // Delete the AC records themselves
       await tenantPool.query(
         `DELETE FROM assembly_constituencies WHERE id = ANY($1::uuid[])`,
         [removedAcIds]
       );
 
+      // Clean up orphaned PCs that no longer have any remaining ACs in tenant DB
+      await tenantPool.query(`
+        DELETE FROM parliamentary_constituencies
+        WHERE id NOT IN (SELECT DISTINCT pc_id FROM assembly_constituencies WHERE pc_id IS NOT NULL)
+      `);
+
       // Get updated voter count remaining in tenant DB
       const countRes = await tenantPool.query(`SELECT COUNT(*)::int AS total FROM voters`);
       const remainingVoters: number = countRes.rows[0]?.total || 0;
 
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'active',
         provisioningProgress: 100,
         totalVotersCopied: remainingVoters,
@@ -545,7 +663,7 @@ export class TenantProvisioningService {
       logger.info(`[TenantProvisioningService] ✅ AC purge complete for '${tenantDbName}'. ${remainingVoters} voters remain.`);
     } catch (err: any) {
       logger.error(`[TenantProvisioningService] ❌ AC purge failed for '${tenantDbName}':`, err);
-      await TenantQueries.updateProvisioningStatus(userId, {
+      await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'active', // keep active — don't break the tenant over a purge failure
         currentStep: '',
         errorMessage: `AC removal failed: ${err.message}`,

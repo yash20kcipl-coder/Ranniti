@@ -63,9 +63,11 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
   if (!resolvedSrc || hasError) {
     const initials = getInitials(fallbackText || alt);
+    const hasCustomRadius = className.includes('rounded-') || containerClassName.includes('rounded-');
+    const hasCustomText = className.includes('text-') || containerClassName.includes('text-');
     return (
       <div
-        className={`flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-semibold text-xs rounded-md select-none shrink-0 ${containerClassName} ${className}`}
+        className={`flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-semibold ${hasCustomText ? '' : 'text-xs'} ${hasCustomRadius ? '' : 'rounded-md'} select-none shrink-0 ${containerClassName} ${className}`}
         title={alt || fallbackText}
       >
         {initials ? (

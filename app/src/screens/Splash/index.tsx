@@ -1,22 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   Image,
   Animated,
   Easing,
-  StatusBar,
-  Linking,
 } from 'react-native';
 import { splashStyles } from './styles';
-import { useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
-import { Sparkles } from 'lucide-react-native';
 import { useLanguage } from '../../languages';
+import React, { useEffect, useRef } from 'react';
 import { AppUpdateModal } from '../../components';
 import { SCREENS } from '../../navigation/constants';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useSelector, useDispatch } from 'react-redux';
+import Storage, { STORAGE_KEYS } from '../../utils/storage';
 import { useVersionCheck } from '../../hooks/useVersionCheck';
+import { fetchProfileAndRoleAccessAction } from '../../store/actions/auth';
 import { replace, navigateToDashboard } from '../../navigation/navigationUtils';
 
 const MINIMUM_SPLASH_TIME_MS = 2200;
@@ -24,6 +23,7 @@ const MINIMUM_SPLASH_TIME_MS = 2200;
 const Splash: React.FC = () => {
   const { t } = useLanguage();
   const hasNavigated = useRef(false);
+  const dispatch = useDispatch<any>();
   const versionInfo = useVersionCheck();
   const splashTimerFinished = useRef(false);
   const auth = useSelector((state: RootState) => state.auth);
@@ -36,6 +36,28 @@ const Splash: React.FC = () => {
   const haloScale = useRef(new Animated.Value(0.95)).current;
   const haloOpacity = useRef(new Animated.Value(0.25)).current;
   const brandTranslateY = useRef(new Animated.Value(24)).current;
+
+  // Main Navigation decision runner
+  const performNavigation = async () => {
+    if (hasNavigated.current) return;
+    hasNavigated.current = true;
+
+    try {
+      const storedToken = await Storage.get(STORAGE_KEYS.TOKEN);
+      const token = storedToken || auth?.token;
+
+      if (token) {
+        (globalThis as any).token = token;
+        console.log("----- Logged in ----- ", token)
+        await dispatch(fetchProfileAndRoleAccessAction());
+      } else {
+        replace(SCREENS.LOGIN);
+      }
+    } catch (err) {
+      console.warn('Splash initialization API fetch failed, redirecting to Login:', err);
+      replace(SCREENS.LOGIN);
+    }
+  };
 
   useEffect(() => {
     // 1. Logo Entrance Animation (Bouncy Spring)
@@ -120,36 +142,25 @@ const Splash: React.FC = () => {
     return () => clearTimeout(timer);
   }, [bgRotate, brandOpacity, brandTranslateY, haloOpacity, haloScale, logoOpacity, logoScale,]);
 
-  // Main Navigation decision runner
-  const performNavigation = () => {
-    if (hasNavigated.current) return;
-    hasNavigated.current = true;
-    if (auth?.isLoggedIn && auth?.token) {
-      navigateToDashboard(auth?.role || 'pc_leader');
-    } else {
-      replace(SCREENS.LOGIN);
-    }
-  };
-
   useEffect(() => {
     // Wait until both version check and minimum splash timer finish
-    if (versionInfo.status === 'loading') return;
+    performNavigation();
+    // if (versionInfo.status === 'loading') return;
 
-    const interval = setInterval(() => {
-      if (splashTimerFinished.current) {
-        clearInterval(interval);
+    // const interval = setInterval(() => {
+    //   if (splashTimerFinished.current) {
+    //     clearInterval(interval);
+    //     if (versionInfo.status === 'force-update') {
+    //       // Force update modal stays up, stop automatic navigation
+    //       return;
+    //     } else {
+    //       // Proceed normally
+    //       performNavigation();
+    //     }
+    //   }
+    // }, 100);
 
-        if (versionInfo.status === 'force-update') {
-          // Force update modal stays up, stop automatic navigation
-          return;
-        } else {
-          // Proceed normally
-          performNavigation();
-        }
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, [versionInfo.status, auth]);
 
   const bgSpin = bgRotate.interpolate({

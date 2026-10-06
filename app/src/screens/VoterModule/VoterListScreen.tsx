@@ -69,8 +69,9 @@ export const VoterListScreen: React.FC<any> = ({ navigation }) => {
   });
 
   const handleToggleVoted = useCallback((voterId: string) => {
-    dispatch(toggleVotedStatusAction(voterId));
-  }, [dispatch]);
+    const targetVoter = voters.find((v) => v.id === voterId);
+    dispatch(toggleVotedStatusAction(voterId, targetVoter?.isVoted));
+  }, [dispatch, voters]);
 
   const handleOpenPartyModal = useCallback((voterId: string) => {
     setPartyModalVoterId(voterId);

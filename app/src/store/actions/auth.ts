@@ -1,9 +1,10 @@
 import { Dispatch } from "redux";
 import toast from "../../utils/toast";
+import apiClient from "../../api/apiClient";
 import { SCREENS } from "../../navigation/constants";
-import { navigateToDashboard, reset } from "../../navigation/navigationUtils";
 import Storage, { STORAGE_KEYS } from "../../utils/storage";
-import { LOG_IN, LOG_OUT, SET_AUTH_LOADING, DEMO_USERS } from "../reducers/auth";
+import { LOG_IN, LOG_OUT, SET_AUTH_LOADING } from "../reducers/auth";
+import { navigateToDashboard, reset } from "../../navigation/navigationUtils";
 
 export const loginAction = (
   payload: {
@@ -15,27 +16,46 @@ export const loginAction = (
   setLoading: (loading: boolean) => void,
   onSuccess?: (token?: string) => void
 ) => {
-  return async (dispatch: Dispatch) => {
+  return async (dispatch: any) => {
     setLoading(true);
     dispatch({ type: SET_AUTH_LOADING, payload: true });
 
     try {
-      await new Promise<void>((resolve) => setTimeout(() => resolve(), 600));
+      const response = await apiClient.post("mobile/auth/login", {
+        emailOrMobile: payload.phone,
+        password: payload.pass,
+      });
 
-      const demoUser = DEMO_USERS.pc_leader;
-      const token = 'demo-jwt-token-';
+      const { token, user, access } = response.data?.data || {};
 
-      await Storage.save(STORAGE_KEYS.TOKEN, token);
-      await Storage.save(STORAGE_KEYS.USER_DATA, demoUser);
-      await Storage.save(STORAGE_KEYS.ROLE, DEMO_USERS.role);
+      if (token && user) {
+        (globalThis as any).token = token;
+        await Storage.save(STORAGE_KEYS.TOKEN, token);
+        await Storage.save(STORAGE_KEYS.USER_DATA, user);
+        await Storage.save(STORAGE_KEYS.ROLE, user.role || "supporter");
+        if (access) {
+          await Storage.save("ACCESS_CONFIG", access);
+        }
 
-      navigateToDashboard()
-      dispatch({ type: LOG_IN, payload: { token, role: DEMO_USERS.role, user: demoUser, } });
-      toast.success(`Logged in as ${demoUser.roleName}`);
-      if (onSuccess) { onSuccess(token) }
-      setLoading(false);
+        dispatch({
+          type: LOG_IN,
+          payload: {
+            token,
+            role: user.role || "supporter",
+            user,
+            access,
+          },
+        });
+
+        toast.success(`Welcome back, ${user.name || "User"}!`);
+        await dispatch(fetchProfileAndRoleAccessAction());
+        if (onSuccess) { onSuccess(token) }
+      } else {
+        toast.error("Invalid response from authentication server.");
+      }
     } catch (error: any) {
-      toast.error('Demo login failed. Please try again.');
+      const errorMsg = error?.response?.data?.message || "Login failed. Please verify credentials.";
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
       dispatch({ type: SET_AUTH_LOADING, payload: false });
@@ -71,6 +91,36 @@ export const resetPasswordAction = (data: any, setLoading?: (l: boolean) => void
     toast.success("Password updated successfully.");
     if (setLoading) setLoading(false);
     if (onSuccess) onSuccess();
+  };
+};
+
+export const fetchProfileAndRoleAccessAction = () => {
+  return async (dispatch: Dispatch) => {
+    try {
+      const [profileRes, accessRes] = await Promise.all([
+        apiClient.get("mobile/auth/profile"),
+        apiClient.get("mobile/role-access"),
+      ]);
+
+      const user = profileRes?.data?.data;
+      const access = accessRes?.data?.data;
+
+      if (user) {
+        await Storage.save(STORAGE_KEYS.USER_DATA, user);
+        await Storage.save(STORAGE_KEYS.ROLE, user.role || "supporter");
+        dispatch({ type: "SET_USER_PROFILE", payload: user });
+      }
+
+      if (access) {
+        await Storage.save("ACCESS_CONFIG", access);
+        dispatch({ type: "SET_ACCESS_CONFIG", payload: access });
+      }
+      navigateToDashboard(user.role || "supporter");
+      return { user, access };
+    } catch (error) {
+      console.error("Initialization profile/role fetch error:", error);
+      throw error;
+    }
   };
 };
 

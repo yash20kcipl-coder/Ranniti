@@ -105,7 +105,6 @@ export const TenantFormPage: React.FC = () => {
               setSelectedPcIds(pcList);
               setSelectedAcIds(acList);
               setOriginalAcIds(acList);
-              setExpandedPcIds(pcList);
               setTenantDbName(data.tenantDbName || '');
               setExistingAvatarUrl(data.avatar || null);
             }
@@ -172,13 +171,6 @@ export const TenantFormPage: React.FC = () => {
       });
     });
   }, [assignedPcs, activeStateFilter, assignedSearchQuery, getAcsForPc, selectedAcIds]);
-
-  // Keep all assigned PCs expanded by default so user sees selections
-  useEffect(() => {
-    if (assignedPcs.length > 0) {
-      setExpandedPcIds((prev) => Array.from(new Set([...prev, ...assignedPcs.map((p: any) => p.id)])));
-    }
-  }, [assignedPcs]);
 
   // Auto-expand matching PCs when search query is typed
   useEffect(() => {
@@ -659,8 +651,8 @@ export const TenantFormPage: React.FC = () => {
                         type="button"
                         onClick={() => setActiveStateFilter('all')}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${activeStateFilter === 'all'
-                            ? 'bg-indigo-600 text-white shadow-xs'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                           }`}
                       >
                         All States ({assignedPcs.length})
@@ -673,8 +665,8 @@ export const TenantFormPage: React.FC = () => {
                             type="button"
                             onClick={() => setActiveStateFilter(st)}
                             className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${activeStateFilter === st
-                                ? 'bg-indigo-600 text-white shadow-xs'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                               }`}
                           >
                             {st} ({count})
@@ -786,8 +778,8 @@ export const TenantFormPage: React.FC = () => {
                               {/* Assigned Status Badge */}
                               <span
                                 className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${allAssigned
-                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
-                                    : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60'
+                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                                  : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60'
                                   }`}
                               >
                                 {selectedAcsInThisPc.length} / {pcAcList.length} assigned
@@ -1010,15 +1002,15 @@ export const TenantFormPage: React.FC = () => {
                         type="button"
                         onClick={() => handleSelectModalPc(pc.id)}
                         className={`w-full flex items-center justify-between p-2.5 text-left text-xs transition-colors cursor-pointer ${isSelected
-                            ? 'bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-bold'
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                          ? 'bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-bold'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
                           }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div
                             className={`w-4 h-4 rounded-full flex items-center justify-center border shrink-0 ${isSelected
-                                ? 'border-indigo-600 bg-indigo-600 text-white'
-                                : 'border-slate-300 dark:border-slate-600'
+                              ? 'border-indigo-600 bg-indigo-600 text-white'
+                              : 'border-slate-300 dark:border-slate-600'
                               }`}
                           >
                             {isSelected && <Check size={10} strokeWidth={3} />}
@@ -1118,15 +1110,15 @@ export const TenantFormPage: React.FC = () => {
                         type="button"
                         onClick={() => handleToggleTempAc(ac.id)}
                         className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${isChecked
-                            ? 'bg-indigo-50/80 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-800 text-slate-900 dark:text-white'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          ? 'bg-indigo-50/80 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-800 text-slate-900 dark:text-white'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                           }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div
                             className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 ${isChecked
-                                ? 'bg-indigo-600 border-indigo-600 text-white'
-                                : 'border-slate-300 dark:border-slate-600'
+                              ? 'bg-indigo-600 border-indigo-600 text-white'
+                              : 'border-slate-300 dark:border-slate-600'
                               }`}
                           >
                             {isChecked && <Check size={11} strokeWidth={3} />}

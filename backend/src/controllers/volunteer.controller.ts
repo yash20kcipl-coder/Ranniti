@@ -6,6 +6,7 @@ import { ApiResponse } from '../utils/apiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 import { authService } from '../services/auth.service';
 import { AuthQueries } from '../queries/auth.queries';
+import { adminUserService } from '../services/tenant/admin_user.service';
 
 export class VolunteerController {
   /**
@@ -56,19 +57,10 @@ export class VolunteerController {
    */
   getVolunteers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const parentId = (req.query.parentId as string) || req.user!.userId;
-    const resDb = await query(
-      `SELECT u.id, u.name, u.email, u.role, u.role_name AS "roleName", u.mobile, u.avatar, u.status,
-              u.parent_leader_id AS "parentLeaderId", u.created_at AS "createdAt",
-              COALESCE(ARRAY_AGG(uba.booth_id) FILTER (WHERE uba.booth_id IS NOT NULL), '{}') AS "assignedBoothIds"
-       FROM admin_users u
-       LEFT JOIN user_booth_assignments uba ON u.id = uba.user_id
-       WHERE u.parent_leader_id = $1 OR u.id = $1
-       GROUP BY u.id
-       ORDER BY u.created_at DESC`,
-      [parentId]
-    );
+    const tenantDbName = req.user?.tenantDbName;
+    const teamMembers = await adminUserService.getTeamMembersByParentId(parentId, tenantDbName);
 
-    const formatted = attachFileUrls(resDb.rows, ['avatar'], req);
+    const formatted = attachFileUrls(teamMembers, ['avatar'], req);
     const response = ApiResponse.success(formatted, 'Volunteers retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
@@ -79,12 +71,18 @@ export class VolunteerController {
   updateVolunteerBooths = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const { boothIds } = req.body;
+    const tenantDbName = req.user?.tenantDbName;
 
     if (!boothIds || !Array.isArray(boothIds)) {
       throw new ApiError(400, 'boothIds array is required');
     }
 
-    await AuthQueries.assignBoothsToUser(id, boothIds);
+    if (tenantDbName) {
+      await AuthQueries.assignBoothsToTenantUser(id, boothIds, tenantDbName);
+    } else {
+      await AuthQueries.assignBoothsToUser(id, boothIds);
+    }
+
     const response = ApiResponse.success({ id, boothIds }, 'Volunteer booth assignments updated successfully');
     res.status(response.statusCode).json(response.body);
   });

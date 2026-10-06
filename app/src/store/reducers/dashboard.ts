@@ -24,33 +24,61 @@ export interface DashboardState {
     socialInfluencersCount: number;
     totalInfluencersCount: number;
   };
+  genderData: {
+    male: number;
+    female: number;
+    other: number;
+  };
+  ageData: {
+    youth: number;
+    adult: number;
+    senior: number;
+  };
+  turnoutData: {
+    votedCount: number;
+    totalVoters: number;
+  };
   syncedContactsVotersCount: number;
   politicalViews: PoliticalViewCount;
   loading: boolean;
 }
 
 const initialDashboardState: DashboardState = {
-  assignedBoothsCount: 42,
-  totalVotersCount: 48500,
+  assignedBoothsCount: 0,
+  totalVotersCount: 0,
   hierarchy: {
-    acLeadersCount: 8,
-    subLeadersCount: 36,
-    supportersCount: 142,
+    acLeadersCount: 0,
+    subLeadersCount: 0,
+    supportersCount: 0,
+  },
+  genderData: {
+    male: 152,
+    female: 148,
+    other: 0
+  },
+  ageData: {
+    youth: 0,
+    adult: 0,
+    senior: 0
+  },
+  turnoutData: {
+    votedCount: 0,
+    totalVoters: 0
   },
   influencers: {
-    familyInfluencersCount: 380,
-    socialInfluencersCount: 124,
-    totalInfluencersCount: 504,
+    familyInfluencersCount: 0,
+    socialInfluencersCount: 0,
+    totalInfluencersCount: 0,
   },
-  syncedContactsVotersCount: 412,
+  syncedContactsVotersCount: 0,
   politicalViews: {
-    favorable: 21400,
-    neutral: 9800,
-    unfavorable: 4100,
-    opposite: 1200,
-    markedTotal: 36500,
-    pendingTotal: 12000,
-    grandTotal: 48500,
+    favorable: 0,
+    neutral: 0,
+    unfavorable: 0,
+    opposite: 0,
+    markedTotal: 0,
+    pendingTotal: 0,
+    grandTotal: 0,
   },
   loading: false,
 };

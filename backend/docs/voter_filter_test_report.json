@@ -1,0 +1,13 @@
+{
+  "totalTests": 1000,
+  "passedCount": 1000,
+  "failedCount": 0,
+  "dataComingWrongCount": 0,
+  "dataNotComingCount": 0,
+  "missingKeyCount": 0,
+  "snakeCaseLeakCount": 0,
+  "typeMismatchCount": 0,
+  "relationNameMissingCount": 0,
+  "exceptionCount": 0,
+  "failures": []
+}

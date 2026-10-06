@@ -1,18 +1,13 @@
 import { query, dbPool } from './dbPool';
 import { logger } from '../utils/logger';
+import { TenantPoolManager } from '../utils/tenantPoolManager';
 import { getTenantDbPool } from '../utils/tenantDbProvisioner';
 import { MasterAutoSyncService } from '../services/sync/masterAutoSync.service';
-import { FamilyMappingService } from '../services/tenant/familyMapping.service';
 import { Voter, VoterFilterParams, VoterStats, InfluencerOption, FamilyCandidateParams, SocialCandidateParams } from '../models/voter.model';
 
 async function executeVoterQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
   if (tenantDbName && tenantDbName.trim()) {
-    const pool = getTenantDbPool(tenantDbName.trim());
-    try {
-      return await pool.query(sqlStr, queryValues);
-    } finally {
-      await pool.end();
-    }
+    return await TenantPoolManager.query(tenantDbName.trim(), sqlStr, queryValues);
   }
   return await query(sqlStr, queryValues);
 }
@@ -45,6 +40,10 @@ export class VoterQueries {
     if (params.boothId) {
       conditions.push(`v.booth_id = $${paramIndex}`);
       values.push(params.boothId);
+      paramIndex++;
+    } else if (params.boothIds && params.boothIds.length > 0) {
+      conditions.push(`v.booth_id = ANY($${paramIndex}::uuid[])`);
+      values.push(params.boothIds);
       paramIndex++;
     }
 
@@ -150,18 +149,15 @@ export class VoterQueries {
     } else if (params.influencerRole === 'any') {
       conditions.push(`(v.is_family_influencer = TRUE OR v.is_social_influencer = TRUE)`);
     } else {
-      if (params.isFamilyInfluencer !== undefined && params.isFamilyInfluencer !== '') {
-        const isFam = params.isFamilyInfluencer === true || params.isFamilyInfluencer === 'true';
-        if (isFam) {
-          conditions.push(`v.is_family_influencer = TRUE`);
-        }
-      }
+      const isFam = params.isFamilyInfluencer === true || params.isFamilyInfluencer === 'true';
+      const isSoc = params.isSocialInfluencer === true || params.isSocialInfluencer === 'true';
 
-      if (params.isSocialInfluencer !== undefined && params.isSocialInfluencer !== '') {
-        const isSoc = params.isSocialInfluencer === true || params.isSocialInfluencer === 'true';
-        if (isSoc) {
-          conditions.push(`v.is_social_influencer = TRUE`);
-        }
+      if (isFam && isSoc) {
+        conditions.push(`(v.is_family_influencer = TRUE OR v.is_social_influencer = TRUE)`);
+      } else if (isFam) {
+        conditions.push(`v.is_family_influencer = TRUE`);
+      } else if (isSoc) {
+        conditions.push(`v.is_social_influencer = TRUE`);
       }
     }
 
@@ -179,7 +175,7 @@ export class VoterQueries {
     // The CTE filters and sorts IDs only, ensuring 11 joins and lateral counts run only on the paged 25 rows
     const sortClause = params.boothId
       ? 'v.serial_no ASC NULLS LAST, v.created_at DESC'
-      : 'b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.created_at DESC';
+      : 'v.created_at DESC, v.serial_no ASC NULLS LAST, v.id DESC';
 
     const countSql = `SELECT COUNT(*)::int AS total FROM voters v ${whereClause}`;
 
@@ -971,6 +967,15 @@ export class VoterQueries {
     const values: any[] = [];
     let paramIndex = 1;
 
+    if (params.search && params.search.trim()) {
+      const searchPattern = `%${params.search.trim()}%`;
+      conditions.push(
+        `(epic_no ILIKE $${paramIndex} OR eng_first_name ILIKE $${paramIndex} OR eng_surname ILIKE $${paramIndex} OR first_name ILIKE $${paramIndex} OR surname ILIKE $${paramIndex} OR mobile_no ILIKE $${paramIndex} OR house_no ILIKE $${paramIndex})`
+      );
+      values.push(searchPattern);
+      paramIndex++;
+    }
+
     if (params.boothId) {
       conditions.push(`booth_id = $${paramIndex}`);
       values.push(params.boothId);
@@ -980,6 +985,10 @@ export class VoterQueries {
     if (params.acId) {
       conditions.push(`ac_id = $${paramIndex}`);
       values.push(params.acId);
+      paramIndex++;
+    } else if (params.acIds && params.acIds.length > 0) {
+      conditions.push(`ac_id = ANY($${paramIndex}::uuid[])`);
+      values.push(params.acIds);
       paramIndex++;
     }
 
@@ -999,6 +1008,97 @@ export class VoterQueries {
       conditions.push(`state_id = $${paramIndex}`);
       values.push(params.stateId);
       paramIndex++;
+    }
+
+    if (params.gender) {
+      conditions.push(`LOWER(gender) = LOWER($${paramIndex})`);
+      values.push(params.gender);
+      paramIndex++;
+    }
+
+    if (params.voterType) {
+      conditions.push(`voter_type = $${paramIndex}`);
+      values.push(params.voterType);
+      paramIndex++;
+    }
+
+    if (params.status) {
+      conditions.push(`status = $${paramIndex}`);
+      values.push(params.status);
+      paramIndex++;
+    }
+
+    if (params.isDead !== undefined && params.isDead !== '') {
+      const isDeadBool = params.isDead === true || params.isDead === 'true';
+      conditions.push(`is_dead = $${paramIndex}`);
+      values.push(isDeadBool);
+      paramIndex++;
+    }
+
+    if (params.religionId) {
+      conditions.push(`religion_id = $${paramIndex}`);
+      values.push(params.religionId);
+      paramIndex++;
+    }
+
+    if (params.casteId) {
+      conditions.push(`caste_id = $${paramIndex}`);
+      values.push(params.casteId);
+      paramIndex++;
+    }
+
+    if (params.partyId) {
+      conditions.push(`party_id = $${paramIndex}`);
+      values.push(params.partyId);
+      paramIndex++;
+    }
+
+    if (params.ageGroup && params.ageGroup.includes('-')) {
+      const [minAgeStr, maxAgeStr] = params.ageGroup.split('-');
+      const minAge = parseInt(minAgeStr, 10);
+      const maxAge = parseInt(maxAgeStr, 10);
+      if (!isNaN(minAge) && !isNaN(maxAge)) {
+        conditions.push(`age >= $${paramIndex} AND age <= $${paramIndex + 1}`);
+        values.push(minAge, maxAge);
+        paramIndex += 2;
+      }
+    }
+
+    if (params.familyInfluencerId) {
+      conditions.push(`family_influencer_id = $${paramIndex}`);
+      values.push(params.familyInfluencerId);
+      paramIndex++;
+    }
+
+    if (params.socialInfluencerId) {
+      conditions.push(`social_influencer_id = $${paramIndex}`);
+      values.push(params.socialInfluencerId);
+      paramIndex++;
+    }
+
+    if (params.influencerRole === 'family') {
+      conditions.push(`is_family_influencer = TRUE`);
+    } else if (params.influencerRole === 'social') {
+      conditions.push(`is_social_influencer = TRUE`);
+    } else if (params.influencerRole === 'any') {
+      conditions.push(`(is_family_influencer = TRUE OR is_social_influencer = TRUE)`);
+    } else {
+      const isFam = params.isFamilyInfluencer === true || params.isFamilyInfluencer === 'true';
+      const isSoc = params.isSocialInfluencer === true || params.isSocialInfluencer === 'true';
+
+      if (isFam && isSoc) {
+        conditions.push(`(is_family_influencer = TRUE OR is_social_influencer = TRUE)`);
+      } else if (isFam) {
+        conditions.push(`is_family_influencer = TRUE`);
+      } else if (isSoc) {
+        conditions.push(`is_social_influencer = TRUE`);
+      }
+    }
+
+    if (params.influencerStatus === 'assigned') {
+      conditions.push(`(family_influencer_id IS NOT NULL OR social_influencer_id IS NOT NULL)`);
+    } else if (params.influencerStatus === 'unassigned') {
+      conditions.push(`(family_influencer_id IS NULL AND social_influencer_id IS NULL)`);
     }
 
 
@@ -1071,6 +1171,10 @@ export class VoterQueries {
     if (params.acId) {
       conditions.push(`v.ac_id = $${paramIndex}`);
       values.push(params.acId);
+      paramIndex++;
+    } else if (params.acIds && params.acIds.length > 0) {
+      conditions.push(`v.ac_id = ANY($${paramIndex}::uuid[])`);
+      values.push(params.acIds);
       paramIndex++;
     }
 

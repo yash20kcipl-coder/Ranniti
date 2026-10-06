@@ -2,13 +2,15 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { LanguageProvider } from './src/languages';
 import { store, persistor } from './src/store/store';
+import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { PersistGate } from 'redux-persist/integration/react';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AuthProvider } from './src/context/AuthContext';
+
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -18,14 +20,16 @@ function App() {
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
           <SafeAreaProvider>
-            <ThemeProvider>
-              <LanguageProvider>
-                <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-                <AuthProvider>
-                  <RootNavigator />
-                </AuthProvider>
-              </LanguageProvider>
-            </ThemeProvider>
+            <KeyboardProvider statusBarTranslucent>
+              <ThemeProvider>
+                <LanguageProvider>
+                  <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+                  <AuthProvider>
+                    <RootNavigator />
+                  </AuthProvider>
+                </LanguageProvider>
+              </ThemeProvider>
+            </KeyboardProvider>
           </SafeAreaProvider>
         </PersistGate>
       </Provider>

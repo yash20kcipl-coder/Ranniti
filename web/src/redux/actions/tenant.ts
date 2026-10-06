@@ -4,6 +4,35 @@ import { errorHandler } from '../apiUtils';
 import type { AppDispatch } from '../store';
 import { toFormDataOrJson } from '@/utils/formData';
 
+export interface TableSyncRow {
+  master: number;
+  tenant: number;
+  synced: boolean;
+}
+
+export interface SchemaDrift {
+  table: string;
+  issue: string;
+  masterColumns?: string[];
+  tenantColumns?: string[];
+}
+
+export interface TenantDbSyncStatus {
+  tenantId: string;
+  tenantDbName: string;
+  syncStatus: 'synced' | 'out_of_sync' | 'unreachable' | 'partially_synced';
+  isReachable: boolean;
+  isSchemaSynced: boolean;
+  isDataSynced: boolean;
+  voterCountMaster: number;
+  voterCountTenant: number;
+  voterCountDiff: number;
+  masterLookupSync: Record<string, TableSyncRow>;
+  missingTables: string[];
+  schemaDrift: SchemaDrift[];
+  checkedAt: string;
+}
+
 export const ADD_TENANT_USER = 'ADD_TENANT_USER';
 export const UPDATE_TENANT_USER = 'UPDATE_TENANT_USER';
 export const UPDATE_TENANT_STATUS = 'UPDATE_TENANT_STATUS';
@@ -111,6 +140,21 @@ export const fetchTenantProvisioningStatus = (id: string) => {
     } catch (err) {
       // Silent error handler for polling
       return null;
+    }
+  };
+};
+
+/**
+ * Fetch database sync health and schema/data parity against master DB
+ */
+export const fetchTenantDbSyncStatus = (id: string) => {
+  return async (dispatch: AppDispatch): Promise<TenantDbSyncStatus> => {
+    try {
+      const res = await api.get(`/super-admin/tenants/${id}/db-sync-status`);
+      return res.data?.data || res.data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
     }
   };
 };

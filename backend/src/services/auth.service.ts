@@ -58,6 +58,27 @@ export class AuthService {
     assignedAcId?: string | null;
     assignedBoothIds?: string[];
   }): Promise<Omit<UserRecord, 'passwordHash'>> {
+    const FIELD_ROLES = ['pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter'];
+    const isFieldRole = data.role && FIELD_ROLES.includes(data.role);
+
+    if (isFieldRole && data.tenantDbName) {
+      const existing = await AuthQueries.findTenantUserByEmail(data.email, data.tenantDbName);
+      if (existing) {
+        throw ApiError.badRequest('Volunteer account with this email or mobile already exists in this tenant');
+      }
+      const passwordHash = await hashPassword(data.password);
+      const user = await AuthQueries.createTenantUser(
+        {
+          ...data,
+          role: data.role!,
+          passwordHash,
+        },
+        data.tenantDbName
+      );
+      const { passwordHash: _, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    }
+
     const existing = await AuthQueries.findUserByEmail(data.email);
     if (existing) {
       throw ApiError.badRequest('User with this email already exists');

@@ -201,6 +201,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       resetDraft[f.key] = '';
     });
     setDraftValues(resetDraft);
+    if (onReset) {
+      onReset();
+    } else {
+      filters.forEach((f) => f.onChange(''));
+    }
+    setIsDrawerOpen(false);
   };
 
   const handleCloseDrawer = () => {

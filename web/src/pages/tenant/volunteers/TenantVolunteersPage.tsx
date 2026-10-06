@@ -1,33 +1,34 @@
-import React, { useState, useMemo } from 'react';
-import toast from 'react-hot-toast';
-import { Users, Vote, Smartphone } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { PageHeader } from '@/components/common/PageHeader';
-import { DataTable, type Column } from '@/components/common/DataTable';
-import { TableActions } from '@/components/common/TableActions';
-import { FilterBar, type FilterField } from '@/components/common/FilterBar';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { SafeImage } from '@/components/common/SafeImage';
-import { useTenantMasterData } from '@/hooks/useTenantMasterData';
-import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import {
+  VolunteerStatsCards,
+  VolunteerCredentialsBanner,
+  VolunteerFormModal,
+} from './components';
+import {
+  VOLUNTEER_ROLE_OPTIONS,
+  STATUS_OPTIONS,
+} from '@/constants/dropdownOptions';
 import {
   fetchTenantVolunteers,
   fetchVolunteerBoothCoverage,
   createTenantVolunteer,
   updateTenantVolunteer,
   deleteTenantVolunteer,
+  toggleTenantVolunteerStatus,
   clearLastCreatedCredentials,
 } from '@/redux/actions/volunteer';
+import toast from 'react-hot-toast';
+import React, { useState, useMemo } from 'react';
+import { SafeImage } from '@/components/common/SafeImage';
+import { PageHeader } from '@/components/common/PageHeader';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
+import { TableActions } from '@/components/common/TableActions';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { useTenantMasterData } from '@/hooks/useTenantMasterData';
 import type { VolunteerRecord } from '@/redux/reducers/volunteer';
-import {
-  VOLUNTEER_ROLE_OPTIONS,
-  STATUS_OPTIONS,
-} from '@/constants/dropdownOptions';
-import {
-  VolunteerStatsCards,
-  VolunteerCredentialsBanner,
-  VolunteerFormModal,
-} from './components';
+import { DataTable, type Column } from '@/components/common/DataTable';
+import { Users, Vote, Smartphone, Power, PowerOff } from 'lucide-react';
+import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
 function getRoleBadge(role: string) {
   switch (role) {
@@ -137,7 +138,51 @@ export const TenantVolunteersPage: React.FC = () => {
       assignedAcId: volunteer.assignedAcId,
       assignedBoothIds: volunteer.assignedBoothIds || [],
     });
-    setFormAcId(volunteer.assignedAcId || '');
+
+    let acIdToUse = volunteer.assignedAcId || '';
+    let pcIdToUse = '';
+
+    // 1. Derive from assignedAcId
+    if (acIdToUse) {
+      const acObj = acs.find((a: any) => a.id === acIdToUse);
+      if (acObj) pcIdToUse = acObj.pcId || acObj.pc_id || '';
+    }
+
+    // 2. Derive from assignedBoothIds if acIdToUse/pcIdToUse not found (e.g. PC Leader)
+    if (!pcIdToUse && volunteer.assignedBoothIds && volunteer.assignedBoothIds.length > 0) {
+      const boothObj = booths.find((b: any) => volunteer.assignedBoothIds?.includes(b.id));
+      if (boothObj) {
+        const bAcId = boothObj.acId || boothObj.ac_id;
+        const acObj = acs.find((a: any) => a.id === bAcId);
+        if (acObj) {
+          pcIdToUse = acObj.pcId || acObj.pc_id || '';
+          if (!acIdToUse && volunteer.role !== 'pc_leader') {
+            acIdToUse = bAcId;
+          }
+        }
+      }
+    }
+
+    // 3. Derive from parent leader
+    if (!pcIdToUse && volunteer.parentLeaderId) {
+      const parent = potentialParentLeaders.find((p) => p.id === volunteer.parentLeaderId);
+      if (parent) {
+        const pAcId = parent.assignedAcId || '';
+        if (pAcId) {
+          if (!acIdToUse) acIdToUse = pAcId;
+          const acObj = acs.find((a: any) => a.id === pAcId);
+          if (acObj) pcIdToUse = acObj.pcId || acObj.pc_id || '';
+        }
+      }
+    }
+
+    // 4. Fallback to first PC if available
+    if (!pcIdToUse && pcs.length > 0) {
+      pcIdToUse = pcs[0].id;
+    }
+
+    setFormPcId(pcIdToUse || '');
+    setFormAcId(acIdToUse || '');
     setFormWardId('');
     setFormBoothIds(volunteer.assignedBoothIds || []);
     setIsModalOpen(true);
@@ -176,6 +221,26 @@ export const TenantVolunteersPage: React.FC = () => {
       toast.error(err?.response?.data?.message || err?.message || 'Failed to save volunteer');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const [statusToggleTarget, setStatusToggleTarget] = useState<VolunteerRecord | null>(null);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
+  const handleToggleStatusConfirm = async () => {
+    if (!statusToggleTarget) return;
+    try {
+      setIsTogglingStatus(true);
+      const nextStatus = statusToggleTarget.status === 'active' ? 'disabled' : 'active';
+      await dispatch(toggleTenantVolunteerStatus(statusToggleTarget.id, nextStatus));
+      toast.success(
+        `Volunteer ${statusToggleTarget.name} has been ${nextStatus === 'active' ? 'enabled' : 'disabled'}`
+      );
+      setStatusToggleTarget(null);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to update status');
+    } finally {
+      setIsTogglingStatus(false);
     }
   };
 
@@ -362,6 +427,19 @@ export const TenantVolunteersPage: React.FC = () => {
             <TableActions
               onEdit={() => handleOpenEditModal(row)}
               onDelete={() => setDeleteTargetId(row.id)}
+              extra={
+                <button
+                  type="button"
+                  onClick={() => setStatusToggleTarget(row)}
+                  title={row.status === 'active' ? 'Active — Click to Disable' : 'Disabled — Click to Enable'}
+                  className={`p-1.5 rounded-lg border transition-colors ${row.status === 'active'
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-300'
+                    : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
+                    }`}
+                >
+                  {row.status === 'active' ? <Power size={14} /> : <PowerOff size={14} />}
+                </button>
+              }
             />
           )}
         />
@@ -388,6 +466,30 @@ export const TenantVolunteersPage: React.FC = () => {
         setFormWardId={setFormWardId}
         formBoothIds={formBoothIds}
         setFormBoothIds={setFormBoothIds}
+      />
+
+      {/* Standard ConfirmModal for Status Toggle */}
+      <ConfirmModal
+        isOpen={Boolean(statusToggleTarget)}
+        onClose={() => setStatusToggleTarget(null)}
+        onConfirm={handleToggleStatusConfirm}
+        isLoading={isTogglingStatus}
+        title={
+          statusToggleTarget?.status === 'active'
+            ? 'Disable Volunteer Account'
+            : 'Enable Volunteer Account'
+        }
+        description={
+          statusToggleTarget?.status === 'active'
+            ? `Are you sure you want to disable ${statusToggleTarget?.name}? Their mobile app access will be temporarily suspended.`
+            : `Are you sure you want to enable ${statusToggleTarget?.name}? Their mobile app credentials will be reactivated.`
+        }
+        confirmText={
+          statusToggleTarget?.status === 'active'
+            ? 'Disable Account'
+            : 'Enable Account'
+        }
+        variant={statusToggleTarget?.status === 'active' ? 'warning' : 'info'}
       />
 
       {/* Standard ConfirmModal for Deletion */}

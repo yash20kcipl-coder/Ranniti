@@ -130,7 +130,7 @@ export const LoginPage: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setEmail('admin@ranniti.com');
-                  setPassword('Amit@5667');
+                  setPassword('Amit@0000');
                 }}
                 className="px-3 py-2 text-left bg-slate-100 hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 rounded-lg transition-colors cursor-pointer"
               >

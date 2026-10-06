@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { config } from './config';
 import { apiRouter } from './routes';
+import compression from 'compression';
 import { ApiError } from './utils/apiError';
 import { fileUrlMiddleware } from './utils/fileUrl';
 import { errorHandler } from './middlewares/error.middleware';
@@ -15,6 +16,9 @@ export const createApp = (): Express => {
 
   // API Response time & performance monitoring logger
   app.use(responseTimeLogger);
+
+  // Response compression (gzip/deflate) for high-performance payload transfer
+  app.use(compression());
 
   // Security HTTP headers
   app.use(

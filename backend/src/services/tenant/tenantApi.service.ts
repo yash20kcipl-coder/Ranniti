@@ -62,13 +62,11 @@ export class TenantApiService {
    * Helper: Get tenant user profile & assigned AC IDs
    */
   private async getAssignedAcIds(userId: string): Promise<string[]> {
-    const res = await mainQuery(
-      `SELECT t.ac_ids FROM admin_users u
-       LEFT JOIN tenant_assignments t ON t.user_id = u.id
-       WHERE u.id = $1`,
+    const tenantRes = await mainQuery(
+      `SELECT ac_ids FROM tenants WHERE id = $1`,
       [userId]
     );
-    return res.rows[0]?.ac_ids || [];
+    return tenantRes.rows[0]?.ac_ids || [];
   }
 
   // --- ASSEMBLY CONSTITUENCIES (ACs) ---
@@ -192,11 +190,11 @@ export class TenantApiService {
 
     const newAc = insertRes.rows[0];
 
-    // Link newly created AC to tenant_assignments.ac_ids for this user in Master DB
+    // Link newly created AC to tenants.ac_ids for this tenant in Master DB
     await mainQuery(
-      `UPDATE tenant_assignments
+      `UPDATE tenants
        SET ac_ids = array_append(COALESCE(ac_ids, '{}'), $1::uuid), updated_at = NOW()
-       WHERE user_id = $2 AND NOT ($1::uuid = ANY(COALESCE(ac_ids, '{}')))`,
+       WHERE id = $2 AND NOT ($1::uuid = ANY(COALESCE(ac_ids, '{}')))`,
       [newAc.id, userId]
     );
 
@@ -707,43 +705,67 @@ export class TenantApiService {
     });
   }
 
-  async getTenantPcs(stateId?: string, tenantDbName?: string | null) {
-    const cacheKey = `ranniti:tenant:${tenantDbName || 'master'}:pcs:${stateId || 'all'}`;
-    return await CacheService.getOrSet(cacheKey, 3600, async () => {
-      if (stateId) {
-        const res = await executeTenantQuery(
-          `SELECT 
-             p.id, 
-             p.state_id AS "stateId", 
-             s.name AS "stateName",
-             p.pc_number AS "pcNumber", 
-             p.name, 
-             p.created_at AS "createdAt", 
-             p.updated_at AS "updatedAt" 
-           FROM parliamentary_constituencies p
-           INNER JOIN states s ON p.state_id = s.id
-           WHERE p.state_id = $1 
-           ORDER BY p.pc_number ASC`,
-          [stateId],
-          tenantDbName
-        );
-        return res.rows;
-      }
-      const res = await executeTenantQuery(
-        `SELECT 
-           p.id, 
-           p.state_id AS "stateId", 
-           s.name AS "stateName",
-           p.pc_number AS "pcNumber", 
-           p.name, 
-           p.created_at AS "createdAt", 
-           p.updated_at AS "updatedAt" 
-         FROM parliamentary_constituencies p
-         INNER JOIN states s ON p.state_id = s.id
-         ORDER BY p.pc_number ASC`,
-        [],
-        tenantDbName
+  async getTenantPcs(stateId?: string, tenantDbName?: string | null, userId?: string) {
+    let resolvedDb = tenantDbName;
+    let assignedPcIds: string[] = [];
+
+    if (!resolvedDb && userId) {
+      const tRes = await mainQuery(
+        `SELECT tenant_db_name, pc_ids, ac_ids FROM tenants WHERE id = $1 LIMIT 1`,
+        [userId]
       );
+      if (tRes.rows[0]) {
+        resolvedDb = tRes.rows[0].tenant_db_name || null;
+        const pcList: string[] = tRes.rows[0].pc_ids || [];
+        const acList: string[] = tRes.rows[0].ac_ids || [];
+        const pcSet = new Set<string>(pcList);
+        if (acList.length > 0) {
+          const parentPcRes = await mainQuery(
+            `SELECT DISTINCT pc_id FROM assembly_constituencies WHERE id = ANY($1::uuid[]) AND pc_id IS NOT NULL`,
+            [acList]
+          );
+          for (const r of parentPcRes.rows) {
+            if (r.pc_id) pcSet.add(r.pc_id);
+          }
+        }
+        assignedPcIds = Array.from(pcSet);
+      }
+    }
+
+    const cacheKey = `ranniti:tenant:${resolvedDb || userId || 'master'}:pcs:${stateId || 'all'}`;
+    return await CacheService.getOrSet(cacheKey, 3600, async () => {
+      let queryStr = `
+        SELECT 
+          p.id, 
+          p.state_id AS "stateId", 
+          s.name AS "stateName",
+          p.pc_number AS "pcNumber", 
+          p.name, 
+          p.created_at AS "createdAt", 
+          p.updated_at AS "updatedAt" 
+        FROM parliamentary_constituencies p
+        LEFT JOIN states s ON p.state_id = s.id
+      `;
+      const sqlParams: any[] = [];
+      const whereClauses: string[] = [];
+
+      if (stateId) {
+        sqlParams.push(stateId);
+        whereClauses.push(`p.state_id = $${sqlParams.length}`);
+      }
+
+      if (!resolvedDb && assignedPcIds.length > 0) {
+        sqlParams.push(assignedPcIds);
+        whereClauses.push(`p.id = ANY($${sqlParams.length}::uuid[])`);
+      }
+
+      if (whereClauses.length > 0) {
+        queryStr += ` WHERE ` + whereClauses.join(' AND ');
+      }
+
+      queryStr += ` ORDER BY p.pc_number ASC`;
+
+      const res = await executeTenantQuery(queryStr, sqlParams, resolvedDb);
       return res.rows;
     });
   }

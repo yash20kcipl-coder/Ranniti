@@ -5,8 +5,6 @@ import {
   UserCheck,
   Settings,
   Vote,
-  ChevronDown,
-  ChevronRight,
   MapPin,
   Map,
   Building,
@@ -20,8 +18,8 @@ import {
   X,
   PanelLeftClose,
 } from 'lucide-react';
+import React, { } from 'react';
 import { logout } from '@/redux/actions/auth';
-import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setMasterTab } from '@/redux/actions/masterSuperAdmin';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -109,21 +107,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isMasterPath = location.pathname.startsWith('/dashboard/master');
   const isTenantMasterPath = location.pathname.startsWith('/dashboard/tenant-master');
-  const [isMasterOpen, setIsMasterOpen] = useState(isMasterPath);
-  const [isTenantMasterOpen, setIsTenantMasterOpen] = useState(isTenantMasterPath);
-
-  // Keep master accordions open if navigating on master pages
-  useEffect(() => {
-    if (isMasterPath) {
-      setIsMasterOpen(true);
-    }
-  }, [isMasterPath]);
-
-  useEffect(() => {
-    if (isTenantMasterPath) {
-      setIsTenantMasterOpen(true);
-    }
-  }, [isTenantMasterPath]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -287,7 +270,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              setIsMasterOpen((prev) => !prev);
                               if (!isMasterPath) {
                                 navigate(`/dashboard/master/${activeTabKey}`);
                               }
@@ -310,52 +292,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               >
                                 8
                               </span>
-                              {isMasterOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                             </div>
                           </button>
 
-                          {/* MASTER SUB-SECTIONS (When Open) */}
-                          {isMasterOpen && (
-                            <div className="ml-3 pl-3 border-l-2 border-indigo-500/30 space-y-3 py-2 animate-in fade-in duration-200">
-                              {masterSections.map((section) => {
-                                const SectionIcon = section.icon;
-                                return (
-                                  <div key={section.title} className="space-y-1 text-left">
-                                    <div className="px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400/80 flex items-center gap-1.5">
-                                      <SectionIcon size={11} className="text-indigo-500 dark:text-indigo-400" />
-                                      <span>{section.title}</span>
-                                    </div>
-                                    {section.items.map((sub) => {
-                                      const SubIcon = sub.icon;
-                                      const subPath = `/dashboard/master/${sub.key}`;
-                                      const isSubActive =
-                                        location.pathname === subPath || (isMasterPath && activeTabKey === sub.key);
-                                      return (
-                                        <Link
-                                          key={sub.key}
-                                          to={subPath}
-                                          onClick={() => {
-                                            dispatch(setMasterTab(sub.key));
-                                            onCloseMobileSidebar();
-                                          }}
-                                          className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all text-left cursor-pointer ${isSubActive
-                                            ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-200 font-semibold border border-indigo-300 dark:border-indigo-500/40 shadow-xs'
-                                            : 'text-slate-500 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800/60'
-                                            }`}
-                                        >
-                                          <SubIcon
-                                            size={13}
-                                            className={isSubActive ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}
-                                          />
-                                          <span className="truncate">{sub.label}</span>
-                                        </Link>
-                                      );
-                                    })}
+                          {/* MASTER SUB-SECTIONS (Always Open) */}
+                          <div className="ml-3 pl-3 border-l-2 border-indigo-500/30 space-y-3 py-2 animate-in fade-in duration-200">
+                            {masterSections.map((section) => {
+                              const SectionIcon = section.icon;
+                              return (
+                                <div key={section.title} className="space-y-1 text-left">
+                                  <div className="px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400/80 flex items-center gap-1.5">
+                                    <SectionIcon size={11} className="text-indigo-500 dark:text-indigo-400" />
+                                    <span>{section.title}</span>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          )}
+                                  {section.items.map((sub) => {
+                                    const SubIcon = sub.icon;
+                                    const subPath = `/dashboard/master/${sub.key}`;
+                                    const isSubActive =
+                                      location.pathname === subPath || (isMasterPath && activeTabKey === sub.key);
+                                    return (
+                                      <Link
+                                        key={sub.key}
+                                        to={subPath}
+                                        onClick={() => {
+                                          dispatch(setMasterTab(sub.key));
+                                          onCloseMobileSidebar();
+                                        }}
+                                        className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all text-left cursor-pointer ${isSubActive
+                                          ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-200 font-semibold border border-indigo-300 dark:border-indigo-500/40 shadow-xs'
+                                          : 'text-slate-500 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800/60'
+                                          }`}
+                                      >
+                                        <SubIcon
+                                          size={13}
+                                          className={isSubActive ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}
+                                        />
+                                        <span className="truncate">{sub.label}</span>
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </>
                       )}
                     </div>
@@ -415,7 +394,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              setIsTenantMasterOpen((prev) => !prev);
                               if (!isTenantMasterPath) {
                                 navigate(`/dashboard/tenant-master/${firstAllowedTab}`);
                               }
@@ -438,50 +416,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               >
                                 {totalTenantSubItemsCount}
                               </span>
-                              {isTenantMasterOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                             </div>
                           </button>
 
-                          {/* TENANT MASTER SUB-SECTIONS (When Open) */}
-                          {isTenantMasterOpen && (
-                            <div className="ml-3 pl-3 border-l-2 border-indigo-500/30 space-y-3 py-2 animate-in fade-in duration-200">
-                              {availableItems.map((section) => {
-                                const SectionIcon = section.icon;
-                                return (
-                                  <div key={section.title} className="space-y-1 text-left">
-                                    <div className="px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400/80 flex items-center gap-1.5">
-                                      <SectionIcon size={11} className="text-indigo-500 dark:text-indigo-400" />
-                                      <span>{section.title}</span>
-                                    </div>
-                                    {section.items.map((sub) => {
-                                      const SubIcon = sub.icon;
-                                      const subPath = `/dashboard/tenant-master/${sub.key}`;
-                                      const isSubActive =
-                                        location.pathname === subPath ||
-                                        (location.pathname === '/dashboard/tenant-master' && firstAllowedTab === sub.key);
-                                      return (
-                                        <Link
-                                          key={sub.key}
-                                          to={subPath}
-                                          onClick={onCloseMobileSidebar}
-                                          className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all text-left cursor-pointer ${isSubActive
-                                            ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-200 font-semibold border border-indigo-300 dark:border-indigo-500/40 shadow-xs'
-                                            : 'text-slate-500 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800/60'
-                                            }`}
-                                        >
-                                          <SubIcon
-                                            size={13}
-                                            className={isSubActive ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}
-                                          />
-                                          <span className="truncate">{sub.label}</span>
-                                        </Link>
-                                      );
-                                    })}
+                          {/* TENANT MASTER SUB-SECTIONS (Always Open) */}
+                          <div className="ml-3 pl-3 border-l-2 border-indigo-500/30 space-y-3 py-2 animate-in fade-in duration-200">
+                            {availableItems.map((section) => {
+                              const SectionIcon = section.icon;
+                              return (
+                                <div key={section.title} className="space-y-1 text-left">
+                                  <div className="px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400/80 flex items-center gap-1.5">
+                                    <SectionIcon size={11} className="text-indigo-500 dark:text-indigo-400" />
+                                    <span>{section.title}</span>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          )}
+                                  {section.items.map((sub) => {
+                                    const SubIcon = sub.icon;
+                                    const subPath = `/dashboard/tenant-master/${sub.key}`;
+                                    const isSubActive =
+                                      location.pathname === subPath ||
+                                      (location.pathname === '/dashboard/tenant-master' && firstAllowedTab === sub.key);
+                                    return (
+                                      <Link
+                                        key={sub.key}
+                                        to={subPath}
+                                        onClick={onCloseMobileSidebar}
+                                        className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all text-left cursor-pointer ${isSubActive
+                                          ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-200 font-semibold border border-indigo-300 dark:border-indigo-500/40 shadow-xs'
+                                          : 'text-slate-500 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800/60'
+                                          }`}
+                                      >
+                                        <SubIcon
+                                          size={13}
+                                          className={isSubActive ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}
+                                        />
+                                        <span className="truncate">{sub.label}</span>
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </>
                       )}
                     </div>
@@ -522,7 +497,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {isSidebarCollapsed ? (
               <div className="flex flex-col items-center gap-2">
                 <div
-                  title={`${user?.name || 'Administrator'} (${user?.email || 'admin@ranniti.com'})`}
+                  title={`${user?.name || ''} (${user?.email || ''})`}
                   className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-md shadow-indigo-600/30 ring-1 ring-white/20"
                 >
                   {user?.name?.[0]?.toUpperCase() || 'A'}
@@ -544,9 +519,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                   <div className="overflow-hidden min-w-0">
                     <p className="text-xs font-bold text-slate-900 dark:text-white truncate leading-tight">
-                      {user?.name || 'Administrator'}
+                      {user?.name || ''}
                     </p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user?.email || 'admin@ranniti.com'}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user?.email || ''}</p>
                   </div>
                 </div>
 

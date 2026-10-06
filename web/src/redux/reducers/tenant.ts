@@ -48,7 +48,7 @@ export default function tenantReducer(state = initialState, action: any): Tenant
         ...state,
         tenants: state.tenants.map((t) =>
           t.id === action.payload.id
-            ? { ...t, accountStatus: action.payload.status, provisioningStatus: action.payload.status }
+            ? { ...t, status: action.payload.status, accountStatus: action.payload.status, provisioningStatus: action.payload.status }
             : t
         ),
       };

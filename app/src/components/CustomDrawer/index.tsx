@@ -77,8 +77,10 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
           <View style={styles.avatarContainer}>
             <SafeImage
               src={user?.avatar}
-              alt={user?.name || 'User'}
+              name={user?.name}
               style={styles.avatar}
+              placeholderType="avatar"
+              alt={user?.name || 'User'}
             />
             <View style={styles.statusDot} />
           </View>

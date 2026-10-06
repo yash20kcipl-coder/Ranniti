@@ -67,7 +67,13 @@ export const AddTeamMemberScreen: React.FC = () => {
         contentContainerStyle={styles.listPadding}
         renderItem={({ item }: { item: any }) => (
           <View style={styles.card}>
-            <SafeImage src={item.avatar} alt={item.name} style={styles.avatar} />
+            <SafeImage
+              src={item.avatar}
+              name={item.name}
+              alt={item.name}
+              placeholderType="avatar"
+              style={styles.avatar}
+            />
             <View style={styles.infoCol}>
               <View style={styles.roleBadge}>
                 <Shield {...({ size: 12, color: '#1E40AF' } as any)} />

@@ -76,15 +76,16 @@ export class MasterSyncService {
     const values: string[] = [];
     const params: any[] = [];
     initialParties.forEach((party, idx) => {
-      const p = idx * 3;
-      values.push(`($${p + 1}, $${p + 2}, $${p + 3})`);
-      params.push(party.name, party.abbreviation, party.symbolLogo || null);
+      const p = idx * 4;
+      values.push(`($${p + 1}, $${p + 2}, $${p + 3}, $${p + 4})`);
+      params.push(party.name, party.abbreviation, party.symbolLogo || null, party.alliance || null);
     });
     const sql = `
-      INSERT INTO parties (name, abbreviation, symbol_logo) VALUES ${values.join(', ')}
+      INSERT INTO parties (name, abbreviation, symbol_logo, alliance) VALUES ${values.join(', ')}
       ON CONFLICT (name) DO UPDATE 
       SET abbreviation = EXCLUDED.abbreviation, 
           symbol_logo = EXCLUDED.symbol_logo, 
+          alliance = EXCLUDED.alliance,
           updated_at = NOW();
     `;
     await query(sql, params);

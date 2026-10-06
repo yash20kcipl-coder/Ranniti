@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import { config } from '../../config';
 import { logger } from '../../utils/logger';
 import { DataSourceTracker } from '../../utils/dataSourceTracker';
+import { getTenantDbPool } from '../../utils/tenantDbProvisioner';
 
 interface CachedPool {
   pool: Pool;
@@ -28,17 +29,7 @@ export class TenantPoolManager {
 
     logger.info(`[TenantPoolManager] Initializing connection pool for tenant database '${tenantDbName}'`);
 
-    const pool = new Pool({
-      host: config.dbHost,
-      port: config.dbPort,
-      user: config.dbUser,
-      password: config.dbPassword,
-      database: tenantDbName,
-      max: parseInt(process.env.PG_TENANT_POOL_MAX || '10', 10),
-      idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: 5000,
-      statement_timeout: 15000,
-    });
+    const pool = getTenantDbPool(tenantDbName);
 
     // Instrument pool.query and pool.connect for transparent Tenant DB tracking
     const origQuery = pool.query.bind(pool);

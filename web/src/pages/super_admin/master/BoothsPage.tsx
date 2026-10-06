@@ -327,7 +327,7 @@ export const BoothsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <PageHeader
         addLabel="Add Booth"
         icon={<Vote className="w-6 h-6 text-indigo-500" />}
@@ -357,16 +357,16 @@ export const BoothsPage: React.FC = () => {
           serverPagination={
             boothsPagination
               ? {
-                  page: boothsPagination.page,
-                  limit: boothsPagination.limit,
-                  total: boothsPagination.total,
-                  totalPages: boothsPagination.totalPages,
-                  onPageChange: (newPage) => setPage(newPage),
-                  onLimitChange: (newLimit) => {
-                    setLimit(newLimit);
-                    setPage(1);
-                  },
-                }
+                page: boothsPagination.page,
+                limit: boothsPagination.limit,
+                total: boothsPagination.total,
+                totalPages: boothsPagination.totalPages,
+                onPageChange: (newPage) => setPage(newPage),
+                onLimitChange: (newLimit) => {
+                  setLimit(newLimit);
+                  setPage(1);
+                },
+              }
               : undefined
           }
           actions={(row) => (

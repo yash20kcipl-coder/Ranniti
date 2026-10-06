@@ -74,11 +74,21 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const uniqueSuggestions = React.useMemo(() => {
+    return Array.from(new Set((suggestions || []).filter((s): s is string => Boolean(s && typeof s === 'string' && s.trim()))));
+  }, [suggestions]);
+
   const filtered = React.useMemo(() => {
-    if (!value.trim()) return suggestions.slice(0, 20);
-    const term = value.toLowerCase();
-    return suggestions.filter((s) => s.toLowerCase().includes(term)).slice(0, 20);
-  }, [suggestions, value]);
+    if (!value.trim()) return uniqueSuggestions.slice(0, 20);
+    const term = value.toLowerCase().trim();
+    return uniqueSuggestions.filter((s) => s.toLowerCase().includes(term)).slice(0, 20);
+  }, [uniqueSuggestions, value]);
+
+  const hasExactMatch = React.useMemo(() => {
+    if (!value.trim()) return true;
+    const term = value.toLowerCase().trim();
+    return uniqueSuggestions.some((s) => s.toLowerCase() === term);
+  }, [uniqueSuggestions, value]);
 
   const updateCoords = useCallback(() => {
     if (!containerRef.current) return;
@@ -127,7 +137,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     inputRef.current?.focus();
   };
 
-  const showDropdown = isOpen && filtered.length > 0;
+  const showDropdown = isOpen && (filtered.length > 0 || (!hasExactMatch && value.trim().length > 0));
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -161,18 +171,27 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
           onMouseDown={(e) => e.preventDefault()}
         >
           <div className="max-h-52 overflow-y-auto p-1.5 space-y-0.5">
-            {filtered.map((s) => (
+            {!hasExactMatch && value.trim().length > 0 && (
               <button
-                key={s}
+                type="button"
+                onMouseDown={() => handleSelect(value.trim())}
+                className="w-full px-3 py-2 rounded-lg text-xs text-left transition-colors cursor-pointer flex items-center gap-2 bg-indigo-50/70 dark:bg-indigo-950/40 border border-dashed border-indigo-300 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 mb-1"
+              >
+                <span className="truncate">Add new <strong>"{value.trim()}"</strong></span>
+              </button>
+            )}
+            {filtered.map((s, index) => (
+              <button
+                key={`${s}-${index}`}
                 type="button"
                 onMouseDown={() => handleSelect(s)}
-                className={`w-full px-3 py-2 rounded-lg text-xs text-left transition-colors cursor-pointer flex items-center gap-2 ${s.toLowerCase() === value.toLowerCase()
+                className={`w-full px-3 py-2 rounded-lg text-xs text-left transition-colors cursor-pointer flex items-center gap-2 ${s.toLowerCase() === value.toLowerCase().trim()
                   ? 'bg-indigo-600 text-white font-semibold'
                   : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80'
                   }`}
               >
                 <span className="truncate">{s}</span>
-                {s.toLowerCase() === value.toLowerCase() && <Check size={12} className="shrink-0 text-white ml-auto" />}
+                {s.toLowerCase() === value.toLowerCase().trim() && <Check size={12} className="shrink-0 text-white ml-auto" />}
               </button>
             ))}
           </div>

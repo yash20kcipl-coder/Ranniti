@@ -187,10 +187,7 @@ export const SuperAdminVotersPage: React.FC = () => {
         prevStatsScopeRef.current.districtId !== districtId ||
         prevStatsScopeRef.current.stateId !== stateId;
 
-      if (statsScopeChanged) {
-        prevStatsScopeRef.current = { boothId, acId, pcId, districtId, stateId };
-        dispatch(fetchSuperAdminVoterStats({ boothId, acId, pcId, districtId, stateId }));
-      }
+      dispatch(fetchSuperAdminVoterStats(params));
     },
     200,
     [
@@ -236,7 +233,6 @@ export const SuperAdminVotersPage: React.FC = () => {
   };
 
   const handleResetFilters = () => {
-    isInitialMountRef.current = false;
     setSearch(''); setStateId(''); setDistrictId(''); setPcId(''); setAcId(''); setBoothId('');
     setGender(''); setVoterType(''); setStatus(''); setIsDead(''); setPartyId(''); setReligionId('');
     setCasteId(''); setAgeGroup(''); setFamilyInfluencerId(''); setSocialInfluencerId('');
@@ -246,6 +242,8 @@ export const SuperAdminVotersPage: React.FC = () => {
     dispatch(setVoterBoothOptions([]));
     setPage(1);
     dispatch(setVoterFilters(initialVoterFilters));
+    dispatch(fetchSuperAdminVotersData({ page: 1, limit }));
+    dispatch(fetchSuperAdminVoterStats({}));
   };
 
   const filterParams: Record<string, string> = {
@@ -297,7 +295,7 @@ export const SuperAdminVotersPage: React.FC = () => {
         importLabel="Import Voters (Excel)"
         onExportClick={handleExportVoters}
         exportLabel="Export Excel"
-        onAddClick={() => navigate('/dashboard/super-admin/voters/new')}
+        onAddClick={() => navigate('/dashboard/voters/new')}
         addLabel="Add Voter"
       />
 
@@ -334,8 +332,8 @@ export const SuperAdminVotersPage: React.FC = () => {
               row={row}
               activeRowMenuId={activeRowMenuId}
               setActiveRowMenuId={setActiveRowMenuId}
-              onView={() => navigate(`/dashboard/super-admin/voters/${row.id}`)}
-              onEdit={() => navigate(`/dashboard/super-admin/voters/${row.id}/edit`)}
+              onView={() => navigate(`/dashboard/voters/${row.id}`)}
+              onEdit={() => navigate(`/dashboard/voters/${row.id}/edit`)}
               onDelete={() => handleOpenDelete(row)}
               onSetFamilyInfluencer={(target) => {
                 setTargetFamilyInfluencer(target);

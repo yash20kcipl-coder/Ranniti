@@ -8,5 +8,6 @@ Master table for storing caste & social category classifications.
 | `name` | `VARCHAR(100)` | No | *None* | Unique Caste Name |
 | `category` | `VARCHAR(20)` | No | *None* | Category Check: `General`, `OBC`, `SC`, `ST`, `Other` |
 | `religion_id` | `UUID` | Yes | `NULL` | Foreign Key referencing `religions(id)` |
+| `parent_caste_id` | `UUID` | Yes | `NULL` | Foreign Key referencing `castes(id)` for Subcastes |
 | `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Creation timestamp |
 | `updated_at` | `TIMESTAMPTZ` | No | `NOW()` | Update timestamp |

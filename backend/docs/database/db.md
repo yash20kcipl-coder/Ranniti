@@ -42,8 +42,8 @@ Ranniti employs a **Database-per-Tenant** isolation model combined with a centra
 
 | Table Name | Master DB (`ranniti_db`) | Tenant DB (`ranniti_tenant_*`) | Classification | Status & Action | Purpose / Explanation |
 | :--- | :---: | :---: | :--- | :--- | :--- |
-| **`admin_users`** | ✅ **YES** | ❌ **NO** | **Master Exclusive** | **Retain (Master Only)** | Central authentication repository (email, password hash, role, `tenant_db_name`). Must be central for pre-login authentication. |
-| **`tenant_assignments`** | ✅ **YES** | ❌ **NO** | **Master Exclusive** | **Retain (Master Only)** | Super Admin mapping of tenant admin accounts to assigned State, PC, ACs, and Tenant DB names. |
+| **`admin_users`** | ✅ **YES** | ❌ **NO** | **Master Exclusive** | **Retain (Master Only)** | Central super admin authentication repository (email, password hash, role). Must be central for pre-login authentication. |
+| **`tenants`** | ✅ **YES** | ❌ **NO** | **Master Exclusive** | **Retain (Master Only)** | Dedicated standalone tenant organizations, administrator accounts, assigned State, PC, ACs, and Tenant DB names. |
 | **`tenant_roles`** | ✅ **YES** | ❌ **NO** | **Master Exclusive** | **Retain (Master Only)** | Super Admin SaaS subscription tiers & allowed tab packages for tenants. |
 | **`pgmigrations`** | ✅ **YES** | ❌ **NO** | **Master Exclusive** | **Retain (Master Only)** | Migration history tracker for Master DB schema migrations. |
 | **`sync_outbox`** | ❌ **DELETED** | ❌ **NO** | **Dead / Orphaned** | **DROPPED** | Dead legacy table (0 rows). Dropped via `DROP TABLE IF EXISTS sync_outbox;`. Replaced by `tenant_sync_outbox`. |
@@ -91,7 +91,7 @@ If your production architecture mandates that **Master DB stores zero tenant run
 
 2. **Zero Master DB Touch for Tenant Requests:**
    - Tenant routes (`/api/v1/tenant/settings`, `/api/v1/tenant/acs`, `/api/v1/tenant/roles`, `/api/v1/tenant/booths`, etc.) execute 0 queries against Master DB.
-   - Master DB permission tables (`tenant_assignments`, `user_booth_assignments`) are bypassed during tenant requests because the tenant database is already physically isolated.
+   - Master DB permission tables (`tenants`, `user_booth_assignments`) are bypassed during tenant requests because the tenant database is already physically isolated.
 
 3. **Redis Caching Strategy:**
    - **Tenant Settings:** `ranniti:settings:{tenantDbName}` (TTL: 3600s, invalidated on update).

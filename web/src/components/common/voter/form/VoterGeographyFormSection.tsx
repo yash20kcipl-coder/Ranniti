@@ -32,19 +32,23 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
 }) => {
   const { talukas, villages } = useTenantMasterData(['talukas', 'villages']);
 
-  // Suggestions: district-matched talukas appear first, then all others — so typing always works globally
+  // Suggestions: district-matched talukas appear first, then all others — deduplicated so no duplicates appear
   const talukaSuggestions = React.useMemo(() => {
-    if (!formData.districtId) return talukas.map((t: any) => t.name);
+    if (!formData.districtId) {
+      return Array.from(new Set(talukas.map((t: any) => t.name).filter(Boolean)));
+    }
     const districtMatches = talukas.filter((t: any) => t.districtId === formData.districtId).map((t: any) => t.name);
     const others = talukas.filter((t: any) => t.districtId !== formData.districtId).map((t: any) => t.name);
-    return [...districtMatches, ...others];
+    return Array.from(new Set([...districtMatches, ...others].filter(Boolean)));
   }, [talukas, formData.districtId]);
 
   const villageSuggestions = React.useMemo(() => {
-    if (!formData.districtId) return villages.map((v: any) => v.name);
+    if (!formData.districtId) {
+      return Array.from(new Set(villages.map((v: any) => v.name).filter(Boolean)));
+    }
     const districtMatches = villages.filter((v: any) => v.districtId === formData.districtId).map((v: any) => v.name);
     const others = villages.filter((v: any) => v.districtId !== formData.districtId).map((v: any) => v.name);
-    return [...districtMatches, ...others];
+    return Array.from(new Set([...districtMatches, ...others].filter(Boolean)));
   }, [villages, formData.districtId]);
 
   return (

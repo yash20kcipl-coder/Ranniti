@@ -3,7 +3,6 @@ export const SCREENS = {
   LOGIN: 'login',
   FORGOT_PASSWORD: 'forgotpassword',
   CONTACT_SUPPORT: 'contactsupport',
-  PROFILE_OPTION: 'profileoption',
   MAIN: 'main',
   DASHBOARD: 'dashboard',
   VOTER_LIST: 'voterlist',

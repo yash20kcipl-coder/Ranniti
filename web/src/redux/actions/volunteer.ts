@@ -116,6 +116,21 @@ export const updateTenantVolunteer = (
   };
 };
 
+export const toggleTenantVolunteerStatus = (id: string, status?: string) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setVolunteerLoading(true));
+    try {
+      const res = await api.patch(`/tenant/users/${id}/status`, status ? { status } : {});
+      const updated = res.data?.data || res.data;
+      dispatch({ type: UPDATE_VOLUNTEER, payload: updated });
+      dispatch(fetchVolunteerBoothCoverage());
+      return updated;
+    } finally {
+      dispatch(setVolunteerLoading(false));
+    }
+  };
+};
+
 export const deleteTenantVolunteer = (id: string) => {
   return async (dispatch: AppDispatch) => {
     dispatch(setVolunteerLoading(true));

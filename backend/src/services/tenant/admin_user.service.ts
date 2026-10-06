@@ -23,9 +23,9 @@ export class AdminUserService {
       acId?: string;
     } = {}
   ): Promise<any[]> {
-    const conditions: string[] = [`u.tenant_db_name = $1`];
-    const params: any[] = [tenantDbName];
-    let idx = 2;
+    const conditions: string[] = [`1=1`];
+    const params: any[] = [];
+    let idx = 1;
 
     if (filters.role && filters.role.trim()) {
       conditions.push(`u.role = $${idx++}`);
@@ -59,8 +59,8 @@ export class AdminUserService {
              COALESCE(ARRAY_AGG(uba.booth_id) FILTER (WHERE uba.booth_id IS NOT NULL), '{}') AS "assignedBoothIds",
              COUNT(uba.booth_id)::int AS "assignedBoothCount",
              u.created_at AS "createdAt", u.updated_at AS "updatedAt"
-      FROM admin_users u
-      LEFT JOIN admin_users parent ON parent.id = u.parent_leader_id
+      FROM tenant_users u
+      LEFT JOIN tenant_users parent ON parent.id = u.parent_leader_id
       LEFT JOIN user_booth_assignments uba ON u.id = uba.user_id
       WHERE ${conditions.join(' AND ')}
       GROUP BY u.id, parent.name
@@ -75,12 +75,13 @@ export class AdminUserService {
         u.created_at DESC
     `;
 
-    const res = await query(sql, params);
+    const res = await TenantPoolManager.query(tenantDbName, sql, params);
     return res.rows;
   }
 
   async getVolunteerBoothCoverage(tenantDbName: string): Promise<any> {
-    const cadreRes = await query(
+    const cadreRes = await TenantPoolManager.query(
+      tenantDbName,
       `SELECT 
          COUNT(*)::int AS "totalCadre",
          COUNT(*) FILTER (WHERE role = 'pc_leader')::int AS "pcLeadersCount",
@@ -88,10 +89,9 @@ export class AdminUserService {
          COUNT(*) FILTER (WHERE role = 'sub_leader')::int AS "subLeadersCount",
          COUNT(*) FILTER (WHERE role = 'supporter')::int AS "supportersCount",
          COUNT(DISTINCT uba.booth_id)::int AS "coveredBooths"
-       FROM admin_users u
+       FROM tenant_users u
        LEFT JOIN user_booth_assignments uba ON uba.user_id = u.id
-       WHERE u.tenant_db_name = $1 AND u.role IN ('pc_leader', 'ac_leader', 'sub_leader', 'supporter')`,
-      [tenantDbName]
+       WHERE u.role IN ('pc_leader', 'ac_leader', 'sub_leader', 'supporter')`
     );
 
     let totalBooths = 0;
@@ -118,43 +118,105 @@ export class AdminUserService {
     };
   }
 
-  async getTeamMembersByParentId(parentLeaderId: string): Promise<AdminUser[]> {
+  async getTeamMembersByParentId(parentLeaderId: string, tenantDbName?: string | null): Promise<AdminUser[]> {
+    if (tenantDbName && tenantDbName.trim()) {
+      const res = await TenantPoolManager.query(
+        tenantDbName.trim(),
+        `SELECT u.id, u.name, u.email, u.role, u.role_name AS "roleName", u.mobile, u.avatar, u.status,
+                u.parent_leader_id AS "parentLeaderId", u.assigned_ac_id AS "assignedAcId",
+                u.created_at AS "createdAt", u.updated_at AS "updatedAt",
+                COALESCE(ARRAY_AGG(uba.booth_id) FILTER (WHERE uba.booth_id IS NOT NULL), '{}') AS "assignedBoothIds"
+         FROM tenant_users u
+         LEFT JOIN user_booth_assignments uba ON u.id = uba.user_id
+         WHERE u.parent_leader_id = $1
+         GROUP BY u.id
+         ORDER BY u.created_at DESC`,
+        [parentLeaderId]
+      );
+      return res.rows;
+    }
     const res = await query(
       `SELECT u.id, u.name, u.email, u.role, u.role_name AS "roleName", u.mobile, u.avatar, u.status,
               u.parent_leader_id AS "parentLeaderId", u.assigned_ac_id AS "assignedAcId",
               u.created_at AS "createdAt", u.updated_at AS "updatedAt",
-              COALESCE(ARRAY_AGG(uba.booth_id) FILTER (WHERE uba.booth_id IS NOT NULL), '{}') AS "assignedBoothIds"
+              '{}'::uuid[] AS "assignedBoothIds"
        FROM admin_users u
-       LEFT JOIN user_booth_assignments uba ON u.id = uba.user_id
        WHERE u.parent_leader_id = $1
-       GROUP BY u.id
        ORDER BY u.created_at DESC`,
       [parentLeaderId]
     );
     return res.rows;
   }
 
-  async getAdminUserById(id: string): Promise<AdminUser> {
+  async getAdminUserById(id: string, tenantDbName?: string | null): Promise<AdminUser> {
+    if (tenantDbName && tenantDbName.trim()) {
+      const res = await TenantPoolManager.query(
+        tenantDbName.trim(),
+        `SELECT u.id, u.name, u.email, u.role, u.role_name AS "roleName", u.mobile, u.avatar, u.status,
+                u.tenant_db_name AS "tenantDbName", u.parent_leader_id AS "parentLeaderId",
+                u.assigned_ac_id AS "assignedAcId",
+                COALESCE(ARRAY_AGG(uba.booth_id) FILTER (WHERE uba.booth_id IS NOT NULL), '{}') AS "assignedBoothIds",
+                u.created_at AS "createdAt", u.updated_at AS "updatedAt"
+         FROM tenant_users u
+         LEFT JOIN user_booth_assignments uba ON u.id = uba.user_id
+         WHERE u.id = $1
+         GROUP BY u.id`,
+        [id]
+      );
+      if (res.rows[0]) return res.rows[0];
+    }
+
+    // Fallback: If tenantDbName is not explicitly passed, check active tenant databases
+    if (!tenantDbName) {
+      try {
+        const tenantsRes = await query(`SELECT tenant_db_name FROM tenants WHERE tenant_db_name IS NOT NULL`);
+        for (const tRow of tenantsRes.rows) {
+          try {
+            const tDb = tRow.tenant_db_name;
+            const tCheck = await TenantPoolManager.query(
+              tDb,
+              `SELECT u.id, u.name, u.email, u.role, u.role_name AS "roleName", u.mobile, u.avatar, u.status,
+                      u.tenant_db_name AS "tenantDbName", u.parent_leader_id AS "parentLeaderId",
+                      u.assigned_ac_id AS "assignedAcId",
+                      COALESCE(ARRAY_AGG(uba.booth_id) FILTER (WHERE uba.booth_id IS NOT NULL), '{}') AS "assignedBoothIds",
+                      u.created_at AS "createdAt", u.updated_at AS "updatedAt"
+               FROM tenant_users u
+               LEFT JOIN user_booth_assignments uba ON u.id = uba.user_id
+               WHERE u.id = $1
+               GROUP BY u.id`,
+              [id]
+            );
+            if (tCheck.rows[0]) return tCheck.rows[0];
+          } catch {}
+        }
+      } catch {}
+    }
+
     const res = await query(
       `SELECT u.id, u.name, u.email, u.role, u.role_name AS "roleName", u.mobile, u.avatar, u.status,
               u.tenant_db_name AS "tenantDbName", u.parent_leader_id AS "parentLeaderId",
               u.assigned_ac_id AS "assignedAcId",
-              COALESCE(ARRAY_AGG(uba.booth_id) FILTER (WHERE uba.booth_id IS NOT NULL), '{}') AS "assignedBoothIds",
+              '{}'::uuid[] AS "assignedBoothIds",
               u.created_at AS "createdAt", u.updated_at AS "updatedAt"
        FROM admin_users u
-       LEFT JOIN user_booth_assignments uba ON u.id = uba.user_id
-       WHERE u.id = $1
-       GROUP BY u.id`,
+       WHERE u.id = $1`,
       [id]
     );
     if (!res.rows[0]) {
-      throw ApiError.notFound(`Admin user with id '${id}' not found`);
+      throw ApiError.notFound(`User with id '${id}' not found`);
     }
     return res.rows[0];
   }
 
-  async updateAdminUser(id: string, input: any): Promise<AdminUser> {
-    await this.getAdminUserById(id);
+  async updateAdminUser(id: string, input: any, tenantDbName?: string | null): Promise<AdminUser> {
+    const currentUser = await this.getAdminUserById(id, tenantDbName);
+    const targetDbName = currentUser.tenantDbName || tenantDbName;
+
+    const FIELD_ROLES = ['pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter'];
+    if (targetDbName && FIELD_ROLES.includes(currentUser.role)) {
+      const updated = await AuthQueries.updateTenantUserProfile(id, input, targetDbName);
+      return updated as any;
+    }
 
     const fields: string[] = [];
     const values: any[] = [];
@@ -189,8 +251,22 @@ export class AdminUserService {
       values.push(input.status);
     }
     if (input.parentLeaderId !== undefined) {
+      let validParentLeaderId: string | null = null;
+      if (input.parentLeaderId && input.parentLeaderId !== 'null') {
+        try {
+          const parentCheck = await query(
+            `SELECT id FROM admin_users WHERE id = $1 LIMIT 1`,
+            [input.parentLeaderId]
+          );
+          if (parentCheck.rows.length > 0) {
+            validParentLeaderId = input.parentLeaderId;
+          }
+        } catch {
+          validParentLeaderId = null;
+        }
+      }
       fields.push(`parent_leader_id = $${idx++}`);
-      values.push(input.parentLeaderId || null);
+      values.push(validParentLeaderId);
     }
     if (input.assignedAcId !== undefined) {
       fields.push(`assigned_ac_id = $${idx++}`);
@@ -202,7 +278,7 @@ export class AdminUserService {
     }
 
     if (fields.length === 0) {
-      return this.getAdminUserById(id);
+      return this.getAdminUserById(id, tenantDbName);
     }
 
     fields.push(`updated_at = NOW()`);
@@ -222,9 +298,45 @@ export class AdminUserService {
     return updated;
   }
 
-  async deleteAdminUser(id: string): Promise<void> {
-    await this.getAdminUserById(id);
-    await query(`DELETE FROM user_booth_assignments WHERE user_id = $1`, [id]);
+  async toggleVolunteerStatus(id: string, requestedStatus?: string, tenantDbName?: string | null): Promise<AdminUser> {
+    const currentUser = await this.getAdminUserById(id, tenantDbName);
+    const newStatus = requestedStatus || (currentUser.status === 'active' ? 'disabled' : 'active');
+    const targetDbName = currentUser.tenantDbName || tenantDbName;
+
+    if (targetDbName) {
+      const updated = await AuthQueries.updateTenantUserProfile(id, { status: newStatus }, targetDbName);
+      return updated as any;
+    }
+
+    const res = await query(
+      `UPDATE admin_users
+       SET status = $1, updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, name, email, role, role_name AS "roleName", mobile, avatar, status,
+                 tenant_db_name AS "tenantDbName", parent_leader_id AS "parentLeaderId",
+                 assigned_ac_id AS "assignedAcId",
+                 created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [newStatus, id]
+    );
+
+    const updated = res.rows[0];
+    updated.assignedBoothIds = await AuthQueries.getAssignedBoothIds(id);
+    return updated;
+  }
+
+  async deleteAdminUser(id: string, tenantDbName?: string | null): Promise<void> {
+    const currentUser = await this.getAdminUserById(id, tenantDbName);
+    const targetDbName = currentUser.tenantDbName || tenantDbName;
+
+    if (targetDbName) {
+      await TenantPoolManager.query(targetDbName, `DELETE FROM user_booth_assignments WHERE user_id = $1`, [id]);
+      await TenantPoolManager.query(targetDbName, `DELETE FROM tenant_users WHERE id = $1`, [id]);
+      return;
+    }
+
+    try {
+      await query(`DELETE FROM user_booth_assignments WHERE user_id = $1`, [id]);
+    } catch {}
     await query(`DELETE FROM admin_users WHERE id = $1`, [id]);
   }
 }

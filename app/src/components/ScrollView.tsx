@@ -6,9 +6,10 @@ import { ScrollView as RNScrollView, ScrollViewProps as RNScrollViewProps, Style
 interface ScrollViewProps extends Omit<RNScrollViewProps, 'style' | 'contentContainerStyle'> {
   useFlex?: boolean;
   isKeyboardAware?: boolean;
+  bottomOffset?: number;
   progressViewOffset?: number;
   useThemeBackground?: boolean;
-  refreshApi?: () => Promise<any>;
+  refreshApi?: () => any;
   style?: ViewStyle | ViewStyle[];
   contentContainerStyle?: ViewStyle | ViewStyle[];
 }
@@ -18,6 +19,7 @@ export const ScrollView = forwardRef<RNScrollView, ScrollViewProps>(({
   contentContainerStyle,
   useThemeBackground = true,
   isKeyboardAware = false,
+  bottomOffset = 20,
   useFlex = true,
   showsVerticalScrollIndicator = false,
   refreshApi,
@@ -66,7 +68,7 @@ export const ScrollView = forwardRef<RNScrollView, ScrollViewProps>(({
       <KeyboardAwareScrollView
         {...(props as any)}
         ref={ref as any}
-        bottomOffset={20}
+        bottomOffset={bottomOffset}
         style={commonStyle}
         contentContainerStyle={commonContentContainerStyle}
         showsVerticalScrollIndicator={showsVerticalScrollIndicator}
@@ -80,7 +82,7 @@ export const ScrollView = forwardRef<RNScrollView, ScrollViewProps>(({
   return (
     <RNScrollView
       {...props}
-      ref={ref}
+      ref={ref as any}
       style={commonStyle}
       contentContainerStyle={commonContentContainerStyle}
       showsVerticalScrollIndicator={showsVerticalScrollIndicator}

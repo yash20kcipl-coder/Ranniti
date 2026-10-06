@@ -1,6 +1,19 @@
+import { Platform } from 'react-native';
+
+const getLocalHost = () => {
+  // Machine Wi-Fi IP: 10.90.78.23 | Active Backend Port: 10001
+  const LOCAL_IP = '192.168.1.9';
+  const PORT = '10001';
+
+  if (Platform.OS === 'android') {
+    // Works for both physical Android device over Wi-Fi and Emulator
+    return `http://${LOCAL_IP}:${PORT}`;
+  }
+  return `http://${LOCAL_IP}:${PORT}`;
+};
+
 const Url = {
-  BaseUrl: 'https://schoolapi.meteorinfotech.com'
-  // BaseUrl: 'http://172.16.123.23:5001', /// Your local machine network IP
+  BaseUrl: getLocalHost(),
 };
 
 export default Url;

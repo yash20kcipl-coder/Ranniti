@@ -434,9 +434,6 @@ export function buildVoterFilterFields(
         } else if (val === 'social') {
           setFilter('isFamilyInfluencer', '');
           setFilter('isSocialInfluencer', 'true');
-        } else if (val === 'any') {
-          setFilter('isFamilyInfluencer', 'true');
-          setFilter('isSocialInfluencer', 'true');
         } else {
           setFilter('isFamilyInfluencer', '');
           setFilter('isSocialInfluencer', '');

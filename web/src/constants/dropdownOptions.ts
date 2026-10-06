@@ -104,15 +104,15 @@ export const SUB_LEADER_CREATABLE_ROLE_OPTIONS: Option[] = [
 
 export const VOLUNTEER_ROLE_OPTIONS: Option[] = [
   { label: 'All Roles', value: '' },
-  { label: 'PC Leader (Parliamentary)', value: 'pc_leader' },
-  { label: 'AC Leader (Assembly)', value: 'ac_leader' },
+  { label: 'PC Leader', value: 'pc_leader' },
+  { label: 'AC Leader', value: 'ac_leader' },
   { label: 'Sub-Leader / Ward Coordinator', value: 'sub_leader' },
   { label: 'Campaign Supporter / Volunteer', value: 'supporter' },
 ];
 
 export const FORM_VOLUNTEER_ROLE_OPTIONS: Option[] = [
-  { label: 'PC Leader (Parliamentary)', value: 'pc_leader' },
-  { label: 'AC Leader (Assembly)', value: 'ac_leader' },
+  { label: 'PC Leader', value: 'pc_leader' },
+  { label: 'AC Leader', value: 'ac_leader' },
   { label: 'Sub-Leader / Ward Coordinator', value: 'sub_leader' },
   { label: 'Campaign Supporter / Volunteer', value: 'supporter' },
 ];

@@ -41,6 +41,15 @@ export const getAdminUserByIdSchema = z.object({
   }),
 });
 
+export const updateAdminUserStatusSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid Admin User ID format'),
+  }),
+  body: z.object({
+    status: z.enum(['active', 'disabled', 'inactive', 'suspended']).optional(),
+  }),
+});
+
 // Backward-compatibility exports
 export const createUserSchema = createAdminUserSchema;
 export const updateUserSchema = updateAdminUserSchema;

@@ -109,10 +109,10 @@ export const Topbar: React.FC<TopbarProps> = ({
         )}
 
         {/* Mobile Logo Branding (shown when sidebar is hidden on small screens) */}
-        <div className="flex items-center gap-2 lg:hidden">
+        {/* <div className="flex items-center gap-2 lg:hidden">
           <img src="/favicon.svg" alt="Ranniti" className="w-7 h-7 rounded-lg shadow-sm" />
           <span className="font-extrabold text-slate-900 dark:text-white text-base tracking-tight">Ranniti</span>
-        </div>
+        </div> */}
 
         {/* Title & Breadcrumbs */}
         <div className="text-left hidden sm:block truncate">
@@ -215,8 +215,8 @@ export const Topbar: React.FC<TopbarProps> = ({
                   <div
                     key={n.id}
                     className={`p-3 rounded-xl border transition-all text-left ${n.unread
-                        ? 'bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-500/30 hover:border-indigo-400 dark:hover:border-indigo-500/50'
-                        : 'bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700/80'
+                      ? 'bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-500/30 hover:border-indigo-400 dark:hover:border-indigo-500/50'
+                      : 'bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700/80'
                       }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -274,8 +274,8 @@ export const Topbar: React.FC<TopbarProps> = ({
           {showProfileMenu && (
             <div className="absolute right-0 mt-2.5 w-56 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 text-left space-y-1 animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 mb-1">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user?.name || 'Administrator'}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{user?.email || 'admin@ranniti.com'}</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user?.name || ''}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{user?.email || ''}</p>
                 <div className="mt-2 flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-md text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 w-fit">
                   <Shield size={11} className="text-indigo-500 dark:text-indigo-400" />
                   <span>{user?.roleName || (user?.role ? `${user.role.replace('_', ' ')} Role` : 'Super Admin Role')}</span>

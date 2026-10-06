@@ -36,6 +36,29 @@ export class VoterService {
       await MasterQueries.upsertVillageByName(data.village, talukaId || undefined);
     }
 
+    // Auto-upsert Religion, Caste, and Subcaste
+    const isUuid = (val?: string | null) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
+    if (data.religionName && data.religionName.trim()) {
+      const resolvedRelId = await MasterQueries.upsertReligionByName(data.religionName.trim());
+      if (resolvedRelId) data.religionId = resolvedRelId;
+    } else if (data.religionId && !isUuid(data.religionId)) {
+      const resolvedRelId = await MasterQueries.upsertReligionByName(data.religionId);
+      if (resolvedRelId) data.religionId = resolvedRelId;
+    }
+
+    if (data.casteName && data.casteName.trim()) {
+      const resolvedCasteId = await MasterQueries.upsertCasteByName(data.casteName.trim(), data.religionId);
+      if (resolvedCasteId) data.casteId = resolvedCasteId;
+    } else if (data.casteId && !isUuid(data.casteId)) {
+      const resolvedCasteId = await MasterQueries.upsertCasteByName(data.casteId, data.religionId);
+      if (resolvedCasteId) data.casteId = resolvedCasteId;
+    }
+
+    if (data.subcasteName && data.subcasteName.trim()) {
+      await MasterQueries.upsertSubcasteByName(data.subcasteName.trim(), data.casteId, data.religionId);
+    }
+
     // Auto family mapping assignment if not explicitly provided
     if (!data.familyId) {
       const familyAssigned = await FamilyMappingService.assignVoterToFamily(data);
@@ -64,6 +87,29 @@ export class VoterService {
     }
     if (data.village) {
       await MasterQueries.upsertVillageByName(data.village, talukaId || undefined);
+    }
+
+    // Auto-upsert Religion, Caste, and Subcaste
+    const isUuid = (val?: string | null) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
+    if (data.religionName && data.religionName.trim()) {
+      const resolvedRelId = await MasterQueries.upsertReligionByName(data.religionName.trim());
+      if (resolvedRelId) data.religionId = resolvedRelId;
+    } else if (data.religionId && !isUuid(data.religionId)) {
+      const resolvedRelId = await MasterQueries.upsertReligionByName(data.religionId);
+      if (resolvedRelId) data.religionId = resolvedRelId;
+    }
+
+    if (data.casteName && data.casteName.trim()) {
+      const resolvedCasteId = await MasterQueries.upsertCasteByName(data.casteName.trim(), data.religionId);
+      if (resolvedCasteId) data.casteId = resolvedCasteId;
+    } else if (data.casteId && !isUuid(data.casteId)) {
+      const resolvedCasteId = await MasterQueries.upsertCasteByName(data.casteId, data.religionId);
+      if (resolvedCasteId) data.casteId = resolvedCasteId;
+    }
+
+    if (data.subcasteName && data.subcasteName.trim()) {
+      await MasterQueries.upsertSubcasteByName(data.subcasteName.trim(), data.casteId, data.religionId);
     }
 
     if (data.isFamilyInfluencer === true) {

@@ -11,6 +11,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const isSmtpConfigured = (): boolean => {
+  return Boolean(
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS &&
+    process.env.SMTP_USER.trim() !== '' &&
+    process.env.SMTP_USER !== 'your_email@gmail.com'
+  );
+};
+
 const FROM = process.env.SMTP_FROM || 'Ranniti Team <noreply@ranniti.in>';
 const LOGIN_URL = process.env.APP_LOGIN_URL || 'https://app.ranniti.in/login';
 
@@ -75,6 +84,11 @@ export const sendWelcomeEmail = async (
     </body>
     </html>
   `;
+
+  if (!isSmtpConfigured()) {
+    logger.info(`[Mailer] SMTP not configured (SMTP_USER/SMTP_PASS missing). Skipping welcome email to ${to}.`);
+    return;
+  }
 
   try {
     await transporter.sendMail({
@@ -141,6 +155,11 @@ export const sendProvisioningReadyEmail = async (
     </body>
     </html>
   `;
+
+  if (!isSmtpConfigured()) {
+    logger.info(`[Mailer] SMTP not configured (SMTP_USER/SMTP_PASS missing). Skipping provisioning-ready email to ${to}.`);
+    return;
+  }
 
   try {
     await transporter.sendMail({

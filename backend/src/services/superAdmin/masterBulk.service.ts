@@ -1,9 +1,11 @@
 import ExcelJS from 'exceljs';
 import { logger } from '../../utils/logger';
+import { query } from '../../queries/dbPool';
 import { CacheService } from '../cache.service';
 import { importJobTracker } from '../importJobTracker';
 import { BulkImporter } from '../../utils/bulkImporter';
 import { MasterQueries } from '../../queries/master.queries';
+import { LookupResolverService } from './lookupResolver.service';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { calculateAge, formatDateForDb } from '../../utils/dateUtils';
 import { FamilyMappingService } from '../tenant/familyMapping.service';
@@ -33,10 +35,15 @@ export class MasterBulkService {
               const rowsToInsert = batch
                 .map((row) => ({ name: (row.name || row.religionName || '').trim() }))
                 .filter((r) => r.name.length > 0);
-              if (rowsToInsert.length === 0) return 0;
+              const uniqueRowsMap = new Map<string, any>();
+              for (const r of rowsToInsert) {
+                uniqueRowsMap.set(r.name.toLowerCase(), r);
+              }
+              const deduplicatedRows = Array.from(uniqueRowsMap.values());
+              if (deduplicatedRows.length === 0) return 0;
               const res = await BatchInsertQuery.executeBatchImport(
                 'religions',
-                rowsToInsert,
+                deduplicatedRows,
                 ['name'],
                 { conflictTarget: ['name'], conflictStrategy: 'DO NOTHING' }
               );
@@ -56,29 +63,24 @@ export class MasterBulkService {
 
         case 'castes':
         case 'caste': {
-          const religions = await MasterQueries.getReligions().catch(() => []);
-          const religionMap = new Map<string, string>();
-          for (const r of religions) {
-            religionMap.set(r.id.toLowerCase(), r.id);
-            religionMap.set(r.name.toLowerCase().trim(), r.id);
-          }
-
-          // Build a live caste name→id map (pre-seeded and grows as we insert)
-          const existingCastes = await MasterQueries.getCastes().catch(() => []);
-          const casteNameToIdMap = new Map<string, string>();
-          for (const c of existingCastes) {
-            casteNameToIdMap.set(c.name.toLowerCase().trim(), c.id);
-          }
+          const religionMap = await LookupResolverService.ensureReligionsExist(records);
+          const casteNameToIdMap = await LookupResolverService.ensureCastesExist(records, religionMap);
 
           // Separate parent castes (no parentCasteName) from subcastes
           const parentRows = records.filter((r) => !r.parentCasteName && !r.parent_caste_id && !r.parentCasteId);
           const subcasteRows = records.filter((r) => r.parentCasteName || r.parent_caste_id || r.parentCasteId);
 
+          let totalProcessed = 0;
+          let totalInserted = 0;
+          let totalFailed = 0;
+
           // PASS 1: Insert parent castes
-          result = await BulkImporter.processArray(parentRows, {
+          const pass1Result = await BulkImporter.processArray(parentRows, {
             batchSize: 2500,
             concurrency: 2,
-            onProgress: progressCallback,
+            onProgress: (p) => {
+              importJobTracker.updateProgress(jobId, p.processed, p.inserted, p.failed);
+            },
             onBatchInsert: async (batch) => {
               const rowsToInsert: any[] = [];
               for (const row of batch) {
@@ -91,10 +93,15 @@ export class MasterBulkService {
                   rowsToInsert.push({ name, category: categoryName, religion_id: religionId, parent_caste_id: null });
                 }
               }
-              if (rowsToInsert.length === 0) return 0;
+              const uniqueRowsMap = new Map<string, any>();
+              for (const r of rowsToInsert) {
+                uniqueRowsMap.set(r.name.toLowerCase(), r);
+              }
+              const deduplicatedRows = Array.from(uniqueRowsMap.values());
+              if (deduplicatedRows.length === 0) return 0;
               const res = await BatchInsertQuery.executeBatchImport(
                 'castes',
-                rowsToInsert,
+                deduplicatedRows,
                 ['name', 'category', 'religion_id', 'parent_caste_id'],
                 { conflictTarget: ['name'], conflictStrategy: 'DO UPDATE', updateColumns: ['religion_id', 'category'] }
               );
@@ -102,17 +109,48 @@ export class MasterBulkService {
             },
           });
 
-          // Refresh caste name→id map after pass 1
-          const allCastesAfterPass1 = await MasterQueries.getCastes().catch(() => []);
-          for (const c of allCastesAfterPass1) {
+          totalProcessed += pass1Result.totalProcessed;
+          totalInserted += pass1Result.insertedCount;
+          totalFailed += pass1Result.failedCount;
+
+          // Refresh caste name→id map from DB directly after pass 1
+          const allCastesAfterPass1 = await query(`SELECT id, name FROM castes`);
+          for (const c of allCastesAfterPass1.rows) {
             casteNameToIdMap.set(c.name.toLowerCase().trim(), c.id);
+          }
+
+          // Auto-create any missing parent castes referenced by subcastes
+          for (const row of subcasteRows) {
+            const pName = (row.parentCasteName || row.parent_caste_name || '').toString().trim();
+            if (pName && !casteNameToIdMap.has(pName.toLowerCase())) {
+              const religionRef = String(row.religionName || row.religion || row.religionId || row.religion_id || '').toLowerCase().trim();
+              const religionId = religionMap.get(religionRef) || null;
+              const categoryName = (row.category || 'General').trim();
+
+              const newParentRes = await query(
+                `INSERT INTO castes (name, category, religion_id) VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET updated_at = NOW() RETURNING id, name`,
+                [pName, categoryName, religionId]
+              );
+              if (newParentRes.rows[0]) {
+                casteNameToIdMap.set(pName.toLowerCase(), newParentRes.rows[0].id);
+                logger.info(`[MasterBulkService] Auto-created missing parent caste during caste import: '${newParentRes.rows[0].name}' (${newParentRes.rows[0].id})`);
+              }
+            }
           }
 
           // PASS 2: Insert subcastes with resolved parentCasteId
           if (subcasteRows.length > 0) {
-            await BulkImporter.processArray(subcasteRows, {
+            const pass2Result = await BulkImporter.processArray(subcasteRows, {
               batchSize: 2500,
               concurrency: 2,
+              onProgress: (p) => {
+                importJobTracker.updateProgress(
+                  jobId,
+                  totalProcessed + p.processed,
+                  totalInserted + p.inserted,
+                  totalFailed + p.failed
+                );
+              },
               onBatchInsert: async (batch) => {
                 const rowsToInsert: any[] = [];
                 for (const row of batch) {
@@ -129,17 +167,28 @@ export class MasterBulkService {
                     rowsToInsert.push({ name, category: categoryName, religion_id: religionId, parent_caste_id: parentCasteId });
                   }
                 }
-                if (rowsToInsert.length === 0) return 0;
+                const uniqueRowsMap = new Map<string, any>();
+                for (const r of rowsToInsert) {
+                  uniqueRowsMap.set(r.name.toLowerCase(), r);
+                }
+                const deduplicatedRows = Array.from(uniqueRowsMap.values());
+                if (deduplicatedRows.length === 0) return 0;
                 const res = await BatchInsertQuery.executeBatchImport(
                   'castes',
-                  rowsToInsert,
+                  deduplicatedRows,
                   ['name', 'category', 'religion_id', 'parent_caste_id'],
                   { conflictTarget: ['name'], conflictStrategy: 'DO UPDATE', updateColumns: ['religion_id', 'category', 'parent_caste_id'], extraUpdateSql: 'updated_at = NOW()' }
                 );
                 return res.insertedCount;
               },
             });
+
+            totalProcessed += pass2Result.totalProcessed;
+            totalInserted += pass2Result.insertedCount;
+            totalFailed += pass2Result.failedCount;
           }
+
+          result = { totalProcessed, insertedCount: totalInserted, failedCount: totalFailed };
           await CacheService.invalidatePattern('ranniti:masters:castes*');
           try {
             const allCastes = await MasterQueries.getCastes().catch(() => []);
@@ -171,10 +220,15 @@ export class MasterBulkService {
               const rowsToInsert = batch
                 .map((row) => ({ name: (row['State Name'] || row.StateName || row.name || row.stateName || '').trim() }))
                 .filter((r) => r.name.length > 0);
-              if (rowsToInsert.length === 0) return 0;
+              const uniqueRowsMap = new Map<string, any>();
+              for (const r of rowsToInsert) {
+                uniqueRowsMap.set(r.name.toLowerCase(), r);
+              }
+              const deduplicatedRows = Array.from(uniqueRowsMap.values());
+              if (deduplicatedRows.length === 0) return 0;
               const res = await BatchInsertQuery.executeBatchImport(
                 'states',
-                rowsToInsert,
+                deduplicatedRows,
                 ['name'],
                 { conflictTarget: ['name'], conflictStrategy: 'DO NOTHING' }
               );
@@ -188,12 +242,8 @@ export class MasterBulkService {
 
         case 'districts':
         case 'district': {
-          const states = await MasterQueries.getStates().catch(() => []);
-          const stateMap = new Map<string, string>();
-          for (const s of states) {
-            stateMap.set(s.id.toLowerCase(), s.id);
-            stateMap.set(s.name.toLowerCase().trim(), s.id);
-          }
+          const stateMap = await LookupResolverService.ensureStatesExist(records);
+          const districtMap = await LookupResolverService.ensureDistrictsExist(records, stateMap);
 
           result = await BulkImporter.processArray(records, {
             batchSize: 2500,
@@ -459,12 +509,8 @@ export class MasterBulkService {
         case 'pc':
         case 'parliamentary_constituencies':
         case 'parliamentary_constituency': {
-          const states = await MasterQueries.getStates().catch(() => []);
-          const stateMap = new Map<string, string>();
-          for (const s of states) {
-            stateMap.set(s.id.toLowerCase(), s.id);
-            stateMap.set(s.name.toLowerCase().trim(), s.id);
-          }
+          const stateMap = await LookupResolverService.ensureStatesExist(records);
+          const pcMap = await LookupResolverService.ensurePcsExist(records, stateMap);
 
           result = await BulkImporter.processArray(records, {
             batchSize: 2500,
@@ -487,7 +533,11 @@ export class MasterBulkService {
                 'parliamentary_constituencies',
                 rowsToInsert,
                 ['state_id', 'pc_number', 'name'],
-                { conflictTarget: ['state_id', 'pc_number'], conflictStrategy: 'DO NOTHING' }
+                {
+                  conflictTarget: ['state_id', 'pc_number'],
+                  conflictStrategy: 'DO UPDATE',
+                  updateColumns: ['name']
+                }
               );
               return res.insertedCount;
             },
@@ -500,32 +550,9 @@ export class MasterBulkService {
         case 'ac':
         case 'assembly_constituencies':
         case 'assembly_constituency': {
-          const [pcs, districts, states] = await Promise.all([
-            MasterQueries.getPcs().catch(() => []),
-            MasterQueries.getDistricts().catch(() => []),
-            MasterQueries.getStates().catch(() => []),
-          ]);
-          const stateMap = new Map<string, string>();
-          for (const s of states) {
-            stateMap.set(s.id.toLowerCase(), s.id);
-            stateMap.set(s.name.toLowerCase().trim(), s.id);
-          }
-          const pcMap = new Map<string, string>();
-          for (const p of pcs) {
-            pcMap.set(p.id.toLowerCase(), p.id);
-            pcMap.set(p.name.toLowerCase().trim(), p.id);
-            if (p.stateId && p.name) {
-              pcMap.set(`${p.stateId}_${p.name}`.toLowerCase().trim(), p.id);
-              if (p.stateName) {
-                pcMap.set(`${p.stateName}_${p.name}`.toLowerCase().trim(), p.id);
-              }
-            }
-          }
-          const districtMap = new Map<string, string>();
-          for (const d of districts) {
-            districtMap.set(d.id.toLowerCase(), d.id);
-            districtMap.set(d.name.toLowerCase().trim(), d.id);
-          }
+          const stateMap = await LookupResolverService.ensureStatesExist(records);
+          const districtMap = await LookupResolverService.ensureDistrictsExist(records, stateMap);
+          const pcMap = await LookupResolverService.ensurePcsExist(records, stateMap);
 
           result = await BulkImporter.processArray(records, {
             batchSize: 2500,
@@ -542,7 +569,7 @@ export class MasterBulkService {
                 let pcId = pcMap.get(`${stateRef}_${pcRef}`) || pcMap.get(pcRef) || context?.pcId;
 
                 const districtRef = String(row['District Name'] || row.DistrictName || row.districtName || row.district || row.districtId || row.district_id || '').toLowerCase().trim();
-                const districtId = districtMap.get(districtRef) || context?.districtId || null;
+                const districtId = districtMap.get(`${stateRef}_${districtRef}`) || districtMap.get(districtRef) || context?.districtId || null;
 
                 if (name && pcId) {
                   rowsToInsert.push({
@@ -558,7 +585,11 @@ export class MasterBulkService {
                 'assembly_constituencies',
                 rowsToInsert,
                 ['pc_id', 'ac_number', 'name', 'district_id'],
-                { conflictTarget: ['pc_id', 'ac_number'], conflictStrategy: 'DO NOTHING' }
+                {
+                  conflictTarget: ['pc_id', 'ac_number'],
+                  conflictStrategy: 'DO UPDATE',
+                  updateColumns: ['name', 'district_id']
+                }
               );
               return res.insertedCount;
             },
@@ -612,6 +643,37 @@ export class MasterBulkService {
             },
           });
           await CacheService.invalidatePattern('ranniti:masters:wards*');
+
+          // Broadcast newly imported wards to scoped tenants per AC
+          try {
+            const { MasterBroadcastSync } = await import('../sync/masterBroadcastSync.service');
+            const touchedAcIds = Array.from(
+              new Set(
+                records
+                  .map((r) => {
+                    const acRef = String(r['AC Name'] || r.ACName || r.acName || r.ac || r.acId || r.ac_id || '').toLowerCase().trim();
+                    return acMap.get(acRef) || context?.acId;
+                  })
+                  .filter(Boolean)
+              )
+            ) as string[];
+
+            for (const acId of touchedAcIds) {
+              const wardsRes = await MasterQueries.getWards(acId);
+              const rawList = Array.isArray(wardsRes) ? wardsRes : ((wardsRes as any)?.data || []);
+              const wardRows = rawList.map((w: any) => ({
+                id: w.id,
+                ac_id: w.acId || w.ac_id,
+                ward_number: w.wardNumber || w.ward_number,
+                name: w.name,
+              }));
+              if (wardRows.length > 0) {
+                await MasterBroadcastSync.broadcastBatchToScopedTenants('wards', wardRows, acId);
+              }
+            }
+          } catch (broadcastErr) {
+            logger.error('[MasterBulkService] Failed to broadcast wards to scoped tenants:', broadcastErr);
+          }
           break;
         }
 
@@ -740,10 +802,15 @@ export class MasterBulkService {
                   symbol_logo: row.symbolLogo || row.symbol_logo || null,
                 }))
                 .filter((r) => r.name.length > 0 && r.abbreviation.length > 0);
-              if (rowsToInsert.length === 0) return 0;
+              const uniqueRowsMap = new Map<string, any>();
+              for (const r of rowsToInsert) {
+                uniqueRowsMap.set(r.name.toLowerCase(), r);
+              }
+              const deduplicatedRows = Array.from(uniqueRowsMap.values());
+              if (deduplicatedRows.length === 0) return 0;
               const res = await BatchInsertQuery.executeBatchImport(
                 'parties',
-                rowsToInsert,
+                deduplicatedRows,
                 ['name', 'abbreviation', 'symbol_logo'],
                 { conflictTarget: ['name'], conflictStrategy: 'DO NOTHING' }
               );
@@ -825,18 +892,9 @@ export class MasterBulkService {
             stateByName.set(s.name.toLowerCase().trim(), s);
           }
 
-          // Build O(1) lookup maps for religion, caste, and party
-          const religionByNameOrId = new Map<string, string>();
-          for (const r of religions) {
-            religionByNameOrId.set(r.id.toLowerCase(), r.id);
-            religionByNameOrId.set(r.name.toLowerCase().trim(), r.id);
-          }
-
-          const casteByNameOrId = new Map<string, string>();
-          for (const c of castes) {
-            casteByNameOrId.set(c.id.toLowerCase(), c.id);
-            casteByNameOrId.set(c.name.toLowerCase().trim(), c.id);
-          }
+          // Ultra-fast auto-creation of missing religions & castes for voter records
+          const religionByNameOrId = await LookupResolverService.ensureReligionsExist(records);
+          const casteByNameOrId = await LookupResolverService.ensureCastesExist(records, religionByNameOrId);
 
           const partyByNameOrAbbr = new Map<string, string>();
           for (const p of parties) {

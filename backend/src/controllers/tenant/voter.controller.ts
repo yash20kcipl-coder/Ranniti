@@ -16,6 +16,7 @@ export class VoterController {
       districtId: req.query.districtId as string,
       boothId: req.query.boothId as string,
       acId: req.query.acId as string,
+      pcId: req.query.pcId as string,
       acIds: req.user?.role !== 'super_admin' && assignedAcIds.length > 0 ? assignedAcIds : undefined,
       tenantDbName: req.user?.tenantDbName,
       gender: req.query.gender as string,
@@ -101,6 +102,7 @@ export class VoterController {
     const filterParams: Partial<VoterFilterParams> = {
       boothId: req.query.boothId as string,
       acId: req.query.acId as string,
+      pcId: req.query.pcId as string,
       acIds: req.user?.role !== 'super_admin' && assignedAcIds.length > 0 ? assignedAcIds : undefined,
       tenantDbName: req.user?.tenantDbName,
     };
@@ -139,6 +141,7 @@ export class VoterController {
       search: req.query.search as string,
       boothId: req.query.boothId as string,
       acId: req.query.acId as string,
+      pcId: req.query.pcId as string,
       acIds: req.user?.role !== 'super_admin' && assignedAcIds.length > 0 ? assignedAcIds : undefined,
       tenantDbName: req.user?.tenantDbName,
       gender: req.query.gender as string,

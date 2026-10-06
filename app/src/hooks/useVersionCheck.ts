@@ -99,9 +99,9 @@ export const useVersionCheck = () => {
     }
   }, [dispatch, currentVersion, platform]);
 
-  useEffect(() => {
-    checkVersion();
-  }, [checkVersion]);
+  // useEffect(() => {
+  //   checkVersion();
+  // }, [checkVersion]);
 
   return { ...versionStatus, checkVersion };
 };

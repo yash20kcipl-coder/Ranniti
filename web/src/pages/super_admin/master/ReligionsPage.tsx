@@ -167,7 +167,7 @@ export const ReligionsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <PageHeader
         title="Religions"
         icon={<HeartHandshake className="w-6 h-6 text-indigo-500" />}

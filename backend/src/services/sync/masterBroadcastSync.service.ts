@@ -4,6 +4,54 @@ import { logger } from '../../utils/logger';
 
 export class MasterBroadcastSync {
   /**
+   * Helper to retrieve active tenant database names from tenants table
+   */
+  private static async getActiveTenantDbNames(acId?: string, pcId?: string): Promise<string[]> {
+    try {
+      if (acId) {
+        const sqlTenants = `
+          SELECT tenant_db_name AS db_name
+          FROM tenants
+          WHERE status IN ('ready', 'active')
+            AND tenant_db_name IS NOT NULL
+            AND (
+              $1::uuid = ANY(ac_ids)
+              OR EXISTS (
+                SELECT 1 FROM assembly_constituencies a
+                WHERE a.id = $1::uuid AND a.pc_id = ANY(pc_ids)
+              )
+            )
+        `;
+        const res = await masterQuery(sqlTenants, [acId]);
+        return (res.rows || []).map((r: any) => r.db_name).filter(Boolean);
+      }
+      if (pcId) {
+        const sqlTenants = `
+          SELECT tenant_db_name AS db_name
+          FROM tenants
+          WHERE status IN ('ready', 'active')
+            AND tenant_db_name IS NOT NULL
+            AND (
+              $1::uuid = ANY(pc_ids)
+              OR EXISTS (
+                SELECT 1 FROM assembly_constituencies a
+                WHERE a.pc_id = $1::uuid AND a.id = ANY(ac_ids)
+              )
+            )
+        `;
+        const res = await masterQuery(sqlTenants, [pcId]);
+        return (res.rows || []).map((r: any) => r.db_name).filter(Boolean);
+      }
+      const sqlTenants = `SELECT tenant_db_name AS db_name FROM tenants WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`;
+      const res = await masterQuery(sqlTenants);
+      return (res.rows || []).map((r: any) => r.db_name).filter(Boolean);
+    } catch (err) {
+      logger.error('[BroadcastSync] Error fetching active tenant DB names:', err);
+      return [];
+    }
+  }
+
+  /**
    * Broadcasts an updated or newly inserted master lookup record to all active tenant databases
    */
   static async broadcastToAllTenants(
@@ -12,13 +60,8 @@ export class MasterBroadcastSync {
     primaryKeyField = 'id'
   ): Promise<void> {
     try {
-      const activeTenants = await masterQuery(
-        `SELECT tenant_db_name AS db_name FROM tenant_assignments WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`
-      );
-
-      if (!activeTenants.rows || activeTenants.rows.length === 0) {
-        return;
-      }
+      const tenantDbNames = await this.getActiveTenantDbNames();
+      if (tenantDbNames.length === 0) return;
 
       const keys = Object.keys(recordData);
       if (keys.length === 0) return;
@@ -38,8 +81,7 @@ export class MasterBroadcastSync {
 
       const values = keys.map((k) => recordData[k]);
 
-      for (const tenant of activeTenants.rows) {
-        const tenantDbName = tenant.db_name;
+      for (const tenantDbName of tenantDbNames) {
         TenantPoolManager.getPool(tenantDbName)
           .query(upsertSql, values)
           .then(() => {
@@ -65,11 +107,8 @@ export class MasterBroadcastSync {
     if (!records || records.length === 0) return;
 
     try {
-      const activeTenants = await masterQuery(
-        `SELECT tenant_db_name AS db_name FROM tenant_assignments WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`
-      );
-
-      if (!activeTenants.rows || activeTenants.rows.length === 0) return;
+      const tenantDbNames = await this.getActiveTenantDbNames();
+      if (tenantDbNames.length === 0) return;
 
       const keys = Object.keys(records[0]);
       if (keys.length === 0) return;
@@ -81,8 +120,7 @@ export class MasterBroadcastSync {
         .join(', ');
 
       const CHUNK = 500;
-      for (const tenant of activeTenants.rows) {
-        const tenantDbName = tenant.db_name;
+      for (const tenantDbName of tenantDbNames) {
         const tenantPool = TenantPoolManager.getPool(tenantDbName);
 
         for (let i = 0; i < records.length; i += CHUNK) {
@@ -117,7 +155,7 @@ export class MasterBroadcastSync {
   }
 
   /**
-   * Broadcasts a scoped record (booth, voter, ward) only to tenants assigned to that AC
+   * Broadcasts a single record (booth, voter, ward) scoped strictly to tenants assigned to that AC
    */
   static async broadcastToScopedTenants(
     tableName: string,
@@ -128,12 +166,8 @@ export class MasterBroadcastSync {
     if (!acId) return;
 
     try {
-      const scopedTenants = await masterQuery(
-        `SELECT tenant_db_name AS db_name FROM tenant_assignments WHERE status IN ('ready', 'active') AND $1 = ANY(ac_ids) AND tenant_db_name IS NOT NULL`,
-        [acId]
-      );
-
-      if (!scopedTenants.rows || scopedTenants.rows.length === 0) return;
+      const tenantDbNames = await this.getActiveTenantDbNames(acId);
+      if (tenantDbNames.length === 0) return;
 
       const keys = Object.keys(recordData);
       if (keys.length === 0) return;
@@ -152,11 +186,11 @@ export class MasterBroadcastSync {
       `;
       const values = keys.map((k) => recordData[k]);
 
-      for (const tenant of scopedTenants.rows) {
-        TenantPoolManager.getPool(tenant.db_name)
+      for (const tenantDbName of tenantDbNames) {
+        TenantPoolManager.getPool(tenantDbName)
           .query(upsertSql, values)
           .catch((err) => {
-            logger.error(`[BroadcastSync] Scoped error for ${tableName} to ${tenant.db_name}:`, err);
+            logger.error(`[BroadcastSync] Scoped error for ${tableName} to ${tenantDbName}:`, err);
           });
       }
     } catch (err) {
@@ -176,12 +210,8 @@ export class MasterBroadcastSync {
     if (!acId || !records || records.length === 0) return;
 
     try {
-      const scopedTenants = await masterQuery(
-        `SELECT tenant_db_name AS db_name FROM tenant_assignments WHERE status IN ('ready', 'active') AND $1 = ANY(ac_ids) AND tenant_db_name IS NOT NULL`,
-        [acId]
-      );
-
-      if (!scopedTenants.rows || scopedTenants.rows.length === 0) return;
+      const tenantDbNames = await this.getActiveTenantDbNames(acId);
+      if (tenantDbNames.length === 0) return;
 
       const keys = Object.keys(records[0]);
       if (keys.length === 0) return;
@@ -193,8 +223,7 @@ export class MasterBroadcastSync {
         .join(', ');
 
       const CHUNK = 500;
-      for (const tenant of scopedTenants.rows) {
-        const tenantDbName = tenant.db_name;
+      for (const tenantDbName of tenantDbNames) {
         const tenantPool = TenantPoolManager.getPool(tenantDbName);
 
         for (let i = 0; i < records.length; i += CHUNK) {
@@ -228,4 +257,3 @@ export class MasterBroadcastSync {
     }
   }
 }
-

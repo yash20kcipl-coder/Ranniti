@@ -5,6 +5,7 @@ import { config } from '../config';
 import { logger } from './logger';
 import { DataSourceTracker } from './dataSourceTracker';
 import { dbPool, query as mainQuery } from '../queries/dbPool';
+import { seedSettings } from '../seeds/seeders/setting.seeder';
 
 /**
  * Creates a dedicated connection pool for a specific tenant database.
@@ -89,10 +90,12 @@ export class TenantDbProvisioner {
 
       const migrationFiles = [
         'create_master_tables.sql',
+        'create_tenant_users_table.sql',
         'create_voters_table.sql',
         'create_campaign_settings_tables.sql',
         'create_tenant_user_roles_table.sql',
         'add_can_create_roles_to_tenant_user_roles.sql',
+        'create_user_synced_contacts_table.sql',
       ];
 
       const migrationsDir = path.join(__dirname, '../database/migrations');
@@ -138,6 +141,9 @@ export class TenantDbProvisioner {
       `;
       await tenantPool.query(outboxTableSql);
 
+      // Seed campaign settings & WhatsApp templates for the newly provisioned tenant DB
+      await seedSettings(tenantDbName);
+
       logger.info(`[TenantProvisioner] Finished initializing schema for '${tenantDbName}'.`);
     } catch (err: any) {
       logger.error(`[TenantProvisioner] Failed to initialize schema on '${tenantDbName}':`, err);
@@ -151,8 +157,16 @@ export class TenantDbProvisioner {
    * Applies schema migrations to all active tenant databases
    */
   static async runMigrationsOnAllTenants(): Promise<void> {
+    const tableCheck = await mainQuery(
+      `SELECT to_regclass('public.tenants') IS NOT NULL AS exists`
+    );
+    if (!tableCheck.rows?.[0]?.exists) {
+      logger.info('[TenantProvisioner] `tenants` table does not exist yet. Skipping tenant migration pass.');
+      return;
+    }
+
     const tenants = await mainQuery(
-      `SELECT tenant_db_name AS db_name FROM tenant_assignments WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`
+      `SELECT tenant_db_name AS db_name FROM tenants WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`
     );
 
     if (!tenants.rows || tenants.rows.length === 0) {

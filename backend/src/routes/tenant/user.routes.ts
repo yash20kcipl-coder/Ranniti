@@ -2,6 +2,7 @@ import {
   createAdminUserSchema,
   updateAdminUserSchema,
   getAdminUserByIdSchema,
+  updateAdminUserStatusSchema,
 } from '../../schemas/admin_user.schema';
 import { Router } from 'express';
 import { validate } from '../../middlewares/validate.middleware';
@@ -17,6 +18,21 @@ router.get('/volunteers', requireSubLeader, adminUserController.getVolunteers);
 router.get('/volunteers/coverage', requireSubLeader, adminUserController.getVolunteerBoothCoverage);
 
 router.get('/team', requireSubLeader, adminUserController.getTeamMembers);
+
+// Dedicated status toggle / update routes
+router.patch(
+  '/volunteers/:id/status',
+  requireSubLeader,
+  validate(updateAdminUserStatusSchema),
+  adminUserController.toggleVolunteerStatus
+);
+
+router.patch(
+  '/:id/status',
+  requireSubLeader,
+  validate(updateAdminUserStatusSchema),
+  adminUserController.toggleVolunteerStatus
+);
 
 router
   .route('/')

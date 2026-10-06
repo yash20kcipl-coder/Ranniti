@@ -34,6 +34,7 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
           uri={voter.image}
           placeholderType="avatar"
           style={styles.voterPhoto}
+          name={englishName || hindiName}
           containerStyles={styles.avatarContainer}
         />
 

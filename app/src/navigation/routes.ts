@@ -1,7 +1,6 @@
 import { SCREENS } from './constants';
 import Splash from '../screens/Splash';
 import Login from '../screens/AuthModule/Login';
-import ProfileOption from '../screens/AuthModule/ProfileOption';
 import ForgotPassword from '../screens/AuthModule/ForgotPassword';
 import ContactSupport from '../screens/AuthModule/ContactSupport';
 import AddEditVoterScreen from '../screens/VoterModule/AddEditVoterScreen';
@@ -14,10 +13,6 @@ export const routes = [
   {
     name: SCREENS.LOGIN,
     component: Login,
-  },
-  {
-    name: SCREENS.PROFILE_OPTION,
-    component: ProfileOption,
   },
   {
     name: SCREENS.FORGOT_PASSWORD,

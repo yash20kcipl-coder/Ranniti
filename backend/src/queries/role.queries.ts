@@ -21,7 +21,7 @@ export class RoleQueries {
               COALESCE(COUNT(ta.id), 0)::int AS "tenantCount",
               tr.created_at AS "createdAt", tr.updated_at AS "updatedAt"
        FROM tenant_roles tr
-       LEFT JOIN tenant_assignments ta ON ta.tenant_role_id = tr.id
+       LEFT JOIN tenants ta ON ta.tenant_role_id = tr.id
        GROUP BY tr.id
        ORDER BY tr.is_default DESC, tr.created_at DESC`
     );

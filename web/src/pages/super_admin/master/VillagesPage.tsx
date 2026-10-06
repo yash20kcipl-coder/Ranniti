@@ -270,7 +270,7 @@ export const VillagesPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <PageHeader
         title="Villages"
         icon={<MapPin className="w-6 h-6 text-indigo-500" />}
@@ -300,16 +300,16 @@ export const VillagesPage: React.FC = () => {
           serverPagination={
             villagesPagination
               ? {
-                  page: villagesPagination.page,
-                  limit: villagesPagination.limit,
-                  total: villagesPagination.total,
-                  totalPages: villagesPagination.totalPages,
-                  onPageChange: (newPage) => setPage(newPage),
-                  onLimitChange: (newLimit) => {
-                    setLimit(newLimit);
-                    setPage(1);
-                  },
-                }
+                page: villagesPagination.page,
+                limit: villagesPagination.limit,
+                total: villagesPagination.total,
+                totalPages: villagesPagination.totalPages,
+                onPageChange: (newPage) => setPage(newPage),
+                onLimitChange: (newLimit) => {
+                  setLimit(newLimit);
+                  setPage(1);
+                },
+              }
               : undefined
           }
           actions={(row) => (

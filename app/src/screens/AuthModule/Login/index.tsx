@@ -21,8 +21,8 @@ const Login = ({ route }: any) => {
   const dispatch = useDispatch<any>();
   const [loading, setLoading] = useState(false);
   const [secureText, setSecureText] = useState(true);
-  const [password, setPassword] = useState("123456");
-  const [identifier, setIdentifier] = useState('9876543210');
+  const [password, setPassword] = useState("Yash8388#");
+  const [identifier, setIdentifier] = useState('7990088388');
   const { theme, styles } = useAppTheme<ReturnType<typeof loginStyles>>(loginStyles);
 
   const requestUserPermission = async () => {
@@ -46,6 +46,7 @@ const Login = ({ route }: any) => {
       <ScrollView
         isKeyboardAware
         style={styles.scrollView}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.scrollContent}
       >
         {/* Top Hero Section */}
@@ -86,7 +87,7 @@ const Login = ({ route }: any) => {
 
           <View style={styles.formContainer}>
             {/* Phone / Identifier Input */}
-            <View style={[styles.formContainer, { gap: 5 }]}>
+            <View style={[styles.formContainer, { gap: 0 }]}>
               <AppTextInput
                 icon="phone"
                 value={identifier}

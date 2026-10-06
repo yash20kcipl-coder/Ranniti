@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 const currentEnv = process.env.NODE_ENV || 'development';
 dotenv.config({ path: path.resolve(process.cwd(), `.env.${currentEnv}`) });
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
 
 const dbDialect = process.env.DB_DIALECT || 'postgres';
 const dbUser = process.env.DB_USER || 'postgres';

@@ -89,14 +89,176 @@ export class MasterQueries {
     });
   }
 
-  static async createCaste(name: string, category: string, religionId?: string, parentCasteId?: string): Promise<Caste> {
+  static async createCaste(
+    name: string,
+    category: string,
+    religionId?: string,
+    parentCasteId?: string,
+    religionName?: string,
+    parentCasteName?: string
+  ): Promise<Caste> {
+    let targetReligionId = religionId || null;
+    if (!targetReligionId && religionName && religionName.trim()) {
+      const cleanRelName = religionName.trim();
+      const existingRel = await query(`SELECT id FROM religions WHERE LOWER(name) = LOWER($1)`, [cleanRelName]);
+      if (existingRel.rows[0]) {
+        targetReligionId = existingRel.rows[0].id;
+      } else {
+        const newRel = await query(
+          `INSERT INTO religions (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET updated_at = NOW() RETURNING id`,
+          [cleanRelName]
+        );
+        targetReligionId = newRel.rows[0].id;
+        await CacheService.invalidatePattern('ranniti:masters:religions*');
+      }
+    }
+
+    let targetParentCasteId = parentCasteId || null;
+    if (!targetParentCasteId && parentCasteName && parentCasteName.trim()) {
+      const cleanParentName = parentCasteName.trim();
+      const existingParent = await query(`SELECT id FROM castes WHERE LOWER(name) = LOWER($1)`, [cleanParentName]);
+      if (existingParent.rows[0]) {
+        targetParentCasteId = existingParent.rows[0].id;
+      } else {
+        const newParent = await query(
+          `INSERT INTO castes (name, category, religion_id) VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET updated_at = NOW() RETURNING id`,
+          [cleanParentName, category || 'General', targetReligionId]
+        );
+        targetParentCasteId = newParent.rows[0].id;
+      }
+    }
+
     const res = await query(
       `INSERT INTO castes (name, category, religion_id, parent_caste_id) 
        VALUES ($1, $2, $3, $4) 
+       ON CONFLICT (name) DO UPDATE SET
+         category = EXCLUDED.category,
+         religion_id = COALESCE(EXCLUDED.religion_id, castes.religion_id),
+         parent_caste_id = COALESCE(EXCLUDED.parent_caste_id, castes.parent_caste_id),
+         updated_at = NOW()
        RETURNING id, name, category, religion_id AS "religionId", parent_caste_id AS "parentCasteId", created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [name, category, religionId || null, parentCasteId || null]
+      [name, category || 'General', targetReligionId, targetParentCasteId]
     );
+    await CacheService.invalidatePattern('ranniti:masters:castes*');
     return res.rows[0];
+  }
+
+  static async upsertReligionByName(name: string): Promise<string | null> {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return null;
+
+    const existing = await query(
+      `SELECT id FROM religions WHERE LOWER(TRIM(name)) = LOWER($1) LIMIT 1`,
+      [cleanName]
+    );
+    if (existing.rows[0]) {
+      return existing.rows[0].id;
+    }
+
+    try {
+      const inserted = await query(
+        `INSERT INTO religions (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET updated_at = NOW() RETURNING id`,
+        [cleanName]
+      );
+      await CacheService.invalidatePattern('ranniti:masters:religions*');
+      return inserted.rows[0]?.id || null;
+    } catch {
+      const fallback = await query(
+        `SELECT id FROM religions WHERE LOWER(TRIM(name)) = LOWER($1) LIMIT 1`,
+        [cleanName]
+      );
+      return fallback.rows[0]?.id || null;
+    }
+  }
+
+  static async upsertCasteByName(
+    name: string,
+    religionId?: string | null,
+    category: string = 'General'
+  ): Promise<string | null> {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return null;
+
+    // Check if caste already exists (as primary caste)
+    const existing = await query(
+      `SELECT id, religion_id FROM castes WHERE LOWER(TRIM(name)) = LOWER($1) AND parent_caste_id IS NULL LIMIT 1`,
+      [cleanName]
+    );
+    if (existing.rows[0]) {
+      if (!existing.rows[0].religion_id && religionId) {
+        await query(`UPDATE castes SET religion_id = $1, updated_at = NOW() WHERE id = $2`, [religionId, existing.rows[0].id]);
+        await CacheService.invalidatePattern('ranniti:masters:castes*');
+      }
+      return existing.rows[0].id;
+    }
+
+    try {
+      const inserted = await query(
+        `INSERT INTO castes (name, category, religion_id, parent_caste_id) 
+         VALUES ($1, $2, $3, NULL) 
+         ON CONFLICT (name) DO UPDATE SET 
+           religion_id = COALESCE(castes.religion_id, EXCLUDED.religion_id),
+           updated_at = NOW()
+         RETURNING id`,
+        [cleanName, category || 'General', religionId || null]
+      );
+      await CacheService.invalidatePattern('ranniti:masters:castes*');
+      return inserted.rows[0]?.id || null;
+    } catch {
+      const fallback = await query(
+        `SELECT id FROM castes WHERE LOWER(TRIM(name)) = LOWER($1) LIMIT 1`,
+        [cleanName]
+      );
+      return fallback.rows[0]?.id || null;
+    }
+  }
+
+  static async upsertSubcasteByName(
+    name: string,
+    parentCasteId?: string | null,
+    religionId?: string | null
+  ): Promise<string | null> {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return null;
+
+    if (parentCasteId) {
+      const existing = await query(
+        `SELECT id FROM castes WHERE LOWER(TRIM(name)) = LOWER($1) AND parent_caste_id = $2 LIMIT 1`,
+        [cleanName, parentCasteId]
+      );
+      if (existing.rows[0]) {
+        return existing.rows[0].id;
+      }
+    } else {
+      const existing = await query(
+        `SELECT id FROM castes WHERE LOWER(TRIM(name)) = LOWER($1) AND parent_caste_id IS NOT NULL LIMIT 1`,
+        [cleanName]
+      );
+      if (existing.rows[0]) {
+        return existing.rows[0].id;
+      }
+    }
+
+    try {
+      const inserted = await query(
+        `INSERT INTO castes (name, category, religion_id, parent_caste_id) 
+         VALUES ($1, $2, $3, $4) 
+         ON CONFLICT (name) DO UPDATE SET 
+           parent_caste_id = COALESCE(castes.parent_caste_id, EXCLUDED.parent_caste_id),
+           religion_id = COALESCE(castes.religion_id, EXCLUDED.religion_id),
+           updated_at = NOW()
+         RETURNING id`,
+        [cleanName, 'General', religionId || null, parentCasteId || null]
+      );
+      await CacheService.invalidatePattern('ranniti:masters:castes*');
+      return inserted.rows[0]?.id || null;
+    } catch {
+      const fallback = await query(
+        `SELECT id FROM castes WHERE LOWER(TRIM(name)) = LOWER($1) LIMIT 1`,
+        [cleanName]
+      );
+      return fallback.rows[0]?.id || null;
+    }
   }
 
   // --- STATES ---
@@ -638,11 +800,13 @@ export class MasterQueries {
        RETURNING id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null, abbreviation || null, symbolLogo || null, alliance || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:parties*');
     return res.rows[0] || null;
   }
 
   static async deleteParty(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM parties WHERE id = $1 RETURNING id`, [id]);
+    await CacheService.invalidatePattern('ranniti:masters:parties*');
     return (res.rowCount || 0) > 0;
   }
 
@@ -1106,11 +1270,13 @@ export class MasterQueries {
        RETURNING id, name, category, religion_id AS "religionId", parent_caste_id AS "parentCasteId", created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null, category || null, religionId || null, parentCasteId || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:castes*');
     return res.rows[0] || null;
   }
 
   static async deleteCaste(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM castes WHERE id = $1 RETURNING id`, [id]);
+    await CacheService.invalidatePattern('ranniti:masters:castes*');
     return (res.rowCount || 0) > 0;
   }
 
@@ -1125,11 +1291,13 @@ export class MasterQueries {
        RETURNING id, name, code, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null, code || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:states*');
     return res.rows[0] || null;
   }
 
   static async deleteState(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM states WHERE id = $1 RETURNING id`, [id]);
+    await CacheService.invalidatePattern('ranniti:masters:states*');
     return (res.rowCount || 0) > 0;
   }
 
@@ -1144,11 +1312,13 @@ export class MasterQueries {
        RETURNING id, state_id AS "stateId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null, stateId || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:districts*');
     return res.rows[0] || null;
   }
 
   static async deleteDistrict(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM districts WHERE id = $1 RETURNING id`, [id]);
+    await CacheService.invalidatePattern('ranniti:masters:districts*');
     return (res.rowCount || 0) > 0;
   }
 
@@ -1164,11 +1334,13 @@ export class MasterQueries {
        RETURNING id, state_id AS "stateId", pc_number AS "pcNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null, pcNumber || null, stateId || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:pcs*');
     return res.rows[0] || null;
   }
 
   static async deletePc(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM parliamentary_constituencies WHERE id = $1 RETURNING id`, [id]);
+    await CacheService.invalidatePattern('ranniti:masters:pcs*');
     return (res.rowCount || 0) > 0;
   }
 
@@ -1185,11 +1357,13 @@ export class MasterQueries {
        RETURNING id, pc_id AS "pcId", district_id AS "districtId", ac_number AS "acNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null, acNumber || null, pcId || null, districtId || null]
     );
+    await CacheService.invalidatePattern('ranniti:masters:acs*');
     return res.rows[0] || null;
   }
 
   static async deleteAc(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM assembly_constituencies WHERE id = $1 RETURNING id`, [id]);
+    await CacheService.invalidatePattern('ranniti:masters:acs*');
     return (res.rowCount || 0) > 0;
   }
 }

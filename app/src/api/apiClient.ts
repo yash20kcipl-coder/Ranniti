@@ -7,7 +7,7 @@ import { LOG_OUT } from '../store/reducers/auth';
 import { SCREENS } from '../navigation/constants';
 import { reset } from '../navigation/navigationUtils';
 
-const BaseUrl = `${Url.BaseUrl}/api/`;
+const BaseUrl = `${Url.BaseUrl}/api/v1`;
 
 const apiClient = axios.create({
     baseURL: BaseUrl,
@@ -40,14 +40,14 @@ const triggerAutoLogout = async () => {
         store.dispatch({ type: LOG_OUT });
 
         // 4. Perform forced redirect back to system landing gateway
-        reset(SCREENS.PROFILE_OPTION);
+        reset(SCREENS.LOGIN);
 
         // 5. Report status nicely to user without emojis
         toast.error("Your session has expired. Please log in again.");
     } catch (e) {
         console.error("💥 Auto-logout routine blowing up:", e);
         // Absolute terminal fallback redirect
-        reset(SCREENS.PROFILE_OPTION);
+        reset(SCREENS.LOGIN);
     } finally {
         // Cool-down: Reset lock after 3 seconds once system settles on Login landing scope
         setTimeout(() => {

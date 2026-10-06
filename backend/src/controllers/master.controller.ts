@@ -57,8 +57,8 @@ export class MasterController {
   });
 
   createCaste = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { name, category, religionId, parentCasteId } = req.body;
-    const caste = await masterService.createCaste(name, category, religionId, parentCasteId);
+    const { name, category, religionId, religionName, parentCasteId, parentCasteName } = req.body;
+    const caste = await masterService.createCaste(name, category, religionId, parentCasteId, religionName, parentCasteName);
     const response = ApiResponse.success(caste, 'Caste created successfully', 201);
     res.status(response.statusCode).json(response.body);
   });

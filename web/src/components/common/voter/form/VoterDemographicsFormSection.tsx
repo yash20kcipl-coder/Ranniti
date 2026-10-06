@@ -6,8 +6,11 @@ import type { Option } from '@/components/common/FormInput';
 
 export interface VoterDemographicsFormSectionProps {
   formData: any;
-  casteOptions: Option[];
-  religionOptions: Option[];
+  religionSuggestions?: string[];
+  casteSuggestions?: string[];
+  subcasteSuggestions?: string[];
+  casteOptions?: Option[];
+  religionOptions?: Option[];
   errors: Record<string, string>;
   handleChange: (e: any) => void;
 }
@@ -16,9 +19,48 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
   formData,
   errors,
   handleChange,
-  religionOptions,
-  casteOptions,
+  religionSuggestions = [],
+  casteSuggestions = [],
+  subcasteSuggestions = [],
+  religionOptions = [],
+  casteOptions = [],
 }) => {
+  // Resolve unique autocomplete suggestion lists
+  const resolvedReligionSuggestions = React.useMemo(() => {
+    if (religionSuggestions.length > 0) return religionSuggestions;
+    return Array.from(new Set(
+      religionOptions
+        .map((o) => o.label)
+        .filter((l) => l && !l.toLowerCase().startsWith('select '))
+    ));
+  }, [religionSuggestions, religionOptions]);
+
+  const resolvedCasteSuggestions = React.useMemo(() => {
+    if (casteSuggestions.length > 0) return casteSuggestions;
+    return Array.from(new Set(
+      casteOptions
+        .map((o) => o.label)
+        .filter((l) => l && !l.toLowerCase().startsWith('select '))
+    ));
+  }, [casteSuggestions, casteOptions]);
+
+  const resolvedSubcasteSuggestions = React.useMemo(() => {
+    return Array.from(new Set((subcasteSuggestions || []).filter(Boolean)));
+  }, [subcasteSuggestions]);
+
+  // Current display values with fallbacks to mapped labels
+  const religionDisplayValue =
+    formData.religionName ||
+    formData.religion ||
+    religionOptions.find((r) => String(r.value) === String(formData.religionId))?.label ||
+    '';
+
+  const casteDisplayValue =
+    formData.casteName ||
+    formData.caste ||
+    casteOptions.find((c) => String(c.value) === String(formData.casteId))?.label ||
+    '';
+
   return (
     <SectionContainer
       icon={<Phone size={18} />}
@@ -51,28 +93,35 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <FormInput
           label="Religion"
-          type="select"
-          name="religionId"
-          value={formData.religionId}
+          type="autocomplete"
+          name="religion"
+          value={religionDisplayValue}
           onChange={handleChange}
-          options={[{ label: 'Select Religion', value: '' }, ...religionOptions]}
+          placeholder="Select or type Religion"
+          suggestions={resolvedReligionSuggestions}
+          error={errors.religion || errors.religionId}
         />
 
         <FormInput
           label="Caste / Community"
-          type="select"
-          name="casteId"
-          value={formData.casteId}
+          type="autocomplete"
+          name="caste"
+          value={casteDisplayValue}
           onChange={handleChange}
-          options={[{ label: 'Select Caste', value: '' }, ...casteOptions]}
+          placeholder="Select or type Caste"
+          suggestions={resolvedCasteSuggestions}
+          error={errors.caste || errors.casteId}
         />
 
         <FormInput
           label="Subcaste / Category"
+          type="autocomplete"
           name="subcasteName"
-          value={formData.subcasteName}
+          value={formData.subcasteName || ''}
           onChange={handleChange}
-          placeholder="e.g. Deshastha, Maratha"
+          placeholder="Select or type Subcaste"
+          suggestions={resolvedSubcasteSuggestions}
+          error={errors.subcasteName}
         />
       </div>
 

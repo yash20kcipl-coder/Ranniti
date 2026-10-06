@@ -126,6 +126,7 @@ export interface VoterFilterParams {
   acIds?: string[];
   tenantDbName?: string | null;
   boothId?: string;
+  boothIds?: string[];
   sectionNo?: number | string;
   gender?: string;
   voterType?: string;

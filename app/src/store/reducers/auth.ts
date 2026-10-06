@@ -81,6 +81,8 @@ const initialState = {
   selectedStudentId: null,
 };
 
+export const SET_ACCESS_CONFIG = "SET_ACCESS_CONFIG";
+
 const authReducer = (state = initialState, action: any) => {
   switch (action.type) {
     case SET_AUTH_LOADING:
@@ -91,15 +93,22 @@ const authReducer = (state = initialState, action: any) => {
     case LOG_IN:
       return {
         ...state,
-        token: action.payload.token || 'demo-jwt-token',
-        role: action.payload.role || 'pc_leader',
-        user: action.payload.user || DEMO_USERS.pc_leader,
+        role: action.payload.role,
+        user: action.payload.user,
+        token: action.payload.token,
+        access: action.payload.access,
         isLoggedIn: true,
       };
     case SET_USER_PROFILE:
       return {
         ...state,
         user: action.payload,
+        role: action.payload?.role || state.role,
+      };
+    case SET_ACCESS_CONFIG:
+      return {
+        ...state,
+        access: action.payload,
       };
     case LOG_OUT:
       return {
@@ -107,6 +116,7 @@ const authReducer = (state = initialState, action: any) => {
         isLoggedIn: false,
         token: null,
         user: null,
+        access: null,
       };
     default:
       return state;

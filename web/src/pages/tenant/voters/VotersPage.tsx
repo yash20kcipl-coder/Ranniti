@@ -170,10 +170,7 @@ export const VotersPage: React.FC = () => {
       prevStatsScopeRef.current.districtId !== districtId ||
       prevStatsScopeRef.current.stateId !== stateId;
 
-    if (statsScopeChanged) {
-      prevStatsScopeRef.current = { boothId, acId, pcId, districtId, stateId };
-      dispatch(fetchVoterStats(cleanParams({ boothId, acId, pcId, districtId, stateId })));
-    }
+    dispatch(fetchVoterStats(params));
   }, 200, [dispatch, page, limit, filterParams]);
 
   const handleOpenDelete = (voter: any) => {
@@ -211,12 +208,13 @@ export const VotersPage: React.FC = () => {
   };
 
   const handleResetFilters = () => {
-    isInitialMountRef.current = false;
-    resetFilters();
+    resetFilters(initialVoterFilters);
     setFamilyInfluencers([]);
     setSocialInfluencers([]);
     dispatch(setVoterBoothOptions([]));
     dispatch(setVoterFilters(initialVoterFilters));
+    dispatch(fetchVotersData({ page: 1, limit }));
+    dispatch(fetchVoterStats({}));
   };
 
   // ─── Filter Config ────────────────────────────────────────────────────────────

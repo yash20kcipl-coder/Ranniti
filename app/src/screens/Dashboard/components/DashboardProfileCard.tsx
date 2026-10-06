@@ -34,16 +34,15 @@ export const DashboardProfileCard: React.FC<DashboardProfileCardProps> = ({
   const { t } = useLanguage();
   const { theme, styles } = useAppTheme(createStyles);
 
-  const userName = user?.name || 'Campaign Leader';
+  const userName = user?.name || 'NA';
+  const userAvatar = user?.avatar || user?.profilePic;
   const roleName = user?.roleName || user?.role || t('pcLeader');
   const locationName =
     user?.assignedPcName ||
     user?.assignedPc ||
     user?.assignedAcName ||
     user?.assignedAc ||
-    'Jaipur Constituency';
-
-  const userAvatar = user?.avatar || user?.profilePic;
+    'NA';
 
   return (
     <TouchableOpacity
@@ -54,9 +53,10 @@ export const DashboardProfileCard: React.FC<DashboardProfileCardProps> = ({
       <View style={styles.contentRow}>
         <View style={styles.avatarWrapper}>
           <SafeImage
+            name={userName}
             uri={userAvatar}
-            placeholderType="avatar"
             style={styles.avatar}
+            placeholderType="avatar"
             containerStyles={styles.avatarContainer}
           />
           <View style={styles.onlineBadge} />

@@ -30,7 +30,13 @@ export const ProfileScreen: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentPadding}>
       <View style={styles.profileHeaderCard}>
-        <SafeImage src={user?.avatar} alt={user?.name || 'User'} style={styles.avatar} />
+        <SafeImage
+          src={user?.avatar}
+          name={user?.name}
+          style={styles.avatar}
+          placeholderType="avatar"
+          alt={user?.name || 'User'}
+        />
         <Text style={styles.userName}>{user?.name || 'Campaign Leader'}</Text>
         <View style={styles.roleBadge}>
           <Shield size={12} color="#1E40AF" />

@@ -87,10 +87,10 @@ export const WardsPage: React.FC = () => {
     const raw = districtId
       ? acsData.filter((a: any) => String(a.districtId) === String(districtId))
       : pcId
-      ? acsData.filter((a: any) => String(a.pcId) === String(pcId))
-      : stateId
-      ? acsData.filter((a: any) => String(a.stateId) === String(stateId))
-      : acsData;
+        ? acsData.filter((a: any) => String(a.pcId) === String(pcId))
+        : stateId
+          ? acsData.filter((a: any) => String(a.stateId) === String(stateId))
+          : acsData;
     return raw.map((a: any) => ({ label: a.name, value: a.id }));
   }, [acsData, districtId, pcId, stateId]);
 
@@ -291,7 +291,7 @@ export const WardsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <PageHeader
         title="Wards (Prabhags)"
         icon={<Layers className="w-6 h-6 text-indigo-500" />}
@@ -321,16 +321,16 @@ export const WardsPage: React.FC = () => {
           serverPagination={
             wardsPagination
               ? {
-                  page: wardsPagination.page,
-                  limit: wardsPagination.limit,
-                  total: wardsPagination.total,
-                  totalPages: wardsPagination.totalPages,
-                  onPageChange: (newPage) => setPage(newPage),
-                  onLimitChange: (newLimit) => {
-                    setLimit(newLimit);
-                    setPage(1);
-                  },
-                }
+                page: wardsPagination.page,
+                limit: wardsPagination.limit,
+                total: wardsPagination.total,
+                totalPages: wardsPagination.totalPages,
+                onPageChange: (newPage) => setPage(newPage),
+                onLimitChange: (newLimit) => {
+                  setLimit(newLimit);
+                  setPage(1);
+                },
+              }
               : undefined
           }
           actions={(row) => (

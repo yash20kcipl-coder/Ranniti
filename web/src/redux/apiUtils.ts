@@ -1,6 +1,7 @@
 import toast from 'react-hot-toast';
-import { Loading, PageLoader } from './actions/loader';
+import { Log_Out } from './actions/auth';
 import type { AppDispatch } from './store';
+import { Loading, PageLoader } from './actions/loader';
 
 export const commonTimeout = 20000;
 export const uploadTimeout = 60000;
@@ -96,6 +97,10 @@ export const errorHandler = (error: any, params?: any) => {
     if (status === 401) {
       toast.error('Session expired. Please sign in to continue.');
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (dispatch) {
+        dispatch({ type: Log_Out, data: true });
+      }
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

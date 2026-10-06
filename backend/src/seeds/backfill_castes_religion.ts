@@ -6,8 +6,8 @@
  */
 import path from 'path';
 import ExcelJS from 'exceljs';
-import { query, closeDbPool } from '../queries/dbPool';
 import { logger } from '../utils/logger';
+import { query, closeDbPool } from '../queries/dbPool';
 
 async function main() {
   const xlsxPath = path.resolve(process.cwd(), '../xlsx/castes_subcastes.xlsx');

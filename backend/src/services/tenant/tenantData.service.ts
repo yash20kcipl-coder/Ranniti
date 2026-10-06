@@ -31,11 +31,10 @@ export class TenantDataService {
   async getTenantProfile(userId: string): Promise<TenantProfile> {
     return CacheService.getOrSet(`ranniti:tenant:profile:${userId}`, 3600, async () => {
       const userRes = await mainQuery(
-        `SELECT u.id, u.name, u.email, u.role, u.status, u.tenant_db_name,
+        `SELECT t.id, t.name, t.email, 'tenant_admin' AS role, t.status, t.tenant_db_name,
                 t.organization_name, t.pc_ids, t.ac_ids
-         FROM admin_users u
-         LEFT JOIN tenant_assignments t ON t.user_id = u.id
-         WHERE u.id = $1`,
+         FROM tenants t
+         WHERE t.id = $1`,
         [userId]
       );
 
@@ -85,9 +84,8 @@ export class TenantDataService {
         }
 
         // 3. Total active volunteers assigned to this tenant
-        const volunteersCountRes = await mainQuery(
-          `SELECT COUNT(*)::int as total FROM admin_users WHERE tenant_db_name = $1 AND role IN ('pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter')`,
-          [tenantDbName]
+        const volunteersCountRes = await tenantPool.query(
+          `SELECT COUNT(*)::int as total FROM tenant_users WHERE role IN ('pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter')`
         );
         const totalVolunteers = volunteersCountRes.rows[0]?.total || 0;
 

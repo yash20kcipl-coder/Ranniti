@@ -158,7 +158,7 @@ export const loginStyles = (theme: Theme, insets: any) =>
     },
     forgotBtn: {
       alignSelf: 'flex-end',
-      paddingVertical: 4,
+      paddingVertical: 10,
     },
     forgotText: {
       fontSize: rfValue(15),

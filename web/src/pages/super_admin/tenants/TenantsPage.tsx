@@ -57,11 +57,12 @@ export const TenantsPage: React.FC = () => {
 
   const confirmToggleStatus = async () => {
     if (!selectedTenantForStatus) return;
-    const newStatus = selectedTenantForStatus.accountStatus === 'active' ? 'inactive' : 'active';
+    const currentStatus = selectedTenantForStatus.status || selectedTenantForStatus.accountStatus;
+    const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
     setTogglingStatus(true);
     try {
       await dispatch(updateTenantStatus(selectedTenantForStatus.id, newStatus));
-      toast.success(`Tenant '${selectedTenantForStatus.organizationName}' ${newStatus === 'active' ? 'enabled' : 'disabled'}`);
+      toast.success(`Tenant '${selectedTenantForStatus.organizationName}' ${newStatus === 'active' ? 'enabled' : 'suspended'}`);
       setSelectedTenantForStatus(null);
     } catch (err: any) {
       toast.error('Failed to update status');
@@ -96,9 +97,10 @@ export const TenantsPage: React.FC = () => {
       t.organizationName?.toLowerCase().includes(q) ||
       t.tenantDbName?.toLowerCase().includes(q);
 
+    const tenantStatus = t.status || t.accountStatus;
     const matchesStatus =
       !statusFilter ||
-      t.accountStatus === statusFilter ||
+      tenantStatus === statusFilter ||
       t.provisioningStatus === statusFilter;
 
     return matchesSearch && matchesStatus;
@@ -106,9 +108,9 @@ export const TenantsPage: React.FC = () => {
 
   // KPI Metrics Calculation
   const totalTenants = tenants.length;
-  const activeTenants = tenants.filter((t) => t.accountStatus === 'active').length;
+  const activeTenants = tenants.filter((t) => (t.status || t.accountStatus) === 'active').length;
   const provisioningTenants = tenants.filter(
-    (t) => t.provisioningStatus === 'provisioning' || t.provisioningStatus === 'pending'
+    (t) => (t.status || t.provisioningStatus) === 'provisioning' || (t.status || t.provisioningStatus) === 'pending'
   ).length;
   const totalVotersManaged = tenants.reduce(
     (acc, curr) => acc + (Number(curr.totalVotersCopied) || 0),
@@ -117,7 +119,7 @@ export const TenantsPage: React.FC = () => {
 
   // Auto-poll provisioning status every 3s if any tenant is provisioning
   const hasProvisioningTenants = tenants.some(
-    (t: any) => t.provisioningStatus === 'provisioning' || t.provisioningStatus === 'pending'
+    (t: any) => (t.status || t.provisioningStatus) === 'provisioning' || (t.status || t.provisioningStatus) === 'pending'
   );
 
   React.useEffect(() => {
@@ -129,7 +131,7 @@ export const TenantsPage: React.FC = () => {
   }, [hasProvisioningTenants, dispatch]);
 
   const getStatusBadge = (tenant: any) => {
-    const status = tenant.provisioningStatus || tenant.accountStatus || 'pending';
+    const status = tenant.status || tenant.provisioningStatus || tenant.accountStatus || 'pending';
     const progress = tenant.provisioningProgress || 0;
 
     switch (status) {
@@ -258,7 +260,7 @@ export const TenantsPage: React.FC = () => {
       ),
     },
     {
-      key: 'accountStatus',
+      key: 'status',
       header: 'Status',
       render: (t) => getStatusBadge(t),
     },
@@ -360,26 +362,29 @@ export const TenantsPage: React.FC = () => {
           loading={loading}
           showHeader={false}
           searchPlaceholder="Search tenants..."
-          actions={(t) => (
-            <TableActions
-              onView={() => navigate(`/dashboard/tenants/${t.id}`)}
-              onEdit={() => navigate(`/dashboard/tenants/${t.id}/edit`)}
-              onDelete={() => setSelectedTenantForDelete(t)}
-              extra={
-                <TableActionButton
-                  variant="custom"
-                  onClick={() => handleToggleStatus(t)}
-                  icon={Power}
-                  title={t.accountStatus === 'active' ? 'Disable Tenant' : 'Enable Tenant'}
-                  className={
-                    t.accountStatus === 'active'
-                      ? 'bg-amber-50/90 text-amber-600 border border-amber-200/90 hover:bg-amber-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-amber-500/80 dark:hover:text-white'
-                      : 'bg-emerald-50/90 text-emerald-600 border border-emerald-200/90 hover:bg-emerald-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-emerald-500/80 dark:hover:text-white'
-                  }
-                />
-              }
-            />
-          )}
+          actions={(t) => {
+            const isActive = (t.status || t.accountStatus) === 'active';
+            return (
+              <TableActions
+                onView={() => navigate(`/dashboard/tenants/${t.id}`)}
+                onEdit={() => navigate(`/dashboard/tenants/${t.id}/edit`)}
+                onDelete={() => setSelectedTenantForDelete(t)}
+                extra={
+                  <TableActionButton
+                    variant="custom"
+                    onClick={() => handleToggleStatus(t)}
+                    icon={Power}
+                    title={isActive ? 'Suspend Tenant' : 'Activate Tenant'}
+                    className={
+                      isActive
+                        ? 'bg-amber-50/90 text-amber-600 border border-amber-200/90 hover:bg-amber-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-amber-500/80 dark:hover:text-white'
+                        : 'bg-emerald-50/90 text-emerald-600 border border-emerald-200/90 hover:bg-emerald-600 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-emerald-500/80 dark:hover:text-white'
+                    }
+                  />
+                }
+              />
+            );
+          }}
         />
       </div>
 
@@ -404,16 +409,16 @@ export const TenantsPage: React.FC = () => {
         isOpen={Boolean(selectedTenantForStatus)}
         onClose={() => setSelectedTenantForStatus(null)}
         onConfirm={confirmToggleStatus}
-        title={selectedTenantForStatus?.accountStatus === 'active' ? 'Disable Tenant?' : 'Enable Tenant?'}
+        title={(selectedTenantForStatus?.status || selectedTenantForStatus?.accountStatus) === 'active' ? 'Suspend Tenant?' : 'Activate Tenant?'}
         description={
           selectedTenantForStatus
-            ? selectedTenantForStatus.accountStatus === 'active'
-              ? `This will deactivate '${selectedTenantForStatus.organizationName}'. The tenant will lose access to their account until re-enabled.`
-              : `This will re-activate '${selectedTenantForStatus.organizationName}'. The tenant will regain full access to their account.`
+            ? (selectedTenantForStatus.status || selectedTenantForStatus.accountStatus) === 'active'
+              ? `This will suspend '${selectedTenantForStatus.organizationName}'. The tenant will lose access to their account until re-activated.`
+              : `This will activate '${selectedTenantForStatus.organizationName}'. The tenant will regain full access to their account.`
             : ''
         }
-        confirmText={selectedTenantForStatus?.accountStatus === 'active' ? 'Yes, Disable' : 'Yes, Enable'}
-        variant={selectedTenantForStatus?.accountStatus === 'active' ? 'warning' : 'success'}
+        confirmText={(selectedTenantForStatus?.status || selectedTenantForStatus?.accountStatus) === 'active' ? 'Yes, Suspend' : 'Yes, Activate'}
+        variant={(selectedTenantForStatus?.status || selectedTenantForStatus?.accountStatus) === 'active' ? 'warning' : 'success'}
         isLoading={togglingStatus}
       />
     </div>

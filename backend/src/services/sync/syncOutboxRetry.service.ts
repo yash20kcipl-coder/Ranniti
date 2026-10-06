@@ -7,6 +7,11 @@ export class SyncOutboxRetryService {
   private static isProcessing = false;
   private static retryIntervalTimer: NodeJS.Timeout | null = null;
 
+  // Circuit breaker state — prevents hammering a dead DB pool
+  private static consecutiveFailures = 0;
+  private static backoffUntil: number = 0;
+  private static readonly MAX_BACKOFF_MS = 5 * 60 * 1000; // 5 minutes cap
+
   /**
    * Process pending outbox sync items for a single tenant database
    */
@@ -99,12 +104,32 @@ export class SyncOutboxRetryService {
    */
   static async processAllTenantsOutbox(): Promise<void> {
     if (this.isProcessing) return;
+
+    // Circuit breaker: skip if we are in a backoff window
+    if (Date.now() < this.backoffUntil) {
+      const remaining = Math.ceil((this.backoffUntil - Date.now()) / 1000);
+      logger.warn(`[SyncOutboxRetry] Circuit breaker open — skipping outbox run (backoff ${remaining}s remaining)`);
+      return;
+    }
+
     this.isProcessing = true;
 
     try {
-      const activeTenants = await masterQuery(
-        `SELECT tenant_db_name AS db_name FROM tenant_assignments WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`
+      // Fast O(1) table existence check using Postgres system catalog (avoids slow information_schema scan)
+      const tableCheck = await masterQuery(
+        `SELECT to_regclass('public.tenants') IS NOT NULL AS exists`
       );
+      if (!tableCheck.rows?.[0]?.exists) {
+        return;
+      }
+
+      const activeTenants = await masterQuery(
+        `SELECT tenant_db_name AS db_name FROM tenants WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`
+      );
+
+      // Reset circuit breaker on successful master DB query
+      this.consecutiveFailures = 0;
+
       for (const tenant of activeTenants.rows) {
         try {
           const count = await this.processTenantOutbox(tenant.db_name);
@@ -116,7 +141,17 @@ export class SyncOutboxRetryService {
         }
       }
     } catch (err: any) {
-      logger.error('[SyncOutboxRetry] Error fetching active tenants for outbox retry:', err);
+      this.consecutiveFailures++;
+      // Exponential backoff: 10s, 20s, 40s, 80s ... capped at MAX_BACKOFF_MS
+      const backoffMs = Math.min(
+        10_000 * Math.pow(2, this.consecutiveFailures - 1),
+        this.MAX_BACKOFF_MS
+      );
+      this.backoffUntil = Date.now() + backoffMs;
+      logger.error(
+        `[SyncOutboxRetry] Error fetching active tenants (failure #${this.consecutiveFailures}) — backing off for ${backoffMs / 1000}s:`,
+        err
+      );
     } finally {
       this.isProcessing = false;
     }

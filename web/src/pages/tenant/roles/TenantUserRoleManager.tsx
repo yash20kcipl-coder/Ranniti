@@ -183,7 +183,7 @@ export const TenantUserRoleManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6">
       {/* Page Header Standard */}
       <PageHeader
         title="Field Roles & Volunteer Permissions"

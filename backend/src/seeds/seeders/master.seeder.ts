@@ -12,6 +12,8 @@ import { query } from '../../queries/dbPool';
 import { CacheService } from '../../services/cache.service';
 import { masterService } from '../../services/superAdmin/master.service';
 import { initialPcs, initialAcs, initialWards, initialTalukas, initialVillages, initialBooths } from '../data/geography.seed';
+import { seedSettings } from './setting.seeder';
+import { seedParties } from './party.seeder';
 
 export const seedMasters = async (): Promise<void> => {
   logger.info('Resetting & Cleaning All Database Tables & Redis Cache...');
@@ -21,7 +23,7 @@ export const seedMasters = async (): Promise<void> => {
   try {
     await query(`
       DROP TABLE IF EXISTS voters CASCADE;
-      DROP TABLE IF EXISTS tenant_assignments CASCADE;
+      DROP TABLE IF EXISTS tenants CASCADE;
       DROP TABLE IF EXISTS campaign_settings CASCADE;
       DROP TABLE IF EXISTS whatsapp_templates CASCADE;
       DROP TABLE IF EXISTS admin_users CASCADE;
@@ -49,7 +51,7 @@ export const seedMasters = async (): Promise<void> => {
     'create_master_tables.sql',
     'create_roles_and_permissions_tables.sql',
     'create_admin_users_table.sql',
-    'create_tenant_assignments_table.sql',
+    'create_tenants_table.sql',
     'create_campaign_settings_tables.sql',
     'create_voters_table.sql',
   ];
@@ -66,81 +68,11 @@ export const seedMasters = async (): Promise<void> => {
     }
   }
 
-  // Seed Religions
-  const existingReligions = await masterService.getReligions();
-  const existingReligionNames = new Set(existingReligions.map((r) => r.name.toLowerCase()));
-
-  for (const rel of initialReligions) {
-    if (existingReligionNames.has(rel.name.toLowerCase())) {
-      continue;
-    }
-    try {
-      await masterService.createReligion(rel.name);
-      existingReligionNames.add(rel.name.toLowerCase());
-      logger.info(`Seeded Religion: ${rel.name}`);
-    } catch (err: any) {
-      logger.warn(`Skipped Religion '${rel.name}': ${err.message}`);
-    }
-  }
-
-  // Seed Castes & Subcastes
-  const religions = await masterService.getReligions();
-  const relNameToIdMap = new Map<string, string>();
-  for (const r of religions) {
-    relNameToIdMap.set(r.name, r.id);
-  }
-
-  const existingCastesList = await masterService.getCastes();
-  const casteNameToIdMap = new Map<string, string>();
-  for (const c of existingCastesList) {
-    casteNameToIdMap.set(c.name, c.id);
-  }
-
-  for (const caste of initialCastes) {
-    if (casteNameToIdMap.has(caste.name)) {
-      continue;
-    }
-    const parentCasteName = (caste as any).parentCasteName;
-    const parentCasteId = parentCasteName ? casteNameToIdMap.get(parentCasteName) : undefined;
-    const religionId = caste.religionName ? relNameToIdMap.get(caste.religionName) : undefined;
-
-    try {
-      const created = await masterService.createCaste(caste.name, caste.category as any, religionId, parentCasteId);
-      casteNameToIdMap.set(created.name, created.id);
-      logger.info(`Seeded Caste: ${caste.name} (${caste.category})`);
-
-      // Seed subcastes if provided
-      if (Array.isArray((caste as any).subcastes)) {
-        for (const subcasteName of (caste as any).subcastes) {
-          if (!casteNameToIdMap.has(subcasteName)) {
-            try {
-              const createdSub = await masterService.createCaste(subcasteName, caste.category as any, religionId, created.id);
-              casteNameToIdMap.set(createdSub.name, createdSub.id);
-              logger.info(`Seeded Subcaste: ${subcasteName} (Parent: ${caste.name})`);
-            } catch (err: any) {
-              logger.warn(`Skipped Subcaste '${subcasteName}': ${err.message}`);
-            }
-          }
-        }
-      }
-    } catch (err: any) {
-      logger.warn(`Skipped Caste '${caste.name}': ${err.message}`);
-    }
-  }
+  // Skipping automatic seeding of Religions & Castes to keep tables empty as requested
+  logger.info('Skipping automatic seeding of Religions & Castes.');
 
   // Seed Parties
-  for (const party of initialParties) {
-    try {
-      await query(
-        `INSERT INTO parties (name, abbreviation, symbol_logo) VALUES ($1, $2, $3)
-         ON CONFLICT (name) DO UPDATE SET abbreviation = EXCLUDED.abbreviation, symbol_logo = EXCLUDED.symbol_logo, updated_at = NOW()`,
-        [party.name, party.abbreviation, party.symbolLogo]
-      );
-      logger.info(`Seeded Party: ${party.abbreviation}`);
-    } catch (err: any) {
-      logger.warn(`Skipped Party '${party.abbreviation}': ${err.message}`);
-    }
-  }
+  await seedParties();
 
   // Seed States
   const existingStates = await masterService.getStates();
@@ -523,102 +455,8 @@ export const seedMasters = async (): Promise<void> => {
     WHERE v.booth_id = b.id AND b.ward_id IS NOT NULL AND (v.ward_id IS NULL OR v.ward_id != b.ward_id);
   `);
 
-  // Seed Campaign Settings if empty
-  try {
-    const csRes = await query(`SELECT id FROM campaign_settings LIMIT 1`);
-    if (csRes.rows.length === 0) {
-      await query(`
-        INSERT INTO campaign_settings (
-          candidate_name, party_name, party_symbol_url, candidate_photo_url,
-          polling_date, election_type, whatsapp_quality_rating, whatsapp_daily_limit,
-          whatsapp_waba_id, whatsapp_phone_number_id, fcm_project_id
-        ) VALUES (
-          'Rajesh Patil', 'Nationalist Congress Party', '/uploads/parties/ncp.png', '/uploads/avatars/leader.png',
-          '2026-11-20', 'Assembly', 'GREEN', '10K',
-          'WABA_1092837465', 'PHONE_919820011223', 'ranniti-campaign-2026'
-        )
-      `);
-      logger.info('Seeded default Campaign Settings.');
-    }
-  } catch (err: any) {
-    logger.warn(`Skipped Campaign Settings seeding: ${err.message}`);
-  }
-
-  // Seed WhatsApp Templates
-  const initialTemplates = [
-    {
-      metaTemplateId: 'TMPL_VOTER_SLIP_01',
-      name: 'voter_slip_delivery',
-      category: 'UTILITY',
-      language: 'hi',
-      headerType: 'TEXT',
-      headerContent: 'मतदाता पर्ची - चुनाव 2026',
-      bodyText: 'नमस्ते {{1}}, आपका मतदान केंद्र {{2}} है। भाग संख्या {{3}}, क्रमांक संख्या {{4}}। कृपया 20 नवंबर को मतदान अवश्य करें।',
-      footerText: 'रणनीति इलेक्शन सेल',
-      metaStatus: 'APPROVED',
-    },
-    {
-      metaTemplateId: 'TMPL_RALLY_INVITE_02',
-      name: 'campaign_rally_invite',
-      category: 'MARKETING',
-      language: 'hi',
-      headerType: 'IMAGE',
-      headerContent: '/uploads/campaign/rally.png',
-      bodyText: 'प्रिय कार्यकर्ता {{1}}, कल शाम 5 बजे {{2}} में विशाल जनसभा आयोजित है। उम्मीदवार {{3}} जी मार्गदर्शन करेंगे। अपनी उपस्थिति सुनिश्चित करें।',
-      footerText: 'प्रचार समिति',
-      metaStatus: 'APPROVED',
-    },
-    {
-      metaTemplateId: 'TMPL_BOOTH_TASK_03',
-      name: 'booth_worker_briefing',
-      category: 'UTILITY',
-      language: 'en',
-      headerType: 'NONE',
-      headerContent: null,
-      bodyText: 'Hello {{1}}, you are assigned as Booth Incharge for Booth #{{2}} - {{3}}. Target voters: {{4}}. Please complete morning setup by 6:00 AM.',
-      footerText: 'Ranniti Campaign HQ',
-      metaStatus: 'APPROVED',
-    },
-    {
-      metaTemplateId: 'TMPL_POLL_DAY_04',
-      name: 'poll_day_reminder',
-      category: 'UTILITY',
-      language: 'hi',
-      headerType: 'TEXT',
-      headerContent: 'मतदान दिवस स्मरण पत्र',
-      bodyText: 'सम्मानित मतदाता {{1}}, आज मतदान का दिन है! लोकतंत्र के महापर्व में भाग लें और अपना बहुमूल्य वोट डालें। मतदान समय: प्रातः 7:00 से सायं 6:00 तक।',
-      footerText: 'रणनीति टीम',
-      metaStatus: 'APPROVED',
-    },
-  ];
-
-  try {
-    await query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_whatsapp_templates_name_lang ON whatsapp_templates(name, language);`);
-  } catch (err: any) {
-    logger.warn(`WhatsApp templates unique index check notice: ${err.message}`);
-  }
-
-  for (const t of initialTemplates) {
-    try {
-      await query(
-        `INSERT INTO whatsapp_templates (
-          meta_template_id, name, category, language, header_type, header_content, body_text, footer_text, meta_status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        ON CONFLICT (name, language) DO UPDATE SET
-          meta_template_id = EXCLUDED.meta_template_id,
-          header_type = EXCLUDED.header_type,
-          header_content = EXCLUDED.header_content,
-          body_text = EXCLUDED.body_text,
-          footer_text = EXCLUDED.footer_text,
-          meta_status = EXCLUDED.meta_status,
-          updated_at = NOW()`,
-        [t.metaTemplateId, t.name, t.category, t.language, t.headerType, t.headerContent, t.bodyText, t.footerText, t.metaStatus]
-      );
-      logger.info(`Seeded WhatsApp Template: ${t.name} (${t.language})`);
-    } catch (err: any) {
-      logger.warn(`Skipped WhatsApp Template '${t.name}': ${err.message}`);
-    }
-  }
+  // Seed Campaign Settings and WhatsApp Templates
+  await seedSettings();
 
   logger.info('Finished Master Datasets seeding.');
 };
