@@ -25,7 +25,6 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
 
   const hindiName = voter.hindiName || voter.name;
   const englishName = voter.englishName || '';
-
   return (
     <View style={styles.voterCard}>
       {/* Top Header Row */}
@@ -50,7 +49,6 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
               {englishName}
             </Text>
           )}
-
 
           <View style={styles.locationRow}>
             <Text style={styles.locationText} numberOfLines={1}>
@@ -81,23 +79,27 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
           </View>
         </View>
         <View style={styles.actionsBar}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => openPhoneDialer(voter.mobile)}
-            activeOpacity={0.7}
-          >
-            <Phone {...({ size: 12, color: "#2563EB" } as any)} />
-            <Text style={[styles.actionBtnText, { color: '#2563EB' }]}>{t('call')}</Text>
-          </TouchableOpacity>
+          {!!voter.mobile && (
+            <>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => openPhoneDialer(voter.mobile)}
+                activeOpacity={0.7}
+              >
+                <Phone {...({ size: 12, color: "#2563EB" } as any)} />
+                <Text style={[styles.actionBtnText, { color: '#2563EB' }]}>{t('call')}</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => openWhatsAppChat(voter.mobile, `Namaste ${englishName || hindiName}, greetings from Ranniti team.`)}
-            activeOpacity={0.7}
-          >
-            <MessageCircle {...({ size: 12, color: "#16A34A" } as any)} />
-            <Text style={[styles.actionBtnText, { color: '#16A34A' }]}>{t('whatsApp')}</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => openWhatsAppChat(voter.mobile, `Namaste ${englishName || hindiName}, greetings from Ranniti team.`)}
+                activeOpacity={0.7}
+              >
+                <MessageCircle {...({ size: 12, color: "#16A34A" } as any)} />
+                <Text style={[styles.actionBtnText, { color: '#16A34A' }]}>{t('whatsApp')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           <TouchableOpacity
             style={[styles.votedBtn, voter.isVoted ? styles.votedActive : styles.votedInactive]}

@@ -106,6 +106,13 @@
 - Never produce, require, or default to `.csv` or `.xls` format for spreadsheet imports or exports. All tools, generators, and endpoints must process and emit `.xlsx` files using `ExcelJS` or standard Excel parser utilities.
 - All generated `.xlsx` sample datasets, import template files, seed spreadsheets, and export files must be saved and maintained inside the dedicated `xlsx/` directory located at the project root (`/Users/mac-yash/Documents/GitHub/Ranniti/xlsx/`).
 
+### 23. Mandatory Localization & Translated Text Standard (`app/src/languages/`)
+- Never hardcode raw English text, titles, subtitles, placeholders, empty-state descriptions, button labels, or status strings directly inside React Native UI components, screens, modals, or views.
+- Always import and use the `useLanguage` hook (`const { t } = useLanguage()`) or pass `t` to subcomponents and access text strictly via centralized translation keys (`t('keyName')`).
+- When designing or creating any new UI screen, card, modal, or component, Antigravity MUST concurrently add all necessary translation key-value pairs to both `app/src/languages/en.ts` and `app/src/languages/hi.ts` (keeping `TranslationKeys` strictly synced with 100% key parity).
+- Use the translation CLI utility (`node scripts/manage-translations.js add <key> "<enText>" "<hiText>"` or `npm run translations:check`) to validate and manage translation keys.
 
-
-
+### 24. Reusable Confirmation Modal Standard (No Native Alert Dialogs) (`app/src/components/ConfirmModal.tsx`)
+- Never use React Native's native `Alert.alert` or unstyled browser/native dialogs for user confirmations, deletions, discards, status toggles, or destructive actions.
+- Always import and use the standardized reusable `ConfirmModal` component (`app/src/components/ConfirmModal.tsx` or `../../components`) with customizable title, message, variant (`danger`, `warning`, `info`, `success`), animated transitions, and loading states.
+- Modal titles, descriptions, and button labels must strictly use localized translation strings through `useLanguage().t` with 100% key parity in `app/src/languages/en.ts` and `app/src/languages/hi.ts`.

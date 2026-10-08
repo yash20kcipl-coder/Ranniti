@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from 'react-native';
-import { useAppTheme } from '../../../hooks/useAppTheme';
 import { getShadow } from '../../../utils/shadow';
 import { rfValue } from '../../../utils/responsive';
 import { FontFamily } from '../../../utils/typography';
+import { useAppTheme } from '../../../hooks/useAppTheme';
+import { View, Text, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from 'react-native';
 
 export interface SectionContainerProps {
   title?: string;
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,
     paddingBottom: 10,
   },
   headerLeft: {
@@ -125,8 +125,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconContainer: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 44,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',

@@ -80,7 +80,7 @@ const initialDashboardState: DashboardState = {
     pendingTotal: 0,
     grandTotal: 0,
   },
-  loading: false,
+  loading: true,
 };
 
 const dashboardReducer = (state = initialDashboardState, action: any): DashboardState => {

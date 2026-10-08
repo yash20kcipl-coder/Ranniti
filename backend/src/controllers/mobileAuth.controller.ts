@@ -24,10 +24,7 @@ export class MobileAuthController {
   });
 
   getProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const userId = req.user!.userId;
-    const tenantDbName = req.user?.tenantDbName;
-    const user = await mobileAuthService.getMobileProfile(userId, tenantDbName);
-    const formattedUser = attachFileUrls(user, undefined, req);
+    const formattedUser = attachFileUrls(req.mobileUser!, undefined, req);
     const response = ApiResponse.success(formattedUser, 'Mobile user profile retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });

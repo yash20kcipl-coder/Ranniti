@@ -54,9 +54,21 @@ export const fetchVotersAction = (
 
       if (filters.search) params.search = filters.search;
       if (filters.boothNo && filters.boothNo !== 'All') params.boothId = filters.boothNo;
-      if (filters.supportingParty && filters.supportingParty !== 'All') params.voterType = filters.supportingParty;
-      if (filters.isVoted && filters.isVoted !== 'all') params.status = filters.isVoted;
+      if (filters.acId && filters.acId !== 'All') params.acId = filters.acId;
+      if (filters.supportingParty && filters.supportingParty !== 'All') params.partyId = filters.supportingParty;
+      if (filters.voterType && filters.voterType !== 'All') params.voterType = filters.voterType;
+      if (filters.isVoted && filters.isVoted !== 'all') {
+        params.status = filters.isVoted;
+        params.isVoted = filters.isVoted;
+      }
       if (filters.gender && filters.gender !== 'all') params.gender = filters.gender;
+      if (filters.ageGroup) params.ageGroup = filters.ageGroup;
+      if (filters.isDead !== undefined && filters.isDead !== '' && filters.isDead !== 'all') params.isDead = filters.isDead;
+      if (filters.influencerRole && filters.influencerRole !== 'all') {
+        params.influencerRole = filters.influencerRole;
+        if (filters.influencerRole === 'family') params.isFamilyInfluencer = true;
+        if (filters.influencerRole === 'social') params.isSocialInfluencer = true;
+      }
 
       const response = await apiClient.get('/mobile/voters', { params });
       const apiData = response?.data?.data?.voters || response?.data?.voters || [];
@@ -79,7 +91,7 @@ export const fetchVotersAction = (
         boothNo: item.boothName || (item.boothNumber ? `Booth #${item.boothNumber}` : ''),
         serialNo: item.serialNo || 0,
         address: item.fullAddress || item.voterAddress || item.houseNo || '',
-        supportingParty: item.voterType || item.partyName || 'Undecided',
+        supportingParty: item.partyName || item.partyAbbreviation || item.voterType || 'Undecided',
         politicalView: item.voterType || 'Pending',
         isVoted: item.status === 'Voted' || Boolean(item.isVoted),
         isFamilyHead: Boolean(item.isFamilyInfluencer),
@@ -87,8 +99,11 @@ export const fetchVotersAction = (
       }));
 
       const total = apiPagination?.total ?? (loadMore ? (pagination?.total || 0) : mappedVoters.length);
-      const totalPages = apiPagination?.totalPages ?? Math.max(1, Math.ceil(total / targetLimit));
+      const totalPages = apiPagination?.totalPages !== undefined
+        ? apiPagination.totalPages
+        : (total === 0 ? 0 : Math.ceil(total / targetLimit));
       const currentPage = apiPagination?.page ?? targetPage;
+      const hasMore = total > 0 && currentPage < totalPages;
 
       dispatch({
         type: SET_VOTERS_PAGINATION,
@@ -97,7 +112,7 @@ export const fetchVotersAction = (
           limit: targetLimit,
           total,
           totalPages,
-          hasMore: currentPage < totalPages,
+          hasMore,
         },
       });
 
@@ -124,8 +139,16 @@ export const fetchVotersAction = (
 
 export const loadMoreVotersAction = () => {
   return async (dispatch: Dispatch, getState: () => RootState) => {
-    const { pagination, loading, loadingMore } = getState().voters;
-    if (loading || loadingMore || !pagination?.hasMore) {
+    const { pagination, loading, loadingMore, voters } = getState().voters;
+    if (
+      loading ||
+      loadingMore ||
+      !pagination?.hasMore ||
+      !voters ||
+      voters.length === 0 ||
+      pagination.total === 0 ||
+      pagination.page >= pagination.totalPages
+    ) {
       return;
     }
     (fetchVotersAction(pagination.page + 1, true) as any)(dispatch, getState);

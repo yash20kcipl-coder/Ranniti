@@ -4,19 +4,29 @@ export interface AllowedTabsJson {
 }
 
 export interface AccessibleTabsJson {
-  web_tabs: string[];
-  master_sub_tabs: string[];
-  mobile_screens: string[];
+  web_tabs?: string[];
+  master_sub_tabs?: string[];
+  mobile_screens?: string[];
+  webTabs?: string[];
+  masterSubTabs?: string[];
+  mobileScreens?: string[];
 }
 
 export interface VoterPermissionsJson {
-  can_view_voter: boolean;
-  can_edit_contact: boolean;
-  can_edit_demographics: boolean;
-  can_edit_inclination: boolean;
-  can_edit_voter_status: boolean;
-  can_manage_family: boolean;
-  can_export_data: boolean;
+  can_view_voter?: boolean;
+  can_edit_contact?: boolean;
+  can_edit_demographics?: boolean;
+  can_edit_inclination?: boolean;
+  can_edit_voter_status?: boolean;
+  can_manage_family?: boolean;
+  can_export_data?: boolean;
+  canViewVoter?: boolean;
+  canEditContact?: boolean;
+  canEditDemographics?: boolean;
+  canEditInclination?: boolean;
+  canEditVoterStatus?: boolean;
+  canManageFamily?: boolean;
+  canExportData?: boolean;
 }
 
 export interface TenantRole {

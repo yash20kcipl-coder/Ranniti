@@ -48,7 +48,7 @@ export const loginAction = (
         });
 
         toast.success(`Welcome back, ${user.name || "User"}!`);
-        await dispatch(fetchProfileAndRoleAccessAction());
+        await dispatch(fetchProfileAndRoleAccessAction(true));
         if (onSuccess) { onSuccess(token) }
       } else {
         toast.error("Invalid response from authentication server.");
@@ -94,7 +94,7 @@ export const resetPasswordAction = (data: any, setLoading?: (l: boolean) => void
   };
 };
 
-export const fetchProfileAndRoleAccessAction = () => {
+export const fetchProfileAndRoleAccessAction = (navigate?: boolean) => {
   return async (dispatch: Dispatch) => {
     try {
       const [profileRes, accessRes] = await Promise.all([
@@ -115,7 +115,7 @@ export const fetchProfileAndRoleAccessAction = () => {
         await Storage.save("ACCESS_CONFIG", access);
         dispatch({ type: "SET_ACCESS_CONFIG", payload: access });
       }
-      navigateToDashboard(user.role || "supporter");
+      if (navigate) { navigateToDashboard(user.role || "supporter") }
       return { user, access };
     } catch (error) {
       console.error("Initialization profile/role fetch error:", error);

@@ -5,9 +5,9 @@ import { AuthQueries, UserRecord } from '../queries/auth.queries';
 import { mobileAccessService, MobileAccessConfig } from './mobile/mobileAccess.service';
 
 export interface MobileLoginResult {
-  user: Omit<UserRecord, 'passwordHash'>;
   token: string;
   access: MobileAccessConfig;
+  user: Omit<UserRecord, 'passwordHash'>;
 }
 
 export class MobileAuthService {
@@ -33,29 +33,33 @@ export class MobileAuthService {
 
     const token = generateJwtToken({
       userId: user.id,
-      email: user.email,
       role: user.role,
+      email: user.email,
+      assignedAcId: user.assignedAcId,
       tenantDbName: user.tenantDbName,
       parentLeaderId: user.parentLeaderId,
-      assignedAcId: user.assignedAcId,
       assignedBoothIds: user.assignedBoothIds,
     });
 
     const access = await mobileAccessService.getRoleAccessConfig({
       role: user.role,
       tenantDbName: user.tenantDbName,
+      customAccessibleTabs: user.accessibleTabs,
     });
 
     const { passwordHash, ...userWithoutPassword } = user;
     return { user: userWithoutPassword, token, access };
   }
 
-  async getMobileProfile(userId: string, tenantDbName?: string | null): Promise<Omit<UserRecord, 'passwordHash'>> {
-    const user = await AuthQueries.findTenantUserById(userId, tenantDbName);
+  async getMobileProfileFast(userId: string, tenantDbName?: string | null): Promise<Omit<UserRecord, 'passwordHash'>> {
+    const { VolunteerAuthQueries } = await import('../queries/auth/volunteerAuth.queries');
+    const user = await VolunteerAuthQueries.findVolunteerById(userId, tenantDbName);
+
     if (!user) {
       throw ApiError.notFound('Mobile user profile not found');
     }
-    const { passwordHash, ...userWithoutPassword } = user;
+
+    const { passwordHash, ...userWithoutPassword } = user as any;
     return userWithoutPassword;
   }
 
@@ -64,7 +68,8 @@ export class MobileAuthService {
     data: { name?: string; mobile?: string; avatar?: string },
     tenantDbName?: string | null
   ): Promise<Omit<UserRecord, 'passwordHash'>> {
-    const user = await AuthQueries.findTenantUserById(userId, tenantDbName);
+    const { VolunteerAuthQueries } = await import('../queries/auth/volunteerAuth.queries');
+    const user = await VolunteerAuthQueries.findVolunteerById(userId, tenantDbName);
     if (!user) {
       throw ApiError.notFound('Mobile user profile not found');
     }
@@ -72,7 +77,7 @@ export class MobileAuthService {
     if (!targetDbName) {
       throw ApiError.badRequest('Tenant database configuration missing');
     }
-    const updated = await AuthQueries.updateTenantUserProfile(userId, data, targetDbName);
+    const updated = await VolunteerAuthQueries.updateVolunteerProfile(userId, data, targetDbName);
     const { passwordHash, ...userWithoutPassword } = updated;
     return userWithoutPassword;
   }

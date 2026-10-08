@@ -14,66 +14,54 @@ import { voterListStyles } from './styles';
 import { useLanguage } from '../../languages';
 import { RootState } from '../../store/store';
 import VoterCard from './components/VoterCard';
-import React, { useState, useCallback } from 'react';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import VoterSkeleton from './components/VoterSkeleton';
 import { useSelector, useDispatch } from 'react-redux';
 import VoterFilterModal from './components/VoterFilterModal';
+import AppliedFiltersBar from './components/AppliedFiltersBar';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import VoterListEmptyState from './components/VoterListEmptyState';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
-import { View, Text, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { fetchFilterMasterDataAction } from '../../store/actions/master';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 const PARTIES = ['Party A', 'Party B', 'Independent', 'Undecided'];
 
-export const VoterListScreen: React.FC<any> = ({ navigation }) => {
+export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
   const { t } = useLanguage();
   const dispatch = useDispatch<any>();
-  const [partyModalVoterId, setPartyModalVoterId] = useState<string | null>(null);
+  const master = useSelector((state: RootState) => state.master);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-
-  const { voters, filters, loading, loadingMore, pagination } = useSelector((state: RootState) => state.voters);
+  const [partyModalVoterId, setPartyModalVoterId] = useState<string | null>(null);
   const { theme, styles } = useAppTheme<ReturnType<typeof voterListStyles>>(voterListStyles);
+  const { voters, filters, loading, loadingMore, pagination } = useSelector((state: RootState) => state.voters);
+
+  useEffect(() => {
+    if (route?.params?.boothId) {
+      dispatch(setVoterFiltersAction({ boothNo: route.params.boothId }));
+    }
+  }, [dispatch, route?.params?.boothId]);
 
   useDebouncedEffect(() => {
-    dispatch(fetchVotersAction(1, false));
+    dispatch(fetchFilterMasterDataAction());
   }, [dispatch], 200);
 
   const handleRefresh = useCallback(() => {
     dispatch(fetchVotersAction(1, false));
+    dispatch(fetchFilterMasterDataAction());
   }, [dispatch]);
 
   const handleLoadMore = useCallback(() => {
-    if (!loading && !loadingMore && pagination?.hasMore) {
+    if (
+      !loading &&
+      !loadingMore &&
+      pagination?.hasMore &&
+      voters.length > 0 &&
+      pagination.page < pagination.totalPages
+    ) {
       dispatch(loadMoreVotersAction());
     }
-  }, [dispatch, loading, loadingMore, pagination]);
-
-  const filteredVoters = voters.filter((voter) => {
-    const searchLower = (filters.search || '').toLowerCase();
-    const matchesSearch =
-      !filters.search ||
-      (voter.name && voter.name.toLowerCase().includes(searchLower)) ||
-      (voter.englishName && voter.englishName.toLowerCase().includes(searchLower)) ||
-      (voter.epicNo && voter.epicNo.toLowerCase().includes(searchLower)) ||
-      (voter.mobile && voter.mobile.includes(searchLower));
-
-    const matchesParty =
-      !filters.supportingParty ||
-      filters.supportingParty === 'All' ||
-      voter.supportingParty === filters.supportingParty;
-
-    const matchesVoted =
-      !filters.isVoted ||
-      filters.isVoted === 'all' ||
-      (filters.isVoted === 'voted' && voter.isVoted) ||
-      (filters.isVoted === 'not_voted' && !voter.isVoted);
-
-    const matchesGender =
-      !filters.gender ||
-      filters.gender === 'all' ||
-      voter.gender === filters.gender;
-
-    return matchesSearch && matchesParty && matchesVoted && matchesGender;
-  });
+  }, [dispatch, loading, loadingMore, pagination, voters.length]);
 
   const handleToggleVoted = useCallback((voterId: string) => {
     const targetVoter = voters.find((v) => v.id === voterId);
@@ -91,13 +79,57 @@ export const VoterListScreen: React.FC<any> = ({ navigation }) => {
     }
   };
 
-  const handleApplyExtraFilters = (newFilters: { isVoted?: string; supportingParty?: string; gender?: string }) => {
+  const handleApplyExtraFilters = (newFilters: any) => {
     dispatch(setVoterFiltersAction(newFilters));
   };
 
-  const handleResetFilters = () => {
-    dispatch(setVoterFiltersAction({ search: '', isVoted: 'all', supportingParty: 'All', gender: 'all' }));
-  };
+  const handleResetFilters = useCallback(() => {
+    dispatch(
+      setVoterFiltersAction({
+        search: '',
+        boothNo: 'All',
+        acId: '',
+        supportingParty: 'All',
+        politicalView: 'All',
+        isVoted: 'all',
+        gender: 'all',
+        ageGroup: '',
+        voterType: '',
+        isDead: '',
+        influencerRole: '',
+      })
+    );
+  }, [dispatch]);
+
+  const handleRemoveFilter = useCallback((filterKey: string) => {
+    const patch: any = {};
+    if (filterKey === 'search') patch.search = '';
+    else if (filterKey === 'boothNo') patch.boothNo = 'All';
+    else if (filterKey === 'acId') patch.acId = '';
+    else if (filterKey === 'supportingParty') patch.supportingParty = 'All';
+    else if (filterKey === 'isVoted') patch.isVoted = 'all';
+    else if (filterKey === 'gender') patch.gender = 'all';
+    else if (filterKey === 'ageGroup') patch.ageGroup = '';
+    else if (filterKey === 'voterType') patch.voterType = '';
+    else if (filterKey === 'isDead') patch.isDead = '';
+    else if (filterKey === 'influencerRole') patch.influencerRole = '';
+    dispatch(setVoterFiltersAction(patch));
+  }, [dispatch]);
+
+  const hasActiveFilters = useMemo(() => {
+    return Boolean(
+      (filters.search && filters.search.trim()) ||
+      (filters.boothNo && filters.boothNo !== 'All') ||
+      (filters.acId && filters.acId !== 'All') ||
+      (filters.supportingParty && filters.supportingParty !== 'All') ||
+      (filters.isVoted && filters.isVoted !== 'all') ||
+      (filters.gender && filters.gender !== 'all') ||
+      Boolean(filters.ageGroup) ||
+      Boolean(filters.voterType) ||
+      (filters.isDead !== undefined && filters.isDead !== '' && filters.isDead !== 'all') ||
+      Boolean(filters.influencerRole)
+    );
+  }, [filters]);
 
   const renderVoterItem = useCallback(({ item }: { item: any }) => (
     <VoterCard
@@ -116,36 +148,56 @@ export const VoterListScreen: React.FC<any> = ({ navigation }) => {
       <SearchHeaderWithFilter
         showBackButton
         value={filters.search}
+        loadingCount={loading}
         placeholder={t('search')}
+        currentCount={voters.length}
+        isFiltered={hasActiveFilters}
         filterOptions={[
           { id: 'all', label: t('all') },
           { id: 'voted', label: t('voted') },
           { id: 'not_voted', label: t('notVoted') },
         ]}
         activeFilterId={filters.isVoted || 'all'}
+        totalCount={pagination?.total ?? voters.length}
         onFilterPress={() => setIsFilterModalOpen(true)}
         onChangeText={(text: string) => dispatch(setVoterFiltersAction({ search: text }))}
         onSelectFilterOption={(id: string) => dispatch(setVoterFiltersAction({ isVoted: id }))}
       />
 
+      {/* Dynamic Summary Bar & Applied Filter Chips */}
+      <AppliedFiltersBar
+        t={t}
+        master={master}
+        filters={filters}
+        onClearAll={handleResetFilters}
+        onRemoveFilter={handleRemoveFilter}
+      />
+
       {/* Voter List using MdFlatList with Pagination */}
       <MdFlatList
+        data={voters}
         isLoading={loading}
-        data={filteredVoters}
         refresh={handleRefresh}
+        onEndReachedThreshold={0.4}
         renderItem={renderVoterItem}
+        onEndReached={handleLoadMore}
         showsVerticalScrollIndicator={false}
         renderSkeleton={renderVoterSkeleton}
         keyExtractor={(item: any) => item.id}
         contentContainerStyle={styles.listPadding}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.4}
-        ListFooterComponent={loadingMore ? () =>
-        (
-          <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
-          </View>
-        ) : undefined}
+        ListEmptyComponent={
+          !loading ? (
+            <VoterListEmptyState
+              onRefresh={handleRefresh}
+              searchQuery={filters.search}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={handleResetFilters}
+              onOpenFilterModal={() => setIsFilterModalOpen(true)}
+              t={t}
+            />
+          ) : null
+        }
+        ListFooterComponent={loadingMore ? () => <VoterSkeleton /> : undefined}
       />
 
       {/* Reusable Common Floating Action Button */}

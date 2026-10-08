@@ -8,6 +8,27 @@ import { DataSourceTracker } from './dataSourceTracker';
  * Manages reusable, idle-aware connection pools for tenant PostgreSQL databases.
  * Guarantees connection reuse, transparent data source tracking, and zero open connections on shutdown.
  */
+const isTransientConnectionError = (error: any): boolean => {
+  if (!error) return false;
+  const msg = String(error.message || '');
+  const code = String(error.code || '');
+  return (
+    msg.includes('Connection terminated') ||
+    msg.includes('connection timeout') ||
+    msg.includes('timeout expired') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('EPIPE') ||
+    code === 'ECONNRESET' ||
+    code === 'EPIPE' ||
+    code === '57P01' ||
+    code === '57P02' ||
+    code === '57P03' ||
+    code === '08006' ||
+    code === '08003' ||
+    code === '08001'
+  );
+};
+
 export class TenantPoolManager {
   private static pools: Map<string, Pool> = new Map();
 
@@ -26,7 +47,7 @@ export class TenantPoolManager {
   }
 
   /**
-   * Executes a query against a tenant database pool with data source tracking and execution duration logging.
+   * Executes a query against a tenant database pool with data source tracking, execution duration logging, and transient retry.
    */
   static async query<T extends QueryResultRow = any>(
     tenantDbName: string,
@@ -44,6 +65,16 @@ export class TenantPoolManager {
       }
       return res;
     } catch (error: any) {
+      if (isTransientConnectionError(error)) {
+        logger.warn(`[TenantPoolManager] Transient connection drop on query for '${tenantDbName}' (${error.message}). Retrying once...`);
+        try {
+          const retryRes = await pool.query<T>(text, params);
+          return retryRes;
+        } catch (retryError: any) {
+          logger.error(`[Tenant DB Query Error] [${tenantDbName}] SQL: ${text.substring(0, 150)} | Error: ${retryError.message}`);
+          throw retryError;
+        }
+      }
       logger.error(`[Tenant DB Query Error] [${tenantDbName}] SQL: ${text.substring(0, 150)} | Error: ${error.message}`);
       throw error;
     }

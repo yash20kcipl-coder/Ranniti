@@ -9,10 +9,24 @@ export function useDebouncedEffect(
   effect: () => void | (() => void),
   deps: React.DependencyList,
   delay = 200,
+  immediateFirst = true
 ) {
   const cleanupRef = useRef<(() => void) | void>(undefined);
+  const isFirstMountRef = useRef(true);
 
   useEffect(() => {
+    if (isFirstMountRef.current && immediateFirst) {
+      isFirstMountRef.current = false;
+      cleanupRef.current = effect();
+      return () => {
+        if (typeof cleanupRef.current === 'function') {
+          cleanupRef.current();
+          cleanupRef.current = undefined;
+        }
+      };
+    }
+
+    isFirstMountRef.current = false;
     const timer = setTimeout(() => {
       cleanupRef.current = effect();
     }, delay);
@@ -29,3 +43,4 @@ export function useDebouncedEffect(
 }
 
 export default useDebouncedEffect;
+

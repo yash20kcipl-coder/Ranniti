@@ -1,3 +1,7 @@
+import { store } from "../store/store";
+import { navigatToVoters } from "./navigationUtils";
+
+const st = store as any
 export const SCREENS = {
   SPLASH: 'splash',
   LOGIN: 'login',
@@ -5,6 +9,7 @@ export const SCREENS = {
   CONTACT_SUPPORT: 'contactsupport',
   MAIN: 'main',
   DASHBOARD: 'dashboard',
+  ASSIGNED_BOOTHS: 'assignedbooths',
   VOTER_LIST: 'voterlist',
   VOTER_DETAIL: 'voterdetail',
   ADD_EDIT_VOTER: 'addeditvoter',
@@ -12,6 +17,7 @@ export const SCREENS = {
   INFLUENCER_MAPPING: 'influencermapping',
   CONTACT_SYNC: 'contactsync',
   TEAM_MANAGEMENT: 'teammanagement',
+  ONBOARD_TEAM_MEMBER: 'onboardteammember',
   PROFILE: 'profile',
   SETTINGS: 'settings',
   NOTIFICATIONS: 'notifications',
@@ -19,7 +25,11 @@ export const SCREENS = {
 
 export const DRAWER_MENU = [
   { name: SCREENS.DASHBOARD, icon: 'home', label: 'Dashboard', category: 'MAIN MENU' },
-  { name: SCREENS.VOTER_LIST, icon: 'users', label: 'Voters Directory', category: 'MAIN MENU' },
+  { name: SCREENS.ASSIGNED_BOOTHS, icon: 'office-building-marker', label: 'Assigned Booths', category: 'MAIN MENU' },
+  {
+    name: SCREENS.VOTER_LIST, icon: 'users', label: 'Voters Directory', category: 'MAIN MENU',
+    onPress: () => navigatToVoters()
+  },
   { name: SCREENS.FAMILY_MAPPING, icon: 'family', label: 'Family Mapping', category: 'CAMPAIGN MODULES' },
   { name: SCREENS.INFLUENCER_MAPPING, icon: 'sparkle', label: 'Social Influencers', category: 'CAMPAIGN MODULES', badge: 'VIP' },
   { name: SCREENS.CONTACT_SYNC, icon: 'phone', label: 'Contact Sync Voters', category: 'CAMPAIGN MODULES' },

@@ -37,7 +37,7 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.boothId) {
+    if (params.boothId && params.boothId !== 'All' && params.boothId !== 'all') {
       conditions.push(`v.booth_id = $${paramIndex}`);
       values.push(params.boothId);
       paramIndex++;
@@ -47,7 +47,7 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.acId) {
+    if (params.acId && params.acId !== 'All' && params.acId !== 'all') {
       conditions.push(`v.ac_id = $${paramIndex}`);
       values.push(params.acId);
       paramIndex++;
@@ -57,45 +57,52 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.pcId) {
+    if (params.pcId && params.pcId !== 'All' && params.pcId !== 'all') {
       conditions.push(`v.pc_id = $${paramIndex}`);
       values.push(params.pcId);
       paramIndex++;
     }
 
 
-    if (params.gender) {
+    if (params.gender && params.gender.toLowerCase() !== 'all') {
       conditions.push(`LOWER(v.gender) = LOWER($${paramIndex})`);
       values.push(params.gender);
       paramIndex++;
     }
 
-    if (params.voterType) {
-      conditions.push(`v.voter_type = $${paramIndex}`);
+    if (params.voterType && params.voterType.toLowerCase() !== 'all') {
+      conditions.push(`LOWER(v.voter_type) = LOWER($${paramIndex})`);
       values.push(params.voterType);
       paramIndex++;
     }
 
-    if (params.status) {
-      conditions.push(`v.status = $${paramIndex}`);
-      values.push(params.status);
-      paramIndex++;
+    const rawStatus = (params.status || (params as any).isVoted || '').toString().trim().toLowerCase();
+    if (rawStatus && rawStatus !== 'all') {
+      if (rawStatus === 'voted') {
+        conditions.push(`LOWER(v.status) = 'voted'`);
+      } else if (rawStatus === 'not_voted') {
+        conditions.push(`(v.status IS NULL OR LOWER(v.status) != 'voted')`);
+      } else {
+        conditions.push(`LOWER(v.status) = LOWER($${paramIndex})`);
+        values.push(params.status);
+        paramIndex++;
+      }
     }
 
-    if (params.isDead !== undefined && params.isDead !== '') {
-      const isDeadBool = params.isDead === true || params.isDead === 'true';
+    if (params.isDead !== undefined && params.isDead !== '' && params.isDead !== 'all') {
+      const isDeadBool = params.isDead === true || params.isDead === 'true' || params.isDead === 'dead';
       conditions.push(`v.is_dead = $${paramIndex}`);
       values.push(isDeadBool);
       paramIndex++;
     }
 
-    if (params.religionId) {
+    if (params.religionId && params.religionId !== 'All') {
       conditions.push(`v.religion_id = $${paramIndex}`);
       values.push(params.religionId);
       paramIndex++;
     }
 
-    if (params.casteId) {
+    if (params.casteId && params.casteId !== 'All') {
       conditions.push(`v.caste_id = $${paramIndex}`);
       values.push(params.casteId);
       paramIndex++;
@@ -113,10 +120,17 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.partyId) {
-      conditions.push(`v.party_id = $${paramIndex}`);
-      values.push(params.partyId);
-      paramIndex++;
+    if (params.partyId && params.partyId !== 'All' && params.partyId !== 'all') {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.partyId);
+      if (isUuid) {
+        conditions.push(`v.party_id = $${paramIndex}`);
+        values.push(params.partyId);
+        paramIndex++;
+      } else {
+        conditions.push(`EXISTS (SELECT 1 FROM parties p WHERE p.id = v.party_id AND (p.name ILIKE $${paramIndex} OR p.abbreviation ILIKE $${paramIndex}))`);
+        values.push(params.partyId);
+        paramIndex++;
+      }
     }
 
     if (params.ageGroup && params.ageGroup.includes('-')) {
@@ -990,13 +1004,13 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.boothId) {
+    if (params.boothId && params.boothId !== 'All' && params.boothId !== 'all') {
       conditions.push(`booth_id = $${paramIndex}`);
       values.push(params.boothId);
       paramIndex++;
     }
 
-    if (params.acId) {
+    if (params.acId && params.acId !== 'All' && params.acId !== 'all') {
       conditions.push(`ac_id = $${paramIndex}`);
       values.push(params.acId);
       paramIndex++;
@@ -1006,7 +1020,7 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.pcId) {
+    if (params.pcId && params.pcId !== 'All' && params.pcId !== 'all') {
       conditions.push(`pc_id = $${paramIndex}`);
       values.push(params.pcId);
       paramIndex++;
@@ -1024,47 +1038,61 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.gender) {
+    if (params.gender && params.gender.toLowerCase() !== 'all') {
       conditions.push(`LOWER(gender) = LOWER($${paramIndex})`);
       values.push(params.gender);
       paramIndex++;
     }
 
-    if (params.voterType) {
-      conditions.push(`voter_type = $${paramIndex}`);
+    if (params.voterType && params.voterType.toLowerCase() !== 'all') {
+      conditions.push(`LOWER(voter_type) = LOWER($${paramIndex})`);
       values.push(params.voterType);
       paramIndex++;
     }
 
-    if (params.status) {
-      conditions.push(`status = $${paramIndex}`);
-      values.push(params.status);
-      paramIndex++;
+    const rawStatus = (params.status || (params as any).isVoted || '').toString().trim().toLowerCase();
+    if (rawStatus && rawStatus !== 'all') {
+      if (rawStatus === 'voted') {
+        conditions.push(`LOWER(status) = 'voted'`);
+      } else if (rawStatus === 'not_voted') {
+        conditions.push(`(status IS NULL OR LOWER(status) != 'voted')`);
+      } else {
+        conditions.push(`LOWER(status) = LOWER($${paramIndex})`);
+        values.push(params.status);
+        paramIndex++;
+      }
     }
 
-    if (params.isDead !== undefined && params.isDead !== '') {
-      const isDeadBool = params.isDead === true || params.isDead === 'true';
+    if (params.isDead !== undefined && params.isDead !== '' && params.isDead !== 'all') {
+      const isDeadBool = params.isDead === true || params.isDead === 'true' || params.isDead === 'dead';
       conditions.push(`is_dead = $${paramIndex}`);
       values.push(isDeadBool);
       paramIndex++;
     }
 
-    if (params.religionId) {
+    if (params.religionId && params.religionId !== 'All') {
       conditions.push(`religion_id = $${paramIndex}`);
       values.push(params.religionId);
       paramIndex++;
     }
 
-    if (params.casteId) {
+    if (params.casteId && params.casteId !== 'All') {
       conditions.push(`caste_id = $${paramIndex}`);
       values.push(params.casteId);
       paramIndex++;
     }
 
-    if (params.partyId) {
-      conditions.push(`party_id = $${paramIndex}`);
-      values.push(params.partyId);
-      paramIndex++;
+    if (params.partyId && params.partyId !== 'All' && params.partyId !== 'all') {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.partyId);
+      if (isUuid) {
+        conditions.push(`party_id = $${paramIndex}`);
+        values.push(params.partyId);
+        paramIndex++;
+      } else {
+        conditions.push(`EXISTS (SELECT 1 FROM parties p WHERE p.id = voters.party_id AND (p.name ILIKE $${paramIndex} OR p.abbreviation ILIKE $${paramIndex}))`);
+        values.push(params.partyId);
+        paramIndex++;
+      }
     }
 
     if (params.ageGroup && params.ageGroup.includes('-')) {

@@ -17,7 +17,6 @@ export const seedTenantUserRoles = async (): Promise<void> => {
     'create_master_tables.sql',
     'create_admin_users_table.sql',
     'create_roles_and_permissions_tables.sql',
-    'add_can_create_roles_to_tenant_user_roles.sql',
     'create_tenants_table.sql',
   ];
 

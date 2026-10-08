@@ -3,8 +3,8 @@ import { Modal } from '../Modal';
 import { appModalStyles } from './styles';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { ZoomIn, FadeOut } from 'react-native-reanimated';
-import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialDesignIcons } from '../MaterialDesignIcons';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 
 interface AppModalProps {
   visible: boolean;
@@ -12,6 +12,7 @@ interface AppModalProps {
   title: string;
   message?: string;
   icon?: string;
+  position?: 'center' | 'right';
   primaryAction?: {
     label: string;
     onPress: () => void;
@@ -29,16 +30,80 @@ export const AppModal: React.FC<AppModalProps> = ({
   title,
   message,
   icon = 'information-outline',
+  position = 'center',
   primaryAction,
   secondaryAction,
   children,
 }) => {
   const { theme, styles } = useAppTheme(appModalStyles);
+  const isRight = position === 'right';
+
+  if (isRight) {
+    return (
+      <Modal
+        visible={visible}
+        onDismiss={onDismiss}
+        position="right"
+        contentContainerStyle={styles.sidebarContainer}
+      >
+        <View style={styles.sidebarHeader}>
+          <View style={styles.sidebarHeaderLeft}>
+            <View style={styles.sidebarIconContainer}>
+              <MaterialDesignIcons name={icon as any} size={22} color={theme.colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sidebarTitle} numberOfLines={1}>{title}</Text>
+              {message ? <Text style={styles.sidebarSubtitle} numberOfLines={1}>{message}</Text> : null}
+            </View>
+          </View>
+          <TouchableOpacity onPress={onDismiss} style={styles.sidebarCloseBtn} activeOpacity={0.7}>
+            <MaterialDesignIcons name="close" size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          style={styles.sidebarScroll}
+          contentContainerStyle={styles.sidebarContentContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled={true}
+        >
+          {children}
+        </ScrollView>
+
+
+        {(primaryAction || secondaryAction) && (
+          <View style={styles.sidebarFooter}>
+            {secondaryAction && (
+              <TouchableOpacity
+                style={[styles.button, styles.secondaryButton]}
+                onPress={secondaryAction.onPress}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.secondaryButtonText}>{secondaryAction.label}</Text>
+              </TouchableOpacity>
+            )}
+
+            {primaryAction && (
+              <TouchableOpacity
+                style={[styles.button, styles.primaryButton]}
+                onPress={primaryAction.onPress}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.primaryButtonText}>{primaryAction.label}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </Modal>
+    );
+  }
 
   return (
     <Modal
       visible={visible}
       onDismiss={onDismiss}
+      position="center"
       contentContainerStyle={styles.container}
       entering={ZoomIn.duration(400)}
       exiting={FadeOut}
@@ -92,3 +157,4 @@ export const AppModal: React.FC<AppModalProps> = ({
     </Modal>
   );
 };
+

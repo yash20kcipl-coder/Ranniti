@@ -46,10 +46,15 @@ export interface VoterState {
   filters: {
     search: string;
     boothNo: string;
+    acId?: string;
     supportingParty: string;
     politicalView: string;
     isVoted: string; // 'all' | 'voted' | 'not_voted'
     gender?: string;
+    ageGroup?: string;
+    voterType?: string;
+    isDead?: string;
+    influencerRole?: string;
   };
   pagination: VoterPagination;
   loading: boolean;
@@ -66,17 +71,22 @@ const initialPagination: VoterPagination = {
 
 const initialVoterState: VoterState = {
   voters: [],
+  loading: true,
+  loadingMore: false,
   filters: {
     search: '',
     boothNo: 'All',
+    acId: '',
     supportingParty: 'All',
     politicalView: 'All',
     isVoted: 'all',
     gender: 'all',
+    ageGroup: '',
+    voterType: '',
+    isDead: '',
+    influencerRole: '',
   },
   pagination: initialPagination,
-  loading: false,
-  loadingMore: false,
 };
 
 const voterReducer = (state = initialVoterState, action: any): VoterState => {
@@ -161,3 +171,4 @@ const voterReducer = (state = initialVoterState, action: any): VoterState => {
 };
 
 export default voterReducer;
+

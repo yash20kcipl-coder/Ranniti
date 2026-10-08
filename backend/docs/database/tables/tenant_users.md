@@ -20,6 +20,7 @@ Entity for tenant field cadre, including PC Leaders, AC Leaders, Sector Sub-Lead
 | `tenant_db_name`   | `VARCHAR(150)` | Yes      | `NULL`              | Name of dedicated PostgreSQL database                                                                      |
 | `parent_leader_id` | `UUID`         | Yes      | `NULL`              | Foreign key to `tenant_users(id)` representing managing leader/sub-leader                                 |
 | `assigned_ac_id`   | `UUID`         | Yes      | `NULL`              | Foreign key to `assembly_constituencies(id)` representing assigned AC                                      |
+| `accessible_tabs`  | `JSONB`        | Yes      | `NULL`              | Custom JSON tab and screen access overrides (`web_tabs`, `mobile_screens`)                                |
 | `created_at`       | `TIMESTAMPTZ`  | No       | `NOW()`             | Record creation timestamp                                                                                  |
 | `updated_at`       | `TIMESTAMPTZ`  | No       | `NOW()`             | Record update timestamp                                                                                    |
 

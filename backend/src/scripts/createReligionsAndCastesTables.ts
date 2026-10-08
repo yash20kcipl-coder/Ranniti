@@ -8,7 +8,7 @@ async function run() {
   logger.info('🚀 Executing Religions & Castes Table Migration Script...');
 
   try {
-    const migrationPath = path.join(__dirname, '../database/migrations/create_religions_and_castes_tables.sql');
+    const migrationPath = path.join(__dirname, '../database/migrations/create_master_tables.sql');
     if (!fs.existsSync(migrationPath)) {
       throw new Error(`Migration SQL file not found at ${migrationPath}`);
     }

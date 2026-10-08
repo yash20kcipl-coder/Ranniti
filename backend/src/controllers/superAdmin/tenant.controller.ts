@@ -12,7 +12,7 @@ import { query as masterQuery } from '../../queries/dbPool';
 import { TenantQueries } from '../../queries/tenant.queries';
 import { generateTenantPassword } from '../../utils/password';
 import { getTenantDbPool } from '../../utils/tenantDbProvisioner';
-import { tenantProvisioningService } from '../../services/superAdmin/tenantProvisioning.service';
+import { tenantProvisioningService } from '../../provisioning/services/tenantProvisioning.service';
 
 export class TenantController {
   /**
@@ -144,6 +144,10 @@ export class TenantController {
       provisioningProgress: tenant.provisioningProgress,
       totalVotersCopied: tenant.totalVotersCopied,
       currentStep: tenant.currentStep,
+      currentPhase: tenant.currentPhase || 'init',
+      activeTable: tenant.activeTable || null,
+      processedRecords: tenant.processedRecords || 0,
+      totalRecords: tenant.totalRecords || 0,
       errorMessage: tenant.errorMessage || null,
       updatedAt: tenant.updatedAt,
     };
@@ -231,24 +235,19 @@ export class TenantController {
       avatar: avatar ?? null,
     });
 
-    if (existing.tenantDbName) {
-      if (removedAcIds.length > 0) {
-        logger.info(`[TenantController] ${removedAcIds.length} AC(s) removed for tenant '${id}' — purging scoped data...`);
-        tenantProvisioningService
-          .removeAcVoters(id, existing.tenantDbName, removedAcIds)
-          .catch((err) => {
-            logger.error(`[TenantController] AC voter removal error for tenant '${id}':`, err);
-          });
-      }
-
-      if (addedAcIds.length > 0) {
-        logger.info(`[TenantController] ${addedAcIds.length} new AC(s) added for tenant '${id}' — triggering incremental voter sync...`);
-        tenantProvisioningService
-          .syncNewAcVoters(id, existing.tenantDbName, addedAcIds, newPcIds)
-          .catch((err) => {
-            logger.error(`[TenantController] Incremental voter sync error for tenant '${id}':`, err);
-          });
-      }
+    if (existing.tenantDbName && (removedAcIds.length > 0 || addedAcIds.length > 0)) {
+      (async () => {
+        if (removedAcIds.length > 0) {
+          logger.info(`[TenantController] ${removedAcIds.length} AC(s) removed for tenant '${id}' — purging scoped data...`);
+          await tenantProvisioningService.removeAcVoters(id, existing.tenantDbName, removedAcIds);
+        }
+        if (addedAcIds.length > 0) {
+          logger.info(`[TenantController] ${addedAcIds.length} new AC(s) added for tenant '${id}' — triggering incremental voter sync...`);
+          await tenantProvisioningService.syncNewAcVoters(id, existing.tenantDbName, addedAcIds, newPcIds);
+        }
+      })().catch((err) => {
+        logger.error(`[TenantController] Incremental voter sync/purge error for tenant '${id}':`, err);
+      });
     }
 
     const formatted = attachFileUrls(updated, ['avatar'], req);

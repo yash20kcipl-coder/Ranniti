@@ -22,6 +22,7 @@ For the complete multi-tenant database placement and deletion architecture, see 
 | **`castes`**                       | [`castes.md`](./tables/castes.md)                                             | Castes & subcastes master hierarchy                                                        |
 | **`voters`**                       | [`voters.md`](./tables/voters.md)                                             | Core voter records, polling booths, constituency data, family mapping & household network  |
 | **`admin_users`**                  | [`admin_users.md`](./tables/admin_users.md)                                   | System user accounts, admin profiles, authorization roles, parent leader hierarchy         |
+| **`tenant_users`**                 | [`tenant_users.md`](./tables/tenant_users.md)                                 | Campaign volunteer cadre, field leaders, credentials, and constituency assignments         |
 | `user_booth_assignments`           | [`user_booth_assignments.md`](./tables/user_booth_assignments.md)             | Junction table mapping leaders, sub-leaders, and supporters to polling booths              |
 | `user_synced_contacts`             | [`user_synced_contacts.md`](./tables/user_synced_contacts.md)                 | Junction table tracking mobile device contacts synced to matched voters                    |
 | **`campaign_settings`**            | [`campaign_settings.md`](./tables/campaign_settings.md)                       | Campaign settings, FCM/APNs push triggers, Meta WhatsApp API config                        |

@@ -28,6 +28,8 @@ import {
   ChevronDown,
   ChevronUp,
   Shield,
+  RotateCcw,
+  Activity,
 } from 'lucide-react';
 import {
   fetchTenantById,
@@ -35,6 +37,7 @@ import {
   deleteTenantUser,
   fetchTenantProvisioningStatus,
   fetchTenantDbSyncStatus,
+  retryTenantProvisioning,
   type TenantDbSyncStatus,
 } from '@/redux/actions/tenant';
 import toast from 'react-hot-toast';
@@ -61,6 +64,41 @@ const TABLE_FRIENDLY_NAMES: Record<string, { label: string; short: string }> = {
   wards: { label: 'Wards', short: 'Wards' },
   booths: { label: 'Booths', short: 'Booths' },
   voters: { label: 'Voters', short: 'Voters' },
+  influencers: { label: 'Influencers', short: 'Influencers' },
+};
+
+const PROVISIONING_PIPELINE_STAGES = [
+  { id: 'db_init', label: 'Database Setup', short: 'DB Init', desc: 'Create database & assign credentials' },
+  { id: 'schema', label: 'Schema Setup', short: 'Schema', desc: '18 relational tables & constraints' },
+  { id: 'master_data', label: 'Master Data', short: 'Master Data', desc: 'Districts, ACs, Parties & Booths' },
+  { id: 'voters', label: 'Voters Stream', short: 'Voters', desc: 'High-volume keyset streaming' },
+  { id: 'indexing', label: 'Search Indexing', short: 'Search Indexes', desc: 'Fast GIN trigram indexes' },
+];
+
+const getStageStatus = (stageId: string, currentPhase: string, tenantStatus: string) => {
+  const stageOrder = ['db_init', 'schema', 'master_data', 'voters', 'influencers', 'indexing', 'completed'];
+  const stageIdx = stageOrder.indexOf(stageId);
+  const currentIdx = stageOrder.indexOf(currentPhase || 'db_init');
+
+  if (tenantStatus === 'active' || currentPhase === 'completed') {
+    return 'completed';
+  }
+  if (tenantStatus === 'failed') {
+    if (stageIdx === currentIdx || (currentIdx === -1 && stageIdx === 0)) {
+      return 'failed';
+    }
+    if (stageIdx < currentIdx) {
+      return 'completed';
+    }
+    return 'pending';
+  }
+  if (stageIdx < currentIdx) {
+    return 'completed';
+  }
+  if (stageIdx === currentIdx) {
+    return 'in_progress';
+  }
+  return 'pending';
 };
 
 export const TenantDetailPage: React.FC = () => {
@@ -80,6 +118,7 @@ export const TenantDetailPage: React.FC = () => {
   const [syncStatus, setSyncStatus] = useState<TenantDbSyncStatus | null>(null);
   const [checkingSync, setCheckingSync] = useState(false);
   const [isDriftExpanded, setIsDriftExpanded] = useState(false);
+  const [retryingProvisioning, setRetryingProvisioning] = useState(false);
 
   // UI state for search & copy feedback
   const [constituencySearch, setConstituencySearch] = useState('');
@@ -90,6 +129,32 @@ export const TenantDetailPage: React.FC = () => {
     setCopiedKey(key);
     toast.success(`${label} copied to clipboard!`);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleRetryProvisioning = async () => {
+    if (!id) return;
+    setRetryingProvisioning(true);
+    try {
+      await dispatch(retryTenantProvisioning(id));
+      toast.success('Tenant provisioning job restarted successfully');
+      setTenant((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              status: 'provisioning',
+              provisioningStatus: 'provisioning',
+              errorMessage: null,
+              currentStep: 'Restarting provisioning pipeline...',
+              currentPhase: 'db_init',
+              provisioningProgress: 5,
+            }
+          : prev
+      );
+    } catch {
+      // Handled by Redux errorHandler
+    } finally {
+      setRetryingProvisioning(false);
+    }
   };
 
   const handleCheckSync = useCallback(
@@ -144,6 +209,8 @@ export const TenantDetailPage: React.FC = () => {
   const isProvisioning =
     (tenant?.status || tenant?.provisioningStatus) === 'provisioning' ||
     (tenant?.status || tenant?.provisioningStatus) === 'pending';
+
+  const isFailed = (tenant?.status || tenant?.provisioningStatus) === 'failed';
 
   React.useEffect(() => {
     if (!id || !isProvisioning) return;
@@ -639,24 +706,228 @@ export const TenantDetailPage: React.FC = () => {
 
         {/* Right Column: Database Health, Sync Parity & Geography */}
         <div className="lg:col-span-8 space-y-6">
-          {/* Active Provisioning Banner (Shown during background initialization) */}
-          {isProvisioning && (
-            <div className="bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-transparent border border-amber-500/20 rounded-3xl p-5 space-y-3 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2.5 text-amber-700 dark:text-amber-400 font-black text-sm">
-                  <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
-                  <span>Database Provisioning in Progress ({tenant.provisioningProgress || 0}%)</span>
+          {/* Active or Failed Provisioning Progress Monitor Card */}
+          {(isProvisioning || isFailed) && (
+            <div
+              className={`rounded-3xl p-6 sm:p-7 border shadow-sm space-y-6 transition-all ${
+                isFailed
+                  ? 'bg-rose-500/5 border-rose-500/30 dark:bg-rose-950/20 dark:border-rose-900/40'
+                  : 'bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-cyan-500/5 border-indigo-500/30 dark:border-indigo-500/20'
+              }`}
+            >
+              {/* Header with Title, Live Badge, and Retry Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-lg ${
+                      isFailed
+                        ? 'bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/30'
+                        : 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/30'
+                    }`}
+                  >
+                    {isFailed ? (
+                      <AlertCircle className="w-5 h-5" />
+                    ) : (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-black text-slate-900 dark:text-white text-lg tracking-tight">
+                        {isFailed ? 'Tenant Provisioning Failed' : 'Tenant Data Provisioning in Progress'}
+                      </h3>
+                      <span
+                        className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          isFailed
+                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                            : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 animate-pulse'
+                        }`}
+                      >
+                        {isFailed ? 'Action Required' : 'Live Stream'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {isFailed
+                        ? 'Encountered an issue during tenant database initialization.'
+                        : 'Real-time database isolation and multi-table data ingestion.'}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                  Step: {tenant.currentStep || 'Initializing Schema...'}
-                </span>
+
+                <div className="flex items-center gap-3 self-end sm:self-auto">
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                      {tenant.provisioningProgress || 0}%
+                    </span>
+                    <span className="text-[10px] block font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      Overall Progress
+                    </span>
+                  </div>
+
+                  {/* Retry / Restart Pipeline Button */}
+                  <button
+                    type="button"
+                    onClick={handleRetryProvisioning}
+                    disabled={retryingProvisioning}
+                    className={`py-2 px-3.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                      isFailed
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/25'
+                        : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+                    } disabled:opacity-50`}
+                    title={isFailed ? 'Retry Provisioning Pipeline' : 'Restart Provisioning Pipeline'}
+                  >
+                    <RotateCcw size={13} className={retryingProvisioning ? 'animate-spin' : ''} />
+                    <span>{retryingProvisioning ? 'Starting...' : isFailed ? 'Retry Pipeline' : 'Restart'}</span>
+                  </button>
+                </div>
               </div>
-              <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 via-indigo-500 to-emerald-500 rounded-full transition-all duration-500 shadow-sm"
-                  style={{ width: `${tenant.provisioningProgress || 0}%` }}
-                />
+
+              {/* Overall Progress Bar */}
+              <div className="space-y-1.5">
+                <div className="h-3 w-full bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 shadow-sm ${
+                      isFailed
+                        ? 'bg-gradient-to-r from-rose-500 to-red-600'
+                        : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500'
+                    }`}
+                    style={{ width: `${Math.max(4, tenant.provisioningProgress || 0)}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 font-medium">
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-semibold truncate max-w-[70%]">
+                    {tenant.currentStep || 'Initializing database environment...'}
+                  </span>
+                  <span className="font-semibold text-slate-400 text-right">
+                    DB: <span className="font-mono text-slate-700 dark:text-slate-300">{tenant.tenantDbName || 'pending'}</span>
+                  </span>
+                </div>
               </div>
+
+              {/* 5-Stage Stepper Pipeline */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+                {PROVISIONING_PIPELINE_STAGES.map((stage, idx) => {
+                  const stageStatus = getStageStatus(stage.id, tenant.currentPhase, tenant.status);
+                  const isDone = stageStatus === 'completed';
+                  const isCurrent = stageStatus === 'in_progress';
+                  const isError = stageStatus === 'failed';
+
+                  return (
+                    <div
+                      key={stage.id}
+                      className={`rounded-2xl p-3 border transition-all flex flex-col justify-between ${
+                        isCurrent
+                          ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-400/60 dark:border-indigo-600/60 shadow-sm ring-1 ring-indigo-500/20'
+                          : isDone
+                          ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+                          : isError
+                          ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-400 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                          : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800/60 text-slate-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          0{idx + 1}
+                        </span>
+                        {isDone && <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                        {isCurrent && <Loader2 className="w-4 h-4 animate-spin text-indigo-600 dark:text-indigo-400" />}
+                        {isError && <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />}
+                        {!isDone && !isCurrent && !isError && (
+                          <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold leading-tight truncate text-slate-900 dark:text-white">
+                          {stage.short}
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                          {isCurrent
+                            ? 'Active now'
+                            : isDone
+                            ? 'Completed'
+                            : isError
+                            ? 'Failed here'
+                            : 'Pending'}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Granular Active Data Ticker */}
+              <div className="bg-white/80 dark:bg-slate-900/80 rounded-2xl p-4 border border-slate-200/60 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
+                      Active Data Segment
+                    </div>
+                    <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <span>
+                        {tenant.activeTable
+                          ? TABLE_FRIENDLY_NAMES[tenant.activeTable]?.label || tenant.activeTable
+                          : isFailed
+                          ? 'Provisioning Halted'
+                          : 'Schema Initialization'}
+                      </span>
+                      {tenant.activeTable && (
+                        <span className="font-mono text-[10px] text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">
+                          {tenant.activeTable}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row Counter (when available) */}
+                {Boolean(tenant.totalRecords && tenant.totalRecords > 0) && (
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
+                        Segment Progress
+                      </div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
+                        {(tenant.processedRecords || 0).toLocaleString()} / {(tenant.totalRecords || 0).toLocaleString()} records
+                      </div>
+                    </div>
+                    <div className="w-20 sm:w-28 h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round(((tenant.processedRecords || 0) / tenant.totalRecords) * 100)
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Total Voters Copied Counter */}
+                <div className="text-right border-l border-slate-100 dark:border-slate-800 pl-4">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
+                    Total Voters Seeded
+                  </div>
+                  <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                    {(tenant.totalVotersCopied || 0).toLocaleString()} voters
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Callout if Failed */}
+              {isFailed && tenant.errorMessage && (
+                <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-400">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                  <div className="space-y-1">
+                    <p className="font-bold">Failure Details:</p>
+                    <p className="font-mono text-[11px] break-all">{tenant.errorMessage}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

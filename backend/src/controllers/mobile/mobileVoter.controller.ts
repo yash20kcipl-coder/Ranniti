@@ -2,31 +2,29 @@ import { Request, Response } from 'express';
 import { attachFileUrls } from '../../utils/fileUrl';
 import { ApiResponse } from '../../utils/apiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
-import { mobileAuthService } from '../../services/mobileAuth.service';
 import { mobileVoterService } from '../../services/mobile/mobileVoter.service';
 
 export class MobileVoterController {
   getVoters = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const userId = req.user!.userId;
-    const user = await mobileAuthService.getMobileProfile(userId);
+    const user = req.mobileUser!;
     const query = req.query;
 
     const filters = {
       search: (query.search as string) || '',
-      boothId: (query.boothId as string) || '',
-      acId: (query.acId as string) || '',
-      pcId: (query.pcId as string) || '',
-      gender: (query.gender as string) || '',
-      voterType: (query.voterType as string) || (query.inclination as string) || '',
-      status: (query.status as string) || '',
-      isDead: (query.isDead as string) || '',
-      partyId: (query.partyId as string) || '',
-      religionId: (query.religionId as string) || '',
-      casteId: (query.casteId as string) || '',
+      boothId: (query.boothId && query.boothId !== 'All' && query.boothId !== 'all') ? (query.boothId as string) : '',
+      acId: (query.acId && query.acId !== 'All' && query.acId !== 'all') ? (query.acId as string) : '',
+      pcId: (query.pcId && query.pcId !== 'All' && query.pcId !== 'all') ? (query.pcId as string) : '',
+      gender: (query.gender && query.gender !== 'all') ? (query.gender as string) : '',
+      voterType: (query.voterType && query.voterType !== 'All' && query.voterType !== 'all') ? (query.voterType as string) : ((query.inclination as string) || ''),
+      status: (query.status as string) || (query.isVoted as string) || '',
+      isDead: (query.isDead !== undefined && query.isDead !== '' && query.isDead !== 'all') ? (query.isDead as string) : '',
+      partyId: (query.partyId && query.partyId !== 'All' && query.partyId !== 'all') ? (query.partyId as string) : '',
+      religionId: (query.religionId && query.religionId !== 'All') ? (query.religionId as string) : '',
+      casteId: (query.casteId && query.casteId !== 'All') ? (query.casteId as string) : '',
       ageGroup: (query.ageGroup as string) || '',
       isFamilyInfluencer: query.isFamilyInfluencer !== undefined ? String(query.isFamilyInfluencer) === 'true' : undefined,
       isSocialInfluencer: query.isSocialInfluencer !== undefined ? String(query.isSocialInfluencer) === 'true' : undefined,
-      influencerRole: (query.influencerRole as string) || '',
+      influencerRole: (query.influencerRole && query.influencerRole !== 'all') ? (query.influencerRole as string) : '',
       page: query.page ? parseInt(query.page as string, 10) : 1,
       limit: query.limit ? parseInt(query.limit as string, 10) : 25,
     };
@@ -50,9 +48,8 @@ export class MobileVoterController {
   });
 
   updateVoter = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const userId = req.user!.userId;
     const voterId = req.params.id as string;
-    const user = await mobileAuthService.getMobileProfile(userId);
+    const user = req.mobileUser!;
 
     const updatedVoter = await mobileVoterService.updateVoterWithPermissionCheck(
       user,

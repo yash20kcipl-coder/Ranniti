@@ -84,38 +84,39 @@ export const ScrollableFilterPills: React.FC<ScrollableFilterPillsProps> = ({
 const getStyles = (theme: any) =>
   StyleSheet.create({
     container: {
+      flexShrink: 1,
       width: '100%',
       marginVertical: 10,
     },
     scrollContent: {
-      paddingHorizontal: 18,
+      paddingHorizontal: 15,
       gap: 8,
     },
     pill: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
-      backgroundColor: theme.colors.inputBackground,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
       borderWidth: 1,
-      borderColor: 'transparent',
-      ...getShadow(2, theme.colors.shadowColor, 0.1),
+      borderColor: 'rgba(255, 255, 255, 0.18)',
     },
     pillActive: {
-      backgroundColor: "rgba(255, 255, 255, 0.12)",
-      ...getShadow(4, theme.colors.primary, 0.15),
+      backgroundColor: '#FFFFFF',
+      borderColor: '#FFFFFF',
+      ...getShadow(3, '#000000', 0.12),
     },
     label: {
-      fontSize: rfValue(12.5),
+      fontSize: rfValue(12),
       fontFamily: FontFamily.medium,
     },
     labelActive: {
-      color: '#FFFFFF',
-      fontFamily: FontFamily.bodyBold,
+      color: theme.colors.primary || '#1E40AF',
+      fontFamily: FontFamily.bold,
     },
     labelInactive: {
-      color: theme.colors.textSecondary,
+      color: 'rgba(255, 255, 255, 0.9)',
     },
     badge: {
       marginLeft: 6,
@@ -126,20 +127,20 @@ const getStyles = (theme: any) =>
       justifyContent: 'center',
     },
     badgeInactive: {
-      backgroundColor: 'rgba(0,0,0,0.06)',
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     badgeActive: {
-      backgroundColor: 'rgba(255,255,255,0.22)',
+      backgroundColor: 'rgba(30, 64, 175, 0.12)',
     },
     badgeText: {
-      fontSize: rfValue(10.5),
-      fontFamily: FontFamily.bodyBold,
+      fontSize: rfValue(10),
+      fontFamily: FontFamily.bold,
     },
     badgeTextInactive: {
-      color: theme.colors.textSecondary,
+      color: '#FFFFFF',
     },
     badgeTextActive: {
-      color: '#FFFFFF',
+      color: theme.colors.primary || '#1E40AF',
     },
   });
 

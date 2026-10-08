@@ -63,6 +63,7 @@ export const FamilyCard: React.FC<FamilyCardProps> = memo(({
         <SafeImage
           alt={item.headName}
           src={item.headPhoto}
+          placeholderType="avatar"
           containerStyles={[styles.headPhoto, { borderWidth: 2, borderColor: allVoted ? '#16A34A' : noneVoted ? '#E2E8F0' : '#F59E0B', }]}
         />
 
@@ -130,21 +131,25 @@ export const FamilyCard: React.FC<FamilyCardProps> = memo(({
 
               {/* Actions */}
               <View style={styles.memberActions}>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#EFF6FF' }]}
-                  onPress={() => openPhoneDialer(member.mobile)}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                >
-                  <Phone {...({ size: 13, color: '#2563EB' } as any)} />
-                </TouchableOpacity>
+                {!!member.mobile && (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: '#EFF6FF' }]}
+                      onPress={() => openPhoneDialer(member.mobile)}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Phone {...({ size: 13, color: '#2563EB' } as any)} />
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#F0FDF4' }]}
-                  onPress={() => openWhatsAppChat(member.mobile)}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                >
-                  <MessageCircle {...({ size: 13, color: '#16A34A' } as any)} />
-                </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: '#F0FDF4' }]}
+                      onPress={() => openWhatsAppChat(member.mobile)}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <MessageCircle {...({ size: 13, color: '#16A34A' } as any)} />
+                    </TouchableOpacity>
+                  </>
+                )}
 
                 <TouchableOpacity
                   onPress={() => onToggleVoted(member.id)}

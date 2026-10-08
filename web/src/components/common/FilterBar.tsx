@@ -27,11 +27,16 @@ export interface FilterField {
   value: any;
   onChange: (value: any) => void;
   options?: Option[] | ((currentValues: Record<string, any>) => Option[]);
-  placeholder?: string;
+  placeholder?: string | ((currentValues: Record<string, any>) => string | undefined);
   isPrimary?: boolean; // If true, displayed inline on wider screens
   disabled?: boolean | ((currentValues: Record<string, any>) => boolean);
   helperText?: string | ((currentValues: Record<string, any>) => string | undefined);
   hidden?: boolean | ((currentValues: Record<string, any>) => boolean);
+  onDraftChange?: (
+    value: any,
+    setDraftValues: React.Dispatch<React.SetStateAction<Record<string, any>>>
+  ) => void;
+  onDraftRevert?: () => void;
 }
 
 export interface FilterBarProps {
@@ -149,6 +154,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       ...prev,
       [key]: value,
     }));
+
+    const targetField = filters.find((f) => f.key === key);
+    if (targetField?.onDraftChange) {
+      targetField.onDraftChange(value, setDraftValues);
+    }
+  };
+
+  const resolveFieldPlaceholder = (field: FilterField, currentValues: Record<string, any>): string | undefined => {
+    if (typeof field.placeholder === 'function') {
+      return field.placeholder(currentValues);
+    }
+    return field.placeholder;
   };
 
   const resolveFieldOptions = (field: FilterField, currentValues: Record<string, any>): Option[] => {
@@ -206,6 +223,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     } else {
       filters.forEach((f) => f.onChange(''));
     }
+    filters.forEach((f) => {
+      if (f.onDraftRevert) {
+        f.onDraftRevert();
+      }
+    });
     setIsDrawerOpen(false);
   };
 
@@ -217,6 +239,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       reverted[f.key] = f.value ?? '';
     });
     setDraftValues(reverted);
+    filters.forEach((f) => {
+      if (f.onDraftRevert) {
+        f.onDraftRevert();
+      }
+    });
   };
 
   const handlePresetClickInDrawer = (preset: FilterPreset) => {
@@ -408,7 +435,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                                 value={fieldValue}
                                 onChange={(e) => handleDraftChange(field.key, (e.target as any)?.value ?? e)}
                                 options={resolveFieldOptions(field, draftValues)}
-                                placeholder={field.placeholder || `Select ${field.label}`}
+                                placeholder={resolveFieldPlaceholder(field, draftValues) || `Select ${field.label}`}
                                 disabled={resolveFieldDisabled(field, draftValues)}
                                 helperText={resolveFieldHelperText(field, draftValues)}
                               />
@@ -481,7 +508,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   value={field.value}
                   onChange={(e) => field.onChange((e.target as any)?.value ?? e)}
                   options={resolveFieldOptions(field, activeFilterValues)}
-                  placeholder={field.placeholder}
+                  placeholder={resolveFieldPlaceholder(field, activeFilterValues)}
                   disabled={resolveFieldDisabled(field, activeFilterValues)}
                 />
               </div>

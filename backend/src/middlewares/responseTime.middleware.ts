@@ -41,7 +41,17 @@ export const responseTimeLogger = (req: Request, res: Response, next: NextFuncti
       const sources = Array.from(context.sources);
       const sourceLabel = sources.length > 0 ? sources.join(' + ') : 'Direct / Memory';
 
-      const logMessage = `[API PERF] ${method} ${url} | Status: ${status} | Time: ${formattedDuration}ms | Data Source: [${sourceLabel}]`;
+      const colorSource = (src: string) => {
+        if (src.includes('Redis')) return `\x1b[31m${src}\x1b[0m`; // Red
+        if (src.includes('Master DB')) return `\x1b[36m${src}\x1b[0m`; // Cyan
+        if (src.includes('Tenant DB')) return `\x1b[35m${src}\x1b[0m`; // Magenta
+        return src;
+      };
+
+      const coloredSources = sources.map(colorSource);
+      const coloredSourceLabel = coloredSources.length > 0 ? coloredSources.join(' + ') : 'Direct / Memory';
+
+      const logMessage = `[API PERF] ${method} ${url} | Status: ${status} | Time: ${formattedDuration}ms | Data Source: [${coloredSourceLabel}]`;
 
       if (durationMs >= SLOW_API_THRESHOLD_MS) {
         logger.warn(`⚠️ SLOW API DETECTED! ${logMessage} (Exceeded threshold: ${SLOW_API_THRESHOLD_MS}ms)`);

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS voters (
     eng_middle_name VARCHAR(150),
     surname VARCHAR(150),
     eng_surname VARCHAR(150),
+    relation VARCHAR(100),
+    guardian_name VARCHAR(255),
     
     -- Personal & Identification
     gender VARCHAR(10),
@@ -62,12 +64,6 @@ CREATE TABLE IF NOT EXISTS voters (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE voters ADD COLUMN IF NOT EXISTS pan_no VARCHAR(20);
-ALTER TABLE voters ADD COLUMN IF NOT EXISTS ward_id UUID REFERENCES wards(id) ON DELETE SET NULL;
-ALTER TABLE voters ADD COLUMN IF NOT EXISTS village_id UUID REFERENCES villages(id) ON DELETE SET NULL;
-ALTER TABLE voters ADD COLUMN IF NOT EXISTS relation VARCHAR(100);
-ALTER TABLE voters ADD COLUMN IF NOT EXISTS guardian_name VARCHAR(255);
-
 -- Indexes for Sub-Millisecond Search & Roll Navigation
 CREATE UNIQUE INDEX IF NOT EXISTS idx_voters_epic_no ON voters(epic_no);
 CREATE INDEX IF NOT EXISTS idx_voters_booth_serial ON voters(booth_id, serial_no);
@@ -95,6 +91,16 @@ CREATE INDEX IF NOT EXISTS idx_voters_family_id ON voters(family_id);
 CREATE INDEX IF NOT EXISTS idx_voters_booth_family_id ON voters(booth_id, family_id);
 CREATE INDEX IF NOT EXISTS idx_voters_relation ON voters(relation);
 CREATE INDEX IF NOT EXISTS idx_voters_guardian_name ON voters(guardian_name);
+CREATE INDEX IF NOT EXISTS idx_voters_ac_id_id ON voters(ac_id, id);
+
+-- Specialized Functional Indexes for Fast Phone Contact Matching
+CREATE INDEX IF NOT EXISTS idx_voters_clean_mobile_10 
+ON voters (RIGHT(REGEXP_REPLACE(mobile_no, '\D', '', 'g'), 10))
+WHERE mobile_no IS NOT NULL AND LENGTH(REGEXP_REPLACE(mobile_no, '\D', '', 'g')) >= 10;
+
+CREATE INDEX IF NOT EXISTS idx_voters_booth_clean_mobile_10
+ON voters (booth_id, RIGHT(REGEXP_REPLACE(mobile_no, '\D', '', 'g'), 10))
+WHERE mobile_no IS NOT NULL;
 
 -- GIN Trigram Search Indexes for Fast Search
 CREATE INDEX IF NOT EXISTS idx_voters_eng_fname_trgm ON voters USING gin(eng_first_name gin_trgm_ops);
@@ -104,3 +110,4 @@ CREATE INDEX IF NOT EXISTS idx_voters_mobile_no_trgm ON voters USING gin(mobile_
 CREATE INDEX IF NOT EXISTS idx_voters_house_no_trgm ON voters USING gin(house_no gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_voters_first_name_trgm ON voters USING gin(first_name gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_voters_surname_trgm ON voters USING gin(surname gin_trgm_ops);
+

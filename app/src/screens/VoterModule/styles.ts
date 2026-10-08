@@ -32,7 +32,8 @@ export const voterListStyles = (theme: Theme) =>
     listPadding: {
       gap: 6,
       padding: 10,
-      paddingBottom: 150,
+      flexGrow: 1,
+      paddingBottom: 30,
     },
     voterCard: {
       gap: 4,
@@ -122,10 +123,10 @@ export const voterListStyles = (theme: Theme) =>
       color: theme.colors.text || '#0F172A',
     },
     voterName: {
-      fontFamily: FontFamily.bold,
       fontSize: rfValue(13),
-      color: theme.colors.text || '#0F172A',
       lineHeight: rfValue(16),
+      fontFamily: FontFamily.bold,
+      color: theme.colors.text || '#0F172A',
     },
     englishNameText: {
       fontFamily: FontFamily.medium,
@@ -151,7 +152,6 @@ export const voterListStyles = (theme: Theme) =>
       marginTop: 2,
     },
     locationRow: {
-      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,

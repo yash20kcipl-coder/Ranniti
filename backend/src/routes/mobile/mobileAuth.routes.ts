@@ -1,14 +1,12 @@
 import { Router } from 'express';
-import { authenticateJwt } from '../../middlewares/auth.middleware';
 import { mobileAuthController } from '../../controllers/mobileAuth.controller';
-import { mobileAccessController } from '../../controllers/mobile/mobileAccess.controller';
+import { authenticateMobileUser } from '../../middlewares/mobileAuth.middleware';
 
 const router = Router();
 
 router.post('/login', mobileAuthController.login);
-router.get('/profile', authenticateJwt, mobileAuthController.getProfile);
-router.put('/profile', authenticateJwt, mobileAuthController.updateProfile);
-router.get('/roles', authenticateJwt, mobileAccessController.getAvailableRoles);
-router.get('/role-access', authenticateJwt, mobileAccessController.getRoleAccess);
+router.get('/profile', authenticateMobileUser, mobileAuthController.getProfile);
+router.put('/profile', authenticateMobileUser, mobileAuthController.updateProfile);
 
 export const mobileAuthRoutes = router;
+

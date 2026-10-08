@@ -5,28 +5,30 @@ export interface VolunteerUserRecord {
   id: string;
   name: string;
   email: string;
-  passwordHash: string;
-  role: 'pc_leader' | 'ac_leader' | 'sub_leader' | 'supporter' | string;
-  roleName?: string | null;
+  status: string;
   mobile?: string;
   avatar?: string;
-  status: string;
-  tenantDbName: string;
-  parentLeaderId?: string | null;
-  assignedAcId?: string | null;
-  assignedBoothIds?: string[];
   createdAt: Date;
   updatedAt: Date;
+  tenantDbName: string;
+  passwordHash: string;
+  accessibleTabs?: any;
+  roleName?: string | null;
+  assignedAc?: string | null;
+  assignedPc?: string | null;
+  assignedBoothIds?: string[];
+  assignedAcId?: string | null;
+  assignedPcId?: string | null;
+  assignedAcName?: string | null;
+  assignedPcName?: string | null;
+  parentLeaderId?: string | null;
+  role: 'pc_leader' | 'ac_leader' | 'sub_leader' | 'supporter' | string;
 }
 
 export class VolunteerAuthQueries {
   static async getVolunteerAssignedBoothIds(userId: string, tenantDbName: string): Promise<string[]> {
     try {
-      const res = await TenantPoolManager.query(
-        tenantDbName,
-        `SELECT booth_id FROM user_booth_assignments WHERE user_id = $1`,
-        [userId]
-      );
+      const res = await TenantPoolManager.query(tenantDbName, `SELECT booth_id FROM user_booth_assignments WHERE user_id = $1`, [userId]);
       return res.rows.map((row: { booth_id: string }) => row.booth_id);
     } catch {
       return [];
@@ -38,11 +40,7 @@ export class VolunteerAuthQueries {
     await TenantPoolManager.query(tenantDbName, `DELETE FROM user_booth_assignments WHERE user_id = $1`, [userId]);
     if (boothIds && boothIds.length > 0) {
       for (const boothId of boothIds) {
-        await TenantPoolManager.query(
-          tenantDbName,
-          `INSERT INTO user_booth_assignments (user_id, booth_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-          [userId, boothId]
-        );
+        await TenantPoolManager.query(tenantDbName, `INSERT INTO user_booth_assignments (user_id, booth_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [userId, boothId]);
       }
     }
   }
@@ -53,6 +51,7 @@ export class VolunteerAuthQueries {
       SELECT id, name, email, password_hash AS "passwordHash", 
              role, role_name AS "roleName", mobile, avatar, status, tenant_db_name AS "tenantDbName",
              parent_leader_id AS "parentLeaderId", assigned_ac_id AS "assignedAcId",
+             accessible_tabs AS "accessibleTabs",
              created_at AS "createdAt", updated_at AS "updatedAt"
       FROM tenant_users 
       WHERE LOWER(email) = $1 OR mobile = $1
@@ -95,11 +94,26 @@ export class VolunteerAuthQueries {
 
   static async findVolunteerById(id: string, tenantDbName?: string | null): Promise<VolunteerUserRecord | null> {
     const sql = `
-      SELECT id, name, email, password_hash AS "passwordHash", 
-             role, role_name AS "roleName", mobile, avatar, status, tenant_db_name AS "tenantDbName",
-             parent_leader_id AS "parentLeaderId", assigned_ac_id AS "assignedAcId",
-             created_at AS "createdAt", updated_at AS "updatedAt"
-      FROM tenant_users WHERE id = $1
+      SELECT 
+        u.id, u.name, u.email, u.password_hash AS "passwordHash", 
+        u.role, u.role_name AS "roleName", u.mobile, u.avatar, u.status, u.tenant_db_name AS "tenantDbName",
+        u.parent_leader_id AS "parentLeaderId", u.assigned_ac_id AS "assignedAcId",
+        u.accessible_tabs AS "accessibleTabs",
+        u.created_at AS "createdAt", u.updated_at AS "updatedAt",
+        a.name AS "assignedAcName",
+        a.name AS "assignedAc",
+        COALESCE(p.id, def_p.id) AS "assignedPcId",
+        COALESCE(p.name, def_p.name) AS "assignedPcName",
+        COALESCE(p.name, def_p.name) AS "assignedPc",
+        COALESCE(
+          (SELECT array_agg(uba.booth_id) FROM user_booth_assignments uba WHERE uba.user_id = u.id),
+          ARRAY[]::uuid[]
+        ) AS "assignedBoothIds"
+      FROM tenant_users u
+      LEFT JOIN assembly_constituencies a ON a.id = u.assigned_ac_id
+      LEFT JOIN parliamentary_constituencies p ON p.id = a.pc_id
+      LEFT JOIN LATERAL (SELECT id, name FROM parliamentary_constituencies LIMIT 1) def_p ON true
+      WHERE u.id = $1
     `;
 
     if (tenantDbName && tenantDbName.trim()) {
@@ -108,7 +122,7 @@ export class VolunteerAuthQueries {
         if (res.rows[0]) {
           const user = res.rows[0];
           user.tenantDbName = tenantDbName.trim();
-          user.assignedBoothIds = await this.getVolunteerAssignedBoothIds(user.id, user.tenantDbName);
+          user.assignedBoothIds = user.assignedBoothIds || [];
           return user;
         }
       } catch {
@@ -127,7 +141,7 @@ export class VolunteerAuthQueries {
         if (res.rows[0]) {
           const user = res.rows[0];
           user.tenantDbName = dbName;
-          user.assignedBoothIds = await this.getVolunteerAssignedBoothIds(user.id, dbName);
+          user.assignedBoothIds = user.assignedBoothIds || [];
           return user;
         }
       } catch {
@@ -149,6 +163,7 @@ export class VolunteerAuthQueries {
       parentLeaderId?: string | null;
       assignedAcId?: string | null;
       assignedBoothIds?: string[];
+      accessibleTabs?: any;
     },
     tenantDbName: string
   ): Promise<VolunteerUserRecord> {
@@ -182,11 +197,12 @@ export class VolunteerAuthQueries {
 
     const res = await TenantPoolManager.query(
       tenantDbName,
-      `INSERT INTO tenant_users (name, email, password_hash, role, role_name, mobile, avatar, tenant_db_name, parent_leader_id, assigned_ac_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO tenant_users (name, email, password_hash, role, role_name, mobile, avatar, tenant_db_name, parent_leader_id, assigned_ac_id, accessible_tabs)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id, name, email, password_hash AS "passwordHash", 
                  role, role_name AS "roleName", mobile, avatar, status, tenant_db_name AS "tenantDbName",
                  parent_leader_id AS "parentLeaderId", assigned_ac_id AS "assignedAcId",
+                 accessible_tabs AS "accessibleTabs",
                  created_at AS "createdAt", updated_at AS "updatedAt"`,
       [
         data.name,
@@ -199,6 +215,7 @@ export class VolunteerAuthQueries {
         tenantDbName,
         validParentLeaderId,
         data.assignedAcId || null,
+        data.accessibleTabs ? JSON.stringify(data.accessibleTabs) : null,
       ]
     );
     const user = res.rows[0];

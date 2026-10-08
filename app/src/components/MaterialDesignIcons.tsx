@@ -45,6 +45,8 @@ import {
   MapPin,
   Activity,
 } from 'lucide-react-native';
+import whatsappIcon from '../assets/images/icons/whatsapp.png';
+import { Image } from 'react-native';
 
 interface IconProps {
   name: string;
@@ -60,7 +62,7 @@ export const MaterialDesignIcons: React.FC<IconProps> = ({ name, size = 24, colo
   if (iconName.includes('plus') || iconName.includes('add')) {
     return <Plus {...iconProps} />;
   }
-  if (iconName.includes('search')) {
+  if (iconName.includes('search') || iconName.includes('magnify') || iconName.includes('find')) {
     return <Search {...iconProps} />;
   }
   if (iconName.includes('close') || iconName.includes('cancel') || iconName.includes('x')) {
@@ -189,7 +191,9 @@ export const MaterialDesignIcons: React.FC<IconProps> = ({ name, size = 24, colo
   if (iconName.includes('list')) {
     return <List {...iconProps} />;
   }
-
+  if (iconName.includes('whatsapp')) {
+    return <Image source={whatsappIcon} style={{ height: size, width: size, tintColor: color }} />;
+  }
   // Default Fallback Icon
   return <Info {...iconProps} />;
 };

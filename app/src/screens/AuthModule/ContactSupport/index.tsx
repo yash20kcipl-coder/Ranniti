@@ -6,7 +6,8 @@ import { useAppTheme } from '../../../hooks/useAppTheme';
 import { SafeView, ScrollView } from '../../../components';
 import { fetchContactInfoAction } from '../../../store/actions/support';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
-import { View, Text, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { openEmailComposer, openPhoneDialer } from '../../../utils/linkingUtils';
 
 const ContactSupport = () => {
   const navigation = useNavigation();
@@ -23,11 +24,11 @@ const ContactSupport = () => {
   }, [dispatch]);
 
   const handleEmail = () => {
-    Linking.openURL(`mailto:${email}?subject=App Login Issue`);
+    openEmailComposer(email, 'App Login Issue');
   };
 
   const handlePhone = () => {
-    Linking.openURL(`tel:${phone.replace(/[^+\d]/g, '')}`);
+    openPhoneDialer(phone);
   };
 
   return (

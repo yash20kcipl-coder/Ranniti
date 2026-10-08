@@ -233,7 +233,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   ? isMasterPath
                   : isTenantMasterItem
                     ? location.pathname.startsWith('/dashboard/tenant-master')
-                    : location.pathname === targetPath || location.pathname.startsWith(targetPath + '/');
+                    : targetPath === '/dashboard'
+                      ? location.pathname === '/dashboard' || location.pathname === '/dashboard/'
+                      : location.pathname === targetPath || location.pathname.startsWith(targetPath + '/');
 
                 /* MASTER DATA ACCORDION ITEM */
                 if (isMasterItem) {
@@ -296,7 +298,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           </button>
 
                           {/* MASTER SUB-SECTIONS (Always Open) */}
-                          <div className="ml-3 pl-3 border-l-2 border-indigo-500/30 space-y-3 py-2 animate-in fade-in duration-200">
+                          <div className="ml-5 pl-3 border-l-2 border-indigo-500/30 space-y-3 py-2 animate-in fade-in duration-200">
                             {masterSections.map((section) => {
                               const SectionIcon = section.icon;
                               return (

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS tenant_users (
     tenant_db_name VARCHAR(150),
     parent_leader_id UUID REFERENCES tenant_users(id) ON DELETE SET NULL,
     assigned_ac_id UUID,
+    accessible_tabs JSONB DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

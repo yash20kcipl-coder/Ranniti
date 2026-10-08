@@ -20,6 +20,10 @@ const TENANT_SELECT = `
   t.provisioning_progress AS "provisioningProgress",
   t.total_voters_copied   AS "totalVotersCopied",
   t.current_step          AS "currentStep",
+  t.current_phase         AS "currentPhase",
+  t.active_table          AS "activeTable",
+  t.processed_records     AS "processedRecords",
+  t.total_records         AS "totalRecords",
   t.error_message         AS "errorMessage",
   t.created_at            AS "createdAt",
   t.updated_at            AS "updatedAt"
@@ -86,6 +90,10 @@ export class TenantQueries {
       totalVotersCopied?: number;
       errorMessage?: string | null;
       currentStep?: string;
+      currentPhase?: string;
+      activeTable?: string | null;
+      processedRecords?: number;
+      totalRecords?: number;
     }
   ): Promise<void> {
     await query(
@@ -96,6 +104,10 @@ export class TenantQueries {
          total_voters_copied   = COALESCE($4, total_voters_copied),
          error_message         = $5,
          current_step          = COALESCE($6, current_step),
+         current_phase         = COALESCE($7, current_phase),
+         active_table          = $8,
+         processed_records     = COALESCE($9, processed_records),
+         total_records         = COALESCE($10, total_records),
          updated_at            = NOW()
        WHERE id = $1`,
       [
@@ -105,6 +117,10 @@ export class TenantQueries {
         update.totalVotersCopied ?? null,
         update.errorMessage ?? null,
         update.currentStep ?? null,
+        update.currentPhase ?? null,
+        update.activeTable !== undefined ? update.activeTable : null,
+        update.processedRecords ?? null,
+        update.totalRecords ?? null,
       ]
     );
   }

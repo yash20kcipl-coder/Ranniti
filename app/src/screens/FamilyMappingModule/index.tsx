@@ -1,11 +1,12 @@
-import { View, StyleSheet } from 'react-native';
 import { RootState } from '../../store/store';
 import { useLanguage } from '../../languages';
+import { View, StyleSheet } from 'react-native';
+import React, { useCallback, useState } from 'react';
 import MdFlatList from '../../components/MdFlatList';
 import { FamilyCard } from './components/FamilyCard';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
-import React, { useCallback, useEffect, useState } from 'react';
+import useDebouncedEffect from '../../hooks/useDebouncedEffect';
 import { toggleVotedStatusAction } from '../../store/actions/voters';
 import { FamilyCardSkeleton } from './components/FamilyCardSkeleton';
 import type { FamilyGroup } from '../../store/reducers/familyMapping';
@@ -21,13 +22,13 @@ export const FamilyMappingScreen: React.FC = () => {
   const [search, setSearch] = useState('');
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    dispatch(fetchFamilyHeadsAction());
-  }, []);
-
   const handleRefresh = useCallback(() => {
-    dispatch(fetchFamilyHeadsAction());
-  }, [dispatch]);
+    dispatch(fetchFamilyHeadsAction(search));
+  }, [dispatch, search]);
+
+  useDebouncedEffect(() => {
+    dispatch(fetchFamilyHeadsAction(search));
+  }, [search], 300);
 
   const handleToggle = useCallback((familyId: string) => {
     setExpandedFamilyIds(prev => ({ ...prev, [familyId]: !prev[familyId] }));
@@ -37,22 +38,14 @@ export const FamilyMappingScreen: React.FC = () => {
     dispatch(toggleVotedStatusAction(voterId));
   }, [dispatch]);
 
-  const filteredFamilies = React.useMemo(() => {
-    if (!search.trim()) return families;
-    const q = search.toLowerCase();
-    return families.filter(fam =>
-      fam.headName.toLowerCase().includes(q) ||
-      fam.headEpic.toLowerCase().includes(q) ||
-      fam.headMobile.includes(q)
-    );
-  }, [families, search]);
+  const filteredFamilies = families; // API already filters
 
   const renderItem = useCallback(({ item }: { item: FamilyGroup }) => (
     <FamilyCard
       item={item}
-      isExpanded={!!expandedFamilyIds[item.familyId]}
       onToggle={handleToggle}
       onToggleVoted={handleToggleVoted}
+      isExpanded={!!expandedFamilyIds[item.familyId]}
     />
   ), [expandedFamilyIds, handleToggle, handleToggleVoted]);
 
@@ -94,6 +87,6 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   separator: {
-    height: 10,
+    height: 5,
   },
 });

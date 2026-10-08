@@ -23,6 +23,8 @@ export class MobileVoterService {
       }
     } else if (user.assignedAcId && !filters.acId) {
       filters.acId = user.assignedAcId;
+    } else if (user.assignedPcId && !filters.pcId) {
+      filters.pcId = user.assignedPcId;
     }
 
     const result = await VoterQueries.getVoters(filters);

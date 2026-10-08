@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
-import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { Menu, ChevronLeft } from 'lucide-react-native';
 import { appHeaderStyles } from './styles';
-import { useAppTheme } from '../../hooks/useAppTheme';
 import { goBack } from '../../navigation';
+import { useLanguage } from '../../languages';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import { Menu, ChevronLeft, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
+import { View, Text, Image, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 
 const RANNITI_LOGO = require('../../assets/images/ranniti-logo.png');
 
@@ -16,6 +17,7 @@ export interface AppHeaderProps {
   showLogo?: boolean;
   showBack?: boolean;
   showMenu?: boolean;
+  showLanguageToggle?: boolean;
   onBack?: () => void;
   onMenu?: () => void;
   rightElement?: React.ReactNode;
@@ -32,6 +34,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   showLogo = !title,
   showBack = false,
   showMenu = false,
+  showLanguageToggle = false,
   onBack,
   onMenu,
   rightElement,
@@ -43,6 +46,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const { top } = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { styles, theme } = useAppTheme(appHeaderStyles);
+  const { language, setLanguage } = useLanguage();
+
+  const handleToggleLanguage = () => {
+    setLanguage(language === 'en' ? 'hi' : 'en');
+  };
 
   const canGoBack = navigation && typeof navigation.canGoBack === 'function' && navigation.canGoBack();
   const isPrimary = variant === 'primary';
@@ -90,7 +98,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               onPress={handleBackPress}
             >
-              <ChevronLeft size={22} color={iconColor} />
+              <ArrowLeft size={18} color={iconColor} />
             </TouchableOpacity>
           ) : (showMenu || !title) ? (
             <TouchableOpacity
@@ -99,7 +107,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               onPress={handleMenuPress}
             >
-              <Menu strokeWidth={2.2} size={22} color={iconColor} />
+              <Menu strokeWidth={2.2} size={18} color={iconColor} />
             </TouchableOpacity>
           ) : null}
 
@@ -140,8 +148,54 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           ) : null}
         </View>
 
-        {/* Right Section: Action badges / Custom elements */}
-        {rightElement ? <View style={styles.rightSection}>{rightElement}</View> : null}
+        {/* Right Section: Action badges / Language toggle / Custom elements */}
+        {(showLanguageToggle || rightElement) && (
+          <View style={styles.rightSection}>
+            {showLanguageToggle && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleToggleLanguage}
+                style={[styles.langTogglePill, isPrimary && styles.langTogglePillPrimary]}
+              >
+                <View
+                  style={[
+                    styles.langSegment,
+                    language === 'en' && (isPrimary ? styles.langSegmentActivePrimary : styles.langSegmentActive),
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.langText,
+                      language === 'en'
+                        ? (isPrimary ? styles.langTextActivePrimary : styles.langTextActive)
+                        : (isPrimary ? styles.langTextInactivePrimary : styles.langTextInactive),
+                    ]}
+                  >
+                    EN
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.langSegment,
+                    language === 'hi' && (isPrimary ? styles.langSegmentActivePrimary : styles.langSegmentActive),
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.langText,
+                      language === 'hi'
+                        ? (isPrimary ? styles.langTextActivePrimary : styles.langTextActive)
+                        : (isPrimary ? styles.langTextInactivePrimary : styles.langTextInactive),
+                    ]}
+                  >
+                    हिं
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            {rightElement}
+          </View>
+        )}
       </View>
     </View>
   );

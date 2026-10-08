@@ -144,7 +144,7 @@ export const TenantsPage: React.FC = () => {
       case 'provisioning':
       case 'pending':
         return (
-          <div className="space-y-1.5 min-w-[130px]">
+          <div className="space-y-1.5 min-w-[170px] max-w-[220px]">
             <div className="flex items-center justify-between text-[11px] font-bold text-amber-600 dark:text-amber-400">
               <span className="inline-flex items-center gap-1">
                 <Loader2 size={11} className="animate-spin" /> Provisioning
@@ -157,6 +157,15 @@ export const TenantsPage: React.FC = () => {
                 style={{ width: `${progress}%` }}
               />
             </div>
+            {tenant.currentStep && (
+              <p
+                className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate flex items-center gap-1"
+                title={tenant.currentStep}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                <span className="truncate">{tenant.currentStep}</span>
+              </p>
+            )}
           </div>
         );
       case 'failed':

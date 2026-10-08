@@ -29,10 +29,13 @@ export const getTenantDbPool = (tenantDbName: string): Pool => {
 
   const pool = new Pool({
     ...baseConfig,
-    max: 10,
-    idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 5000,
-  });
+    max: parseInt(process.env.PG_TENANT_POOL_MAX || '15', 10),
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 30000,
+    statement_timeout: 60000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
+  } as any);
 
   // Instrument pool.query and pool.connect for transparent Tenant DB tracking
   const origQuery = pool.query.bind(pool);
@@ -80,71 +83,76 @@ export class TenantDbProvisioner {
   }
 
   /**
-   * Runs core schema migrations on the target tenant database.
+   * Runs core schema migrations on the target tenant database using an existing connection pool.
+   */
+  static async initializeTenantSchemaWithPool(tenantPool: Pool, tenantDbName: string): Promise<void> {
+    logger.info(`[TenantProvisioner] Initializing schema for database '${tenantDbName}'...`);
+
+    const migrationFiles = [
+      'create_master_tables.sql',
+      'create_tenant_users_table.sql',
+      'create_voters_table.sql',
+      'create_campaign_settings_tables.sql',
+      'create_tenant_user_roles_table.sql',
+      'create_user_synced_contacts_table.sql',
+    ];
+
+    const migrationsDir = path.join(__dirname, '../database/migrations');
+
+    for (const fileName of migrationFiles) {
+      const filePath = path.join(migrationsDir, fileName);
+      if (fs.existsSync(filePath)) {
+        const sql = fs.readFileSync(filePath, 'utf8');
+        await tenantPool.query(sql);
+        logger.info(`[TenantProvisioner] Executed migration '${fileName}' on '${tenantDbName}'`);
+      }
+    }
+
+    // Seed default tenant user roles if empty
+    const roleCountRes = await tenantPool.query(`SELECT COUNT(*) as count FROM tenant_user_roles`);
+    if (parseInt(roleCountRes.rows[0]?.count || '0', 10) === 0) {
+      await tenantPool.query(`
+        INSERT INTO tenant_user_roles (role_name, role_key, description, accessible_tabs, voter_permissions, can_create_roles, is_system_default)
+        VALUES
+          ('PC Leader', 'pc_leader', 'Parliamentary Constituency Campaign Lead', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["ac_leader","sub_leader","supporter"]'::jsonb, true),
+          ('AC Leader', 'ac_leader', 'Assembly Constituency Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["sub_leader","supporter"]'::jsonb, true),
+          ('Sub-Leader / Ward Coordinator', 'sub_leader', 'Ward & Prabhag Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":true,"canExportData":false}'::jsonb, '["supporter"]'::jsonb, true),
+          ('Campaign Supporter / Volunteer', 'supporter', 'Booth Level Field Worker', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":false,"canExportData":false}'::jsonb, '[]'::jsonb, true)
+        ON CONFLICT DO NOTHING;
+      `);
+      logger.info(`[TenantProvisioner] Seeded default system roles for '${tenantDbName}'`);
+    }
+
+    // Ensure tenant_sync_outbox table exists
+    const outboxTableSql = `
+      CREATE TABLE IF NOT EXISTS tenant_sync_outbox (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id UUID NOT NULL,
+        action VARCHAR(20) NOT NULL,
+        payload JSONB NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        retry_count INT DEFAULT 0,
+        error_message TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    await tenantPool.query(outboxTableSql);
+
+    // Seed campaign settings & WhatsApp templates for the newly provisioned tenant DB
+    await seedSettings(tenantDbName);
+
+    logger.info(`[TenantProvisioner] Finished initializing schema for '${tenantDbName}'.`);
+  }
+
+  /**
+   * Runs core schema migrations on the target tenant database (manages its own pool).
    */
   static async initializeTenantSchema(tenantDbName: string): Promise<void> {
     const tenantPool = getTenantDbPool(tenantDbName);
-
     try {
-      logger.info(`[TenantProvisioner] Initializing schema for database '${tenantDbName}'...`);
-
-      const migrationFiles = [
-        'create_master_tables.sql',
-        'create_tenant_users_table.sql',
-        'create_voters_table.sql',
-        'create_campaign_settings_tables.sql',
-        'create_tenant_user_roles_table.sql',
-        'add_can_create_roles_to_tenant_user_roles.sql',
-        'create_user_synced_contacts_table.sql',
-      ];
-
-      const migrationsDir = path.join(__dirname, '../database/migrations');
-
-      for (const fileName of migrationFiles) {
-        const filePath = path.join(migrationsDir, fileName);
-        if (fs.existsSync(filePath)) {
-          const sql = fs.readFileSync(filePath, 'utf8');
-          await tenantPool.query(sql);
-          logger.info(`[TenantProvisioner] Executed migration '${fileName}' on '${tenantDbName}'`);
-        }
-      }
-
-      // Seed default tenant user roles if empty
-      const roleCountRes = await tenantPool.query(`SELECT COUNT(*) as count FROM tenant_user_roles`);
-      if (parseInt(roleCountRes.rows[0]?.count || '0', 10) === 0) {
-        await tenantPool.query(`
-          INSERT INTO tenant_user_roles (role_name, role_key, description, accessible_tabs, voter_permissions, can_create_roles, is_system_default)
-          VALUES
-            ('PC Leader', 'pc_leader', 'Parliamentary Constituency Campaign Lead', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["ac_leader","sub_leader","supporter"]'::jsonb, true),
-            ('AC Leader', 'ac_leader', 'Assembly Constituency Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["sub_leader","supporter"]'::jsonb, true),
-            ('Sub-Leader / Ward Coordinator', 'sub_leader', 'Ward & Prabhag Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":true,"canExportData":false}'::jsonb, '["supporter"]'::jsonb, true),
-            ('Campaign Supporter / Volunteer', 'supporter', 'Booth Level Field Worker', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":false,"canExportData":false}'::jsonb, '[]'::jsonb, true)
-          ON CONFLICT DO NOTHING;
-        `);
-        logger.info(`[TenantProvisioner] Seeded default system roles for '${tenantDbName}'`);
-      }
-
-      // Ensure tenant_sync_outbox table exists
-      const outboxTableSql = `
-        CREATE TABLE IF NOT EXISTS tenant_sync_outbox (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          entity_type VARCHAR(50) NOT NULL,
-          entity_id UUID NOT NULL,
-          action VARCHAR(20) NOT NULL,
-          payload JSONB NOT NULL,
-          status VARCHAR(20) DEFAULT 'pending',
-          retry_count INT DEFAULT 0,
-          error_message TEXT,
-          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-        );
-      `;
-      await tenantPool.query(outboxTableSql);
-
-      // Seed campaign settings & WhatsApp templates for the newly provisioned tenant DB
-      await seedSettings(tenantDbName);
-
-      logger.info(`[TenantProvisioner] Finished initializing schema for '${tenantDbName}'.`);
+      await this.initializeTenantSchemaWithPool(tenantPool, tenantDbName);
     } catch (err: any) {
       logger.error(`[TenantProvisioner] Failed to initialize schema on '${tenantDbName}':`, err);
       throw err;
@@ -166,7 +174,7 @@ export class TenantDbProvisioner {
     }
 
     const tenants = await mainQuery(
-      `SELECT tenant_db_name AS db_name FROM tenants WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`
+      `SELECT tenant_db_name AS db_name FROM tenants WHERE tenant_db_name IS NOT NULL`
     );
 
     if (!tenants.rows || tenants.rows.length === 0) {

@@ -1,6 +1,9 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
+// Super Admin Dashboard Overview Page
+import { SuperAdminDashboardPage } from '@/pages/super_admin/dashboard';
+
 // Super Admin Voters Pages
 import {
   VotersPage as SuperAdminVotersPage,
@@ -38,8 +41,9 @@ import { SuperAdminSettingsPage } from '@/pages/super_admin/settings/SuperAdminS
 export const SuperAdminRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Default Dashboard Redirect -> Voters Directory */}
-      <Route index element={<Navigate to="/dashboard/voters" replace />} />
+      {/* Default Dashboard -> Dedicated Super Admin Dashboard Overview */}
+      <Route index element={<SuperAdminDashboardPage />} />
+      <Route path="dashboard" element={<SuperAdminDashboardPage />} />
 
       {/* Voter Management (Super Admin endpoints) */}
       <Route path="voters" element={<SuperAdminVotersPage />} />

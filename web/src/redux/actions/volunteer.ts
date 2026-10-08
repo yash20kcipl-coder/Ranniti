@@ -10,11 +10,18 @@ import {
   SET_VOLUNTEER_LOADING,
   SET_LAST_CREATED_CREDENTIALS,
   CLEAR_LAST_CREATED_CREDENTIALS,
+  SET_VOLUNTEER_BOOTHS,
+  SET_VOLUNTEER_BOOTHS_LOADING,
   type VolunteerRecord,
 } from '../reducers/volunteer';
 
 export const setVolunteerLoading = (loading: boolean) => ({
   type: SET_VOLUNTEER_LOADING,
+  payload: loading,
+});
+
+export const setVolunteerBoothsLoading = (loading: boolean) => ({
+  type: SET_VOLUNTEER_BOOTHS_LOADING,
   payload: loading,
 });
 
@@ -140,6 +147,36 @@ export const deleteTenantVolunteer = (id: string) => {
       dispatch(fetchVolunteerBoothCoverage());
     } finally {
       dispatch(setVolunteerLoading(false));
+    }
+  };
+};
+
+export const fetchVolunteerBooths = (filters: {
+  acId?: string;
+  pcId?: string;
+  wardId?: string;
+  search?: string;
+} = {}) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setVolunteerBoothsLoading(true));
+    try {
+      // High limit to ensure complete list of booths for assignment without 10-item cap
+      const params: Record<string, any> = { limit: 10000 };
+      if (filters.acId) params.acId = filters.acId;
+      if (filters.pcId) params.pcId = filters.pcId;
+      if (filters.wardId) params.wardId = filters.wardId;
+      if (filters.search) params.search = filters.search;
+
+      const res = await api.get('/tenant/geography/booths', { params });
+      const raw = res.data?.data || res.data;
+      const booths = Array.isArray(raw) ? raw : (raw?.booths || []);
+      dispatch({ type: SET_VOLUNTEER_BOOTHS, payload: booths });
+      return booths;
+    } catch (err: any) {
+      dispatch({ type: SET_VOLUNTEER_BOOTHS, payload: [] });
+      throw err;
+    } finally {
+      dispatch(setVolunteerBoothsLoading(false));
     }
   };
 };

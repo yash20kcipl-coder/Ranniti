@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
-import { Vote, Lock, Building, ArrowDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Vote, Lock, Building, ArrowDown, Search, X } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
 import { FileUploadInput } from '@/components/common/FileUploadInput';
 import type { VolunteerRecord } from '@/redux/reducers/volunteer';
 import { FORM_VOLUNTEER_ROLE_OPTIONS } from '@/constants/dropdownOptions';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { fetchVolunteerBooths } from '@/redux/actions/volunteer';
 
 // ─── Role hierarchy ───────────────────────────────────────────────────────────
 /** Which existing roles can be the parent for each new role */
@@ -41,39 +43,104 @@ interface BoothGridProps {
   selectedIds: string[];
   singleSelect?: boolean;
   onToggle: (id: string) => void;
-  onSelectAll?: () => void;
+  onSelectAll?: (filteredList?: any[]) => void;
   acs?: any[];
   wards?: any[];
+  isLoading?: boolean;
 }
 const BoothGrid: React.FC<BoothGridProps> = ({
-  booths, selectedIds, singleSelect, onToggle, onSelectAll, acs = [], wards = [],
+  booths, selectedIds, singleSelect, onToggle, onSelectAll, acs = [], wards = [], isLoading = false,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
   const acMap = useMemo(() => new Map((acs || []).map((a: any) => [a.id, a.name])), [acs]);
   const wardMap = useMemo(() => new Map((wards || []).map((w: any) => [w.id, w.name])), [wards]);
+
+  // Real-time search filter
+  const filteredBooths = useMemo(() => {
+    if (!searchQuery.trim()) return booths;
+    const q = searchQuery.trim().toLowerCase();
+    return booths.filter((booth: any) => {
+      const bNum = String(booth.boothNumber ?? booth.booth_number ?? '').toLowerCase();
+      const bName = String(booth.name || '').toLowerCase();
+      const bBuilding = String(booth.locationBuilding || booth.location_building || '').toLowerCase();
+      const bAcId = booth.acId || booth.ac_id;
+      const bWardId = booth.wardId || booth.ward_id;
+      const acName = String(booth.acName || acMap.get(bAcId) || '').toLowerCase();
+      const wardName = String(booth.wardName || wardMap.get(bWardId) || '').toLowerCase();
+
+      return (
+        bNum.includes(q) ||
+        bName.includes(q) ||
+        bBuilding.includes(q) ||
+        acName.includes(q) ||
+        wardName.includes(q)
+      );
+    });
+  }, [booths, searchQuery, acMap, wardMap]);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-          Available Polling Booths ({booths.length})
+          Available Polling Booths ({filteredBooths.length}{filteredBooths.length !== booths.length ? ` of ${booths.length}` : ''})
         </span>
-        {!singleSelect && booths.length > 0 && onSelectAll && (
+        {!singleSelect && filteredBooths.length > 0 && onSelectAll && (
           <button
             type="button"
-            onClick={onSelectAll}
-            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+            onClick={() => onSelectAll(filteredBooths)}
+            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
           >
-            {booths.every((b) => selectedIds.includes(b.id)) ? 'Deselect All' : 'Select All'}
+            {filteredBooths.every((b) => selectedIds.includes(b.id)) ? 'Deselect All' : 'Select All'}
           </button>
         )}
       </div>
+
+      {/* Booth Search Box */}
+      {booths.length > 0 && (
+        <div className="relative mb-2">
+          <FormInput
+            name="boothSearch"
+            placeholder="Search booth number, station name, building, ward..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            icon={<Search size={14} className="text-slate-400" />}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 z-10 transition-colors"
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-h-56 overflow-y-auto gap-2 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-        {booths.length === 0 ? (
-          <div className="col-span-3 text-center py-6 text-xs text-slate-400">
+        {isLoading ? (
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3 flex flex-col items-center justify-center py-8 space-y-2 text-slate-400">
+            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-medium">Loading polling booths...</span>
+          </div>
+        ) : booths.length === 0 ? (
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-6 text-xs text-slate-400">
             No polling booths found for this selection.
           </div>
+        ) : filteredBooths.length === 0 ? (
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-6 text-xs text-slate-400 space-y-1">
+            <p>No polling booths matching "{searchQuery}".</p>
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 underline"
+            >
+              Clear search
+            </button>
+          </div>
         ) : (
-          booths.map((booth: any) => {
+          filteredBooths.map((booth: any) => {
             const isSelected = selectedIds.includes(booth.id);
             const bAcId = booth.acId || booth.ac_id;
             const bWardId = booth.wardId || booth.ward_id;
@@ -138,7 +205,6 @@ interface VolunteerFormModalProps {
   pcs: any[];
   acs: any[];
   wards: any[];
-  booths: any[];
   formPcId: string;
   setFormPcId: (val: string) => void;
   formAcId: string;
@@ -153,12 +219,27 @@ interface VolunteerFormModalProps {
 export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
   isOpen, onClose, editingVolunteer, setEditingVolunteer,
   onSubmit, isLoading, potentialParentLeaders,
-  pcs, acs, wards, booths,
+  pcs, acs, wards,
   formPcId, setFormPcId,
   formAcId, setFormAcId,
   formWardId, setFormWardId,
   formBoothIds, setFormBoothIds,
 }) => {
+  const dispatch = useAppDispatch();
+  const { availableBooths = [], boothsLoading = false } = useAppSelector((state) => state.volunteer);
+
+  // Dynamically fetch booths for the selected AC or PC when modal is opened
+  useEffect(() => {
+    if (!isOpen) return;
+    if (formAcId) {
+      dispatch(fetchVolunteerBooths({ acId: formAcId }));
+    } else if (formPcId) {
+      dispatch(fetchVolunteerBooths({ pcId: formPcId }));
+    } else {
+      dispatch(fetchVolunteerBooths());
+    }
+  }, [dispatch, isOpen, formAcId, formPcId]);
+
   const currentRole = (editingVolunteer?.role || 'supporter') as string;
   const validParentRoles = VALID_PARENT_ROLES[currentRole] ?? [];
   const isPcLeader = currentRole === 'pc_leader';
@@ -214,25 +295,25 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
   const pcLeaderBooths = useMemo(() => {
     if (!formPcId) return [];
     if (formAcId) {
-      return booths.filter((b: any) => (b.acId || b.ac_id) === formAcId);
+      return availableBooths.filter((b: any) => (b.acId || b.ac_id) === formAcId);
     }
     const pcAcIds = acs
       .filter((a: any) => (a.pcId || a.pc_id) === formPcId)
       .map((a: any) => a.id);
-    return booths.filter((b: any) => pcAcIds.includes(b.acId || b.ac_id));
-  }, [booths, acs, formPcId, formAcId]);
+    return availableBooths.filter((b: any) => pcAcIds.includes(b.acId || b.ac_id));
+  }, [availableBooths, acs, formPcId, formAcId]);
 
   // Booths for multi-select roles (ac_leader, sub_leader)
   const filteredBooths = useMemo(() => {
     if (!formAcId) return [];
-    return booths.filter((b: any) => {
+    return availableBooths.filter((b: any) => {
       const bAcId = b.acId || b.ac_id;
       const bWardId = b.wardId || b.ward_id;
       if (bAcId !== formAcId) return false;
       if (formWardId && bWardId !== formWardId) return false;
       return true;
     });
-  }, [booths, formAcId, formWardId]);
+  }, [availableBooths, formAcId, formWardId]);
 
   // For supporter — booths from selected parent sub-leader's assigned booths or AC
   const selectedParent = useMemo(
@@ -241,14 +322,15 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
   );
   const supporterBooths = useMemo(() => {
     if (!selectedParent) return [];
-    if (selectedParent.assignedBoothIds && selectedParent.assignedBoothIds.length > 0) {
-      return booths.filter((b: any) => selectedParent.assignedBoothIds.includes(b.id));
+    const parentBooths = selectedParent.assignedBoothIds;
+    if (Array.isArray(parentBooths) && parentBooths.length > 0) {
+      return availableBooths.filter((b: any) => parentBooths.includes(b.id));
     }
     if (selectedParent.assignedAcId) {
-      return booths.filter((b: any) => (b.acId || b.ac_id) === selectedParent.assignedAcId);
+      return availableBooths.filter((b: any) => (b.acId || b.ac_id) === selectedParent.assignedAcId);
     }
     return [];
-  }, [booths, selectedParent]);
+  }, [availableBooths, selectedParent]);
 
   // ── Booth toggle helpers ──────────────────────────────────────────────────
   const handleToggleBooth = (boothId: string) => {
@@ -430,9 +512,10 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
                   booths={pcLeaderBooths}
                   selectedIds={formBoothIds}
                   onToggle={handleToggleBooth}
-                  onSelectAll={() => handleSelectAll(pcLeaderBooths)}
+                  onSelectAll={(list) => handleSelectAll(list || pcLeaderBooths)}
                   acs={acs}
                   wards={wards}
+                  isLoading={boothsLoading}
                 />
               ) : (
                 <div className="p-4 text-center rounded-xl bg-white/70 dark:bg-slate-900/60 border border-dashed border-indigo-200 dark:border-indigo-900/60 text-xs text-slate-400">
@@ -511,9 +594,10 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
                   booths={filteredBooths}
                   selectedIds={formBoothIds}
                   onToggle={handleToggleBooth}
-                  onSelectAll={() => handleSelectAll(filteredBooths)}
+                  onSelectAll={(list) => handleSelectAll(list || filteredBooths)}
                   acs={acs}
                   wards={wards}
+                  isLoading={boothsLoading}
                 />
               )}
               {(!formPcId || !formAcId) && (
@@ -578,9 +662,10 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
                     booths={filteredBooths}
                     selectedIds={formBoothIds}
                     onToggle={handleToggleBooth}
-                    onSelectAll={() => handleSelectAll(filteredBooths)}
+                    onSelectAll={(list) => handleSelectAll(list || filteredBooths)}
                     acs={acs}
                     wards={wards}
+                    isLoading={boothsLoading}
                   />
                 </>
               )}
@@ -637,6 +722,7 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
                     onToggle={handleSingleBooth}
                     acs={acs}
                     wards={wards}
+                    isLoading={boothsLoading}
                   />
                 </div>
               )}

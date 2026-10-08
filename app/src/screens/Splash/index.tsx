@@ -48,8 +48,8 @@ const Splash: React.FC = () => {
 
       if (token) {
         (globalThis as any).token = token;
-        console.log("----- Logged in ----- ", token)
-        await dispatch(fetchProfileAndRoleAccessAction());
+        console.log("----- Logged in ----- ")
+        await dispatch(fetchProfileAndRoleAccessAction(true));
       } else {
         replace(SCREENS.LOGIN);
       }

@@ -34,7 +34,9 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string/>
+	<key>NSContactsUsageDescription</key>
+	<string>Allow access to phone contacts to find registered voters in your polling booth.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -56,5 +58,29 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>RobotoSlab-Medium.ttf</string>
+		<string>Inter-Medium.ttf</string>
+		<string>RobotoSlab-SemiBold.ttf</string>
+		<string>Oswald-Bold.ttf</string>
+		<string>RobotoSlab-ExtraBold.ttf</string>
+		<string>RobotoSlab-Thin.ttf</string>
+		<string>Oswald-SemiBold.ttf</string>
+		<string>RobotoSlab-Black.ttf</string>
+		<string>Oswald-Medium.ttf</string>
+		<string>Inter-Bold.ttf</string>
+		<string>Inter-Regular.ttf</string>
+		<string>RobotoSlab-Bold.ttf</string>
+		<string>Oswald-Regular.ttf</string>
+		<string>Inter-ExtraBold.ttf</string>
+		<string>RobotoSlab-Light.ttf</string>
+		<string>Inter-Black.ttf</string>
+		<string>RobotoSlab-ExtraLight.ttf</string>
+		<string>Oswald-ExtraLight.ttf</string>
+		<string>Inter-SemiBold.ttf</string>
+		<string>RobotoSlab-Regular.ttf</string>
+		<string>Oswald-Light.ttf</string>
+	</array>
 </dict>
 </plist>

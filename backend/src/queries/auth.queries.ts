@@ -31,6 +31,7 @@ export interface UserRecord {
   assignedPcName?: string | null;
   assignedPc?: string | null;
   assignedBoothIds?: string[];
+  accessibleTabs?: any;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -258,6 +259,7 @@ export class AuthQueries {
       parentLeaderId?: string | null;
       assignedAcId?: string | null;
       assignedBoothIds?: string[];
+      accessibleTabs?: any;
     },
     tenantDbName: string
   ): Promise<UserRecord> {

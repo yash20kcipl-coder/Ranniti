@@ -43,8 +43,8 @@ export const appHeaderStyles = (theme: Theme) =>
       flexShrink: 1,
     },
     actionBtn: {
-      width: 42,
-      height: 42,
+      width: 38,
+      height: 38,
       backgroundColor: 'rgba(255, 255, 255, 0.12)',
       borderRadius: 14,
       justifyContent: 'center',
@@ -117,6 +117,48 @@ export const appHeaderStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
+    },
+    langTogglePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F1F5F9',
+      borderRadius: 20,
+      padding: 2,
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+    },
+    langTogglePillPrimary: {
+      backgroundColor: 'rgba(255, 255, 255, 0.16)',
+      borderColor: 'rgba(255, 255, 255, 0.28)',
+    },
+    langSegment: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 16,
+    },
+    langSegmentActive: {
+      borderRadius: 16,
+      backgroundColor: theme.colors.primary || '#1E40AF',
+    },
+    langSegmentActivePrimary: {
+      borderRadius: 16,
+      backgroundColor: '#FFFFFF',
+    },
+    langText: {
+      fontFamily: FontFamily.bold,
+      fontSize: rfValue(10.5),
+    },
+    langTextActive: {
+      color: '#FFFFFF',
+    },
+    langTextActivePrimary: {
+      color: theme.colors.primary || '#1E40AF',
+    },
+    langTextInactive: {
+      color: '#64748B',
+    },
+    langTextInactivePrimary: {
+      color: 'rgba(255, 255, 255, 0.75)',
     },
   });
 

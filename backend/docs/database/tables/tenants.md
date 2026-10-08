@@ -25,6 +25,10 @@ Dedicated standalone entity table representing tenant organizations, their prima
 | `provisioning_progress` | `INT` | No | `0` | Provisioning progress percentage (0 to 100) |
 | `total_voters_copied` | `INT` | No | `0` | Number of voter records copied from master to tenant database |
 | `current_step` | `VARCHAR(100)` | No | `''` | Current provisioning step description (e.g. `Creating Database`, `Copying Voters (2,500 / 10,000)`) |
+| `current_phase` | `VARCHAR(50)` | No | `'init'` | Stage phase key: `db_init`, `schema`, `master_data`, `voters`, `influencers`, `indexing`, `completed` |
+| `active_table` | `VARCHAR(50)` | Yes | `NULL` | Name of active table currently processing (e.g. `voters`, `booths`, `wards`) |
+| `processed_records` | `INT` | No | `0` | Count of records processed for the active phase/table |
+| `total_records` | `INT` | No | `0` | Total records expected to process for the active phase/table |
 | `error_message` | `TEXT` | Yes | `NULL` | Error details if provisioning failed |
 | `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Record creation timestamp |
 | `updated_at` | `TIMESTAMPTZ` | No | `NOW()` | Record update timestamp |

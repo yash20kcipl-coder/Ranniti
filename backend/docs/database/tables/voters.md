@@ -67,6 +67,7 @@ Primary database entity for storing voter information across electoral constitue
 | `idx_voters_epic_no` | `B-Tree (Unique)` | `epic_no` | Fast unique identifier lookup |
 | `idx_voters_booth_serial` | `B-Tree` | `(booth_id, serial_no)` | Fast booth electoral roll order listing |
 | `idx_voters_ac_id` | `B-Tree` | `ac_id` | Constituency level filtering |
+| `idx_voters_ac_id_id` | `B-Tree` | `(ac_id, id)` | High-throughput keyset pagination during tenant provisioning |
 | `idx_voters_religion_id` | `B-Tree` | `religion_id` | Demographic filtering by religion |
 | `idx_voters_caste_id` | `B-Tree` | `caste_id` | Demographic filtering by caste |
 | `idx_voters_status` | `B-Tree` | `status` | Filter by voter active/shifted status |
@@ -93,4 +94,6 @@ Primary database entity for storing voter information across electoral constitue
 | `idx_voters_family_id` | `B-Tree` | `family_id` | Fast household cluster lookup by family ID |
 | `idx_voters_booth_family_id` | `B-Tree` | `(booth_id, family_id)` | Fast booth-level household filtering |
 | `idx_voters_guardian_name` | `B-Tree` | `guardian_name` | Fast guardian name lookup |
+| `idx_voters_clean_mobile_10` | `B-Tree` | `RIGHT(REGEXP_REPLACE(mobile_no, '\D', '', 'g'), 10)` | Ultra-fast functional index for matching 10-digit Indian mobile contacts |
+| `idx_voters_booth_clean_mobile_10` | `B-Tree` | `(booth_id, RIGHT(REGEXP_REPLACE(mobile_no, '\D', '', 'g'), 10))` | Scoped functional index for booth-level phone contact sync |
 

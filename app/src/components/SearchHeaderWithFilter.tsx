@@ -1,10 +1,13 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
-import { Filter, ArrowLeft } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { ArrowLeft } from 'lucide-react-native';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 import MdSearchBar from './MdSearchBar';
 import ScrollableFilterPills, { FilterOption } from './ScrollableFilterPills';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { getShadow } from '../utils/shadow';
+import { rfValue } from '../utils/responsive';
+import { FontFamily } from '../utils/typography';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { goBack } from '../navigation';
 
@@ -26,6 +29,13 @@ export interface SearchHeaderWithFilterProps {
   filterBtnStyle?: StyleProp<ViewStyle>;
   filterIconColor?: string;
   filterIconSize?: number;
+  totalCount?: number;
+  currentCount?: number;
+  loadingCount?: boolean;
+  countLabel?: string;
+  countIcon?: string;
+  isFiltered?: boolean;
+  showFilter?: boolean;
   children?: React.ReactNode;
 }
 
@@ -44,6 +54,13 @@ export const SearchHeaderWithFilter: React.FC<SearchHeaderWithFilterProps> = ({
   containerStyle,
   searchRowStyle,
   searchContainerStyle,
+  totalCount,
+  currentCount,
+  loadingCount = false,
+  countLabel,
+  countIcon,
+  isFiltered = false,
+  showFilter,
   children,
 }) => {
   const { top } = useSafeAreaInsets();
@@ -73,20 +90,45 @@ export const SearchHeaderWithFilter: React.FC<SearchHeaderWithFilterProps> = ({
             onChangeText={onChangeText}
             onFilterPress={onFilterPress}
             containerStyle={{ marginHorizontal: 0, marginBottom: 0 }}
+            showFilter={showFilter !== undefined ? showFilter : Boolean(onFilterPress)}
           />
         </View>
       </View>
 
       {/* Quick Filter Pills */}
-      {Boolean(filterOptions && filterOptions.length > 0 && onSelectFilterOption) && (
-        <ScrollableFilterPills
-          options={filterOptions!}
-          activeId={activeFilterId || ''}
-          onSelect={onSelectFilterOption!}
-          containerStyle={styles.pillsContainer}
-        />
-      )}
-
+      <View style={{ flexDirection: "row", flexShrink: 1, justifyContent: "space-between" }}>
+        {Boolean(filterOptions && filterOptions.length > 0 && onSelectFilterOption) && (
+          <ScrollableFilterPills
+            options={filterOptions!}
+            activeId={activeFilterId || ''}
+            onSelect={onSelectFilterOption!}
+            containerStyle={styles.pillsContainer}
+          />
+        )}
+        {totalCount !== undefined && (
+          <View style={styles.countRow}>
+            <View style={styles.countInfoContainer}>
+              <View style={styles.countIconDot}>
+                <MaterialDesignIcons
+                  size={13}
+                  color="#FFFFFF"
+                  name={(countIcon as any) || 'user'}
+                />
+              </View>
+              <View style={{ flexShrink: 1 }}>
+                <Text style={styles.countPrimaryText}>
+                  {loadingCount ? 'Updating...' : `${totalCount.toLocaleString()} ${countLabel || (totalCount === 1 ? 'Voter' : 'Voters')}`}
+                </Text>
+                {currentCount !== undefined && currentCount > 0 && totalCount > currentCount && (
+                  <Text style={styles.pagedCountText}>
+                    (Showing {currentCount})
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
       {children}
     </View>
   );
@@ -133,6 +175,50 @@ const getStyles = (theme: any) =>
     },
     pillsContainer: {
       marginVertical: 0,
+      flex: 1,
+    },
+    countRow: {
+      paddingRight: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    countInfoContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    countIconDot: {
+      width: 28,
+      height: 28,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    },
+    countPrimaryText: {
+      fontFamily: FontFamily.bold,
+      fontSize: rfValue(12),
+      color: '#FFFFFF',
+    },
+    filteredBadge: {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      paddingHorizontal: 6,
+      paddingVertical: 1.5,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    filteredBadgeText: {
+      fontFamily: FontFamily.bold,
+      fontSize: rfValue(9.5),
+      color: '#FFFFFF',
+      textTransform: 'uppercase',
+    },
+    pagedCountText: {
+      fontFamily: FontFamily.body,
+      fontSize: rfValue(10),
+      color: 'rgba(255, 255, 255, 0.75)',
     },
   });
 

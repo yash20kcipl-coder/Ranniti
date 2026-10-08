@@ -5,13 +5,15 @@ import { mobileDashboardService } from '../../services/mobile/mobileDashboard.se
 
 export class MobileDashboardController {
   getMetrics = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const user = req.user!;
+    const user = req.mobileUser!;
+    const userId = user.id;
     const metrics = await mobileDashboardService.getDashboardMetrics({
-      userId: user.userId,
+      userId,
       role: user.role,
       tenantDbName: user.tenantDbName,
-      assignedAcId: user.assignedAcId,
-      assignedBoothIds: user.assignedBoothIds,
+      assignedAcId: (user as any).assignedAcId,
+      assignedPcId: (user as any).assignedPcId,
+      assignedBoothIds: (user as any).assignedBoothIds,
     });
 
     const response = ApiResponse.success(metrics, 'Mobile dashboard statistics retrieved successfully');

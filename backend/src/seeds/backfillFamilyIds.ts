@@ -48,7 +48,7 @@ export async function runFamilyIdBackfill() {
 
     for (const boothId of boothIds) {
       try {
-        const res = await FamilyMappingService.autoMapBoothFamilies({ boothId });
+        const res = await FamilyMappingService.autoMapBoothFamilies(null, { boothId });
         totalMapped += res.votersMapped;
       } catch (err: any) {
         logger.warn(`[Backfill] Error mapping booth ${boothId}: ${err.message}`);

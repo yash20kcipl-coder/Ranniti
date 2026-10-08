@@ -17,7 +17,9 @@ export class FamilyMappingController {
       return;
     }
 
-    const result = await FamilyMappingService.autoMapBoothFamilies({
+    const tenantDbName = (req.user as any)?.tenantDbName || (req as any).tenantDbName;
+
+    const result = await FamilyMappingService.autoMapBoothFamilies(tenantDbName, {
       boothId,
       dryRun: Boolean(dryRun),
     });
@@ -41,7 +43,10 @@ export class FamilyMappingController {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
     const minMembers = req.query.minMembers ? parseInt(req.query.minMembers as string, 10) : undefined;
 
+    const tenantDbName = (req.user as any)?.tenantDbName || (req as any).tenantDbName;
+
     const result = await FamilyMappingService.getFamiliesList({
+      tenantDbName,
       boothId,
       search,
       page,
@@ -73,7 +78,9 @@ export class FamilyMappingController {
   static getFamilyMembers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const headId = req.params.headId as string;
 
-    const result = await FamilyMappingService.getFamilyMembers(headId);
+    const tenantDbName = (req.user as any)?.tenantDbName || (req as any).tenantDbName;
+
+    const result = await FamilyMappingService.getFamilyMembers(tenantDbName, headId);
 
     const formattedHead = attachFileUrls(result.head, ['avatar', 'partySymbol'], req);
     const formattedMembers = attachFileUrls(result.members, ['avatar', 'partySymbol'], req);
@@ -102,7 +109,9 @@ export class FamilyMappingController {
       return;
     }
 
-    await FamilyMappingService.setNewFamilyHead(currentHeadId, newHeadId);
+    const tenantDbName = (req.user as any)?.tenantDbName || (req as any).tenantDbName;
+
+    await FamilyMappingService.setNewFamilyHead(tenantDbName, currentHeadId, newHeadId);
     const response = ApiResponse.success(null, 'Family head role successfully reassigned');
     res.status(response.statusCode).json(response.body);
   });

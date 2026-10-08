@@ -63,7 +63,7 @@ export const lightColors: ThemeColors = {
   inputBackground: '#F1F5F9',
   vegBackground: 'rgba(30, 64, 175, 0.08)',
   overlay: 'rgba(15, 23, 42, 0.4)',
-  subtleSurface: '#F8FAFC',
+  subtleSurface: '#eff7fcff',
   shadowColor: '#1E40AF',
   glassBackground: 'rgba(255, 255, 255, 0.85)',
 };

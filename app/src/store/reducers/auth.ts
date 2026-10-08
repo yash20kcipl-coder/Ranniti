@@ -79,6 +79,7 @@ const initialState = {
   isLoggedIn: false,
   loading: false,
   selectedStudentId: null,
+  access: null as any,
 };
 
 export const SET_ACCESS_CONFIG = "SET_ACCESS_CONFIG";

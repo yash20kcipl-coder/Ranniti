@@ -2,19 +2,15 @@ import { Request, Response } from 'express';
 import { attachFileUrls } from '../../utils/fileUrl';
 import { ApiResponse } from '../../utils/apiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
-import { mobileAuthService } from '../../services/mobileAuth.service';
 import { mobileTeamService } from '../../services/mobile/mobileTeam.service';
 
 export class MobileTeamController {
   onboardTeamMember = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const userId = req.user!.userId;
-    const currentUser = await mobileAuthService.getMobileProfile(userId);
-    const { name, email, mobile, password, role, assignedAcId, assignedBoothIds } = req.body;
+    const currentUser = req.mobileUser!;
+    const { name, email, mobile, password, role, parentLeaderId, assignedAcId, assignedBoothIds, accessibleTabs } = req.body;
 
-    if (!name || !email || !password || !role) {
-      res.status(400).json(
-        ApiResponse.error('Name, email, password, and role are required fields', 400).body
-      );
+    if (!name || !role) {
+      res.status(400).json(ApiResponse.error('Name and role are required fields', 400).body);
       return;
     }
 
@@ -24,8 +20,10 @@ export class MobileTeamController {
       mobile,
       password,
       role,
+      parentLeaderId,
       assignedAcId,
       assignedBoothIds,
+      accessibleTabs,
     });
     const formattedMember = attachFileUrls(createdMember, undefined, req);
 
@@ -34,8 +32,7 @@ export class MobileTeamController {
   });
 
   getTeamMembers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const userId = req.user!.userId;
-    const currentUser = await mobileAuthService.getMobileProfile(userId);
+    const currentUser = req.mobileUser!;
     const query = req.query;
 
     const result = await mobileTeamService.getTeamMembers(currentUser, {
@@ -61,6 +58,38 @@ export class MobileTeamController {
     );
     res.status(response.statusCode).json(response.body);
   });
+
+  updateTeamMember = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const currentUser = req.mobileUser!;
+    const memberId = String(req.params.id);
+    const { name, email, mobile, password, role, status, parentLeaderId, assignedAcId, assignedBoothIds, accessibleTabs } = req.body;
+
+    const updatedMember = await mobileTeamService.updateTeamMember(currentUser, memberId, {
+      name,
+      email,
+      mobile,
+      password,
+      role,
+      status,
+      parentLeaderId,
+      assignedAcId,
+      assignedBoothIds,
+      accessibleTabs,
+    });
+
+    const formatted = attachFileUrls(updatedMember, undefined, req);
+    const response = ApiResponse.success(formatted, 'Team member updated successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  deleteTeamMember = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const currentUser = req.mobileUser!;
+    const memberId = String(req.params.id);
+    const result = await mobileTeamService.deleteTeamMember(currentUser, memberId);
+    const response = ApiResponse.success(result, 'Team member deleted successfully');
+    res.status(response.statusCode).json(response.body);
+  });
 }
 
 export const mobileTeamController = new MobileTeamController();
+

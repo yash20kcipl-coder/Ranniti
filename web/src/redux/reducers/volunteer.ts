@@ -38,6 +38,8 @@ export interface VolunteerState {
     mobile: string;
     defaultPassword?: string;
   } | null;
+  availableBooths: any[];
+  boothsLoading: boolean;
 }
 
 const initialState: VolunteerState = {
@@ -46,6 +48,8 @@ const initialState: VolunteerState = {
   loading: false,
   error: null,
   lastCreatedCredentials: null,
+  availableBooths: [],
+  boothsLoading: false,
 };
 
 export const SET_VOLUNTEERS = 'SET_VOLUNTEERS';
@@ -56,6 +60,8 @@ export const DELETE_VOLUNTEER = 'DELETE_VOLUNTEER';
 export const SET_VOLUNTEER_LOADING = 'SET_VOLUNTEER_LOADING';
 export const SET_LAST_CREATED_CREDENTIALS = 'SET_LAST_CREATED_CREDENTIALS';
 export const CLEAR_LAST_CREATED_CREDENTIALS = 'CLEAR_LAST_CREATED_CREDENTIALS';
+export const SET_VOLUNTEER_BOOTHS = 'SET_VOLUNTEER_BOOTHS';
+export const SET_VOLUNTEER_BOOTHS_LOADING = 'SET_VOLUNTEER_BOOTHS_LOADING';
 
 export default function volunteerReducer(state = initialState, action: any): VolunteerState {
   switch (action.type) {
@@ -110,6 +116,19 @@ export default function volunteerReducer(state = initialState, action: any): Vol
       return {
         ...state,
         lastCreatedCredentials: null,
+      };
+
+    case SET_VOLUNTEER_BOOTHS:
+      return {
+        ...state,
+        availableBooths: action.payload,
+        boothsLoading: false,
+      };
+
+    case SET_VOLUNTEER_BOOTHS_LOADING:
+      return {
+        ...state,
+        boothsLoading: action.payload,
       };
 
     default:

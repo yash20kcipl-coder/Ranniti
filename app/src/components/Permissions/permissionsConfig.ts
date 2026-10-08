@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { PERMISSIONS, checkNotifications, requestNotifications } from 'react-native-permissions';
 
 export interface PermissionItem {
-  type: 'location' | 'camera' | 'storage' | 'notifications' | 'microphone';
+  type: 'location' | 'camera' | 'storage' | 'notifications' | 'microphone' | 'contacts';
   permission_title: string;
   permission_description: string;
   permissions: any;
@@ -12,9 +12,21 @@ export interface PermissionItem {
 
 const permissions: PermissionItem[] = [
   {
+    type: 'contacts',
+    permission_title: 'Contacts Access Required',
+    permission_description:
+      'This app needs access to your contacts to automatically match and identify registered voters in your assigned polling booth and constituency.',
+    permissions: Platform.select({
+      ios: [PERMISSIONS.IOS.CONTACTS],
+      android: [PERMISSIONS.ANDROID.READ_CONTACTS],
+    }),
+    isRequired: false,
+  },
+  {
     type: 'camera',
     permission_title: 'Camera Access Required',
-    permission_description: 'This app needs access to your camera to capture photos for assignments, profile pictures, and document scanning.\n\nWe only access your camera when you explicitly choose to take a photo.',
+    permission_description:
+      'This app needs access to your camera to capture photos for assignments, profile pictures, and document scanning.\n\nWe only access your camera when you explicitly choose to take a photo.',
     permissions: Platform.select({
       ios: [PERMISSIONS.IOS.CAMERA],
       android: [PERMISSIONS.ANDROID.CAMERA],
@@ -24,22 +36,25 @@ const permissions: PermissionItem[] = [
   {
     type: 'storage',
     permission_title: 'Storage Access Required',
-    permission_description: "This app needs access to your device's storage to save and access study materials, assignments, and other educational content.\n\nWe only access files that you choose to upload or download.",
+    permission_description:
+      "This app needs access to your device's storage to save and access study materials, assignments, and other educational content.\n\nWe only access files that you choose to upload or download.",
     permissions: Platform.select<any>({
-      ios: [
-        PERMISSIONS.IOS.PHOTO_LIBRARY,
-      ],
-      android: Number(Platform.Version) >= 33 ? [] : [
-        PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
-        PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE,
-      ],
+      ios: [PERMISSIONS.IOS.PHOTO_LIBRARY],
+      android:
+        Number(Platform.Version) >= 33
+          ? []
+          : [
+              PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+              PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE,
+            ],
     }),
     isRequired: false,
   },
   {
     type: 'notifications',
     permission_title: 'Enable Notifications',
-    permission_description: 'Stay updated with important notices, assignments, and exam schedules by enabling push notifications.',
+    permission_description:
+      'Stay updated with important notices, assignments, and exam schedules by enabling push notifications.',
     permissions: () => checkNotifications(),
     requestUserPermission: () => requestNotifications(['alert', 'sound', 'badge']),
     isRequired: false,
@@ -47,7 +62,8 @@ const permissions: PermissionItem[] = [
   {
     type: 'microphone',
     permission_title: 'Microphone Access Required',
-    permission_description: 'This app needs access to your microphone for voice notes and video recordings.\n\nWe only access your microphone when you actively use these features.',
+    permission_description:
+      'This app needs access to your microphone for voice notes and video recordings.\n\nWe only access your microphone when you actively use these features.',
     permissions: Platform.select({
       ios: [PERMISSIONS.IOS.MICROPHONE],
       android: [PERMISSIONS.ANDROID.RECORD_AUDIO],

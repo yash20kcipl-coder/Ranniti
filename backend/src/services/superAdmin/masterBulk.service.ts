@@ -1221,7 +1221,7 @@ export class MasterBulkService {
               const uniqueBoothIds = Array.from(new Set(votersToInsert.map((v) => v.boothId).filter(Boolean))) as string[];
               for (const bId of uniqueBoothIds) {
                 try {
-                  await FamilyMappingService.autoMapBoothFamilies({ boothId: bId });
+                  await FamilyMappingService.autoMapBoothFamilies(null, { boothId: bId });
                 } catch (mapErr: any) {
                   logger.warn(`[MasterBulkService] Post-import auto family mapping for booth ${bId} encountered error: ${mapErr.message}`);
                 }

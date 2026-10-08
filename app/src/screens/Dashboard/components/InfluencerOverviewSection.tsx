@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Sparkles, Users, PhoneCall } from 'lucide-react-native';
-import { SectionContainer } from './SectionContainer';
-import { useAppTheme } from '../../../hooks/useAppTheme';
-import { rfValue } from '../../../utils/responsive';
-import { FontFamily } from '../../../utils/typography';
 import { useLanguage } from '../../../languages';
+import { rfValue } from '../../../utils/responsive';
+import { SectionContainer } from './SectionContainer';
+import { FontFamily } from '../../../utils/typography';
+import { useAppTheme } from '../../../hooks/useAppTheme';
+import { Sparkles, Users, PhoneCall } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { getShadow } from '../../../utils/shadow';
 
 interface InfluencerOverviewSectionProps {
   influencers: {
@@ -14,12 +15,20 @@ interface InfluencerOverviewSectionProps {
   };
   syncedContactsVotersCount: number;
   subtitle?: string;
+  onPressFamily?: () => void;
+  onPressSocial?: () => void;
+  onPressContactSync?: () => void;
+  onPressHeader?: () => void;
 }
 
 export const InfluencerOverviewSection: React.FC<InfluencerOverviewSectionProps> = ({
   influencers,
   syncedContactsVotersCount,
   subtitle,
+  onPressFamily,
+  onPressSocial,
+  onPressContactSync,
+  onPressHeader,
 }) => {
   const { t } = useLanguage();
   const { theme } = useAppTheme(() => ({}));
@@ -30,9 +39,14 @@ export const InfluencerOverviewSection: React.FC<InfluencerOverviewSectionProps>
       subtitle={subtitle || t('influencerOverviewSubtitle')}
       icon={<Sparkles {...({ size: 18, color: '#F59E0B' } as any)} />}
       accentColor="#F59E0B"
+      onPressHeader={onPressHeader}
     >
       <View style={styles.influencerGrid}>
-        <View style={[styles.influencerBox, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={onPressFamily}
+          style={[styles.influencerBox, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}
+        >
           <View style={styles.boxHeaderRow}>
             <Sparkles {...({ size: 14, color: '#D97706' } as any)} />
             <Text style={[styles.influencerVal, { color: '#D97706' }]}>
@@ -40,9 +54,13 @@ export const InfluencerOverviewSection: React.FC<InfluencerOverviewSectionProps>
             </Text>
           </View>
           <Text style={styles.influencerLbl}>{t('familyInfluencers')}</Text>
-        </View>
+        </TouchableOpacity>
 
-        <View style={[styles.influencerBox, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={onPressSocial}
+          style={[styles.influencerBox, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}
+        >
           <View style={styles.boxHeaderRow}>
             <Users {...({ size: 14, color: '#16A34A' } as any)} />
             <Text style={[styles.influencerVal, { color: '#16A34A' }]}>
@@ -50,9 +68,13 @@ export const InfluencerOverviewSection: React.FC<InfluencerOverviewSectionProps>
             </Text>
           </View>
           <Text style={styles.influencerLbl}>{t('socialInfluencers')}</Text>
-        </View>
+        </TouchableOpacity>
 
-        <View style={[styles.influencerBox, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={onPressContactSync}
+          style={[styles.influencerBox, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}
+        >
           <View style={styles.boxHeaderRow}>
             <PhoneCall {...({ size: 14, color: '#0284C7' } as any)} />
             <Text style={[styles.influencerVal, { color: '#0284C7' }]}>
@@ -60,7 +82,7 @@ export const InfluencerOverviewSection: React.FC<InfluencerOverviewSectionProps>
             </Text>
           </View>
           <Text style={styles.influencerLbl}>{t('contactSyncVoters')}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </SectionContainer>
   );
@@ -76,7 +98,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 14,
     borderWidth: 1,
-    padding: 12,
+    padding: 10,
     alignItems: 'center',
     gap: 6,
   },
@@ -90,8 +112,8 @@ const styles = StyleSheet.create({
     fontSize: rfValue(16),
   },
   influencerLbl: {
-    fontFamily: FontFamily.medium,
-    fontSize: rfValue(10),
+    fontFamily: FontFamily.extraBold,
+    fontSize: rfValue(9),
     color: '#475569',
     textAlign: 'center',
   },

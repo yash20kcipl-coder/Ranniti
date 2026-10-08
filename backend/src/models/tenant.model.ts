@@ -17,6 +17,10 @@ export interface Tenant {
   provisioningProgress: number;
   totalVotersCopied: number;
   currentStep: string;
+  currentPhase?: string;
+  activeTable?: string | null;
+  processedRecords?: number;
+  totalRecords?: number;
   errorMessage?: string | null;
   createdAt: Date;
   updatedAt: Date;

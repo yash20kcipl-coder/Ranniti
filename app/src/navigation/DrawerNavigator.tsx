@@ -1,15 +1,16 @@
 import React from 'react';
 import { SCREENS } from './constants';
-import { useAppTheme } from '../hooks/useAppTheme';
-import CustomDrawer from '../components/CustomDrawer';
-import { createDrawerNavigator } from '@react-navigation/drawer';
 import Dashboard from '../screens/Dashboard';
-import VoterListScreen from '../screens/VoterModule/VoterListScreen';
+import { useAppTheme } from '../hooks/useAppTheme';
+import ProfileScreen from '../screens/ProfileModule';
+import CustomDrawer from '../components/CustomDrawer';
+import AddTeamMemberScreen from '../screens/TeamModule';
+import AssignedBoothsScreen from '../screens/BoothModule';
+import ContactSyncScreen from '../screens/ContactSyncModule';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 import FamilyMappingScreen from '../screens/FamilyMappingModule';
 import InfluencerMappingScreen from '../screens/InfluencerModule';
-import ContactSyncScreen from '../screens/ContactSyncModule';
-import AddTeamMemberScreen from '../screens/TeamModule';
-import ProfileScreen from '../screens/ProfileModule';
+import VoterListScreen from '../screens/VoterModule/VoterListScreen';
 
 const Drawer = createDrawerNavigator();
 
@@ -33,6 +34,7 @@ export const DrawerNavigator = () => {
       }}
     >
       <Drawer.Screen name={SCREENS.DASHBOARD} component={Dashboard} options={{ title: 'Dashboard' }} />
+      <Drawer.Screen name={SCREENS.ASSIGNED_BOOTHS} component={AssignedBoothsScreen} options={{ title: 'Assigned Booths' }} />
       <Drawer.Screen name={SCREENS.VOTER_LIST} component={VoterListScreen} options={{ title: 'Voters Directory' }} />
       <Drawer.Screen name={SCREENS.FAMILY_MAPPING} component={FamilyMappingScreen} options={{ title: 'Family Mapping' }} />
       <Drawer.Screen name={SCREENS.INFLUENCER_MAPPING} component={InfluencerMappingScreen} options={{ title: 'Social Influencers' }} />

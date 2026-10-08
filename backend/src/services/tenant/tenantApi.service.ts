@@ -432,7 +432,10 @@ export class TenantApiService {
       } else if (params?.acId) {
         sqlParams.push(params.acId);
         conditions.push(`b.ac_id = $${sqlParams.length}`);
+      } else {
+        conditions.push('1=1');
       }
+
 
       if (params?.wardId) {
         sqlParams.push(params.wardId);

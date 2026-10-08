@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { authenticateJwt } from '../../middlewares/auth.middleware';
+import { authenticateMobileUser } from '../../middlewares/mobileAuth.middleware';
 import { mobileVoterController } from '../../controllers/mobile/mobileVoter.controller';
 
 const router = Router();
 
-router.get('/', authenticateJwt, mobileVoterController.getVoters);
-router.put('/:id', authenticateJwt, mobileVoterController.updateVoter);
+router.get('/', authenticateMobileUser, mobileVoterController.getVoters);
+router.put('/:id', authenticateMobileUser, mobileVoterController.updateVoter);
 
 export const mobileVoterRoutes = router;

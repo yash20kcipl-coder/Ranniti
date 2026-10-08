@@ -16,8 +16,6 @@ CREATE TABLE IF NOT EXISTS tenant_roles (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE tenant_roles ADD COLUMN IF NOT EXISTS is_default BOOLEAN NOT NULL DEFAULT false;
-
 -- 2. Tier 2: Tenant Custom User Roles & Field Permissions
 CREATE TABLE IF NOT EXISTS tenant_user_roles (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),

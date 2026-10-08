@@ -83,12 +83,12 @@ export class AdminUserService {
     const cadreRes = await TenantPoolManager.query(
       tenantDbName,
       `SELECT 
-         COUNT(*)::int AS "totalCadre",
-         COUNT(*) FILTER (WHERE role = 'pc_leader')::int AS "pcLeadersCount",
-         COUNT(*) FILTER (WHERE role = 'ac_leader')::int AS "acLeadersCount",
-         COUNT(*) FILTER (WHERE role = 'sub_leader')::int AS "subLeadersCount",
-         COUNT(*) FILTER (WHERE role = 'supporter')::int AS "supportersCount",
-         COUNT(DISTINCT uba.booth_id)::int AS "coveredBooths"
+         COUNT(DISTINCT u.id)::int AS "totalCadre",
+         COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'pc_leader')::int AS "pcLeadersCount",
+         COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'ac_leader')::int AS "acLeadersCount",
+         COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'sub_leader')::int AS "subLeadersCount",
+         COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'supporter')::int AS "supportersCount",
+         COUNT(DISTINCT CASE WHEN u.role IN ('supporter', 'sub_leader') THEN uba.booth_id END)::int AS "coveredBooths"
        FROM tenant_users u
        LEFT JOIN user_booth_assignments uba ON uba.user_id = u.id
        WHERE u.role IN ('pc_leader', 'ac_leader', 'sub_leader', 'supporter')`

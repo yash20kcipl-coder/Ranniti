@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS tenants (
     provisioning_progress INT NOT NULL DEFAULT 0 CHECK (provisioning_progress BETWEEN 0 AND 100),
     total_voters_copied   INT NOT NULL DEFAULT 0,
     current_step          VARCHAR(100) NOT NULL DEFAULT '',
+    current_phase         VARCHAR(50) DEFAULT 'init',
+    active_table          VARCHAR(50),
+    processed_records     INT DEFAULT 0,
+    total_records         INT DEFAULT 0,
     error_message         TEXT,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()

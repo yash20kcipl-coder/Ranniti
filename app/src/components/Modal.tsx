@@ -1,7 +1,7 @@
 import React from 'react';
 import { SafeView } from './SafeView';
 import { useTheme } from 'react-native-paper';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import { StyleSheet, ViewStyle, Modal as RNModal, View, TouchableWithoutFeedback, Platform } from 'react-native';
 
 interface ModalProps {
@@ -9,6 +9,7 @@ interface ModalProps {
   onDismiss: () => void;
   children: React.ReactNode;
   contentContainerStyle?: ViewStyle | ViewStyle[];
+  position?: 'center' | 'right';
   entering?: any;
   exiting?: any;
 }
@@ -18,10 +19,15 @@ export const Modal = ({
   onDismiss,
   children,
   contentContainerStyle,
-  entering = FadeIn,
-  exiting = FadeOut,
+  position = 'center',
+  entering,
+  exiting,
 }: ModalProps) => {
   const theme = useTheme();
+  const isRight = position === 'right';
+
+  const defaultEntering = isRight ? SlideInRight.duration(300) : FadeIn;
+  const defaultExiting = isRight ? SlideOutRight.duration(250) : FadeOut;
 
   return (
     <RNModal
@@ -32,23 +38,23 @@ export const Modal = ({
       statusBarTranslucent={Platform.OS === 'android'}
     >
       <SafeView hideTop={false} style={styles.safeArea}>
-        <TouchableWithoutFeedback onPress={onDismiss}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <Animated.View
-                entering={entering}
-                exiting={exiting}
-                style={[
-                  styles.modalContainer,
-                  { backgroundColor: theme.colors.surface },
-                  contentContainerStyle,
-                ]}
-              >
-                {children}
-              </Animated.View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
+        <View style={[styles.modalOverlay, isRight && styles.modalOverlayRight]}>
+          <TouchableWithoutFeedback onPress={onDismiss}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+          <Animated.View
+            entering={entering || defaultEntering}
+            exiting={exiting || defaultExiting}
+            style={[
+              styles.modalContainer,
+              isRight && styles.modalContainerRight,
+              { backgroundColor: theme.colors.surface },
+              contentContainerStyle,
+            ]}
+          >
+            {children}
+          </Animated.View>
+        </View>
       </SafeView>
     </RNModal>
   );
@@ -65,6 +71,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(15, 23, 42, 0.7)',
   },
+  modalOverlayRight: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'stretch',
+  },
   modalContainer: {
     padding: 20,
     borderRadius: 12,
@@ -75,4 +86,13 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     flexShrink: 1,
   },
+  modalContainerRight: {
+    padding: 0,
+    borderRadius: 0,
+    height: '100%',
+    shadowOffset: { width: -2, height: 0 },
+    elevation: 10,
+    flexShrink: 0,
+  },
 });
+

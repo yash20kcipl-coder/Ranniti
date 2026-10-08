@@ -107,11 +107,38 @@ export const SuperAdminVotersPage: React.FC = () => {
     }
   };
 
+  // Immediate draft AC change handler to populate booth dropdown inside filter drawer
+  const handleAcDraftChange = (newAcId: string) => {
+    setFamilyInfluencers([]);
+    setSocialInfluencers([]);
+    if (newAcId) {
+      dispatch(fetchSuperAdminBoothOptions({ acId: newAcId }));
+    } else {
+      dispatch(setVoterBoothOptions([]));
+    }
+  };
+
   // Direct Booth change handler for filter component
   const handleBoothChange = (newBoothId: string) => {
     setBoothId(newBoothId);
     if (familyInfluencerId) setFamilyInfluencerId('');
     if (socialInfluencerId) setSocialInfluencerId('');
+    if (newBoothId) {
+      dispatch(fetchSuperAdminInfluencerOptions({ boothId: newBoothId, type: 'family' }))
+        .then((options: any[]) => setFamilyInfluencers(options || []))
+        .catch(() => { });
+
+      dispatch(fetchSuperAdminInfluencerOptions({ boothId: newBoothId, type: 'social' }))
+        .then((options: any[]) => setSocialInfluencers(options || []))
+        .catch(() => { });
+    } else {
+      setFamilyInfluencers([]);
+      setSocialInfluencers([]);
+    }
+  };
+
+  // Immediate draft Booth change handler to populate influencer options inside filter drawer
+  const handleBoothDraftChange = (newBoothId: string) => {
     if (newBoothId) {
       dispatch(fetchSuperAdminInfluencerOptions({ boothId: newBoothId, type: 'family' }))
         .then((options: any[]) => setFamilyInfluencers(options || []))
@@ -147,8 +174,6 @@ export const SuperAdminVotersPage: React.FC = () => {
     socialInfluencerId, isFamilyInfluencer, isSocialInfluencer, influencerStatus, influencerRole,
   });
 
-  const prevStatsScopeRef = React.useRef({ boothId, acId, pcId, districtId, stateId });
-
   // Fetch Voters Data & Stats
   useDebouncedEffect(
     () => {
@@ -178,15 +203,6 @@ export const SuperAdminVotersPage: React.FC = () => {
       const params: Record<string, any> = { ...currentFilters, page: activePage, limit };
       dispatch(setVoterFilters(params));
       dispatch(fetchSuperAdminVotersData(params));
-
-      const statsScopeChanged =
-        !initialized ||
-        prevStatsScopeRef.current.boothId !== boothId ||
-        prevStatsScopeRef.current.acId !== acId ||
-        prevStatsScopeRef.current.pcId !== pcId ||
-        prevStatsScopeRef.current.districtId !== districtId ||
-        prevStatsScopeRef.current.stateId !== stateId;
-
       dispatch(fetchSuperAdminVoterStats(params));
     },
     200,
@@ -271,6 +287,8 @@ export const SuperAdminVotersPage: React.FC = () => {
     setFilter,
     onAcChange: handleAcChange,
     onBoothChange: handleBoothChange,
+    onAcDraftChange: handleAcDraftChange,
+    onBoothDraftChange: handleBoothDraftChange,
   };
 
   const filterMasterBundle = {

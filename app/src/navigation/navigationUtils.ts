@@ -1,5 +1,9 @@
-import { CommonActions, createNavigationContainerRef, StackActions } from "@react-navigation/native";
 import { SCREENS } from "./constants";
+import { store } from "../store/store";
+import { fetchVotersAction, setVoterFiltersAction } from "../store/actions/voters";
+import { CommonActions, createNavigationContainerRef, StackActions } from "@react-navigation/native";
+
+const st = store as any
 
 export const navigationRef = createNavigationContainerRef<any>();
 
@@ -84,4 +88,21 @@ export function resetArray(routes: any[]) {
 export function navigateToDashboard(role?: string) {
   resetArray([SCREENS.MAIN]);
 }
+
+
+export function navigatToVoters(paramsOrRole?: any) {
+  if (paramsOrRole && typeof paramsOrRole === 'object' && paramsOrRole.boothId) {
+    st.dispatch(setVoterFiltersAction({ boothNo: paramsOrRole.boothId }));
+  } else {
+    const currentBooth = st.getState?.()?.voters?.filters?.boothNo;
+    if (currentBooth && currentBooth !== 'All') {
+      st.dispatch(setVoterFiltersAction({ boothNo: 'All' }));
+    } else {
+      st.dispatch(fetchVotersAction(1, false));
+    }
+  }
+  navigate(SCREENS.VOTER_LIST, typeof paramsOrRole === 'object' ? paramsOrRole : undefined);
+}
+
+export const navigateToVoters = navigatToVoters;
 

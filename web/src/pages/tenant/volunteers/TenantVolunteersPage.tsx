@@ -1,6 +1,6 @@
 import {
   VolunteerStatsCards,
-  VolunteerCredentialsBanner,
+  // VolunteerCredentialsBanner,
   VolunteerFormModal,
 } from './components';
 import {
@@ -14,7 +14,7 @@ import {
   updateTenantVolunteer,
   deleteTenantVolunteer,
   toggleTenantVolunteerStatus,
-  clearLastCreatedCredentials,
+  // clearLastCreatedCredentials,
 } from '@/redux/actions/volunteer';
 import toast from 'react-hot-toast';
 import React, { useState, useMemo } from 'react';
@@ -62,10 +62,14 @@ function getRoleBadge(role: string) {
 
 export const TenantVolunteersPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { volunteers = [], coverage, loading, lastCreatedCredentials } = useAppSelector(
-    (state) => state.volunteer
-  );
-  const { pcs = [], acs = [], wards = [], booths = [] } = useTenantMasterData(['pcs', 'acs', 'wards', 'booths']);
+  const {
+    volunteers = [],
+    coverage,
+    loading,
+    availableBooths = [],
+    // lastCreatedCredentials 
+  } = useAppSelector((state) => state.volunteer);
+  const { pcs = [], acs = [], wards = [] } = useTenantMasterData(['pcs', 'acs', 'wards']);
 
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,6 +90,7 @@ export const TenantVolunteersPage: React.FC = () => {
   const [formBoothIds, setFormBoothIds] = useState<string[]>([]);
 
   // Debounced API fetch
+  // Debounced API fetch for volunteer table filtering
   useDebouncedEffect(() => {
     dispatch(
       fetchTenantVolunteers({
@@ -95,8 +100,12 @@ export const TenantVolunteersPage: React.FC = () => {
         acId: selectedAcFilter,
       })
     );
-    dispatch(fetchVolunteerBoothCoverage());
   }, 250, [dispatch, selectedRole, searchTerm, selectedStatus, selectedAcFilter]);
+
+  // Fetch campaign overview statistics on mount
+  useDebouncedEffect(() => {
+    dispatch(fetchVolunteerBoothCoverage());
+  }, 0, [dispatch]);
 
   // Leaders available as parent leader options
   const potentialParentLeaders = useMemo(() => {
@@ -150,7 +159,7 @@ export const TenantVolunteersPage: React.FC = () => {
 
     // 2. Derive from assignedBoothIds if acIdToUse/pcIdToUse not found (e.g. PC Leader)
     if (!pcIdToUse && volunteer.assignedBoothIds && volunteer.assignedBoothIds.length > 0) {
-      const boothObj = booths.find((b: any) => volunteer.assignedBoothIds?.includes(b.id));
+      const boothObj = availableBooths.find((b: any) => volunteer.assignedBoothIds?.includes(b.id));
       if (boothObj) {
         const bAcId = boothObj.acId || boothObj.ac_id;
         const acObj = acs.find((a: any) => a.id === bAcId);
@@ -271,16 +280,7 @@ export const TenantVolunteersPage: React.FC = () => {
         type: 'select',
         value: selectedRole,
         onChange: (val) => setSelectedRole(val),
-        options: [{ label: 'All Roles', value: '' }, ...VOLUNTEER_ROLE_OPTIONS],
-        isPrimary: true,
-      },
-      {
-        key: 'status',
-        label: 'Status',
-        type: 'select',
-        value: selectedStatus,
-        onChange: (val) => setSelectedStatus(val),
-        options: [{ label: 'All Statuses', value: '' }, ...STATUS_OPTIONS],
+        options: [...VOLUNTEER_ROLE_OPTIONS],
         isPrimary: true,
       },
       {
@@ -396,16 +396,16 @@ export const TenantVolunteersPage: React.FC = () => {
       <VolunteerStatsCards
         coverage={coverage}
         totalVolunteers={volunteers.length}
-        totalBoothsCount={booths.length}
+        totalBoothsCount={coverage?.totalBooths || availableBooths.length}
       />
 
       {/* Post-Creation WhatsApp & Credentials Banner */}
-      {lastCreatedCredentials && (
+      {/* {lastCreatedCredentials && (
         <VolunteerCredentialsBanner
           credentials={lastCreatedCredentials}
           onDismiss={() => dispatch(clearLastCreatedCredentials())}
         />
-      )}
+      )} */}
 
       {/* Standard FilterBar */}
       <FilterBar
@@ -457,7 +457,6 @@ export const TenantVolunteersPage: React.FC = () => {
         pcs={pcs}
         acs={acs}
         wards={wards}
-        booths={booths}
         formPcId={formPcId}
         setFormPcId={setFormPcId}
         formAcId={formAcId}

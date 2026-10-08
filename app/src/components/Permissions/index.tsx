@@ -10,13 +10,15 @@ import { rfValue } from '../../utils/responsive';
 import { getShadow } from '../../utils/shadow';
 
 interface PermissionsPopUpProps {
-  type: 'location' | 'camera' | 'storage' | 'notifications' | 'microphone';
+  type: 'location' | 'camera' | 'storage' | 'notifications' | 'microphone' | 'contacts';
   onCheck: (granted: boolean) => void;
+  onClose?: () => void;
 }
 
 export const PermissionsPopUp: React.FC<PermissionsPopUpProps> = ({
   type,
   onCheck,
+  onClose,
 }) => {
   const [visible, setVisible] = useState(false);
   const { theme, styles } = useAppTheme(getStyles);
@@ -74,7 +76,10 @@ export const PermissionsPopUp: React.FC<PermissionsPopUpProps> = ({
     setTimeout(() => { performSilentCheck(); }, 400);
   }, [type, configItem, onCheck]);
 
-  const handleClose = () => setVisible(false);
+  const handleClose = () => {
+    setVisible(false);
+    onClose?.();
+  };
 
   const handleRequest = async () => {
     if (permissionState.blockedText) {

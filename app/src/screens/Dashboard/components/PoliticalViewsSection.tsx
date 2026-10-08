@@ -17,11 +17,15 @@ interface PoliticalViewsSectionProps {
     opposite: number;
   };
   subtitle?: string;
+  onPress?: () => void;
+  onPressHeader?: () => void;
 }
 
 export const PoliticalViewsSection: React.FC<PoliticalViewsSectionProps> = ({
   politicalViews,
   subtitle,
+  onPress,
+  onPressHeader,
 }) => {
   const { t } = useLanguage();
   const { theme } = useAppTheme(() => ({}));
@@ -33,10 +37,11 @@ export const PoliticalViewsSection: React.FC<PoliticalViewsSectionProps> = ({
 
   return (
     <SectionContainer
+      accentColor="#8B5CF6"
       title={t('politicalViewChart')}
+      onPressHeader={onPressHeader || onPress}
       subtitle={subtitle || t('politicalViewSubtitle')}
       icon={<PieChart {...({ size: 18, color: '#8B5CF6' } as any)} />}
-      accentColor="#8B5CF6"
     >
       <View style={styles.container}>
         {/* Analytics Progress Bar Wrapper */}

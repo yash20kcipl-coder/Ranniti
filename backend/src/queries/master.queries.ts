@@ -1050,7 +1050,8 @@ export class MasterQueries {
         b.id,
         b.booth_number AS "boothNumber",
         b.name,
-        b.ac_id AS "acId"
+        b.ac_id AS "acId",
+        b.ward_id AS "wardId"
       FROM booths b
       WHERE ${conditions.join(' AND ')}
       ORDER BY b.booth_number ASC

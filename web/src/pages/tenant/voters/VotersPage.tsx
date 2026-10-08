@@ -99,7 +99,6 @@ export const VotersPage: React.FC = () => {
   const [selectedVoter, setSelectedVoter] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const prevStatsScopeRef = React.useRef({ boothId, acId: filterParams.acId, pcId: filterParams.pcId, districtId: filterParams.districtId, stateId: filterParams.stateId });
 
   // Direct AC change handler for filter component
   const handleAcChange = (newAcId: string) => {
@@ -116,11 +115,37 @@ export const VotersPage: React.FC = () => {
     }
   };
 
+  // Immediate draft AC change handler to populate booth dropdown inside filter drawer
+  const handleAcDraftChange = (newAcId: string) => {
+    setFamilyInfluencers([]);
+    setSocialInfluencers([]);
+    if (newAcId) {
+      dispatch(fetchTenantBoothOptions({ acId: newAcId }));
+    } else {
+      dispatch(setVoterBoothOptions([]));
+    }
+  };
+
   // Direct Booth change handler for filter component
   const handleBoothChange = (newBoothId: string) => {
     setFilter('boothId', newBoothId);
     if (filterParams.familyInfluencerId) setFilter('familyInfluencerId', '');
     if (filterParams.socialInfluencerId) setFilter('socialInfluencerId', '');
+    if (newBoothId) {
+      dispatch(fetchInfluencerOptions({ boothId: newBoothId, type: 'family' }))
+        .then((opts: any[]) => setFamilyInfluencers(opts || []))
+        .catch(() => { });
+      dispatch(fetchInfluencerOptions({ boothId: newBoothId, type: 'social' }))
+        .then((opts: any[]) => setSocialInfluencers(opts || []))
+        .catch(() => { });
+    } else {
+      setFamilyInfluencers([]);
+      setSocialInfluencers([]);
+    }
+  };
+
+  // Immediate draft Booth change handler to populate influencer options inside filter drawer
+  const handleBoothDraftChange = (newBoothId: string) => {
     if (newBoothId) {
       dispatch(fetchInfluencerOptions({ boothId: newBoothId, type: 'family' }))
         .then((opts: any[]) => setFamilyInfluencers(opts || []))
@@ -160,16 +185,6 @@ export const VotersPage: React.FC = () => {
 
     dispatch(setVoterFilters(params));
     dispatch(fetchVotersData(params));
-
-    const { acId, pcId, districtId, stateId } = filterParams;
-    const statsScopeChanged =
-      !initialized ||
-      prevStatsScopeRef.current.boothId !== boothId ||
-      prevStatsScopeRef.current.acId !== acId ||
-      prevStatsScopeRef.current.pcId !== pcId ||
-      prevStatsScopeRef.current.districtId !== districtId ||
-      prevStatsScopeRef.current.stateId !== stateId;
-
     dispatch(fetchVoterStats(params));
   }, 200, [dispatch, page, limit, filterParams]);
 
@@ -238,6 +253,8 @@ export const VotersPage: React.FC = () => {
       setFilter,
       onAcChange: handleAcChange,
       onBoothChange: handleBoothChange,
+      onAcDraftChange: handleAcDraftChange,
+      onBoothDraftChange: handleBoothDraftChange,
     },
     filterMasterBundle
   );

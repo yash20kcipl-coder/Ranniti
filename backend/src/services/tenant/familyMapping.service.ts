@@ -1,6 +1,21 @@
 import { logger } from '../../utils/logger';
-import { dbPool, query } from '../../queries/dbPool';
+import { dbPool, query as executeMasterQuery } from '../../queries/dbPool';
+import { TenantPoolManager } from '../../utils/tenantPoolManager';
 import { Voter, AutoMapFamiliesParams, AutoMapFamiliesResult } from '../../models/voter.model';
+
+async function executeFamilyQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
+  if (tenantDbName && tenantDbName.trim()) {
+    return await TenantPoolManager.query(tenantDbName.trim(), sqlStr, queryValues);
+  }
+  return await executeMasterQuery(sqlStr, queryValues);
+}
+
+async function getFamilyClient(tenantDbName?: string | null) {
+  if (tenantDbName && tenantDbName.trim()) {
+    return await TenantPoolManager.getPool(tenantDbName.trim()).connect();
+  }
+  return await dbPool.connect();
+}
 
 export class FamilyMappingService {
   /**
@@ -148,7 +163,7 @@ export class FamilyMappingService {
   /**
    * Automatically resolve or assign family_id, family_influencer_id, and family_relation for a single voter.
    */
-  static async assignVoterToFamily(voterData: Partial<Voter>): Promise<{
+  static async assignVoterToFamily(tenantDbName: string | undefined | null, voterData: Partial<Voter>): Promise<{
     familyId: string;
     isFamilyInfluencer: boolean;
     familyInfluencerId: string | null;
@@ -181,7 +196,7 @@ export class FamilyMappingService {
         searchSql += ` AND FALSE`;
       }
 
-      const existingRes = await query(searchSql, params);
+      const existingRes = await executeFamilyQuery(searchSql, params, tenantDbName);
       const existingVoters: any[] = existingRes.rows;
 
       if (existingVoters.length > 0) {
@@ -201,7 +216,7 @@ export class FamilyMappingService {
 
     let boothNumber = '000';
     if (boothId) {
-      const bRes = await query(`SELECT booth_number FROM booths WHERE id = $1`, [boothId]);
+      const bRes = await executeFamilyQuery(`SELECT booth_number FROM booths WHERE id = $1`, [boothId], tenantDbName);
       if (bRes.rows[0]?.booth_number) {
         boothNumber = String(bRes.rows[0].booth_number).padStart(3, '0');
       }
@@ -222,7 +237,7 @@ export class FamilyMappingService {
   /**
    * Run automated Family Mapping algorithm for a Polling Booth
    */
-  static async autoMapBoothFamilies(params: AutoMapFamiliesParams): Promise<AutoMapFamiliesResult> {
+  static async autoMapBoothFamilies(tenantDbName: string | undefined | null, params: AutoMapFamiliesParams): Promise<AutoMapFamiliesResult> {
     const { boothId, dryRun = false } = params;
 
     // 1. Fetch all voters in this booth
@@ -256,7 +271,7 @@ export class FamilyMappingService {
       ORDER BY v.serial_no ASC
     `;
 
-    const res = await query(sql, [boothId]);
+    const res = await executeFamilyQuery(sql, [boothId], tenantDbName);
     const allVoters: any[] = res.rows;
     const totalVoters = allVoters.length;
 
@@ -384,7 +399,7 @@ export class FamilyMappingService {
 
     // 4. If NOT dryRun, execute batch updates transactionally (Rule 5)
     if (!dryRun && updates.length > 0) {
-      const client = await dbPool.connect();
+      const client = await getFamilyClient(tenantDbName);
       try {
         await client.query('BEGIN');
 
@@ -445,7 +460,9 @@ export class FamilyMappingService {
    * Get paginated list of families (Family Heads with aggregated metrics)
    */
   static async getFamiliesList(params: {
+    tenantDbName?: string;
     boothId?: string;
+    boothIds?: string[];
     search?: string;
     page?: number;
     limit?: number;
@@ -468,6 +485,10 @@ export class FamilyMappingService {
     if (params.boothId) {
       conditions.push(`v.booth_id = $${paramIndex}`);
       values.push(params.boothId);
+      paramIndex++;
+    } else if (params.boothIds && params.boothIds.length > 0) {
+      conditions.push(`v.booth_id = ANY($${paramIndex}::uuid[])`);
+      values.push(params.boothIds);
       paramIndex++;
     }
 
@@ -504,7 +525,7 @@ export class FamilyMappingService {
       ) fic ON true
       ${whereClause}
     `;
-    const countRes = await query(countSql, values);
+    const countRes = await executeFamilyQuery(countSql, values, params.tenantDbName);
     const total = countRes.rows[0]?.total || 0;
     const totalPages = Math.ceil(total / limit) || 1;
 
@@ -564,7 +585,7 @@ export class FamilyMappingService {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    const dataRes = await query(dataSql, [...values, limit, offset]);
+    const dataRes = await executeFamilyQuery(dataSql, [...values, limit, offset], params.tenantDbName);
 
     return {
       data: dataRes.rows,
@@ -578,7 +599,7 @@ export class FamilyMappingService {
   /**
    * Get all members belonging to a family (Head + Linked Members)
    */
-  static async getFamilyMembers(headId: string): Promise<{
+  static async getFamilyMembers(tenantDbName: string | undefined | null, headId: string): Promise<{
     head: any;
     members: any[];
     summary: {
@@ -622,7 +643,7 @@ export class FamilyMappingService {
       LEFT JOIN parties p ON v.party_id = p.id
       WHERE v.id = $1
     `;
-    const headRes = await query(headSql, [headId]);
+    const headRes = await executeFamilyQuery(headSql, [headId], tenantDbName);
     const head = headRes.rows[0];
     if (!head) {
       throw new Error('Family Head voter not found');
@@ -656,7 +677,7 @@ export class FamilyMappingService {
       WHERE v.family_influencer_id = $1 AND (v.is_dead IS NOT TRUE)
       ORDER BY v.age DESC
     `;
-    const membersRes = await query(membersSql, [headId]);
+    const membersRes = await executeFamilyQuery(membersSql, [headId], tenantDbName);
     const members = membersRes.rows;
 
     const allInFamily = [head, ...members];
@@ -691,22 +712,22 @@ export class FamilyMappingService {
   /**
    * Update the specific relationship of a family member to their Head
    */
-  static async updateMemberRelation(voterId: string, relation: string): Promise<any> {
+  static async updateMemberRelation(tenantDbName: string | undefined | null, voterId: string, relation: string): Promise<any> {
     const sql = `
       UPDATE voters
       SET updated_at = NOW()
       WHERE id = $1
       RETURNING id, family_id AS "familyId"
     `;
-    const res = await query(sql, [voterId]);
+    const res = await executeFamilyQuery(sql, [voterId], tenantDbName);
     return { ...res.rows[0], familyRelation: relation };
   }
 
   /**
    * Transfer Head of Family role to another family member
    */
-  static async setNewFamilyHead(currentHeadId: string, newHeadId: string): Promise<void> {
-    const client = await dbPool.connect();
+  static async setNewFamilyHead(tenantDbName: string | undefined | null, currentHeadId: string, newHeadId: string): Promise<void> {
+    const client = await getFamilyClient(tenantDbName);
     try {
       await client.query('BEGIN');
 

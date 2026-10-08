@@ -1,4 +1,3 @@
-import React, { useRef } from 'react';
 import {
   View,
   TextInput,
@@ -15,14 +14,15 @@ import Animated, {
   withTiming,
   interpolateColor,
 } from 'react-native-reanimated';
-import { MaterialDesignIcons } from './MaterialDesignIcons';
+import React, { useRef } from 'react';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 
 interface MdSearchBarProps extends TextInputProps {
+  showFilter?: boolean;
   onFilterPress?: () => void;
   containerStyle?: StyleProp<ViewStyle>;
-  showFilter?: boolean;
 }
 
 const MdSearchBar: React.FC<MdSearchBarProps> = ({
@@ -35,7 +35,7 @@ const MdSearchBar: React.FC<MdSearchBarProps> = ({
   onChangeText,
   ...rest
 }) => {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInput | any>(null);
 
   // Focus animation shared values
   const focusProgress = useSharedValue(0);
@@ -135,10 +135,10 @@ const MdSearchBar: React.FC<MdSearchBarProps> = ({
           <MaterialDesignIcons name="magnify" size={15} color="#FFFFFF" />
         </Animated.View>
         <TextInput
-          ref={inputRef}
           value={value}
           onBlur={handleBlur}
           onFocus={handleFocus}
+          ref={inputRef as any}
           cursorColor="#FFFFFF"
           style={styles.searchInput}
           onChangeText={onChangeText}

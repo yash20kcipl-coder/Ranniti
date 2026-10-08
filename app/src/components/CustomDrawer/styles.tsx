@@ -52,14 +52,13 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
       alignItems: 'center',
     },
     avatarContainer: {
-      position: 'relative',
       width: 56,
       height: 56,
+      borderWidth: 1,
       borderRadius: 28,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      padding: 2,
-      borderWidth: 2,
+      position: 'relative',
       borderColor: 'rgba(255, 255, 255, 0.4)',
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     avatar: {
       width: '100%',
@@ -68,13 +67,13 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
     },
     statusDot: {
       position: 'absolute',
-      bottom: 2,
-      right: 2,
+      bottom: 1,
+      right: 1,
       width: 12,
       height: 12,
-      borderRadius: 6,
-      backgroundColor: '#10B981',
       borderWidth: 2,
+      borderRadius: 6,
+      backgroundColor: '#00ffaaff',
       borderColor: theme.colors.primary,
     },
     userInfo: {
@@ -111,7 +110,6 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
 
     // Content Scroll View
     drawerContent: {
-      paddingTop: 16,
       paddingHorizontal: 14,
       paddingBottom: 24,
     },
@@ -122,7 +120,7 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
     },
     categoryHeaderText: {
       fontFamily: FontFamily.bodyBold,
-      fontSize: rfValue(11),
+      fontSize: rfValue(12),
       color: theme.colors.textSecondary,
       letterSpacing: 1.2,
       textTransform: 'uppercase',
@@ -132,7 +130,7 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
       position: 'relative',
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 12,
+      paddingVertical: 10,
       paddingHorizontal: 14,
       borderRadius: 14,
       marginBottom: 4,
@@ -152,8 +150,8 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
       backgroundColor: theme.colors.primary,
     },
     drawerItemIcon: {
-      width: 32,
-      height: 32,
+      width: 35,
+      height: 35,
       borderRadius: 10,
       justifyContent: 'center',
       alignItems: 'center',
@@ -161,13 +159,13 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
       backgroundColor: theme.colors.inputBackground,
     },
     drawerItemIconActive: {
-      backgroundColor: 'rgba(30, 64, 175, 0.12)',
+      backgroundColor: 'rgba(30, 64, 175, 0.08)',
     },
     drawerItemText: {
       flex: 1,
-      fontFamily: FontFamily.bodyBold,
-      fontSize: rfValue(14),
+      fontSize: rfValue(16),
       color: theme.colors.text,
+      fontFamily: FontFamily.bodyBold,
     },
     drawerItemTextActive: {
       color: theme.colors.primary,

@@ -65,14 +65,16 @@ export const InfluencerMappingScreen: React.FC = () => {
                 <Text style={styles.areaText}>{item.influenceArea}</Text>
               </View>
 
-              <View style={styles.quickContact}>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => openPhoneDialer(item.mobile)}>
-                  <Phone {...({ size: 16, color: '#2563EB' } as any)} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => openWhatsAppChat(item.mobile)}>
-                  <MessageCircle {...({ size: 16, color: '#16A34A' } as any)} />
-                </TouchableOpacity>
-              </View>
+              {!!item.mobile && (
+                <View style={styles.quickContact}>
+                  <TouchableOpacity style={styles.iconBtn} onPress={() => openPhoneDialer(item.mobile)}>
+                    <Phone {...({ size: 16, color: '#2563EB' } as any)} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.iconBtn} onPress={() => openWhatsAppChat(item.mobile)}>
+                    <MessageCircle {...({ size: 16, color: '#16A34A' } as any)} />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
 
             {/* Influenced Voter List */}

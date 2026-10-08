@@ -12,26 +12,31 @@ export class SyncOutboxRetryService {
   private static backoffUntil: number = 0;
   private static readonly MAX_BACKOFF_MS = 5 * 60 * 1000; // 5 minutes cap
 
+  private static verifiedTenantDbs = new Set<string>();
+
   /**
    * Process pending outbox sync items for a single tenant database
    */
   static async processTenantOutbox(tenantDbName: string): Promise<number> {
     const tenantPool = TenantPoolManager.getPool(tenantDbName);
-    // Ensure tenant_sync_outbox table exists in this tenant DB
-    await tenantPool.query(`
-      CREATE TABLE IF NOT EXISTS tenant_sync_outbox (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        entity_type VARCHAR(50) NOT NULL,
-        entity_id UUID NOT NULL,
-        action VARCHAR(20) NOT NULL,
-        payload JSONB NOT NULL,
-        status VARCHAR(20) DEFAULT 'pending',
-        retry_count INT DEFAULT 0,
-        error_message TEXT,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-    `).catch(() => {});
+    // Ensure tenant_sync_outbox table exists in this tenant DB (checked once per process lifetime)
+    if (!this.verifiedTenantDbs.has(tenantDbName)) {
+      await tenantPool.query(`
+        CREATE TABLE IF NOT EXISTS tenant_sync_outbox (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          entity_type VARCHAR(50) NOT NULL,
+          entity_id UUID NOT NULL,
+          action VARCHAR(20) NOT NULL,
+          payload JSONB NOT NULL,
+          status VARCHAR(20) DEFAULT 'pending',
+          retry_count INT DEFAULT 0,
+          error_message TEXT,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+        );
+      `).catch(() => {});
+      this.verifiedTenantDbs.add(tenantDbName);
+    }
 
     const selectSql = `
       SELECT id, entity_type, entity_id, action, payload, retry_count

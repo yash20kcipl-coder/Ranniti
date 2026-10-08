@@ -61,7 +61,7 @@ export class VoterService {
 
     // Auto family mapping assignment if not explicitly provided
     if (!data.familyId) {
-      const familyAssigned = await FamilyMappingService.assignVoterToFamily(data);
+      const familyAssigned = await FamilyMappingService.assignVoterToFamily(tenantDbName, data);
       data.familyId = familyAssigned.familyId;
       data.isFamilyInfluencer = familyAssigned.isFamilyInfluencer;
       data.familyInfluencerId = familyAssigned.familyInfluencerId;

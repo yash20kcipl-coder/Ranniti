@@ -27,6 +27,8 @@ export interface VoterFilterState {
   setFilter: (key: any, val: any) => void;
   onAcChange?: (newAcId: string) => void;
   onBoothChange?: (newBoothId: string) => void;
+  onAcDraftChange?: (newAcId: string) => void;
+  onBoothDraftChange?: (newBoothId: string) => void;
 }
 
 export interface VoterFilterMasterData {
@@ -113,6 +115,21 @@ export function buildVoterFilterFields(
           setFilter('boothId', '');
         }
       },
+      onDraftChange: (val: string, setDraftValues: any) => {
+        setDraftValues((prev: any) => ({
+          ...prev,
+          stateId: val,
+          districtId: '',
+          pcId: '',
+          acId: '',
+          boothId: '',
+          familyInfluencerId: '',
+          socialInfluencerId: '',
+        }));
+        if (state.onAcDraftChange) {
+          state.onAcDraftChange('');
+        }
+      },
       options: stateOptions,
       isPrimary: false,
     },
@@ -131,6 +148,20 @@ export function buildVoterFilterFields(
         } else {
           setFilter('acId', '');
           setFilter('boothId', '');
+        }
+      },
+      onDraftChange: (val: string, setDraftValues: any) => {
+        setDraftValues((prev: any) => ({
+          ...prev,
+          districtId: val,
+          pcId: '',
+          acId: '',
+          boothId: '',
+          familyInfluencerId: '',
+          socialInfluencerId: '',
+        }));
+        if (state.onAcDraftChange) {
+          state.onAcDraftChange('');
         }
       },
       options: (draft: Record<string, any>) => {
@@ -158,6 +189,19 @@ export function buildVoterFilterFields(
         } else {
           setFilter('acId', '');
           setFilter('boothId', '');
+        }
+      },
+      onDraftChange: (val: string, setDraftValues: any) => {
+        setDraftValues((prev: any) => ({
+          ...prev,
+          pcId: val,
+          acId: '',
+          boothId: '',
+          familyInfluencerId: '',
+          socialInfluencerId: '',
+        }));
+        if (state.onAcDraftChange) {
+          state.onAcDraftChange('');
         }
       },
       options: (draft: Record<string, any>) => {
@@ -191,6 +235,23 @@ export function buildVoterFilterFields(
           setFilter('boothId', '');
         }
       },
+      onDraftChange: (val: string, setDraftValues: any) => {
+        setDraftValues((prev: any) => ({
+          ...prev,
+          acId: val,
+          boothId: '',
+          familyInfluencerId: '',
+          socialInfluencerId: '',
+        }));
+        if (state.onAcDraftChange) {
+          state.onAcDraftChange(val);
+        }
+      },
+      onDraftRevert: () => {
+        if (state.onAcDraftChange) {
+          state.onAcDraftChange(acId || '');
+        }
+      },
       options: (draft: Record<string, any>) => {
         const curPc = draft.pcId !== undefined ? draft.pcId : pcId;
         const curDistrict = draft.districtId !== undefined ? draft.districtId : districtId;
@@ -218,7 +279,12 @@ export function buildVoterFilterFields(
         const curAc = draft.acId !== undefined ? draft.acId : acId;
         return !curAc;
       },
-      placeholder: !acId ? 'Select AC first' : isBoothsLoading ? 'Loading booths...' : 'All Booths in AC',
+      placeholder: (draft: Record<string, any>) => {
+        const curAc = draft.acId !== undefined ? draft.acId : acId;
+        if (!curAc) return 'Select AC first';
+        if (isBoothsLoading) return 'Loading booths...';
+        return 'All Booths in AC';
+      },
       helperText: (draft: Record<string, any>) => {
         const curAc = draft.acId !== undefined ? draft.acId : acId;
         if (!curAc) return 'Select an Assembly Constituency (AC) first to view booths';
@@ -230,6 +296,22 @@ export function buildVoterFilterFields(
           state.onBoothChange(val);
         } else {
           setFilter('boothId', val);
+        }
+      },
+      onDraftChange: (val: string, setDraftValues: any) => {
+        setDraftValues((prev: any) => ({
+          ...prev,
+          boothId: val,
+          familyInfluencerId: '',
+          socialInfluencerId: '',
+        }));
+        if (state.onBoothDraftChange) {
+          state.onBoothDraftChange(val);
+        }
+      },
+      onDraftRevert: () => {
+        if (state.onBoothDraftChange) {
+          state.onBoothDraftChange(boothId || '');
         }
       },
       options: (draft: Record<string, any>) => {

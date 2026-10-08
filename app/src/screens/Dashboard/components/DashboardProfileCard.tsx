@@ -77,7 +77,7 @@ export const DashboardProfileCard: React.FC<DashboardProfileCardProps> = ({
           </View>
 
           <View style={styles.locationContainer}>
-            <MapPin size={12} color={theme.colors.textSecondary} />
+            <MapPin size={12} strokeWidth={2.5} color={theme.colors.textSecondary} />
             <Text style={styles.areaText} numberOfLines={1}>
               {locationName}
             </Text>
@@ -145,7 +145,7 @@ const createStyles = (theme: Theme) =>
     },
     infoCol: {
       flex: 1,
-      gap: 6,
+      gap: 2,
       justifyContent: 'center',
     },
     userName: {
@@ -180,8 +180,8 @@ const createStyles = (theme: Theme) =>
       gap: 4,
     },
     areaText: {
-      fontFamily: FontFamily.medium,
-      fontSize: rfValue(11),
+      fontSize: rfValue(12),
+      fontFamily: FontFamily.bold,
       color: theme.colors.textSecondary,
     },
     actionBtn: {

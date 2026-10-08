@@ -6,7 +6,7 @@ import { SectionContainer } from './SectionContainer';
 import { FontFamily } from '../../../utils/typography';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { Users, Calendar, Activity } from 'lucide-react-native';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 
 export interface GenderDemographicsProps {
   genderData?: {
@@ -23,13 +23,19 @@ export interface GenderDemographicsProps {
     votedCount: number;
     totalVoters: number;
   };
+  onPressGender?: () => void;
+  onPressAge?: () => void;
+  onPressTurnout?: () => void;
 }
 
 const screenWidth = Dimensions.get('window').width - 48;
 
 export const GenderDemographicsSection: React.FC<GenderDemographicsProps> = memo(({
-  genderData = { male: 0, female: 0, other: 0 },
+  onPressAge,
+  onPressGender,
+  onPressTurnout,
   ageData = { youth: 0, adult: 0, senior: 0 },
+  genderData = { male: 0, female: 0, other: 0 },
   turnoutData = { votedCount: 0, totalVoters: 0 },
 }) => {
   const { t } = useLanguage();
@@ -102,12 +108,17 @@ export const GenderDemographicsSection: React.FC<GenderDemographicsProps> = memo
     <View style={styles.outerWrapper}>
       {/* 1. Gender Demographics Section */}
       <SectionContainer
-        title={t('genderDemographics')}
-        subtitle={t('genderSubtitle')}
-        icon={<Users {...({ size: 18, color: '#2563EB' } as any)} />}
         accentColor="#2563EB"
+        onPressHeader={onPressGender}
+        subtitle={t('genderSubtitle')}
+        title={t('genderDemographics')}
+        icon={<Users {...({ size: 18, color: '#2563EB' } as any)} />}
       >
-        <View style={styles.container}>
+        <TouchableOpacity
+          onPress={onPressGender}
+          style={styles.container}
+          activeOpacity={onPressGender ? 0.85 : 1}
+        >
           {/* Pie Chart Representation */}
           <View style={styles.chartWrapper}>
             <PieChart
@@ -126,37 +137,7 @@ export const GenderDemographicsSection: React.FC<GenderDemographicsProps> = memo
               absolute
             />
           </View>
-
-          {/* Gender Stat Chips */}
-          {/* <View style={styles.statGrid}>
-            <View style={[styles.statCard, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
-              <View style={styles.statHeader}>
-                <View style={[styles.dot, { backgroundColor: '#2563EB' }]} />
-                <Text style={styles.statTitle}>{t('male')}</Text>
-              </View>
-              <Text style={styles.statValue}>{maleCount.toLocaleString()}</Text>
-              <Text style={styles.statPercent}>{malePercent}%</Text>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: '#FDF2F8', borderColor: '#FBCFE8' }]}>
-              <View style={styles.statHeader}>
-                <View style={[styles.dot, { backgroundColor: '#EC4899' }]} />
-                <Text style={styles.statTitle}>{t('female')}</Text>
-              </View>
-              <Text style={styles.statValue}>{femaleCount.toLocaleString()}</Text>
-              <Text style={styles.statPercent}>{femalePercent}%</Text>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: '#F3E8FF', borderColor: '#DDD6FE' }]}>
-              <View style={styles.statHeader}>
-                <View style={[styles.dot, { backgroundColor: '#8B5CF6' }]} />
-                <Text style={styles.statTitle}>{t('otherGender')}</Text>
-              </View>
-              <Text style={styles.statValue}>{otherCount.toLocaleString()}</Text>
-              <Text style={styles.statPercent}>{otherPercent}%</Text>
-            </View>
-          </View> */}
-        </View>
+        </TouchableOpacity>
       </SectionContainer>
 
       {/* 2. Age Group Demographics Section */}
@@ -165,8 +146,13 @@ export const GenderDemographicsSection: React.FC<GenderDemographicsProps> = memo
         subtitle={t('ageGroupSubtitle')}
         icon={<Calendar {...({ size: 18, color: '#10B981' } as any)} />}
         accentColor="#10B981"
+        onPressHeader={onPressAge}
       >
-        <View style={styles.container}>
+        <TouchableOpacity
+          activeOpacity={onPressAge ? 0.85 : 1}
+          onPress={onPressAge}
+          style={styles.container}
+        >
           {/* Donut Chart Representation */}
           <View style={styles.chartWrapper}>
             <PieChart
@@ -190,51 +176,22 @@ export const GenderDemographicsSection: React.FC<GenderDemographicsProps> = memo
               <Text style={styles.donutCenterLabel}>Total</Text>
             </View>
           </View>
-          {/* <View style={styles.statGrid}>
-            <View style={[styles.statCard, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-              <View style={styles.statHeader}>
-                <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
-                <Text style={styles.ageCategoryTitle}>Youth (18-30)</Text>
-              </View>
-              <Text style={styles.statValue}>{ageData.youth.toLocaleString()}</Text>
-              <Text style={styles.statPercent}>
-                {Math.round((ageData.youth / turnoutData.totalVoters) * 100)}%
-              </Text>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
-              <View style={styles.statHeader}>
-                <View style={[styles.dot, { backgroundColor: '#0284C7' }]} />
-                <Text style={styles.ageCategoryTitle}>Adult (31-50)</Text>
-              </View>
-              <Text style={styles.statValue}>{ageData.adult.toLocaleString()}</Text>
-              <Text style={styles.statPercent}>
-                {Math.round((ageData.adult / turnoutData.totalVoters) * 100)}%
-              </Text>
-            </View>
-
-            <View style={[styles.statCard, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
-              <View style={styles.statHeader}>
-                <View style={[styles.dot, { backgroundColor: '#F59E0B' }]} />
-                <Text style={styles.ageCategoryTitle}>Senior (50+)</Text>
-              </View>
-              <Text style={styles.statValue}>{ageData.senior.toLocaleString()}</Text>
-              <Text style={styles.statPercent}>
-                {Math.round((ageData.senior / turnoutData.totalVoters) * 100)}%
-              </Text>
-            </View>
-          </View> */}
-        </View>
+        </TouchableOpacity>
       </SectionContainer>
 
       {/* 3. Real-time Voting Turnout Section */}
       <SectionContainer
+        accentColor="#F59E0B"
         title={t('turnoutAnalytics')}
+        onPressHeader={onPressTurnout}
         subtitle={t('turnoutSubtitle')}
         icon={<Activity {...({ size: 18, color: '#F59E0B' } as any)} />}
-        accentColor="#F59E0B"
       >
-        <View style={styles.container}>
+        <TouchableOpacity
+          onPress={onPressTurnout}
+          style={styles.container}
+          activeOpacity={onPressTurnout ? 0.85 : 1}
+        >
           <View style={styles.turnoutHeader}>
             <Text style={[styles.turnoutLabel, { color: theme.colors.text || '#0F172A' }]}>
               Voted: <Text style={styles.boldText}>{turnoutData.votedCount.toLocaleString()}</Text> ({votedPercent}%)
@@ -261,7 +218,7 @@ export const GenderDemographicsSection: React.FC<GenderDemographicsProps> = memo
               ]}
             />
           </View>
-        </View>
+        </TouchableOpacity>
       </SectionContainer>
     </View>
   );

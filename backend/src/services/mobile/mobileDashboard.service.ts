@@ -45,7 +45,7 @@ export class MobileDashboardService {
     assignedBoothIds?: string[];
   }): Promise<MobileDashboardMetrics> {
     const { userId, role, tenantDbName, assignedPcId, assignedAcId } = params;
-    let assignedBoothIds = params.assignedBoothIds || [];
+    let assignedBoothIds = params.assignedBoothIds;
 
     // Helper for executing query against tenant pool
     const executeTenantQuery = async (sqlStr: string, sqlParams: any[] = []) => {
@@ -56,13 +56,14 @@ export class MobileDashboardService {
       return await masterQuery(sqlStr, sqlParams);
     };
 
-    // 1. Fetch assigned booth IDs if not supplied in token payload
-    if (!assignedBoothIds || assignedBoothIds.length === 0) {
+    // 1. Fetch assigned booth IDs only if not supplied/preloaded
+    if (assignedBoothIds === undefined) {
       try {
         const boothRes = await executeTenantQuery(`SELECT booth_id FROM user_booth_assignments WHERE user_id = $1`, [userId]);
         assignedBoothIds = boothRes.rows.map((r: { booth_id: string }) => r.booth_id);
       } catch (err) {
         logger.warn(`[MobileDashboardService] Error fetching user_booth_assignments:`, err);
+        assignedBoothIds = [];
       }
     }
 
@@ -90,11 +91,11 @@ export class MobileDashboardService {
       }
     }
 
-    // Determine booth / AC / PC filter clause for tenant voters SQL query
-    const isAcOrPcLeader = role === 'ac_leader' || role === 'pc_leader' || role === 'tenant_admin' || role === 'super_admin';
+    // Determine booth / AC / PC filter clause for tenant voters SQL query:
+    // If assignedBoothIds are specified, they ALWAYS take precedence over broad AC/PC scope
+    const hasBoothFilter = assignedBoothIds && assignedBoothIds.length > 0;
     const hasAcFilter = Boolean(assignedAcId);
     const hasPcFilter = Boolean(assignedPcId);
-    const hasBoothFilter = assignedBoothIds && assignedBoothIds.length > 0 && (!isAcOrPcLeader || (!hasAcFilter && !hasPcFilter));
 
     let whereClause = 'WHERE 1=1';
     const queryParams: any[] = [];

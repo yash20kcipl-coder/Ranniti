@@ -11,4 +11,3 @@ export * from './tenant.service';
 export * from './religion.service';
 export * from './district.service';
 export * from './masterBulk.service';
-export * from './tenantProvisioning.service';

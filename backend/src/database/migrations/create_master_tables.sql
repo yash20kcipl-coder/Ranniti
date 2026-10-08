@@ -87,9 +87,6 @@ CREATE TABLE IF NOT EXISTS booths (
     CONSTRAINT unq_booth_ac_number UNIQUE (ac_id, booth_number)
 );
 
-ALTER TABLE booths ADD COLUMN IF NOT EXISTS village_id UUID REFERENCES villages(id) ON DELETE SET NULL;
-ALTER TABLE booths ADD COLUMN IF NOT EXISTS ward_id UUID REFERENCES wards(id) ON DELETE SET NULL;
-
 -- 9. Religions Master
 CREATE TABLE IF NOT EXISTS religions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

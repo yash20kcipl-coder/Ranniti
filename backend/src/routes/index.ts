@@ -1,17 +1,16 @@
 import { Router } from 'express';
+import { mobileRouter } from './mobile';
 import { tenantRouter } from './tenant';
 import { authRoutes } from './auth.routes';
 import { healthRoutes } from './health.routes';
 import { uploadRoutes } from './upload.routes';
 import { superAdminRouter } from './superAdmin';
-import { mobileAuthRoutes } from './mobileAuth.routes';
 import { tenantUserRoutes } from './tenant/user.routes';
 import { tenantDataRoutes } from './tenant/data.routes';
 import { tenantVoterRoutes } from './tenant/voter.routes';
 import { tenantVolunteerRoutes } from './tenant/volunteer.routes';
 import { superAdminMasterRoutes } from './superAdmin/master.routes';
-
-import { mobileRouter } from './mobile';
+import { provisioningRoutes } from '../provisioning/routes/provisioning.routes';
 
 const router = Router();
 
@@ -24,8 +23,9 @@ router.use('/auth', authRoutes);
 router.use('/mobile', mobileRouter);
 
 // Dedicated Domain Architecture Routes
-router.use('/super-admin', superAdminRouter);
 router.use('/tenant', tenantRouter);
+router.use('/super-admin', superAdminRouter);
+router.use('/provisioning', provisioningRoutes);
 
 // Legacy Alias Fallback Mounts (for seamless backward compatibility with existing clients)
 router.use('/tenant-api', tenantRouter);
