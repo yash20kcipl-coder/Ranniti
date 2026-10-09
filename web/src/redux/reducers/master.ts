@@ -18,6 +18,7 @@ export interface MasterState {
   wards: any[];
   parties: any[];
   booths: any[];
+  demoRecords: any[];
 }
 
 const initialState: MasterState = {
@@ -38,6 +39,7 @@ const initialState: MasterState = {
   wards: [],
   parties: [],
   booths: [],
+  demoRecords: [],
 };
 
 export default function masterreducers(state = initialState, action: any): MasterState {

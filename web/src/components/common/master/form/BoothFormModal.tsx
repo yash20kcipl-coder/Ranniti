@@ -11,7 +11,7 @@ interface BoothFormModalProps {
   pcs: any[];
   acs: any[];
   wards: any[];
-  onSave: (data: { name: string; boothNumber: number | string; acId: string; wardId?: string; totalVoters?: number }) => Promise<void>;
+  onSave: (data: { name: string; boothNumber: number | string; acId: string; wardId?: string; locationBuilding?: string; totalVoters?: number }) => Promise<void>;
 }
 
 export const BoothFormModal: React.FC<BoothFormModalProps> = ({
@@ -32,6 +32,7 @@ export const BoothFormModal: React.FC<BoothFormModalProps> = ({
   const [pcId, setPcId] = useState('');
   const [acId, setAcId] = useState('');
   const [wardId, setWardId] = useState('');
+  const [locationBuilding, setLocationBuilding] = useState('');
   const [totalVoters, setTotalVoters] = useState<string | number>('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,6 +55,7 @@ export const BoothFormModal: React.FC<BoothFormModalProps> = ({
       setPcId(derivedPcId);
       setAcId(editingItem.acId || '');
       setWardId(editingItem.wardId || '');
+      setLocationBuilding(editingItem.locationBuilding || '');
       setTotalVoters(editingItem.totalVoters ?? '');
     } else {
       setName('');
@@ -63,6 +65,7 @@ export const BoothFormModal: React.FC<BoothFormModalProps> = ({
       setPcId('');
       setAcId('');
       setWardId('');
+      setLocationBuilding('');
       setTotalVoters('');
     }
   }, [editingItem, isOpen, acs, pcs, districts]);
@@ -77,6 +80,7 @@ export const BoothFormModal: React.FC<BoothFormModalProps> = ({
         boothNumber: Number(boothNumber),
         acId,
         wardId,
+        locationBuilding: locationBuilding.trim() || undefined,
         totalVoters: totalVoters ? Number(totalVoters) : 0,
       });
     } finally {
@@ -173,6 +177,12 @@ export const BoothFormModal: React.FC<BoothFormModalProps> = ({
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Z.P. Primary School, Room No. 1"
           required
+        />
+        <FormInput
+          label="Location Building / Address"
+          value={locationBuilding}
+          onChange={(e) => setLocationBuilding(e.target.value)}
+          placeholder="e.g. Room No. 4, Ground Floor, Z.P. High School"
         />
         <FormInput
           type="number"

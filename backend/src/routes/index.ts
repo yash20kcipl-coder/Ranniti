@@ -9,6 +9,7 @@ import { tenantUserRoutes } from './tenant/user.routes';
 import { tenantDataRoutes } from './tenant/data.routes';
 import { tenantVoterRoutes } from './tenant/voter.routes';
 import { tenantVolunteerRoutes } from './tenant/volunteer.routes';
+import { publicAppVersionRoutes } from './appVersion.public.routes';
 import { superAdminMasterRoutes } from './superAdmin/master.routes';
 import { provisioningRoutes } from '../provisioning/routes/provisioning.routes';
 
@@ -17,6 +18,7 @@ const router = Router();
 // Health & File Upload System Utility Routes
 router.use('/health', healthRoutes);
 router.use('/uploads', uploadRoutes);
+router.use('/app-versions', publicAppVersionRoutes);
 
 // Authentication & Mobile Application Routes
 router.use('/auth', authRoutes);

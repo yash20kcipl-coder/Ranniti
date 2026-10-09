@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
-import { useAppTheme } from '../../../hooks/useAppTheme';
+import { useLanguage } from '../../../languages';
 import { rfValue } from '../../../utils/responsive';
 import { FontFamily } from '../../../utils/typography';
+import { useAppTheme } from '../../../hooks/useAppTheme';
 import { MasterState } from '../../../store/reducers/master';
+import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 
 export interface AppliedFilterItem {
   key: string;
@@ -30,8 +31,10 @@ export const AppliedFiltersBar: React.FC<AppliedFiltersBarProps> = ({
   master,
   onRemoveFilter,
   onClearAll,
-  t,
+  t: customT,
 }) => {
+  const { t: langT } = useLanguage();
+  const t = customT || langT;
   const { theme } = useAppTheme();
 
   // Resolve human-readable labels from IDs using master data
@@ -218,7 +221,7 @@ export const AppliedFiltersBar: React.FC<AppliedFiltersBarProps> = ({
           activeOpacity={0.7}
         >
           <MaterialDesignIcons name="close-circle-outline" size={13} color="#EF4444" />
-          <Text style={styles.clearAllChipText}>Clear All</Text>
+          <Text style={styles.clearAllChipText}>{t('clearAll') || 'Clear All'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

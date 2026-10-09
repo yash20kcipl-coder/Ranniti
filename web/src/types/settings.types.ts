@@ -76,4 +76,20 @@ export interface WhatsAppTemplate {
   updatedAt: string;
 }
 
-export type SettingsTabKey = 'user-roles' | 'tenant-roles' | 'whatsapp-templates' | 'whatsapp-config' | 'push-notifications';
+export interface AppVersionConfig {
+  id: string;
+  platform: 'android' | 'ios';
+  minVersion: string;
+  latestVersion: string;
+  forceUpdate: boolean;
+  updateTitle: string;
+  updateMessage: string;
+  storeUrl: string;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type SettingsTabKey = 'user-roles' | 'tenant-roles' | 'app-versions' | 'whatsapp-templates' | 'whatsapp-config' | 'push-notifications';
+

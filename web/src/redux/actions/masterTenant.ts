@@ -46,9 +46,9 @@ const parseTenantMasterData = (raw: any): any[] => {
 
 const getTenantEndpointData = async (endpoint: string, params?: Record<string, any>) => {
   const res = await api.get(endpoint, { params });
+  const pagination = res.data?.pagination || (res.data?.data && typeof res.data.data === 'object' && !Array.isArray(res.data.data) ? res.data.data.pagination : undefined);
   const raw = res.data?.data || res.data;
   const items = parseTenantMasterData(raw);
-  const pagination = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw.pagination : undefined;
   return { items, pagination };
 };
 

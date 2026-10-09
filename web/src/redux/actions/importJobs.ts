@@ -2,13 +2,14 @@ import api from '@/services/api';
 import type { AppDispatch } from '../store';
 
 export const START_IMPORT_JOB = 'START_IMPORT_JOB';
-export const UPDATE_IMPORT_JOB_STATUS = 'UPDATE_IMPORT_JOB_STATUS';
 export const DISMISS_IMPORT_JOB = 'DISMISS_IMPORT_JOB';
 export const CLEAR_COMPLETED_JOBS = 'CLEAR_COMPLETED_JOBS';
+export const UPDATE_IMPORT_JOB_STATUS = 'UPDATE_IMPORT_JOB_STATUS';
 
 export interface ImportJobError {
-  index: number;
   error: string;
+  index: number;
+  row?: Record<string, any>;
 }
 
 export interface ImportJob {

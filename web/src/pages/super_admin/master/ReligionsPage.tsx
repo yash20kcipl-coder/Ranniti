@@ -1,16 +1,4 @@
-import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { PageHeader } from '@/components/common/PageHeader';
-import { DataTable, type Column } from '@/components/common/DataTable';
-import { TableActions } from '@/components/common/TableActions';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { ImportModal } from '@/components/common/ImportModal';
-import { FilterBar } from '@/components/common/FilterBar';
-import { exportToExcel, parseExcelFile } from '@/utils/exportImport';
-import { startBulkImportJob } from '@/redux/actions/importJobs';
-import { HeartHandshake } from 'lucide-react';
 import {
   fetchSuperAdminMasterCategoryData,
   createSuperAdminMasterCategoryItem,
@@ -18,7 +6,19 @@ import {
   deleteSuperAdminMasterCategoryItem,
   syncAllSuperAdminMasters,
 } from '@/redux/actions/masterSuperAdmin';
+import { HeartHandshake } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { exportToExcel } from '@/utils/exportImport';
+import { FilterBar } from '@/components/common/FilterBar';
+import { PageHeader } from '@/components/common/PageHeader';
+import { ImportModal } from '@/components/common/ImportModal';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { TableActions } from '@/components/common/TableActions';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { ReligionFormModal } from '@/components/common/master/form';
+import { startBulkImportFileJob } from '@/redux/actions/importJobs';
+import { DataTable, type Column } from '@/components/common/DataTable';
 
 export const ReligionsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -133,24 +133,19 @@ export const ReligionsPage: React.FC = () => {
     toast.success('Religions exported successfully');
   };
 
-  const handleImport = async (file: File, parsedRecords?: Record<string, any>[]) => {
+  const handleImport = async (file: File) => {
     try {
-      const records = parsedRecords && parsedRecords.length > 0 ? parsedRecords : await parseExcelFile(file);
-      if (!records.length) {
-        toast.error('The uploaded file contains no data');
-        return;
-      }
       await dispatch(
-        startBulkImportJob('religions', records, () => {
+        startBulkImportFileJob('religions', file, () => {
           const params: Record<string, string> = {};
           if (search.trim()) params.search = search.trim();
           dispatch(fetchSuperAdminMasterCategoryData('religions', '/masters/religions', false, params));
         })
       );
-      toast.success('Bulk import job queued for Religions!');
+      toast.success('Bulk import job started for Religions!');
       setIsImportModalOpen(false);
-    } catch {
-      toast.error('Failed to queue import');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start import');
     }
   };
 

@@ -234,8 +234,8 @@ export const SuperAdminVotersPage: React.FC = () => {
     } catch (err) { }
   };
 
-  const handleBulkImport = async (records: Record<string, any>[]) => {
-    await dispatch(importSuperAdminVotersData(records, getCurrentFilterParams()));
+  const handleBulkImport = async (fileOrRecords: any, context?: Record<string, any>) => {
+    await dispatch(importSuperAdminVotersData(fileOrRecords, getCurrentFilterParams(), context));
   };
 
   const handleExportVoters = () => {

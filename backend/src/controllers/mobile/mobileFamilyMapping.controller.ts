@@ -14,22 +14,37 @@ export class MobileFamilyMappingController {
     const limit = query.limit ? parseInt(query.limit as string, 10) : 25;
     const search = query.search as string | undefined;
 
-    let targetBoothId = (query.boothId && query.boothId !== 'All' && query.boothId !== 'all') ? (query.boothId as string) : undefined;
-    const assignedBoothIds = user.assignedBoothIds;
+    let parsedBoothIds: string[] = [];
+    if (query.boothIds) {
+      if (Array.isArray(query.boothIds)) {
+        parsedBoothIds = query.boothIds.map(String);
+      } else if (typeof query.boothIds === 'string') {
+        parsedBoothIds = (query.boothIds as string).split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    }
+    if (query.boothId && query.boothId !== 'All' && query.boothId !== 'all') {
+      const singleId = String(query.boothId).trim();
+      if (!parsedBoothIds.includes(singleId)) {
+        parsedBoothIds.push(singleId);
+      }
+    }
 
+    const assignedBoothIds = user.assignedBoothIds;
     if (assignedBoothIds && assignedBoothIds.length > 0) {
-      if (targetBoothId) {
-        if (!assignedBoothIds.includes(targetBoothId)) {
-          res.status(403).json(ApiResponse.error('Access denied to the requested booth', 403).body);
+      if (parsedBoothIds.length > 0) {
+        parsedBoothIds = parsedBoothIds.filter((id) => assignedBoothIds.includes(id));
+        if (parsedBoothIds.length === 0) {
+          res.status(403).json(ApiResponse.error('Access denied to requested booth(s)', 403).body);
           return;
         }
+      } else {
+        parsedBoothIds = assignedBoothIds;
       }
     }
 
     const result = await FamilyMappingService.getFamiliesList({
       tenantDbName,
-      boothId: targetBoothId,
-      boothIds: targetBoothId ? undefined : assignedBoothIds,
+      boothIds: parsedBoothIds.length > 0 ? parsedBoothIds : undefined,
       search,
       page,
       limit,
@@ -70,6 +85,8 @@ export class MobileFamilyMappingController {
         families: mappedFamilies,
         pagination: {
           total: result.total,
+          totalMembers: result.totalMembers,
+          votedMembers: result.votedMembers,
           page: result.page,
           limit: result.limit,
           totalPages: result.totalPages,

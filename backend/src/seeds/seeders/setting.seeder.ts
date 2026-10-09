@@ -117,6 +117,11 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
       const sqlContent = fs.readFileSync(migrationPath, 'utf8');
       await queryFn(sqlContent);
     }
+    const appVersionMigrationPath = path.join(__dirname, '../../database/migrations/create_app_versions_table.sql');
+    if (fs.existsSync(appVersionMigrationPath)) {
+      const sqlContent = fs.readFileSync(appVersionMigrationPath, 'utf8');
+      await queryFn(sqlContent);
+    }
     // 1. Seed Campaign Settings if empty
     const csRes = await queryFn(`SELECT id FROM campaign_settings LIMIT 1`);
     if (csRes.rows.length === 0) {

@@ -7,20 +7,22 @@ import {
   Linking,
 } from 'react-native';
 import React from 'react';
+import { useLanguage } from '../languages';
 import { getShadow } from '../utils/shadow';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { DownloadCloud, ShieldCheck } from 'lucide-react-native';
+import { DownloadCloud, ShieldCheck, Wrench } from 'lucide-react-native';
 
 export interface AppUpdateModalProps {
   visible: boolean;
-  type: 'force-update' | 'recommended' | 'force' | 'optional';
+  type: 'force-update' | 'recommended' | 'force' | 'optional' | 'maintenance';
   latestVersion?: string;
   title?: string;
   body?: string;
   onSkip?: () => void;
-  versionInfo: any
+  onRetry?: () => void;
+  versionInfo?: any;
 }
 
 export const AppUpdateModal: React.FC<AppUpdateModalProps> = ({
@@ -31,26 +33,36 @@ export const AppUpdateModal: React.FC<AppUpdateModalProps> = ({
   title,
   body,
   onSkip,
+  onRetry,
 }) => {
   const { theme, styles } = useAppTheme(createStyles);
+  const { t } = useLanguage();
 
   const onUpdate = () => {
-    if (versionInfo.storeUrl) {
-      Linking.openURL(versionInfo.storeUrl).catch((err) =>
+    const storeUrl = versionInfo?.storeUrl;
+    if (storeUrl) {
+      Linking.openURL(storeUrl).catch((err) =>
         console.error('Failed to open store URL:', err)
       );
     }
   };
 
-
   if (!visible) return null;
 
+  const isMaintenance = type === 'maintenance';
   const isForceUpdate = type === 'force-update' || type === 'force';
 
-  const defaultTitle = isForceUpdate ? 'Update Required' : 'New Version Available';
-  const defaultBody = isForceUpdate
-    ? `A critical update for Ranniti is available${latestVersion ? ` (v${latestVersion})` : ''}. Please update to continue using the app.`
-    : `A new update${latestVersion ? ` (v${latestVersion})` : ''} is available with performance improvements and new features.`;
+  const defaultTitle = isMaintenance
+    ? t('underMaintenanceTitle')
+    : isForceUpdate
+      ? t('updateRequired')
+      : t('newVersionAvailable');
+
+  const defaultBody = isMaintenance
+    ? t('underMaintenanceMessage')
+    : isForceUpdate
+      ? `${t('criticalUpdateMessage')}${latestVersion ? ` (v${latestVersion})` : ''}`
+      : `${t('recommendedUpdateMessage')}${latestVersion ? ` (v${latestVersion})` : ''}`;
 
   return (
     <Modal
@@ -58,12 +70,14 @@ export const AppUpdateModal: React.FC<AppUpdateModalProps> = ({
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={isForceUpdate ? () => { } : onSkip}
+      onRequestClose={isForceUpdate || isMaintenance ? () => { } : onSkip}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalCard}>
           <View style={styles.modalIconCircle}>
-            {isForceUpdate ? (
+            {isMaintenance ? (
+              <Wrench size={32} {...({ color: '#F59E0B' } as any)} />
+            ) : isForceUpdate ? (
               <DownloadCloud size={32} {...({ color: theme.colors.primary } as any)} />
             ) : (
               <ShieldCheck size={32} {...({ color: theme.colors.primary } as any)} />
@@ -74,22 +88,34 @@ export const AppUpdateModal: React.FC<AppUpdateModalProps> = ({
           <Text style={styles.modalBody}>{body || defaultBody}</Text>
 
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={onUpdate}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.primaryBtnText}>Update Now</Text>
-            </TouchableOpacity>
-
-            {!isForceUpdate && onSkip && (
+            {isMaintenance ? (
               <TouchableOpacity
-                style={styles.secondaryBtn}
-                onPress={onSkip}
-                activeOpacity={0.7}
+                style={[styles.primaryBtn, { backgroundColor: '#F59E0B' }]}
+                onPress={onRetry}
+                activeOpacity={0.8}
               >
-                <Text style={styles.secondaryBtnText}>Skip for now</Text>
+                <Text style={styles.primaryBtnText}>{t('retryConnection')}</Text>
               </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={onUpdate}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.primaryBtnText}>{t('updateNow')}</Text>
+                </TouchableOpacity>
+
+                {!isForceUpdate && onSkip && (
+                  <TouchableOpacity
+                    style={styles.secondaryBtn}
+                    onPress={onSkip}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.secondaryBtnText}>{t('skipForNow')}</Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
         </View>

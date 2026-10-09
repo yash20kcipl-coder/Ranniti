@@ -22,7 +22,16 @@ export const VolunteerStatsCards: React.FC<VolunteerStatsCardsProps> = ({
   const totalCadre = coverage?.totalCadre ?? totalVolunteers;
   const coveredBooths = coverage?.coveredBooths || 0;
   const totalBooths = coverage?.totalBooths || totalBoothsCount;
-  const coveragePercent = totalBooths > 0 ? Math.round((coveredBooths / totalBooths) * 100) : (coverage?.coveragePercentage ?? 0);
+
+  const supporterCoveredBooths = coverage?.supporterCoveredBooths ?? 0;
+  const wardCoveredBooths = coverage?.wardCoveredBooths ?? (coverage?.subLeadersCount ? coveredBooths : 0);
+
+  const supporterPercent = totalBooths > 0
+    ? (coverage?.supporterCoveragePercentage ?? Math.round((supporterCoveredBooths / totalBooths) * 100))
+    : 0;
+  const wardPercent = totalBooths > 0
+    ? (coverage?.wardCoveragePercentage ?? Math.round((wardCoveredBooths / totalBooths) * 100))
+    : 0;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -88,27 +97,55 @@ export const VolunteerStatsCards: React.FC<VolunteerStatsCardsProps> = ({
         </div>
       </div>
 
-      {/* 4. Booth Coverage */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
-        <div className="flex-1 mr-3 min-w-0">
+      {/* 4. Booth Coverage (Two-Tier Metric) */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+        <div className="flex items-center justify-between">
           <div className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
             Booth Coverage
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white mt-1 flex items-baseline gap-2">
-            <span>{coveragePercent}%</span>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              {coveredBooths} / {totalBooths} booths
-            </span>
-          </div>
-          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
-            <div
-              className="bg-amber-500 h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(coveragePercent, 100)}%` }}
-            />
+          <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-800/60 shrink-0">
+            <Building2 size={15} />
           </div>
         </div>
-        <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-800/60 shrink-0">
-          <Building2 size={20} />
+
+        <div className="mt-2 space-y-2">
+          {/* Tier 1: Booth Supporters */}
+          <div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                Supporter Coverage:
+              </span>
+              <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
+                {supporterPercent}% ({supporterCoveredBooths}/{totalBooths})
+              </span>
+            </div>
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-0.5 overflow-hidden">
+              <div
+                className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(supporterPercent, 100)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Tier 2: Ward / Field Leadership */}
+          <div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                Ward Lead Coverage:
+              </span>
+              <span className="font-extrabold text-amber-600 dark:text-amber-400">
+                {wardPercent}% ({wardCoveredBooths}/{totalBooths})
+              </span>
+            </div>
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-0.5 overflow-hidden">
+              <div
+                className="bg-amber-500 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(wardPercent, 100)}%` }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

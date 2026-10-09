@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS tenant_users (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    mpin_hash VARCHAR(255) DEFAULT NULL,
     role VARCHAR(30) NOT NULL CHECK (role IN ('pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter')),
     role_name VARCHAR(100),
     mobile VARCHAR(15),
@@ -16,6 +17,9 @@ CREATE TABLE IF NOT EXISTS tenant_users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure mpin_hash column exists on pre-existing tenant DBs
+ALTER TABLE tenant_users ADD COLUMN IF NOT EXISTS mpin_hash VARCHAR(255) DEFAULT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_tenant_users_email ON tenant_users (email);
 CREATE INDEX IF NOT EXISTS idx_tenant_users_mobile ON tenant_users (mobile);

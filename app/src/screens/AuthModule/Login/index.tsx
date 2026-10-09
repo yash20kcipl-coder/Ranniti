@@ -1,44 +1,121 @@
 import { loginStyles } from './styles';
-import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useLanguage } from '../../../languages';
 import { ScrollView } from '../../../components';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { GetUniqueId } from '../../../utils/device';
+import { MpinScreen } from './components/MpinScreen';
 import { SCREENS } from '../../../navigation/constants';
 import { SafeView } from '../../../components/SafeView';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { useNavigation } from '@react-navigation/native';
-import { loginAction } from '../../../store/actions/auth';
 import { createFcmToken } from '../../../utils/notification';
+import Storage, { STORAGE_KEYS } from '../../../utils/storage';
 import PermissionsPopUp from '../../../components/Permissions';
 import { AppTextInput } from '../../../components/AppTextInput';
+import { OtpVerifySection } from './components/OtpVerifySection';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
-const RANNITI_LOGO = require('../../../assets/images/ranniti-logo.png');
+import { navigateToDashboard } from '../../../navigation/navigationUtils';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
+import { sendOtpAction, verifyOtpAction, verifyMpinAction, fetchProfileAndRoleAccessAction } from '../../../store/actions/auth';
 
-const Login = ({ route }: any) => {
+const RANNITI_LOGO = require('../../../assets/images/ranniti-logo.png');
+
+type StepState = 'phone' | 'otp' | 'mpin_setup' | 'mpin_verify';
+type LoginMode = 'otp' | 'mpin';
+
+const Login = () => {
+  const { t } = useLanguage();
   const navigation = useNavigation();
   const dispatch = useDispatch<any>();
   const [loading, setLoading] = useState(false);
-  const [secureText, setSecureText] = useState(true);
-  const [password, setPassword] = useState("Yash8388#");
+  const [mpinInput, setMpinInput] = useState('');
+  const [step, setStep] = useState<StepState>('phone');
   const [identifier, setIdentifier] = useState('7990088388');
+  const [loginMode, setLoginMode] = useState<LoginMode>('otp');
   const { theme, styles } = useAppTheme<ReturnType<typeof loginStyles>>(loginStyles);
+
+  useEffect(() => {
+    checkExistingMpinStatus();
+  }, []);
+
+  const checkExistingMpinStatus = async () => {
+    try {
+      const isMpinSet = await Storage.get(STORAGE_KEYS.IS_MPIN_SET);
+      const storedToken = await Storage.get(STORAGE_KEYS.TOKEN);
+      if (isMpinSet && storedToken) {
+        setStep('mpin_verify');
+      }
+    } catch {
+      // Default to phone
+    }
+  };
 
   const requestUserPermission = async () => {
     await createFcmToken();
   };
 
-  const handleLogin = async () => {
-    if (!identifier || !password) return;
+  const handleSendOtp = () => {
+    if (!identifier || identifier.length < 10) return;
+    dispatch(
+      sendOtpAction(identifier, setLoading, () => {
+        setStep('otp');
+      })
+    );
+  };
 
-    setLoading(true);
+  const handleVerifyOtp = async (otpCode: string) => {
     const deviceId = await GetUniqueId();
     const fcmResponse = await createFcmToken();
-    dispatch(loginAction({
-      phone: identifier, pass: password,
-      fcmToken: fcmResponse?.token || '', deviceId,
-    }, setLoading,));
+
+    dispatch(
+      verifyOtpAction(
+        {
+          mobile: identifier,
+          otp: otpCode,
+          fcmToken: fcmResponse?.token || '',
+          deviceId,
+        },
+        setLoading,
+        async (user) => {
+          const isMpinSet = await Storage.get(STORAGE_KEYS.IS_MPIN_SET);
+          if (isMpinSet) {
+            await dispatch(fetchProfileAndRoleAccessAction(true));
+          } else {
+            setStep('mpin_setup');
+          }
+        }
+      )
+    );
+  };
+
+  const handleMpinServerLogin = () => {
+    if (!identifier || identifier.length < 10 || !mpinInput || mpinInput.length !== 4) return;
+    dispatch(
+      verifyMpinAction(
+        {
+          mobile: identifier,
+          mpin: mpinInput,
+        },
+        setLoading,
+        async () => {
+          await dispatch(fetchProfileAndRoleAccessAction(true));
+          handleMpinSuccess();
+        }
+      )
+    );
+  };
+
+  const handleMpinSuccess = async () => {
+    const storedRole = await Storage.get(STORAGE_KEYS.ROLE);
+    await dispatch(fetchProfileAndRoleAccessAction(true));
+    navigateToDashboard(storedRole || 'supporter');
+  };
+
+  const handleResetMpin = () => {
+    setStep('phone');
+    setLoginMode('otp');
   };
 
   return (
@@ -51,104 +128,171 @@ const Login = ({ route }: any) => {
       >
         {/* Top Hero Section */}
         <View style={styles.topSection}>
-          {/* Decorative Glow Elements */}
           <View style={styles.bgCircle1} />
           <View style={styles.bgCircle2} />
           <View style={styles.bgCircle3} />
           <View style={styles.bgCircle4} />
           <View style={styles.bgCircle5} />
 
-          {/* Back Action Button */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialDesignIcons name="chevron-left" size={26} color="#FFFFFF" />
-          </TouchableOpacity>
+          {navigation.canGoBack() && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <MaterialDesignIcons name="chevron-left" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
 
-          {/* Ranniti Logo Wrapper */}
           <View style={styles.logoCardInner}>
-            <Image
-              source={RANNITI_LOGO}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+            <Image source={RANNITI_LOGO} style={styles.logoImage} resizeMode="contain" />
           </View>
-          <Text style={styles.brandSubtitle}>Political Campaign Platform</Text>
+          <Text style={styles.brandSubtitle}>{t('politicalCampaignPlatform') || 'Political Campaign Platform'}</Text>
         </View>
 
-        {/* Bottom Form Card */}
+        {/* Bottom Section */}
         <View style={styles.bottomSection}>
-          <Text style={styles.welcomeTitle}>Welcome Back</Text>
-          <Text style={styles.welcomeSub}>
-            Please enter your phone number and password to login.
-          </Text>
+          {step === 'phone' && (
+            <View style={styles.formContainer}>
+              {/* Option Selector: Login via OTP or MPIN */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  backgroundColor: theme.colors.background,
+                  borderRadius: 10,
+                  padding: 4,
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setLoginMode('otp')}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    alignItems: 'center',
+                    backgroundColor: loginMode === 'otp' ? theme.colors.primary : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '700',
+                      color: loginMode === 'otp' ? '#FFFFFF' : theme.colors.textSecondary,
+                    }}
+                  >
+                    {t('loginWithOtp')}
+                  </Text>
+                </TouchableOpacity>
 
-          <View style={styles.formContainer}>
-            {/* Phone / Identifier Input */}
-            <View style={[styles.formContainer, { gap: 0 }]}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setLoginMode('mpin')}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    alignItems: 'center',
+                    backgroundColor: loginMode === 'mpin' ? theme.colors.primary : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '700',
+                      color: loginMode === 'mpin' ? '#FFFFFF' : theme.colors.textSecondary,
+                    }}
+                  >
+                    {t('loginWithMpin')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.welcomeTitle}>
+                {loginMode === 'otp' ? t('otpLoginTitle') : t('enterMpinTitle')}
+              </Text>
+              <Text style={styles.welcomeSub}>
+                {loginMode === 'otp' ? t('otpLoginSubtitle') : t('enterMpinSubtitle')}
+              </Text>
+
               <AppTextInput
                 icon="phone"
                 value={identifier}
-                label="Phone Number"
+                label={t('phoneNumber')}
                 autoCapitalize="none"
                 keyboardType="phone-pad"
+                maxLength={10}
                 onChangeText={setIdentifier}
-                placeholder="Enter 10-digit mobile number"
+                placeholder={t('enterMobileNumber')}
               />
 
-              {/* Password Input */}
-              <AppTextInput
-                label="Password"
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                icon="lock"
-                secureTextEntry={secureText}
-                containerStyle={{ marginBottom: 0 }}
-                rightIcon={
-                  <TouchableOpacity
-                    onPress={() => setSecureText(!secureText)}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  >
-                    <MaterialDesignIcons
-                      name={secureText ? 'eye' : 'eye-off'}
-                      size={22}
-                      color={theme.colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                }
-              />
+              {loginMode === 'mpin' && (
+                <AppTextInput
+                  icon="lock"
+                  value={mpinInput}
+                  label={t('enterMpinTitle')}
+                  autoCapitalize="none"
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  secureTextEntry
+                  onChangeText={setMpinInput}
+                  placeholder={t('enterMpinPlaceholder')}
+                />
+              )}
+
+              {loginMode === 'otp' ? (
+                <Button
+                  title={t('getOtp')}
+                  loading={loading}
+                  onPress={handleSendOtp}
+                  style={styles.loginBtn}
+                  disabled={!identifier || identifier.length < 10 || loading}
+                />
+              ) : (
+                <Button
+                  title={t('login')}
+                  loading={loading}
+                  onPress={handleMpinServerLogin}
+                  style={styles.loginBtn}
+                  disabled={!identifier || identifier.length < 10 || mpinInput.length !== 4 || loading}
+                />
+              )}
             </View>
+          )}
 
-            {/* Forgot Password Button */}
-            <TouchableOpacity
-              style={styles.forgotBtn}
-              activeOpacity={0.7}
-              onPress={() => navigation.navigate(SCREENS.FORGOT_PASSWORD as never)}
-            >
-              <Text style={styles.forgotText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            {/* Submit Action Button */}
-            <Button
-              title="Sign In"
+          {step === 'otp' && (
+            <OtpVerifySection
+              mobile={identifier}
               loading={loading}
-              onPress={handleLogin}
-              style={styles.loginBtn}
-              disabled={!identifier || !password}
+              onVerify={handleVerifyOtp}
+              onResend={handleSendOtp}
+              onBack={() => setStep('phone')}
+              styles={styles}
+              theme={theme}
             />
-          </View>
+          )}
 
-          {/* Footer Contact Support Link */}
+          {(step === 'mpin_setup' || step === 'mpin_verify') && (
+            <MpinScreen
+              mode={step === 'mpin_setup' ? 'setup' : 'verify'}
+              onSuccess={handleMpinSuccess}
+              onResetMpin={handleResetMpin}
+              styles={styles}
+              theme={theme}
+            />
+          )}
+
+          {/* Footer Contact Support */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Need help logging in?</Text>
+            <Text style={styles.footerText}>{t('needHelpLoggingIn') || 'Need help logging in?'}</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate(SCREENS.CONTACT_SUPPORT as never)}
               activeOpacity={0.7}
             >
-              <Text style={styles.footerLink}>Contact Support</Text>
+              <Text style={styles.footerLink}>{t('contactSupport') || 'Contact Support'}</Text>
             </TouchableOpacity>
           </View>
         </View>

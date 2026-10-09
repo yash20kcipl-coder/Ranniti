@@ -2,12 +2,15 @@ import React from 'react';
 import { getShadow } from '../../../utils/shadow';
 import { rfValue } from '../../../utils/responsive';
 import { FontFamily } from '../../../utils/typography';
+import { SCREENS } from '../../../navigation/constants';
+import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { SafeImage } from '../../../components/SafeImage';
 import { TeamMember } from '../../../store/reducers/team';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { handleCall, handleWhatsApp } from '../../../utils/linkingUtils';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
+
 
 interface TeamMemberCardProps {
   member: TeamMember;
@@ -22,42 +25,53 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
   onDelete,
   canManage = true,
 }) => {
+  const navigation = useNavigation<any>();
   const { theme } = useAppTheme();
 
   const screens = member.accessibleTabs?.mobileScreens || [];
 
+  const handlePressCard = () => {
+    navigation.navigate(SCREENS.VOLUNTEER_DETAIL, { member });
+  };
+
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
       <View style={styles.topRow}>
-        <SafeImage
-          alt={member.name}
-          name={member.name}
-          src={member.avatar}
-          style={styles.avatar}
-          placeholderType="avatar"
-        />
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}
+          activeOpacity={0.7}
+          onPress={handlePressCard}
+        >
+          <SafeImage
+            alt={member.name}
+            name={member.name}
+            src={member.avatar}
+            style={styles.avatar}
+            placeholderType="avatar"
+          />
 
-        <View style={styles.infoCol}>
-          <Text style={[styles.nameText, { color: theme.colors.text }]} numberOfLines={1}>
-            {member.name}
-          </Text>
+          <View style={styles.infoCol}>
+            <Text style={[styles.nameText, { color: theme.colors.text }]} numberOfLines={1}>
+              {member.name}
+            </Text>
 
-          <View style={styles.contactRow}>
-            {Boolean(member.mobile) && (
-              <Text style={[styles.subText, { color: theme.colors.textSecondary }]}>
-                {member.mobile}
-              </Text>
-            )}
-            {Boolean(member.mobile && member.email) && (
-              <Text style={[styles.dotSep, { color: theme.colors.textSecondary }]}>•</Text>
-            )}
-            {Boolean(member.email) && (
-              <Text style={[styles.subText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                {member.email}
-              </Text>
-            )}
+            <View style={styles.contactRow}>
+              {Boolean(member.mobile) && (
+                <Text style={[styles.subText, { color: theme.colors.textSecondary }]}>
+                  {member.mobile}
+                </Text>
+              )}
+              {Boolean(member.mobile && member.email) && (
+                <Text style={[styles.dotSep, { color: theme.colors.textSecondary }]}>•</Text>
+              )}
+              {Boolean(member.email) && (
+                <Text style={[styles.subText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                  {member.email}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Action Buttons: WhatsApp, Call, Edit, Delete */}
         <View style={styles.actionButtonsCol}>

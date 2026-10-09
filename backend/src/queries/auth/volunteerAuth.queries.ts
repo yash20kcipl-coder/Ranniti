@@ -12,6 +12,7 @@ export interface VolunteerUserRecord {
   updatedAt: Date;
   tenantDbName: string;
   passwordHash: string;
+  mpinHash?: string | null;
   accessibleTabs?: any;
   roleName?: string | null;
   assignedAc?: string | null;
@@ -48,7 +49,7 @@ export class VolunteerAuthQueries {
   static async findVolunteerByIdentifier(identifier: string, tenantDbName?: string | null): Promise<VolunteerUserRecord | null> {
     const cleanIdentifier = identifier.toLowerCase().trim();
     const sql = `
-      SELECT id, name, email, password_hash AS "passwordHash", 
+      SELECT id, name, email, password_hash AS "passwordHash", mpin_hash AS "mpinHash", 
              role, role_name AS "roleName", mobile, avatar, status, tenant_db_name AS "tenantDbName",
              parent_leader_id AS "parentLeaderId", assigned_ac_id AS "assignedAcId",
              accessible_tabs AS "accessibleTabs",
@@ -95,7 +96,7 @@ export class VolunteerAuthQueries {
   static async findVolunteerById(id: string, tenantDbName?: string | null): Promise<VolunteerUserRecord | null> {
     const sql = `
       SELECT 
-        u.id, u.name, u.email, u.password_hash AS "passwordHash", 
+        u.id, u.name, u.email, u.password_hash AS "passwordHash", u.mpin_hash AS "mpinHash", 
         u.role, u.role_name AS "roleName", u.mobile, u.avatar, u.status, u.tenant_db_name AS "tenantDbName",
         u.parent_leader_id AS "parentLeaderId", u.assigned_ac_id AS "assignedAcId",
         u.accessible_tabs AS "accessibleTabs",
@@ -313,4 +314,13 @@ export class VolunteerAuthQueries {
     const updated = await this.findVolunteerById(id, tenantDbName);
     return updated!;
   }
+
+  static async updateVolunteerMpin(id: string, mpinHash: string, tenantDbName: string): Promise<void> {
+    await TenantPoolManager.query(
+      tenantDbName,
+      `UPDATE tenant_users SET mpin_hash = $1, updated_at = NOW() WHERE id = $2`,
+      [mpinHash, id]
+    );
+  }
 }
+

@@ -1,0 +1,1 @@
+export * from './sampleTemplate.service';

@@ -12,6 +12,7 @@ Entity for tenant field cadre, including PC Leaders, AC Leaders, Sector Sub-Lead
 | `name`             | `VARCHAR(255)` | No       | *None*              | Full volunteer/leader name                                                                                 |
 | `email`            | `VARCHAR(255)` | No       | *None*              | Unique login email address                                                                                 |
 | `password_hash`    | `VARCHAR(255)` | No       | *None*              | Bcrypt hashed password                                                                                     |
+| `mpin_hash`        | `VARCHAR(255)` | Yes      | `NULL`              | Bcrypt hashed 4-digit security PIN for fast mobile authentication                                           |
 | `role`             | `VARCHAR(30)`  | No       | *None*              | Role check: `pc_leader`, `ac_leader`, `leader`, `sub_leader`, `supporter`                                  |
 | `role_name`        | `VARCHAR(100)` | Yes      | `NULL`              | Human-readable title description                                                                           |
 | `mobile`           | `VARCHAR(15)`  | Yes      | `NULL`              | User contact number                                                                                        |

@@ -109,17 +109,16 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
               return (
                 <TouchableOpacity
                   key={item.name}
+                  activeOpacity={0.75}
                   onPress={() => {
                     if (item?.onPress) { item?.onPress() }
                     handleNavigation(item.name)
                   }}
                   style={[styles.drawerItem, isActive && styles.drawerItemActive]}
-                  activeOpacity={0.75}
                 >
-                  {isActive && <View style={styles.activeIndicator} />}
                   <View style={[styles.drawerItemIcon, isActive && styles.drawerItemIconActive]}>
                     <MaterialDesignIcons
-                      size={18}
+                      size={15}
                       name={item.icon}
                       color={isActive ? theme.colors.primary : theme.colors.textSecondary}
                     />
@@ -144,7 +143,7 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
       <View style={styles.footer}>
         <View style={styles.quickActionRow}>
           {/* Theme Toggle Button */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.themeToggleBtn}
             onPress={handleToggleTheme}
             activeOpacity={0.7}
@@ -157,7 +156,7 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
             <Text style={styles.themeToggleText}>
               {isDarkMode ? 'Light Mode' : 'Dark Mode'}
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {/* Logout Button */}
           <TouchableOpacity

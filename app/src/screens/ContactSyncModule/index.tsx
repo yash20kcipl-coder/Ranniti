@@ -51,8 +51,8 @@ export const ContactSyncScreen: React.FC = () => {
 
   const routes = useMemo<Route[]>(
     () => [
-      { key: 'my_contacts', title: t('myContacts') || 'My Contacts' },
       { key: 'synced_contacts', title: t('syncedContacts') || 'Synced Contacts' },
+      { key: 'my_contacts', title: t('myContacts') || 'My Contacts' },
     ],
     [t]
   );

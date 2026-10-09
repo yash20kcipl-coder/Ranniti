@@ -2,10 +2,8 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   StyleSheet,
-  ScrollView,
 } from 'react-native';
 import React, { useState } from 'react';
 import { Theme } from '../../../constants/theme';
@@ -20,85 +18,27 @@ import { AppDropdown, DropdownOption } from '../../../components/AppDropdown';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 
 export interface VoterFilterParams {
-  search?: string;
-  boothNo?: string;
   acId?: string;
-  supportingParty?: string;
-  politicalView?: string;
-  isVoted?: string;
+  search?: string;
   gender?: string;
+  isDead?: string;
+  boothNo?: string;
+  isVoted?: string;
   ageGroup?: string;
   voterType?: string;
-  isDead?: string;
+  politicalView?: string;
   influencerRole?: string;
+  supportingParty?: string;
 }
 
 interface VoterFilterModalProps {
   visible: boolean;
   onDismiss: () => void;
+  t: (key: any) => string;
+  onResetFilters: () => void;
   filters: VoterFilterParams;
   onApplyFilters: (newFilters: VoterFilterParams) => void;
-  onResetFilters: () => void;
-  t: (key: any) => string;
 }
-
-const GENDER_OPTIONS = [
-  { id: 'all', label: 'All', icon: 'account-group-outline' },
-  { id: 'Male', label: 'Male', icon: 'gender-male' },
-  { id: 'Female', label: 'Female', icon: 'gender-female' },
-  { id: 'Other', label: 'Other', icon: 'account-outline' },
-];
-
-const VOTED_OPTIONS = [
-  { id: 'all', label: 'All Status', icon: 'circle-outline' },
-  { id: 'voted', label: 'Voted', icon: 'check-circle' },
-  { id: 'not_voted', label: 'Not Voted', icon: 'close-circle' },
-];
-
-const AGE_GROUP_OPTIONS = [
-  { id: '', label: 'All Ages' },
-  { id: '18-25', label: '18 - 25' },
-  { id: '26-35', label: '26 - 35' },
-  { id: '36-50', label: '36 - 50' },
-  { id: '51-65', label: '51 - 65' },
-  { id: '65-200', label: '65+' },
-];
-
-const VOTER_TYPE_TILES = [
-  { id: '', label: 'All Types', icon: 'account-multiple-outline' },
-  { id: 'Voter', label: 'Standard', icon: 'account-check-outline' },
-  { id: 'Neutral Voter', label: 'Neutral', icon: 'scale-balance' },
-  { id: 'Student', label: 'Student', icon: 'school-outline' },
-  { id: 'Senior', label: 'Senior', icon: 'human-cane' },
-  { id: 'VIP', label: 'VIP / Key', icon: 'star-outline' },
-];
-
-const INFLUENCER_CARDS = [
-  {
-    id: '',
-    title: 'All Voters',
-    desc: 'Browse entire constituency',
-    icon: 'account-group-outline',
-  },
-  {
-    id: 'family',
-    title: '👑 Family Heads',
-    desc: 'Household decision leaders',
-    icon: 'home-account',
-  },
-  {
-    id: 'social',
-    title: '✨ Social Leaders',
-    desc: 'Local community influencers',
-    icon: 'bullhorn-outline',
-  },
-  {
-    id: 'any',
-    title: '🌟 Any Influencer',
-    desc: 'All registered field leaders',
-    icon: 'star-circle-outline',
-  },
-];
 
 export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
   visible,
@@ -108,8 +48,81 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
   onResetFilters,
   t,
 }) => {
-  const { theme, styles } = useAppTheme(getStyles);
   const dispatch = useDispatch<any>();
+  const { theme, styles } = useAppTheme(getStyles);
+
+  const genderOptions = React.useMemo(
+    () => [
+      { id: 'all', label: t('all') || 'All', icon: 'account-group-outline' },
+      { id: 'Male', label: t('male') || 'Male', icon: 'gender-male' },
+      { id: 'Female', label: t('female') || 'Female', icon: 'gender-female' },
+      { id: 'Other', label: t('other') || 'Other', icon: 'account-outline' },
+    ],
+    [t]
+  );
+
+  const votedOptions = React.useMemo(
+    () => [
+      { id: 'all', label: t('allStatus') || 'All Status', icon: 'circle-outline' },
+      { id: 'voted', label: t('voted') || 'Voted', icon: 'check-circle' },
+      { id: 'not_voted', label: t('notVoted') || 'Not Voted', icon: 'close-circle' },
+    ],
+    [t]
+  );
+
+  const ageGroupOptions = React.useMemo(
+    () => [
+      { id: '', label: t('allAges') || 'All Ages' },
+      { id: '18-25', label: '18 - 25' },
+      { id: '26-35', label: '26 - 35' },
+      { id: '36-50', label: '36 - 50' },
+      { id: '51-65', label: '51 - 65' },
+      { id: '65-200', label: '65+' },
+    ],
+    [t]
+  );
+
+  const voterTypeTiles = React.useMemo(
+    () => [
+      { id: '', label: t('allTypes') || 'All Types', icon: 'account-multiple-outline' },
+      { id: 'Voter', label: t('standard') || 'Standard', icon: 'account-check-outline' },
+      { id: 'Neutral Voter', label: t('voterTypeNeutral') || 'Neutral', icon: 'scale-balance' },
+      { id: 'Student', label: t('voterTypeStudent') || 'Student', icon: 'school-outline' },
+      { id: 'Senior', label: t('senior') || 'Senior', icon: 'human-cane' },
+      { id: 'VIP', label: t('vipKey') || 'VIP / Key', icon: 'star-outline' },
+    ],
+    [t]
+  );
+
+  const influencerCards = React.useMemo(
+    () => [
+      {
+        id: '',
+        title: t('allVoters') || 'All Voters',
+        desc: t('browseEntireConstituency') || 'Browse entire constituency',
+        icon: 'account-group-outline',
+      },
+      {
+        id: 'family',
+        title: `👑 ${t('familyHeads') || 'Family Heads'}`,
+        desc: t('householdDecisionLeaders') || 'Household decision leaders',
+        icon: 'home-account',
+      },
+      {
+        id: 'social',
+        title: `✨ ${t('socialLeaders') || 'Social Leaders'}`,
+        desc: t('localCommunityInfluencers') || 'Local community influencers',
+        icon: 'bullhorn-outline',
+      },
+      {
+        id: 'any',
+        title: `🌟 ${t('anyInfluencer') || 'Any Influencer'}`,
+        desc: t('allRegisteredFieldLeaders') || 'All registered field leaders',
+        icon: 'star-circle-outline',
+      },
+    ],
+    [t]
+  );
 
   // Redux auth & master slices
   const auth = useSelector((state: RootState) => state.auth);
@@ -261,15 +274,15 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
 
         {/* ─── 1. Voting Status (Segmented Control) ─── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Voting Status</Text>
+          <Text style={styles.sectionTitle}>{t('votingStatus') || 'Voting Status'}</Text>
           {selectedVoted !== 'all' && (
             <TouchableOpacity onPress={() => setSelectedVoted('all')}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={styles.clearText}>{t('clear') || 'Clear'}</Text>
             </TouchableOpacity>
           )}
         </View>
         <View style={styles.segmentedContainer}>
-          {VOTED_OPTIONS.map((opt) => {
+          {votedOptions.map((opt) => {
             const isActive = selectedVoted === opt.id;
             return (
               <TouchableOpacity
@@ -293,15 +306,15 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
 
         {/* ─── 2. Gender (Iconic Segmented Bar) ─── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Gender</Text>
+          <Text style={styles.sectionTitle}>{t('gender') || 'Gender'}</Text>
           {selectedGender !== 'all' && (
             <TouchableOpacity onPress={() => setSelectedGender('all')}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={styles.clearText}>{t('clear') || 'Clear'}</Text>
             </TouchableOpacity>
           )}
         </View>
         <View style={styles.segmentedContainer}>
-          {GENDER_OPTIONS.map((opt) => {
+          {genderOptions.map((opt) => {
             const isActive = selectedGender === opt.id;
             return (
               <TouchableOpacity
@@ -329,7 +342,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
         {userRole === 'pc_leader' && (
           <>
             <AppDropdown
-              label="Assembly Constituency (AC)"
+              label={t('selectAc') || 'Assembly Constituency (AC)'}
               icon="map-marker-outline"
               value={selectedAc}
               options={acOptions}
@@ -343,13 +356,13 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
                 }
               }}
               searchable
-              searchPlaceholder="Search AC name or number..."
+              searchPlaceholder={t('searchBoothNameOrNo') || 'Search AC name or number...'}
               clearable
               onClear={() => handleSelectAc('')}
             />
 
             <AppDropdown
-              label="Polling Booth"
+              label={t('selectBooth') || 'Polling Booth'}
               icon="home-analytics"
               value={selectedBooth}
               options={boothOptions}
@@ -363,7 +376,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
                 }
               }}
               searchable
-              searchPlaceholder="Search booth name or number..."
+              searchPlaceholder={t('searchBoothNameOrNo') || 'Search booth name or number...'}
               clearable
               onClear={() => setSelectedBooth('All')}
               loading={boothsLoading}
@@ -377,7 +390,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
             <View style={styles.lockedScopeCard}>
               <MaterialDesignIcons name="lock-outline" size={16} color={theme.colors.primary} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.lockedScopeLabel}>Assigned Assembly Constituency</Text>
+                <Text style={styles.lockedScopeLabel}>{t('assignedAc') || 'Assigned Assembly Constituency'}</Text>
                 <Text style={styles.lockedScopeValue}>{user?.assignedAc || 'Hawa Mahal'}</Text>
               </View>
             </View>
@@ -388,13 +401,13 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
               value={selectedBooth}
               options={acBoothOptions}
               isOpen={boothDropdownOpen}
-              label="Polling Booth in AC"
+              label={t('pollingBoothInAc') || 'Polling Booth in AC'}
               onSelect={(val) => setSelectedBooth(val)}
               onToggle={(open) => {
                 setBoothDropdownOpen(open);
                 if (open) setPartyDropdownOpen(false);
               }}
-              searchPlaceholder="Search booth name or number..."
+              searchPlaceholder={t('searchBoothNameOrNo') || 'Search booth name or number...'}
               clearable
               onClear={() => setSelectedBooth('All')}
               loading={boothsLoading}
@@ -407,7 +420,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
           <View style={styles.lockedScopeCard}>
             <MaterialDesignIcons name="map-marker-radius" size={16} color={theme.colors.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.lockedScopeLabel}>Assigned Ward / Cluster</Text>
+              <Text style={styles.lockedScopeLabel}>{t('assignedWard') || 'Assigned Ward / Cluster'}</Text>
               <Text style={styles.lockedScopeValue}>{user?.assignedArea || 'Ward 14 (8 Booths)'}</Text>
             </View>
           </View>
@@ -417,7 +430,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
           <View style={styles.lockedScopeCard}>
             <MaterialDesignIcons name="home-map-marker" size={16} color={theme.colors.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.lockedScopeLabel}>Assigned Polling Booth</Text>
+              <Text style={styles.lockedScopeLabel}>{t('assignedBooth') || 'Assigned Polling Booth'}</Text>
               <Text style={styles.lockedScopeValue}>{user?.assignedBooth || 'Booth #14 - Govt Sec School'}</Text>
             </View>
           </View>
@@ -426,7 +439,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
         <View style={styles.divider} />
 
         <AppDropdown
-          label="Political Party Affiliation"
+          label={t('selectParty') || 'Political Party Affiliation'}
           icon="flag-variant-outline"
           value={selectedParty}
           options={partyOptions}
@@ -440,7 +453,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
             }
           }}
           searchable
-          searchPlaceholder="Search party abbreviation or name..."
+          searchPlaceholder={t('searchPartyAbbrev') || 'Search party abbreviation or name...'}
           clearable
           onClear={() => setSelectedParty('All')}
         />
@@ -449,15 +462,15 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
 
         {/* ─── 5. Voter Category / Inclination (2-Column Grid Tiles) ─── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Voter Category / Inclination</Text>
+          <Text style={styles.sectionTitle}>{t('voterCategoryInclination') || 'Voter Category / Inclination'}</Text>
           {selectedVoterType ? (
             <TouchableOpacity onPress={() => setSelectedVoterType('')}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={styles.clearText}>{t('clear') || 'Clear'}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
         <View style={styles.tileGrid}>
-          {VOTER_TYPE_TILES.map((tile) => {
+          {voterTypeTiles.map((tile) => {
             const isSelected = selectedVoterType === tile.id;
             return (
               <TouchableOpacity
@@ -490,15 +503,15 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
 
         {/* ─── 6. Age Group Range (Range Badges) ─── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Age Group (Years)</Text>
+          <Text style={styles.sectionTitle}>{t('ageGroupYears') || 'Age Group (Years)'}</Text>
           {selectedAgeGroup ? (
             <TouchableOpacity onPress={() => setSelectedAgeGroup('')}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={styles.clearText}>{t('clear') || 'Clear'}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
         <View style={styles.ageRow}>
-          {AGE_GROUP_OPTIONS.map((opt) => {
+          {ageGroupOptions.map((opt) => {
             const isActive = selectedAgeGroup === opt.id;
             return (
               <TouchableOpacity
@@ -520,10 +533,10 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
           <>
             <View style={styles.divider} />
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Living & Deceased Status</Text>
+              <Text style={styles.sectionTitle}>{t('livingDeceasedStatus') || 'Living & Deceased Status'}</Text>
               {selectedIsDead ? (
                 <TouchableOpacity onPress={() => setSelectedIsDead('')}>
-                  <Text style={styles.clearText}>Clear</Text>
+                  <Text style={styles.clearText}>{t('clear') || 'Clear'}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -540,9 +553,9 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.dualCardTitle, selectedIsDead === 'false' && { color: '#059669' }]}>
-                    Living Only
+                    {t('livingOnly') || 'Living Only'}
                   </Text>
-                  <Text style={styles.dualCardDesc}>Active voters</Text>
+                  <Text style={styles.dualCardDesc}>{t('activeVoters') || 'Active voters'}</Text>
                 </View>
                 {selectedIsDead === 'false' && <MaterialDesignIcons name="check-circle" size={16} color="#059669" />}
               </TouchableOpacity>
@@ -559,9 +572,9 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.dualCardTitle, selectedIsDead === 'true' && { color: '#D97706' }]}>
-                    Deceased Only
+                    {t('deceasedOnly') || 'Deceased Only'}
                   </Text>
-                  <Text style={styles.dualCardDesc}>Deceased records</Text>
+                  <Text style={styles.dualCardDesc}>{t('deceasedRecords') || 'Deceased records'}</Text>
                 </View>
                 {selectedIsDead === 'true' && <MaterialDesignIcons name="check-circle" size={16} color="#D97706" />}
               </TouchableOpacity>
@@ -573,17 +586,17 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
 
         {/* ─── 8. Influencer Network Roles (Feature Cards) ─── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Influencer Leadership Tags</Text>
+          <Text style={styles.sectionTitle}>{t('influencerLeadershipTags') || 'Influencer Leadership Tags'}</Text>
           {selectedInfluencerRole ? (
             <TouchableOpacity onPress={() => setSelectedInfluencerRole('')}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={styles.clearText}>{t('clear') || 'Clear'}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
         <View style={styles.influencerStack}>
           {(userRole === 'supporter'
-            ? INFLUENCER_CARDS.filter((c) => c.id === '' || c.id === 'family')
-            : INFLUENCER_CARDS
+            ? influencerCards.filter((c) => c.id === '' || c.id === 'family')
+            : influencerCards
           ).map((card) => {
             const isSelected = selectedInfluencerRole === card.id;
             return (

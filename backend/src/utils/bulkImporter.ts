@@ -1,6 +1,19 @@
-import { Readable } from 'stream';
 import readline from 'readline';
+import { Readable } from 'stream';
 import { logger } from './logger';
+import { sanitizePayload } from '../middlewares/sanitize.middleware';
+
+export interface BulkImportError<TRow = any> {
+  index: number;
+  row?: TRow;
+  error: string;
+}
+
+export interface BulkImportBatchResult<TRow = any> {
+  inserted: number;
+  failed?: number;
+  errors?: BulkImportError<TRow>[];
+}
 
 export interface BulkImportConfig<TInput, TOutput = TInput> {
   /**
@@ -22,9 +35,9 @@ export interface BulkImportConfig<TInput, TOutput = TInput> {
   /**
    * Database bulk insert execution handler.
    * Receives a batch chunk of validated records and performs DB insertion.
-   * Return inserted count if available.
+   * Return inserted count or detailed batch result if available.
    */
-  onBatchInsert: (batch: TOutput[]) => Promise<number | void>;
+  onBatchInsert: (batch: TOutput[]) => Promise<number | void | BulkImportBatchResult>;
 
   /**
    * Real-time progress callback for monitoring large imports.
@@ -32,7 +45,7 @@ export interface BulkImportConfig<TInput, TOutput = TInput> {
   onProgress?: (progress: BulkImportProgress) => void;
 
   /**
-   * Max errors to record before stopping logger capture (default: 100)
+   * Max errors to record before stopping logger capture (default: 500)
    */
   maxRecordedErrors?: number;
 }
@@ -46,13 +59,13 @@ export interface BulkImportProgress {
   recordsPerSecond: number;
 }
 
-export interface BulkImportResult {
+export interface BulkImportResult<TRow = any> {
   totalProcessed: number;
   insertedCount: number;
   failedCount: number;
   durationMs: number;
   recordsPerSecond: number;
-  errors: Array<{ index: number; error: string }>;
+  errors: BulkImportError<TRow>[];
 }
 
 /**
@@ -81,12 +94,12 @@ export class BulkImporter {
     const startTime = process.hrtime.bigint();
     const batchSize = config.batchSize || 2500;
     const concurrency = Math.max(1, config.concurrency || 4);
-    const maxErrors = config.maxRecordedErrors || 100;
+    const maxErrors = config.maxRecordedErrors || 500;
 
     let totalProcessed = 0;
     let insertedCount = 0;
     let failedCount = 0;
-    const errors: Array<{ index: number; error: string }> = [];
+    const errors: BulkImportError<any>[] = [];
 
     let currentBatch: TOutput[] = [];
     const pendingWorkers: Promise<void>[] = [];
@@ -95,15 +108,42 @@ export class BulkImporter {
       if (batchToInsert.length === 0) return;
 
       try {
-        const count = await config.onBatchInsert(batchToInsert);
-        insertedCount += typeof count === 'number' ? count : batchToInsert.length;
+        const res = await config.onBatchInsert(batchToInsert);
+        if (typeof res === 'object' && res !== null) {
+          const batchInserted = res.inserted || 0;
+          const batchFailed = res.failed || 0;
+          insertedCount += batchInserted;
+          failedCount += batchFailed;
+          if (res.errors && Array.isArray(res.errors)) {
+            for (const err of res.errors) {
+              if (errors.length < maxErrors) {
+                errors.push(err);
+              }
+            }
+          }
+          const unaccounted = batchToInsert.length - (batchInserted + batchFailed);
+          if (unaccounted > 0) {
+            failedCount += unaccounted;
+          }
+        } else if (typeof res === 'number') {
+          insertedCount += res;
+          const skipped = batchToInsert.length - res;
+          if (skipped > 0) {
+            failedCount += skipped;
+          }
+        } else {
+          insertedCount += batchToInsert.length;
+        }
       } catch (err: any) {
         failedCount += batchToInsert.length;
-        if (errors.length < maxErrors) {
-          errors.push({
-            index: totalProcessed,
-            error: `Batch insert error: ${err.message || String(err)}`,
-          });
+        for (const item of batchToInsert) {
+          if (errors.length < maxErrors) {
+            errors.push({
+              index: (item as any)?.__rowIndex ?? totalProcessed,
+              row: item as any,
+              error: `Batch insert error: ${err.message || String(err)}`,
+            });
+          }
         }
         logger.error(`[BulkImporter] Batch insert failed (${batchToInsert.length} records):`, err);
       }
@@ -136,9 +176,10 @@ export class BulkImporter {
       pendingWorkers.push(worker);
     };
 
-    for await (const rawItem of stream) {
+    for await (const uncleanedItem of stream) {
       totalProcessed++;
-      const currentIndex = totalProcessed;
+      const rawItem = sanitizePayload(uncleanedItem);
+      const currentIndex = (rawItem as any)?.__rowIndex ?? totalProcessed;
 
       try {
         let processedItem: TOutput | null = rawItem as unknown as TOutput;
@@ -150,12 +191,20 @@ export class BulkImporter {
           currentBatch.push(processedItem);
         } else {
           failedCount++;
+          if (errors.length < maxErrors) {
+            errors.push({
+              index: currentIndex,
+              row: rawItem as any,
+              error: 'Record was skipped or failed validation',
+            });
+          }
         }
       } catch (err: any) {
         failedCount++;
         if (errors.length < maxErrors) {
           errors.push({
             index: currentIndex,
+            row: rawItem as any,
             error: err.message || 'Transform validation error',
           });
         }

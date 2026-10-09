@@ -470,6 +470,8 @@ export class FamilyMappingService {
   }): Promise<{
     data: any[];
     total: number;
+    totalMembers: number;
+    votedMembers: number;
     page: number;
     limit: number;
     totalPages: number;
@@ -516,17 +518,25 @@ export class FamilyMappingService {
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-    // Total Count
+    // Total Count & Aggregate Family Metrics
     const countSql = `
-      SELECT COUNT(*)::int AS total
+      SELECT 
+        COUNT(*)::int AS total,
+        COALESCE(SUM(1 + COALESCE(fic.cnt, 0)), 0)::int AS "totalMembers",
+        COALESCE(SUM((CASE WHEN v.status = 'voted' THEN 1 ELSE 0 END) + COALESCE(fic.voted_cnt, 0)), 0)::int AS "votedMembers"
       FROM voters v
       LEFT JOIN LATERAL (
-        SELECT COUNT(*)::int AS cnt FROM voters fv WHERE fv.family_influencer_id = v.id AND (fv.is_dead IS NOT TRUE)
+        SELECT 
+          COUNT(*)::int AS cnt,
+          COUNT(*) FILTER (WHERE LOWER(fv.status) = 'voted')::int AS voted_cnt 
+        FROM voters fv WHERE fv.family_influencer_id = v.id AND (fv.is_dead IS NOT TRUE)
       ) fic ON true
       ${whereClause}
     `;
     const countRes = await executeFamilyQuery(countSql, values, params.tenantDbName);
     const total = countRes.rows[0]?.total || 0;
+    const totalMembers = countRes.rows[0]?.totalMembers || 0;
+    const votedMembers = countRes.rows[0]?.votedMembers || 0;
     const totalPages = Math.ceil(total / limit) || 1;
 
     // Fetch Family Heads + Support Breakdown
@@ -590,6 +600,8 @@ export class FamilyMappingService {
     return {
       data: dataRes.rows,
       total,
+      totalMembers,
+      votedMembers,
       page,
       limit,
       totalPages,

@@ -1,28 +1,31 @@
 import {
-  SET_SETTINGS_LOADING,
-  SET_SETTINGS_SAVING,
+  SET_APP_VERSIONS,
   SET_SETTINGS_DATA,
-  SET_WHATSAPP_TEMPLATES,
+  SET_SETTINGS_SAVING,
+  SET_SETTINGS_LOADING,
   SET_WHATSAPP_SYNCING,
+  SET_WHATSAPP_TEMPLATES,
   SET_SETTINGS_ACTIVE_TAB,
 } from '../actions/settings';
-import type { CampaignSettings, WhatsAppTemplate } from '@/types/settings.types';
+import type { CampaignSettings, WhatsAppTemplate, AppVersionConfig } from '@/types/settings.types';
 
 export interface SettingsState {
-  settings: CampaignSettings | null;
-  whatsappTemplates: WhatsAppTemplate[];
-  loading: boolean;
   saving: boolean;
+  loading: boolean;
   syncing: boolean;
   activeTab: string;
+  appVersions: AppVersionConfig[];
+  settings: CampaignSettings | null;
+  whatsappTemplates: WhatsAppTemplate[];
 }
 
 const initialState: SettingsState = {
-  settings: null,
-  whatsappTemplates: [],
-  loading: false,
   saving: false,
   syncing: false,
+  loading: false,
+  settings: null,
+  appVersions: [],
+  whatsappTemplates: [],
   activeTab: 'whatsapp-templates',
 };
 
@@ -40,14 +43,24 @@ export default function settingsReducer(
     case SET_SETTINGS_DATA:
       return { ...state, settings: action.payload };
 
+    case SET_APP_VERSIONS:
+      return {
+        ...state,
+        appVersions: Array.isArray(action.payload)
+          ? action.payload
+          : Array.isArray(action.payload?.data)
+            ? action.payload.data
+            : (state.appVersions || []),
+      };
+
     case SET_WHATSAPP_TEMPLATES:
       return {
         ...state,
         whatsappTemplates: Array.isArray(action.payload)
           ? action.payload
           : Array.isArray(action.payload?.data)
-          ? action.payload.data
-          : (state.whatsappTemplates || []),
+            ? action.payload.data
+            : (state.whatsappTemplates || []),
       };
 
     case SET_WHATSAPP_SYNCING:
@@ -60,3 +73,4 @@ export default function settingsReducer(
       return state;
   }
 }
+

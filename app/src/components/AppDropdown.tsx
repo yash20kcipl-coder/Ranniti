@@ -3,18 +3,18 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  ScrollView,
   StyleSheet,
   ViewStyle,
-  TextStyle,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { SafeImage } from './SafeImage';
 import { rfValue } from '../utils/responsive';
-import React, { useState, useMemo } from 'react';
 import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { MaterialDesignIcons } from './MaterialDesignIcons';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Dropdown, IDropdownRef } from 'react-native-element-dropdown';
 
 export interface DropdownOption<T = string> {
   id: T;
@@ -53,6 +53,13 @@ export interface AppDropdownProps<T = string> {
   containerStyle?: ViewStyle;
   buttonStyle?: ViewStyle;
   panelStyle?: ViewStyle;
+  mode?: 'modal' | 'default' | 'auto';
+  testID?: string;
+}
+
+interface DropdownItemData<T> extends DropdownOption<T> {
+  displayLabel: string;
+  searchContent: string;
 }
 
 export function AppDropdown<T extends string | number = string>({
@@ -67,64 +74,271 @@ export function AppDropdown<T extends string | number = string>({
   onToggle,
   searchable = true,
   searchPlaceholder = 'Search options...',
-  searchIcon = 'search',
+  searchIcon = 'magnify',
   clearable = false,
   onClear,
   clearText = 'Clear',
-  renderValue,
-  maxHeight = 220,
+  maxHeight = 360,
   loading = false,
   disabled = false,
   containerStyle,
   buttonStyle,
   panelStyle,
+  mode = 'modal',
+  testID,
 }: AppDropdownProps<T>) {
   const { theme } = useAppTheme();
-  const [internalIsOpen, setInternalIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const dropdownRef = useRef<IDropdownRef>(null);
+  const [isFocused, setIsFocused] = useState(false);
+  const isOpenRef = useRef(false);
 
-  const isControlled = controlledIsOpen !== undefined;
-  const isOpen = isControlled ? controlledIsOpen : internalIsOpen;
-
-  const handleToggle = () => {
-    if (disabled) return;
-    const nextState = !isOpen;
-    if (isControlled && onToggle) {
-      onToggle(nextState);
-    } else {
-      setInternalIsOpen(nextState);
+  // Sync controlled isOpen state with imperative dropdown methods
+  useEffect(() => {
+    if (controlledIsOpen !== undefined) {
+      if (controlledIsOpen && !isOpenRef.current) {
+        isOpenRef.current = true;
+        dropdownRef.current?.open();
+      } else if (!controlledIsOpen && isOpenRef.current) {
+        isOpenRef.current = false;
+        dropdownRef.current?.close();
+      }
     }
-  };
+  }, [controlledIsOpen]);
 
-  const handleSelect = (option: DropdownOption<T>) => {
-    if (option.disabled) return;
-    onSelect(option.id, option);
-    if (isControlled && onToggle) {
-      onToggle(false);
-    } else {
-      setInternalIsOpen(false);
-    }
-    setSearchQuery('');
-  };
+  // Map options to rich data containing displayLabel and searchContent
+  const data = useMemo<DropdownItemData<T>[]>(() => {
+    return options.map((opt) => ({
+      ...opt,
+      displayLabel: opt.sublabel ? `${opt.sublabel} - ${opt.label}` : opt.label,
+      searchContent: `${opt.label} ${opt.sublabel || ''} ${String(opt.id)}`.toLowerCase(),
+    }));
+  }, [options]);
 
   const selectedItem = useMemo(() => {
-    return options.find((opt) => opt.id === value);
+    return options.find((opt) => String(opt.id) === String(value));
   }, [options, value]);
 
-  const filteredOptions = useMemo(() => {
-    if (!searchable || !searchQuery.trim()) {
-      return options;
-    }
-    const q = searchQuery.toLowerCase().trim();
-    return options.filter((opt) => {
-      const matchLabel = opt.label && opt.label.toLowerCase().includes(q);
-      const matchSub = opt.sublabel && opt.sublabel.toLowerCase().includes(q);
-      const matchId = String(opt.id).toLowerCase().includes(q);
-      return matchLabel || matchSub || matchId;
-    });
-  }, [options, searchable, searchQuery]);
+  const handleSelect = (item: DropdownItemData<T>) => {
+    if (item.disabled) return;
+    onSelect(item.id, item);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    isOpenRef.current = true;
+    onToggle?.(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    isOpenRef.current = false;
+    onToggle?.(false);
+  };
 
   const showClear = clearable && Boolean(value && value !== 'All' && value !== '');
+
+  const modalContainerStyle = useMemo<ViewStyle>(() => {
+    const screenWidth = Dimensions.get('window').width;
+    return {
+      width: Math.min(screenWidth * 0.92, 440),
+      maxWidth: 440,
+      alignSelf: 'center',
+      borderRadius: 16,
+      overflow: 'hidden',
+      backgroundColor: theme.colors.surface || '#FFFFFF',
+      borderWidth: 1,
+      borderColor: theme.colors.border || '#E2E8F0',
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.18,
+      shadowRadius: 20,
+      elevation: 10,
+      paddingBottom: 6,
+      ...panelStyle,
+    };
+  }, [panelStyle, theme.colors]);
+
+  const renderLeftIcon = (visible?: boolean) => {
+    if (selectedItem?.image) {
+      return (
+        <SafeImage
+          uri={selectedItem.image}
+          placeholderType="avatar"
+          style={styles.selectedAvatar}
+        />
+      );
+    }
+    if (icon) {
+      return (
+        <MaterialDesignIcons
+          name={icon as any}
+          size={18}
+          color={visible || isFocused ? theme.colors.primary : '#64748B'}
+          style={styles.leftIcon}
+        />
+      );
+    }
+    return null;
+  };
+
+  const renderRightIcon = (visible?: boolean) => {
+    if (loading) {
+      return (
+        <ActivityIndicator
+          size="small"
+          color={theme.colors.primary}
+          style={styles.rightIcon}
+        />
+      );
+    }
+    return (
+      <MaterialDesignIcons
+        name={visible ? 'chevron-up' : 'chevron-down'}
+        size={20}
+        color={visible || isFocused ? theme.colors.primary : '#64748B'}
+        style={styles.rightIcon}
+      />
+    );
+  };
+
+  const renderInputSearch = (onSearch: (text: string) => void) => {
+    return (
+      <View style={[styles.modalTopSection, { backgroundColor: theme.colors.surface || '#FFFFFF' }]}>
+        {label ? (
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              {icon ? (
+                <MaterialDesignIcons name={icon as any} size={18} color={theme.colors.primary} />
+              ) : null}
+              <Text
+                style={[styles.modalHeaderTitle, { color: theme.colors.text }]}
+                numberOfLines={1}
+              >
+                {label}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => dropdownRef.current?.close()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.modalCloseBtn}
+            >
+              <MaterialDesignIcons name="close" size={18} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+        <View style={styles.searchBox}>
+          <MaterialDesignIcons
+            name={(searchIcon as any) || 'magnify'}
+            size={18}
+            color="#64748B"
+          />
+          <TextInput
+            placeholder={searchPlaceholder}
+            placeholderTextColor="#94A3B8"
+            style={[styles.searchInput, { color: theme.colors.text }]}
+            onChangeText={onSearch}
+            autoCorrect={false}
+            autoCapitalize="none"
+            clearButtonMode="while-editing"
+          />
+        </View>
+      </View>
+    );
+  };
+
+  const renderItem = (item: DropdownItemData<T>, selected?: boolean) => {
+    const isSelected = selected || String(item.id) === String(value);
+    return (
+      <View
+        style={[
+          styles.item,
+          isSelected && [styles.itemActive, { backgroundColor: theme.colors.primary + '12' }],
+          item.disabled && styles.itemDisabled,
+        ]}
+      >
+        <View style={styles.itemContent}>
+          {item.image ? (
+            <SafeImage
+              uri={item.image}
+              placeholderType="avatar"
+              style={styles.itemAvatar}
+            />
+          ) : item.icon ? (
+            <MaterialDesignIcons
+              name={item.icon as any}
+              size={18}
+              color={isSelected ? theme.colors.primary : '#64748B'}
+              style={styles.itemIcon}
+            />
+          ) : null}
+
+          <View style={styles.itemLabels}>
+            <Text
+              style={[
+                styles.itemLabelText,
+                { color: isSelected ? theme.colors.primary : theme.colors.text },
+                isSelected && styles.itemLabelActive,
+              ]}
+              numberOfLines={1}
+            >
+              {item.sublabel ? (
+                <Text style={{ fontFamily: FontFamily.black }}>{item.sublabel} - </Text>
+              ) : null}
+              {item.label}
+            </Text>
+          </View>
+        </View>
+
+        {isSelected && (
+          <MaterialDesignIcons
+            name="check"
+            size={18}
+            color={theme.colors.primary}
+          />
+        )}
+      </View>
+    );
+  };
+
+  const flatListProps = useMemo(() => {
+    return {
+      keyboardShouldPersistTaps: 'handled' as const,
+      ListEmptyComponent: (
+        <View style={styles.emptyContainer}>
+          <MaterialDesignIcons name="alert-circle-outline" size={22} color="#94A3B8" />
+          <Text style={styles.emptyText}>No options found</Text>
+        </View>
+      ),
+      ListHeaderComponent:
+        !searchable && label ? (
+          <View
+            style={[
+              styles.modalHeaderNoSearch,
+              { backgroundColor: theme.colors.surface || '#FFFFFF' },
+            ]}
+          >
+            <View style={styles.modalHeaderLeft}>
+              {icon ? (
+                <MaterialDesignIcons name={icon as any} size={18} color={theme.colors.primary} />
+              ) : null}
+              <Text
+                style={[styles.modalHeaderTitle, { color: theme.colors.text }]}
+                numberOfLines={1}
+              >
+                {label}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => dropdownRef.current?.close()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.modalCloseBtn}
+            >
+              <MaterialDesignIcons name="close" size={18} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+        ) : undefined,
+    };
+  }, [searchable, label, icon, theme.colors]);
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -135,7 +349,9 @@ export function AppDropdown<T extends string | number = string>({
             <Text style={[styles.headerLabel, { color: theme.colors.text }]}>
               {label}
             </Text>
-          ) : <View />}
+          ) : (
+            <View />
+          )}
           <View style={styles.headerActions}>
             {showClear && onClear && (
               <TouchableOpacity onPress={onClear} activeOpacity={0.7} style={styles.clearBtn}>
@@ -149,164 +365,44 @@ export function AppDropdown<T extends string | number = string>({
         </View>
       )}
 
-      {/* Dropdown Trigger Button */}
-      <TouchableOpacity
+      {/* react-native-element-dropdown Modal Dropdown */}
+      <Dropdown
+        ref={dropdownRef}
+        testID={testID}
+        mode={mode}
+        data={data}
+        labelField="displayLabel"
+        valueField="id"
+        searchField="searchContent"
+        value={value as any}
+        placeholder={placeholder}
+        search={searchable}
+        searchPlaceholder={searchPlaceholder}
+        searchPlaceholderTextColor="#94A3B8"
+        disable={disabled || loading}
+        maxHeight={maxHeight}
+        backgroundColor="rgba(0, 0, 0, 0.45)"
+        activeColor={theme.colors.primary + '10'}
+        autoScroll={true}
+        showsVerticalScrollIndicator={true}
+        onChange={handleSelect}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        renderLeftIcon={renderLeftIcon}
+        renderRightIcon={renderRightIcon}
+        renderItem={renderItem}
+        renderInputSearch={renderInputSearch}
+        flatListProps={flatListProps}
+        containerStyle={modalContainerStyle}
         style={[
-          styles.button,
-          isOpen && [styles.buttonActive, { borderColor: theme.colors.primary }],
-          disabled && styles.buttonDisabled,
+          styles.dropdownTrigger,
+          isFocused && [styles.dropdownTriggerActive, { borderColor: theme.colors.primary }],
+          disabled && styles.dropdownTriggerDisabled,
           buttonStyle,
         ]}
-        activeOpacity={0.7}
-        onPress={handleToggle}
-        disabled={disabled}
-      >
-        {icon && (
-          <MaterialDesignIcons
-            name={icon as any}
-            size={18}
-            color={isOpen ? theme.colors.primary : '#64748B'}
-          />
-        )}
-
-        {selectedItem?.image && (
-          <SafeImage
-            uri={selectedItem.image}
-            placeholderType="avatar"
-            style={styles.selectedAvatar}
-          />
-        )}
-
-        <View style={styles.buttonTextContainer}>
-          {renderValue ? (
-            renderValue(selectedItem)
-          ) : (
-            <Text
-              style={[
-                styles.buttonText,
-                selectedItem ? { color: theme.colors.text } : styles.placeholderText,
-              ]}
-              numberOfLines={1}
-            >
-              {selectedItem ? (
-                <>
-                  {selectedItem.sublabel ? (
-                    <Text style={{ fontFamily: FontFamily.black }}>{selectedItem.sublabel} - </Text>
-                  ) : null}
-                  {selectedItem.label}
-                </>
-              ) : (
-                placeholder
-              )}
-            </Text>
-          )}
-        </View>
-
-        {loading ? (
-          <ActivityIndicator size="small" color={theme.colors.primary} />
-        ) : (
-          <MaterialDesignIcons
-            name={isOpen ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={isOpen ? theme.colors.primary : '#64748B'}
-          />
-        )}
-      </TouchableOpacity>
-
-      {/* Expandable Dropdown List */}
-      {isOpen && (
-        <View style={[styles.panel, panelStyle]}>
-          {searchable && (
-            <View style={styles.searchBox}>
-              <MaterialDesignIcons name={searchIcon} size={16} color="#64748B" />
-              <TextInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder={searchPlaceholder}
-                placeholderTextColor="#94A3B8"
-                style={[styles.searchInput, { color: theme.colors.text }]}
-                autoCorrect={false}
-                autoCapitalize="none"
-              />
-              {Boolean(searchQuery) && (
-                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <MaterialDesignIcons name="close-circle" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-          <ScrollView
-            style={[styles.listContainer, { maxHeight }]}
-            nestedScrollEnabled={true}
-            showsVerticalScrollIndicator={true}
-            keyboardShouldPersistTaps="handled"
-            bounces={false}
-          >
-            {filteredOptions.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <MaterialDesignIcons name="alert-circle-outline" size={20} color="#94A3B8" />
-                <Text style={styles.emptyText}>No options found</Text>
-              </View>
-            ) : (
-              filteredOptions.map((opt) => {
-                const isSelected = opt.id === value;
-                return (
-                  <TouchableOpacity
-                    key={String(opt.id)}
-                    style={[
-                      styles.item,
-                      isSelected && [styles.itemActive, { backgroundColor: theme.colors.primary + '10' }],
-                      opt.disabled && styles.itemDisabled,
-                    ]}
-                    onPress={() => handleSelect(opt)}
-                    disabled={opt.disabled}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.itemContent}>
-                      {opt.image ? (
-                        <SafeImage
-                          uri={opt.image}
-                          placeholderType="avatar"
-                          style={styles.itemAvatar}
-                        />
-                      ) : opt.icon ? (
-                        <MaterialDesignIcons
-                          name={opt.icon as any}
-                          size={18}
-                          color={isSelected ? theme.colors.primary : '#64748B'}
-                        />
-                      ) : null}
-
-                      <View style={styles.itemLabels}>
-                        <Text
-                          style={[
-                            styles.itemLabelText,
-                            isSelected && [styles.itemLabelActive, { color: theme.colors.primary }],
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {opt.sublabel ? (
-                            <Text style={{ fontFamily: FontFamily.black }}>{opt.sublabel} - </Text>
-                          ) : null}
-                          {opt.label}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {isSelected && (
-                      <MaterialDesignIcons
-                        name="check"
-                        size={16}
-                        color={theme.colors.primary}
-                      />
-                    )}
-                  </TouchableOpacity>
-                );
-              })
-            )}
-          </ScrollView>
-        </View>
-      )}
+        placeholderStyle={[styles.placeholderStyle, { color: '#94A3B8' }]}
+        selectedTextStyle={[styles.selectedTextStyle, { color: theme.colors.text }]}
+      />
     </View>
   );
 }
@@ -314,6 +410,7 @@ export function AppDropdown<T extends string | number = string>({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+    marginBottom: 14,
   },
   headerRow: {
     flexDirection: 'row',
@@ -322,8 +419,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   headerLabel: {
-    fontFamily: FontFamily.black,
-    fontSize: rfValue(13),
+    fontFamily: FontFamily.bold,
+    fontSize: rfValue(13.5),
   },
   headerActions: {
     flexDirection: 'row',
@@ -338,51 +435,83 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     fontSize: rfValue(12),
   },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  dropdownTrigger: {
+    minHeight: 48,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 10,
+    paddingVertical: 10,
+    justifyContent: 'center',
   },
-  buttonActive: {
+  dropdownTriggerActive: {
     backgroundColor: '#FFFFFF',
+    borderColor: '#3B82F6',
   },
-  buttonDisabled: {
+  dropdownTriggerDisabled: {
     opacity: 0.6,
     backgroundColor: '#F1F5F9',
   },
-  buttonTextContainer: {
-    flex: 1,
-  },
-  buttonText: {
+  placeholderStyle: {
     fontFamily: FontFamily.medium,
     fontSize: rfValue(13),
   },
-  placeholderText: {
-    color: '#94A3B8',
+  selectedTextStyle: {
+    fontFamily: FontFamily.medium,
+    fontSize: rfValue(13),
   },
   selectedAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    marginRight: 10,
   },
-  panel: {
+  leftIcon: {
+    marginRight: 10,
+  },
+  rightIcon: {
+    marginLeft: 6,
+  },
+  modalTopSection: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginTop: 4,
-    elevation: 3,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  modalHeaderNoSearch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  modalHeaderTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: rfValue(14.5),
+    letterSpacing: 0.2,
+  },
+  modalCloseBtn: {
+    padding: 4,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
   },
   searchBox: {
     flexDirection: 'row',
@@ -390,25 +519,24 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderRadius: 10,
     backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   searchInput: {
     flex: 1,
     fontFamily: FontFamily.body,
-    fontSize: rfValue(12),
-    paddingVertical: 4,
-  },
-  listContainer: {
-    maxHeight: 220,
+    fontSize: rfValue(13),
+    paddingVertical: 2,
+    paddingHorizontal: 0,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F8FAFC',
   },
@@ -424,31 +552,33 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   itemAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  itemIcon: {
+    marginRight: 2,
   },
   itemLabels: {
     flex: 1,
   },
   itemLabelText: {
     fontFamily: FontFamily.body,
-    fontSize: rfValue(12),
-    color: '#334155',
+    fontSize: rfValue(13),
   },
   itemLabelActive: {
-    fontFamily: FontFamily.black,
+    fontFamily: FontFamily.bold,
   },
   emptyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 6,
+    paddingVertical: 32,
+    gap: 8,
   },
   emptyText: {
     fontFamily: FontFamily.body,
-    fontSize: rfValue(12),
+    fontSize: rfValue(13),
     color: '#94A3B8',
   },
 });

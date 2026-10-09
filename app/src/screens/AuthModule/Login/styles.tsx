@@ -146,11 +146,11 @@ export const loginStyles = (theme: Theme, insets: any) =>
       color: theme.colors.text || '#1E293B',
     },
     welcomeSub: {
-      marginTop: 4,
+      marginTop: -5,
       lineHeight: 20,
       marginBottom: 24,
       fontSize: rfValue(15),
-      fontFamily: FontFamily.body,
+      fontFamily: FontFamily.bodyBold,
       color: theme.colors.textSecondary || '#64748B',
     },
     formContainer: {

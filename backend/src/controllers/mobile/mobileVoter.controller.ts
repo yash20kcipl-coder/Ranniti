@@ -47,6 +47,44 @@ export class MobileVoterController {
     res.status(response.statusCode).json(response.body);
   });
 
+  getInfluencerOptions = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const user = req.mobileUser!;
+    const search = req.query.search as string;
+    const boothId = req.query.boothId as string;
+    const excludeId = req.query.excludeId as string;
+    const type = req.query.type as string;
+
+    const options = await mobileVoterService.getInfluencerOptions(user, { search, boothId, excludeId, type });
+    const formattedOptions = attachFileUrls(options, ['avatar'], req);
+
+    const response = ApiResponse.success(formattedOptions, 'Influencer options retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getVoterById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const voterId = req.params.id as string;
+    const user = req.mobileUser!;
+
+    const voter = await mobileVoterService.getVoterByIdWithScopeCheck(user, voterId);
+    const formattedVoter = attachFileUrls(voter, undefined, req);
+
+    const response = ApiResponse.success(formattedVoter, 'Voter details retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  createVoter = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const user = req.mobileUser!;
+
+    const newVoter = await mobileVoterService.createVoterWithPermissionCheck(
+      user,
+      req.body
+    );
+    const formattedVoter = attachFileUrls(newVoter, undefined, req);
+
+    const response = ApiResponse.success(formattedVoter, 'Voter record created successfully', 201);
+    res.status(response.statusCode).json(response.body);
+  });
+
   updateVoter = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const voterId = req.params.id as string;
     const user = req.mobileUser!;

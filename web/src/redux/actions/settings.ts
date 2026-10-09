@@ -1,14 +1,17 @@
 import api from '@/services/api';
 import { errorHandler } from '../apiUtils';
 import type { AppDispatch } from '../store';
-import type { CampaignSettings, WhatsAppTemplate } from '@/types/settings.types';
+import type { CampaignSettings, WhatsAppTemplate, AppVersionConfig } from '@/types/settings.types';
 
+
+export const SET_APP_VERSIONS = 'SET_APP_VERSIONS';
 export const SET_SETTINGS_DATA = 'SET_SETTINGS_DATA';
 export const SET_SETTINGS_SAVING = 'SET_SETTINGS_SAVING';
 export const SET_SETTINGS_LOADING = 'SET_SETTINGS_LOADING';
 export const SET_WHATSAPP_SYNCING = 'SET_WHATSAPP_SYNCING';
 export const SET_WHATSAPP_TEMPLATES = 'SET_WHATSAPP_TEMPLATES';
 export const SET_SETTINGS_ACTIVE_TAB = 'SET_SETTINGS_ACTIVE_TAB';
+
 
 export const setSettingsLoading = (loading: boolean) => ({
   type: SET_SETTINGS_LOADING,
@@ -326,3 +329,43 @@ export const syncTenantMetaTemplates = () => {
     }
   };
 };
+
+export const setAppVersions = (versions: AppVersionConfig[]) => ({
+  type: SET_APP_VERSIONS,
+  payload: versions,
+});
+
+export const fetchSuperAdminAppVersions = () => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setSettingsLoading(true));
+    try {
+      const res = await api.get('/super-admin/app-versions');
+      const data = res.data?.data || res.data || [];
+      dispatch(setAppVersions(Array.isArray(data) ? data : []));
+      return data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(setSettingsLoading(false));
+    }
+  };
+};
+
+export const updateSuperAdminAppVersionConfig = (idOrPlatform: string, payload: Partial<AppVersionConfig>) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setSettingsSaving(true));
+    try {
+      const res = await api.put(`/super-admin/app-versions/${idOrPlatform}`, payload);
+      const updated = res.data?.data || res.data;
+      await dispatch(fetchSuperAdminAppVersions());
+      return updated;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(setSettingsSaving(false));
+    }
+  };
+};
+

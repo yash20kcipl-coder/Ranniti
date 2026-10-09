@@ -14,23 +14,83 @@ export interface Voter {
   name: string;
   hindiName?: string;
   englishName?: string;
+  firstName?: string;
+  middleName?: string;
+  surname?: string;
+  engFirstName?: string;
+  engMiddleName?: string;
+  engSurname?: string;
   relativeName: string;
+  relation?: string;
+  guardianName?: string;
   age: number;
+  dob?: string;
   gender: 'Male' | 'Female' | 'Other';
   epicNo: string;
   mobile: string;
+  mobileNo?: string;
+  email?: string;
   image: string;
+  avatar?: string;
+  aadhaarNo?: string;
+  panNo?: string;
+
+  // Electoral Details
   pcName: string;
   acName: string;
   wardNo: string;
   boothNo: string;
+  boothName?: string;
+  boothNumber?: string | number;
+  boothId?: string;
+  acId?: string;
+  pcId?: string;
   serialNo: number;
+  sectionNo?: string | number;
+  houseNo?: string;
+
+  // Location / Address
   address: string;
+  fullAddress?: string;
+  voterAddress?: string;
+  taluka?: string;
+  village?: string;
+  districtName?: string;
+  stateName?: string;
+
+  // Socio-demographics
+  casteName?: string;
+  subcasteName?: string;
+  religionName?: string;
+  bloodGroup?: string;
+  professionType?: string;
+  profession?: string;
+
+  // Political Inclination & Status
+  voterType?: string;
+  partyId?: string | null;
   supportingParty: string;
+  partyName?: string;
+  partyAbbreviation?: string;
+  partySymbol?: string;
   politicalView: 'Favorable' | 'Neutral' | 'Unfavorable' | 'Opposite' | 'Pending';
+  status?: string;
   isVoted: boolean;
-  isFamilyHead?: boolean;
+  isDead?: boolean;
+  isShifted?: boolean;
+
+  // Family & Community Influence
   familyId?: string;
+  isFamilyHead?: boolean;
+  isFamilyInfluencer?: boolean;
+  familyInfluencerId?: string;
+  familyInfluencerName?: string;
+  familyInfluencedCount?: number;
+  isSocialInfluencer?: boolean;
+  socialInfluencerId?: string;
+  socialInfluencerName?: string;
+  socialInfluencerEpic?: string;
+  socialInfluencedCount?: number;
 }
 
 export interface VoterPagination {
@@ -149,7 +209,12 @@ const voterReducer = (state = initialVoterState, action: any): VoterState => {
         ...state,
         voters: state.voters.map((v) =>
           v.id === action.payload.voterId
-            ? { ...v, supportingParty: action.payload.party }
+            ? {
+                ...v,
+                supportingParty: action.payload.party,
+                partyName: action.payload.party,
+                partyId: action.payload.partyId !== undefined ? action.payload.partyId : v.partyId,
+              }
             : v
         ),
       };

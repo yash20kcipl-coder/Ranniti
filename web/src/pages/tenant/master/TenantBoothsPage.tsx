@@ -37,7 +37,7 @@ export const TenantBoothsPage: React.FC = () => {
 
   // Pagination & Filter States
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
   const [filterPcId, setFilterPcId] = useState('');
   const [filterAcId, setFilterAcId] = useState('');
@@ -133,6 +133,7 @@ export const TenantBoothsPage: React.FC = () => {
     const cleanData = boothsData.map((item: any) => ({
       'Booth No.': item.boothNumber || '',
       'Polling Station Name': item.name || '',
+      'Location / Address': item.locationBuilding || '',
       'Assembly (AC)': item.acName || '',
       'Ward / Prabhag': item.wardName || '',
       'Total Voters': item.totalVoters ?? 0,
@@ -144,6 +145,7 @@ export const TenantBoothsPage: React.FC = () => {
   const columns: Column<any>[] = [
     { key: 'boothNumber', header: 'Booth No.', sortable: true },
     { key: 'name', header: 'Polling Station Name', sortable: true },
+    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => row.locationBuilding || '-' },
     { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => row.acName || '-' },
     { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => row.wardName || '-' },
     { key: 'totalVoters', header: 'Total Voters', sortable: true, render: (row) => row.totalVoters ?? 0 },

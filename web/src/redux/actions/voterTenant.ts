@@ -10,8 +10,8 @@ import api from '@/services/api';
 import { Loading } from './loader';
 import { errorHandler } from '../apiUtils';
 import type { AppDispatch } from '../store';
-import { startBulkImportJob } from './importJobs';
 import { toFormDataOrJson } from '@/utils/formData';
+import { startBulkImportJob, startBulkImportFileJob } from './importJobs';
 
 export const fetchTenantVotersData = (params: Record<string, any> = {}, showLoader = true) => {
   return async (dispatch: AppDispatch) => {
@@ -125,16 +125,27 @@ export const deleteTenantVoterItem = (id: string, currentParams: Record<string, 
   };
 };
 
-export const importTenantVotersData = (records: Record<string, any>[], currentParams: Record<string, any> = {}) => {
+export const importTenantVotersData = (
+  fileOrRecords: File | Record<string, any>[],
+  currentParams: Record<string, any> = {},
+  context?: Record<string, any>
+) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const job = await dispatch(
-        startBulkImportJob('voters', records, () => {
-          dispatch(fetchTenantVotersData(currentParams, false)).catch(() => { });
-          dispatch(fetchTenantVoterStats(currentParams)).catch(() => { });
-        })
-      );
-      return job;
+      const onComplete = () => {
+        dispatch(fetchTenantVotersData(currentParams, false)).catch(() => { });
+        dispatch(fetchTenantVoterStats(currentParams)).catch(() => { });
+      };
+
+      if (fileOrRecords instanceof File) {
+        return await dispatch(
+          startBulkImportFileJob('voters', fileOrRecords, onComplete, context || currentParams)
+        );
+      } else {
+        return await dispatch(
+          startBulkImportJob('voters', fileOrRecords, onComplete, context || currentParams)
+        );
+      }
     } catch (err) {
       dispatch(errorHandler(err));
       throw err;

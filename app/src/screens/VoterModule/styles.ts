@@ -38,8 +38,8 @@ export const voterListStyles = (theme: Theme) =>
     voterCard: {
       gap: 4,
       padding: 8,
-      borderWidth: 1,
-      borderRadius: 14,
+      borderWidth: .5,
+      borderRadius: 10,
       borderColor: theme.colors.border || '#E2E8F0',
       backgroundColor: theme.colors.surface || '#FFFFFF',
       ...getShadow(1, '#000000', 0.03),
@@ -253,15 +253,40 @@ export const voterListStyles = (theme: Theme) =>
       marginBottom: 6,
     },
     partyOption: {
-      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 10,
       paddingHorizontal: 12,
-      borderRadius: 8,
+      borderRadius: 10,
       backgroundColor: theme.colors.background || '#F8FAFC',
+      borderWidth: 1,
+      borderColor: theme.colors.border || '#E2E8F0',
+      marginBottom: 6,
+    },
+    partyLogoContainer: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
+    partyLogo: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
     },
     partyOptionText: {
-      fontFamily: FontFamily.medium,
-      fontSize: rfValue(14),
-      color: '#1E293B',
+      fontFamily: FontFamily.bold,
+      fontSize: rfValue(13),
+      color: theme.colors.text || '#1E293B',
+    },
+    partyOptionSubtext: {
+      fontFamily: FontFamily.body,
+      fontSize: rfValue(11),
+      color: theme.colors.textSecondary || '#64748B',
+    },
+    modalScroll: {
+      maxHeight: 340,
     },
   });
 

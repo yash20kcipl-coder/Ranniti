@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,23 +5,26 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Share,
-  Linking,
   FlatList,
   TextInput,
 } from 'react-native';
-import { Modal } from '../../components/Modal';
-import apiClient from '../../api/apiClient';
 import {
   fetchCreatableRolesAction,
   onboardTeamMemberAction,
   updateTeamMemberAction,
   fetchTeamMembersAction,
 } from '../../store/actions/team';
+import {
+  fetchMasterAcsAction,
+  fetchMasterBoothsAction,
+  fetchMasterWardsAction,
+} from '../../store/actions/master';
 import toast from '../../utils/toast';
+import apiClient from '../../api/apiClient';
 import { RootState } from '../../store/store';
 import { useLanguage } from '../../languages';
 import { Theme } from '../../constants/theme';
+import { Modal } from '../../components/Modal';
 import { getShadow } from '../../utils/shadow';
 import { rfValue } from '../../utils/responsive';
 import { FontFamily } from '../../utils/typography';
@@ -30,20 +32,14 @@ import { SafeView } from '../../components/SafeView';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
 import { AppHeader } from '../../components/AppHeader';
+import { SafeImage } from '../../components/SafeImage';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AppTextInput } from '../../components/AppTextInput';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { BoothSelectorModal } from './components/BoothSelectorModal';
-import { fetchMasterBoothsAction, fetchMasterWardsAction } from '../../store/actions/master';
 import { MaterialDesignIcons } from '../../components/MaterialDesignIcons';
 import { getVolunteerPasswordPreview } from '../../utils/volunteerPassword';
-
-const ALL_MOBILE_SCREENS = [
-  { key: 'voter_search', label: 'Voters Directory', icon: 'account-search' },
-  { key: 'family_tree', label: 'Family Tree Mapping', icon: 'account-group' },
-  { key: 'survey', label: 'Cadre / Voter Survey', icon: 'clipboard-text' },
-  { key: 'booth_analytics', label: 'Booth Analytics', icon: 'chart-bar' },
-  { key: 'gate_meetings', label: 'Gate Meetings & Influencers', icon: 'star-circle' },
-];
+import { AttachmentPickerModal } from '../../components/AttachmentPickerModal';
 
 const VALID_PARENT_ROLES: Record<string, string[]> = {
   pc_leader: [],
@@ -71,12 +67,13 @@ export const OnboardTeamMemberScreen: React.FC = () => {
 
   const auth = useSelector((state: RootState) => state.auth);
   const { creatableRoles, isSubmitting } = useSelector((state: RootState) => state.team);
-  const { booths, wards } = useSelector((state: RootState) => state.master);
+  const { booths, wards, acs = [] } = useSelector((state: RootState) => state.master);
+
+  const isPcLeader = auth.user?.role === 'pc_leader';
 
   const [name, setName] = useState(memberToEdit?.name || '');
   const [mobile, setMobile] = useState(memberToEdit?.mobile || '');
   const [email, setEmail] = useState(memberToEdit?.email || '');
-  const [password, setPassword] = useState('');
   const [selectedRole, setSelectedRole] = useState(memberToEdit?.role || '');
   const [parentLeaderId, setParentLeaderId] = useState<string | null>(
     memberToEdit?.parentLeaderId || null
@@ -85,30 +82,47 @@ export const OnboardTeamMemberScreen: React.FC = () => {
   const [isParentPickerOpen, setIsParentPickerOpen] = useState(false);
   const [parentSearch, setParentSearch] = useState('');
 
-  const [selectedScreens, setSelectedScreens] = useState<string[]>(
-    memberToEdit?.accessibleTabs?.mobileScreens || []
+  // Selected Assembly Constituency (especially selectable when current user is PC Leader)
+  const [selectedAcId, setSelectedAcId] = useState<string>(
+    memberToEdit?.assignedAcId || auth.user?.assignedAcId || ''
   );
+  const [isAcPickerOpen, setIsAcPickerOpen] = useState(false);
+  const [acSearch, setAcSearch] = useState('');
+
   const [selectedBoothIds, setSelectedBoothIds] = useState<string[]>(
     memberToEdit?.assignedBooths?.map((b: any) => b.id) ||
     memberToEdit?.assignedBoothIds || []
   );
   const [isBoothModalOpen, setIsBoothModalOpen] = useState(false);
 
-  // Success modal for credentials sharing & WhatsApp
-  const [createdMemberData, setCreatedMemberData] = useState<{
-    name: string;
-    mobile: string;
-    password: string;
-    roleName?: string;
-  } | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string>(
+    memberToEdit?.avatar || memberToEdit?.avatarUrl || ''
+  );
+  const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
+  const [status, setStatus] = useState<string>(memberToEdit?.status || 'active');
 
-  // Fetch booths and wards for the user's territory scope
+  // Fetch AC master options if logged in user is a PC Leader
   useEffect(() => {
-    if (auth.user?.assignedAcId) {
-      dispatch(fetchMasterBoothsAction(auth.user?.assignedAcId));
-      dispatch(fetchMasterWardsAction(auth.user?.assignedAcId));
+    if (isPcLeader) {
+      dispatch(fetchMasterAcsAction());
     }
-  }, [dispatch, auth.user?.assignedAcId]);
+  }, [dispatch, isPcLeader]);
+
+  // Default to first AC if none selected for PC leader
+  useEffect(() => {
+    if (isPcLeader && !isEditing && acs.length > 0 && !selectedAcId) {
+      setSelectedAcId(acs[0].id);
+    }
+  }, [isPcLeader, isEditing, acs, selectedAcId]);
+
+  // Fetch booths and wards dynamically for selected AC or user assigned AC
+  useEffect(() => {
+    const effectiveAcId = selectedAcId || auth.user?.assignedAcId;
+    if (effectiveAcId) {
+      dispatch(fetchMasterBoothsAction(effectiveAcId));
+      dispatch(fetchMasterWardsAction(effectiveAcId));
+    }
+  }, [dispatch, selectedAcId, auth.user?.assignedAcId]);
 
   // Fetch team members to populate potential reporting leaders
   useEffect(() => {
@@ -121,7 +135,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
           setAllTeamMembers(list);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       isMounted = false;
     };
@@ -134,27 +148,38 @@ export const OnboardTeamMemberScreen: React.FC = () => {
     }
   }, [dispatch, creatableRoles]);
 
-  // Default to first creatable role when roles load (only in create mode)
-  useEffect(() => {
-    if (!isEditing && creatableRoles.length > 0 && !selectedRole) {
-      const first = creatableRoles[0];
-      setSelectedRole(first.roleKey);
-      setSelectedScreens(first.mobileScreens || ALL_MOBILE_SCREENS.map((s) => s.key));
-      const validParents = VALID_PARENT_ROLES[first.roleKey] || [];
-      if (validParents.length > 0 && auth.user?.role && validParents.includes(auth.user.role)) {
-        setParentLeaderId(auth.user.id);
-      }
+  // Combine allTeamMembers with current logged-in user so self is always available as supervisor
+  const currentUserAsLeader = useMemo(() => {
+    if (!auth.user?.id) return null;
+    return {
+      id: auth.user.id,
+      name: `${auth.user.name || 'You'} (${t('you') || 'You'})`,
+      role: auth.user.role,
+      roleName: auth.user.roleName || (auth.user.role === 'pc_leader' ? 'PC Leader' : auth.user.role),
+      mobile: auth.user.mobile,
+      assignedAcId: auth.user.assignedAcId,
+      assignedAcName: auth.user.assignedAcName,
+      assignedBooths: auth.user.assignedBooths || [],
+      assignedBoothIds: auth.user.assignedBoothIds || [],
+    };
+  }, [auth.user, t]);
+
+  const candidateLeaders = useMemo(() => {
+    const list = [...allTeamMembers];
+    if (currentUserAsLeader && !list.some((m) => m.id === currentUserAsLeader.id)) {
+      list.unshift(currentUserAsLeader);
     }
-  }, [creatableRoles, selectedRole, isEditing, auth.user]);
+    return list;
+  }, [allTeamMembers, currentUserAsLeader]);
 
   // Eligible parent leaders based on selected role
   const eligibleParentLeaders = useMemo(() => {
     const validRoles = VALID_PARENT_ROLES[selectedRole] || [];
     if (validRoles.length === 0) return [];
-    return allTeamMembers.filter(
+    return candidateLeaders.filter(
       (m) => m.id !== memberToEdit?.id && validRoles.includes(m.role)
     );
-  }, [allTeamMembers, selectedRole, memberToEdit?.id]);
+  }, [candidateLeaders, selectedRole, memberToEdit?.id]);
 
   const filteredParentLeaders = useMemo(() => {
     if (!parentSearch.trim()) return eligibleParentLeaders;
@@ -168,8 +193,34 @@ export const OnboardTeamMemberScreen: React.FC = () => {
 
   const selectedParentLeader = useMemo(() => {
     if (!parentLeaderId) return null;
-    return allTeamMembers.find((m) => m.id === parentLeaderId) || null;
-  }, [allTeamMembers, parentLeaderId]);
+    return candidateLeaders.find((m) => m.id === parentLeaderId) || null;
+  }, [candidateLeaders, parentLeaderId]);
+
+  // Filtered ACs for PC Leader picker search
+  const filteredAcs = useMemo(() => {
+    if (!acSearch.trim()) return acs;
+    const term = acSearch.trim().toLowerCase();
+    return acs.filter(
+      (a) =>
+        (a.name && a.name.toLowerCase().includes(term)) ||
+        (a.acNumber !== undefined && String(a.acNumber).includes(term))
+    );
+  }, [acs, acSearch]);
+
+  // Default to first creatable role when roles load (only in create mode)
+  useEffect(() => {
+    if (!isEditing && creatableRoles.length > 0 && !selectedRole) {
+      const first = creatableRoles[0];
+      setSelectedRole(first.roleKey);
+      const validParents = VALID_PARENT_ROLES[first.roleKey] || [];
+      if (validParents.length > 0 && auth.user?.role && validParents.includes(auth.user.role)) {
+        setParentLeaderId(auth.user.id);
+      } else if (validParents.length > 0) {
+        const firstValid = candidateLeaders.find((m) => validParents.includes(m.role));
+        if (firstValid) setParentLeaderId(firstValid.id);
+      }
+    }
+  }, [creatableRoles, selectedRole, isEditing, auth.user, candidateLeaders]);
 
   // Restrict available booths for supporter to parent's booths if assigned
   const availableBooths = useMemo(() => {
@@ -186,10 +237,6 @@ export const OnboardTeamMemberScreen: React.FC = () => {
   const handleRoleChange = (roleKey: string) => {
     setSelectedRole(roleKey);
     setSelectedBoothIds([]);
-    const matched = creatableRoles.find((r) => r.roleKey === roleKey);
-    if (matched && matched.mobileScreens && matched.mobileScreens.length > 0) {
-      setSelectedScreens(matched.mobileScreens);
-    }
     // Auto-resolve parent leader according to hierarchy
     const validRoles = VALID_PARENT_ROLES[roleKey] || [];
     if (validRoles.length === 0) {
@@ -197,16 +244,8 @@ export const OnboardTeamMemberScreen: React.FC = () => {
     } else if (auth.user?.role && validRoles.includes(auth.user.role)) {
       setParentLeaderId(auth.user.id);
     } else {
-      const firstValid = allTeamMembers.find((m) => validRoles.includes(m.role));
+      const firstValid = candidateLeaders.find((m) => validRoles.includes(m.role));
       setParentLeaderId(firstValid ? firstValid.id : null);
-    }
-  };
-
-  const toggleScreen = (screenKey: string) => {
-    if (selectedScreens.includes(screenKey)) {
-      setSelectedScreens(selectedScreens.filter((s) => s !== screenKey));
-    } else {
-      setSelectedScreens([...selectedScreens, screenKey]);
     }
   };
 
@@ -215,20 +254,16 @@ export const OnboardTeamMemberScreen: React.FC = () => {
       toast.error('Please enter full name');
       return;
     }
+    if (/[<>]/.test(name) || (email && /[<>]/.test(email))) {
+      toast.error(t('invalidCharactersHtml'));
+      return;
+    }
     if (!mobile.trim() || mobile.trim().length < 10) {
       toast.error('Please enter a valid 10-digit mobile number');
       return;
     }
     if (email.trim() && !email.includes('@')) {
       toast.error('Please enter a valid email address');
-      return;
-    }
-    if (password.trim() && password.trim().length < 6) {
-      toast.error(
-        isEditing
-          ? 'New password must be at least 6 characters'
-          : 'Password must be at least 6 characters'
-      );
       return;
     }
     if (!selectedRole) {
@@ -241,6 +276,12 @@ export const OnboardTeamMemberScreen: React.FC = () => {
     }
 
     const generatedPasswordPreview = getVolunteerPasswordPreview(name, mobile);
+    const effectiveAcId =
+      selectedAcId ||
+      selectedParentLeader?.assignedAcId ||
+      memberToEdit?.assignedAcId ||
+      auth.user?.assignedAcId ||
+      undefined;
 
     if (isEditing) {
       const updatePayload: any = {
@@ -249,19 +290,11 @@ export const OnboardTeamMemberScreen: React.FC = () => {
         email: email.trim() || undefined,
         role: selectedRole,
         parentLeaderId: parentLeaderId || undefined,
-        assignedAcId:
-          selectedParentLeader?.assignedAcId ||
-          memberToEdit?.assignedAcId ||
-          auth.user?.assignedAcId ||
-          undefined,
+        assignedAcId: effectiveAcId,
         assignedBoothIds: selectedBoothIds,
-        accessibleTabs: {
-          mobileScreens: selectedScreens,
-        },
+        status: status,
+        avatar: avatarUri || undefined,
       };
-      if (password.trim()) {
-        updatePayload.password = password.trim();
-      }
 
       dispatch(
         updateTeamMemberAction(memberToEdit.id, updatePayload, () => {
@@ -275,67 +308,37 @@ export const OnboardTeamMemberScreen: React.FC = () => {
         name: name.trim(),
         mobile: mobile.trim(),
         email: email.trim() || undefined,
-        password: password.trim() ? password.trim() : generatedPasswordPreview,
+        password: generatedPasswordPreview,
         role: selectedRole,
         parentLeaderId: parentLeaderId || undefined,
-        assignedAcId:
-          selectedParentLeader?.assignedAcId ||
-          auth.user?.assignedAcId ||
-          undefined,
+        assignedAcId: effectiveAcId,
         assignedBoothIds: selectedBoothIds,
-        accessibleTabs: {
-          mobileScreens: selectedScreens,
-        },
+        avatar: avatarUri || undefined,
       };
 
       dispatch(
-        onboardTeamMemberAction(createPayload, (created) => {
+        onboardTeamMemberAction(createPayload, () => {
           dispatch(fetchTeamMembersAction({ role: selectedRole }));
-          const finalPwd = created?.generatedDefaultPassword || createPayload.password;
-          setCreatedMemberData({
-            name: created?.name || createPayload.name,
-            mobile: created?.mobile || createPayload.mobile,
-            password: finalPwd,
-            roleName: creatableRoles.find((r) => r.roleKey === selectedRole)?.roleName || selectedRole,
-          });
+          toast.success(t('teamMemberSuccessOnboarded') || 'Cadre Successfully Onboarded');
+          navigation.goBack();
         })
       );
     }
   };
 
-  const handleShareWhatsApp = () => {
-    if (!createdMemberData) return;
-    const cleanMobile = (createdMemberData.mobile || '').replace(/\D/g, '');
-    const message = `Namaste ${createdMemberData.name} ji,\n\nYour Ranniti Mobile Field App login credentials are:\n📱 Mobile: ${createdMemberData.mobile}\n🔑 Password: ${createdMemberData.password}\n\nPlease download and log into the Ranniti Mobile App to access your assigned polling booths and voter search.`;
-    const url = `whatsapp://send?phone=91${cleanMobile}&text=${encodeURIComponent(message)}`;
-    const webUrl = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(message)}`;
-
-    Linking.canOpenURL(url).then((supported) => {
-      if (supported) {
-        Linking.openURL(url);
-      } else {
-        Linking.openURL(webUrl);
-      }
-    }).catch(() => {
-      Linking.openURL(webUrl);
-    });
-  };
-
-  const handleShareCredentials = async () => {
-    if (!createdMemberData) return;
-    const message = `Namaste ${createdMemberData.name} ji,\n\nYour Ranniti Mobile Field App login credentials are:\n📱 Mobile: ${createdMemberData.mobile}\n🔑 Password: ${createdMemberData.password}\n\nPlease download and log into the Ranniti Mobile App to access your assigned polling booths and voter search.`;
-    try {
-      await Share.share({ message });
-    } catch {
-      toast.success(t('credentialsShared') || 'Credentials shared successfully');
+  const userAcName = useMemo(() => {
+    if (selectedAcId) {
+      const matched = acs.find((a) => a.id === selectedAcId);
+      if (matched) return matched.name;
     }
-  };
+    return (
+      selectedParentLeader?.assignedAcName ||
+      auth.user?.assignedAcName ||
+      auth.user?.assignedAc ||
+      'Constituency Region'
+    );
+  }, [selectedAcId, acs, selectedParentLeader, auth.user]);
 
-  const userAcName =
-    selectedParentLeader?.assignedAcName ||
-    auth.user?.assignedAcName ||
-    auth.user?.assignedAc ||
-    'Constituency Region';
   const generatedPasswordPreview = getVolunteerPasswordPreview(name, mobile);
 
   return (
@@ -369,6 +372,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
               return (
                 <TouchableOpacity
                   key={role.roleKey}
+                  activeOpacity={0.8}
                   style={[
                     styles.roleCard,
                     isSelected && {
@@ -377,7 +381,6 @@ export const OnboardTeamMemberScreen: React.FC = () => {
                     },
                   ]}
                   onPress={() => handleRoleChange(role.roleKey)}
-                  activeOpacity={0.8}
                 >
                   <View style={styles.roleCardTop}>
                     <Text
@@ -392,14 +395,6 @@ export const OnboardTeamMemberScreen: React.FC = () => {
                       <MaterialDesignIcons name="check-circle" size={16} color="#FFFFFF" />
                     )}
                   </View>
-                  <Text
-                    style={[
-                      styles.roleCardSub,
-                      isSelected && { color: 'rgba(255,255,255,0.85)' },
-                    ]}
-                  >
-                    {role.mobileScreens?.length || 0} Default Tabs
-                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -428,8 +423,8 @@ export const OnboardTeamMemberScreen: React.FC = () => {
                     {selectedRole === 'ac_leader'
                       ? 'No PC Leader found. Please onboard a PC Leader first.'
                       : selectedRole === 'sub_leader'
-                      ? 'No AC Leader found. Please onboard an AC Leader first.'
-                      : 'No Sub-Leader found. Please onboard a Sub-Leader first.'}
+                        ? 'No AC Leader found. Please onboard an AC Leader first.'
+                        : 'No Sub-Leader found. Please onboard a Sub-Leader first.'}
                   </Text>
                 </View>
               </View>
@@ -463,58 +458,96 @@ export const OnboardTeamMemberScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>Cadre Credentials</Text>
           </View>
 
-          <AppTextInput
-            label={t('fullName') + ' *'}
-            placeholder="e.g. Ramesh Chandra"
-            value={name}
-            onChangeText={setName}
-          />
+          {/* Avatar / Profile Photo Picker */}
+          <View style={styles.avatarContainer}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setIsAttachmentModalOpen(true)}
+              style={styles.avatarWrapper}
+            >
+              <SafeImage
+                uri={avatarUri}
+                name={name || 'Volunteer'}
+                placeholderType="avatar"
+                containerStyles={styles.avatarCircle}
+              />
+              <View style={styles.avatarBadge}>
+                <MaterialDesignIcons name="camera" size={14} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setIsAttachmentModalOpen(true)}>
+              <Text style={styles.avatarSubtext}>
+                {t('tapToChangePhoto') || 'Tap to select photo'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-          <AppTextInput
-            label={t('phoneNumber') + ' *'}
-            placeholder="10-digit mobile number"
-            keyboardType="phone-pad"
-            maxLength={10}
-            value={mobile}
-            onChangeText={setMobile}
-          />
+          <View>
 
-          <AppTextInput
-            label={t('email') + ' (Optional)'}
-            placeholder="e.g. ramesh@ranniti.in (optional)"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
+            <AppTextInput
+              label={t('fullName') + ' *'}
+              placeholder="e.g. Ramesh Chandra"
+              value={name}
+              onChangeText={setName}
+            />
 
-          {/* Auto-Generated Password Preview (Create Mode) */}
-          {!isEditing && Boolean(name.trim() && mobile.trim()) && (
-            <View style={styles.passwordPreviewCard}>
-              <View style={styles.passwordPreviewLeft}>
-                <MaterialDesignIcons name="lock" size={18} color={theme.colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.passwordPreviewLabel}>{t('autoGeneratedPassword') || 'Auto-Generated Login Password:'}</Text>
-                  <Text style={styles.passwordPreviewCode}>{generatedPasswordPreview}</Text>
+            <AppTextInput
+              label={t('phoneNumber') + ' *'}
+              placeholder="10-digit mobile number"
+              keyboardType="phone-pad"
+              maxLength={10}
+              value={mobile}
+              onChangeText={setMobile}
+            />
+
+            <AppTextInput
+              label={t('email') + ' (Optional)'}
+              placeholder="e.g. ramesh@ranniti.in (optional)"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+
+            {/* Auto-Generated Password Preview (Create Mode) */}
+            {!isEditing && Boolean(name.trim() && mobile.trim()) && (
+              <View style={styles.passwordPreviewCard}>
+                <View style={styles.passwordPreviewLeft}>
+                  <MaterialDesignIcons name="lock" size={18} color={theme.colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.passwordPreviewLabel}>{t('autoGeneratedPassword') || 'Auto-Generated Login Password:'}</Text>
+                    <Text style={styles.passwordPreviewCode}>{generatedPasswordPreview}</Text>
+                  </View>
+                </View>
+                <Text style={styles.passwordPreviewHint}>{t('formulaPasswordHint') || 'Formula: Name + PhoneLast4 + #'}</Text>
+              </View>
+            )}
+
+            {/* Member Status Selector (Edit Mode Only) */}
+            {isEditing && (
+              <View style={{ gap: 6, marginTop: 4 }}>
+                <Text style={styles.leaderCardLabel}>{t('memberStatus') || 'Member Status'}</Text>
+                <View style={styles.statusRow}>
+                  {['active', 'inactive', 'suspended'].map((st) => {
+                    const isSelected = status === st;
+                    const label = t(st as any) || st.charAt(0).toUpperCase() + st.slice(1);
+                    return (
+                      <TouchableOpacity
+                        key={st}
+                        style={[styles.statusChip, isSelected && styles.statusChipActive]}
+                        onPress={() => setStatus(st)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.statusChipText, isSelected && styles.statusChipTextActive]}>
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
-              <Text style={styles.passwordPreviewHint}>{t('formulaPasswordHint') || 'Formula: Name + PhoneLast4 + #'}</Text>
-            </View>
-          )}
-
-          <AppTextInput
-            label={isEditing ? 'Change Password (Optional)' : 'Custom Password (Optional)'}
-            placeholder={
-              isEditing
-                ? (t('leaveBlankPassword') || 'Leave blank to keep unchanged')
-                : generatedPasswordPreview
-                  ? `Leave blank to use ${generatedPasswordPreview}`
-                  : 'Min 6 characters (e.g. Leader@123)'
-            }
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
+            )}
+          </View>
         </View>
 
         {/* Section: Territory & Booth Assignment */}
@@ -536,15 +569,37 @@ export const OnboardTeamMemberScreen: React.FC = () => {
               : 'Assign polling booth jurisdiction and territorial responsibilities'}
           </Text>
 
-          <View style={styles.territoryRow}>
-            <View style={styles.territoryIconBox}>
-              <MaterialDesignIcons name="domain" size={22} color={theme.colors.primary} />
+          {/* Interactive AC Selector Card for PC Leader, or fixed AC for other roles */}
+          {isPcLeader ? (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setIsAcPickerOpen(true)}
+              style={styles.leaderSelectorCard}
+            >
+              <View style={styles.leaderIconBox}>
+                <MaterialDesignIcons name="domain" size={20} color={theme.colors.primary} />
+              </View>
+              <View style={styles.leaderTextCol}>
+                <Text style={styles.leaderCardLabel}>{t('assemblyConstituency') || 'Assembly Constituency (AC)'} *</Text>
+                <Text style={styles.leaderCardValue} numberOfLines={1}>
+                  {selectedAcId
+                    ? (acs.find((a) => a.id === selectedAcId)?.name || userAcName)
+                    : (t('selectAssemblyConstituency') || 'Select Assembly Constituency')}
+                </Text>
+              </View>
+              <MaterialDesignIcons name="chevron-right" size={20} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.territoryRow}>
+              <View style={styles.territoryIconBox}>
+                <MaterialDesignIcons name="domain" size={22} color={theme.colors.primary} />
+              </View>
+              <View style={styles.territoryTextCol}>
+                <Text style={styles.territoryLabel}>{t('assemblyConstituency') || 'Assigned Assembly Constituency'}</Text>
+                <Text style={styles.territoryValue}>{userAcName}</Text>
+              </View>
             </View>
-            <View style={styles.territoryTextCol}>
-              <Text style={styles.territoryLabel}>Assigned Assembly Constituency</Text>
-              <Text style={styles.territoryValue}>{userAcName}</Text>
-            </View>
-          </View>
+          )}
 
           {/* Interactive Polling Booth Selector Card */}
           <TouchableOpacity
@@ -580,68 +635,6 @@ export const OnboardTeamMemberScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Section: Tab Access Matrix */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <MaterialDesignIcons name="tab" size={20} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>{t('accessibleTabs')} *</Text>
-          </View>
-          <Text style={styles.sectionSubtitle}>
-            Configure mobile application screen access granted to this cadre
-          </Text>
-
-          <View style={styles.tabsList}>
-            {ALL_MOBILE_SCREENS.map((sc) => {
-              const isEnabled = selectedScreens.includes(sc.key);
-              return (
-                <TouchableOpacity
-                  key={sc.key}
-                  style={[
-                    styles.tabAccessItem,
-                    isEnabled && styles.tabAccessItemActive,
-                  ]}
-                  onPress={() => toggleScreen(sc.key)}
-                  activeOpacity={0.75}
-                >
-                  <View style={styles.tabAccessLeft}>
-                    <View
-                      style={[
-                        styles.tabIconBox,
-                        isEnabled && { backgroundColor: `${theme.colors.primary}18` },
-                      ]}
-                    >
-                      <MaterialDesignIcons
-                        name={sc.icon as any}
-                        size={18}
-                        color={isEnabled ? theme.colors.primary : theme.colors.textSecondary}
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        styles.tabAccessLabel,
-                        isEnabled && { color: theme.colors.primary, fontFamily: FontFamily.bold },
-                      ]}
-                    >
-                      {sc.label}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.togglePill,
-                      isEnabled && { backgroundColor: theme.colors.primary },
-                    ]}
-                  >
-                    <Text style={styles.togglePillText}>
-                      {isEnabled ? 'ALLOWED' : 'LOCKED'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
         {/* Action Buttons */}
         <View style={styles.actionsRow}>
           <TouchableOpacity
@@ -674,13 +667,13 @@ export const OnboardTeamMemberScreen: React.FC = () => {
 
       {/* Interactive Booth Selector Modal with Ward Filters */}
       <BoothSelectorModal
-        visible={isBoothModalOpen}
-        onDismiss={() => setIsBoothModalOpen(false)}
-        selectedBoothIds={selectedBoothIds}
-        onSelectBooths={(boothIds) => setSelectedBoothIds(boothIds)}
-        booths={availableBooths}
         wards={wards}
+        booths={availableBooths}
+        visible={isBoothModalOpen}
+        selectedBoothIds={selectedBoothIds}
         singleSelect={selectedRole === 'supporter'}
+        onDismiss={() => setIsBoothModalOpen(false)}
+        onSelectBooths={(boothIds) => setSelectedBoothIds(boothIds)}
         title={selectedRole === 'supporter' ? (t('selectBooths') || 'Select Polling Booth') : (t('assignPollingBooths') || 'Assign Polling Booths')}
       />
 
@@ -758,76 +751,94 @@ export const OnboardTeamMemberScreen: React.FC = () => {
         />
       </Modal>
 
-      {/* Post-Creation WhatsApp & Credentials Success Modal */}
+      {/* Assembly Constituency Picker Modal (for PC Leader) */}
       <Modal
-        visible={Boolean(createdMemberData)}
-        onDismiss={() => {
-          setCreatedMemberData(null);
-          navigation.goBack();
-        }}
+        visible={isAcPickerOpen}
+        onDismiss={() => setIsAcPickerOpen(false)}
         position="center"
-        contentContainerStyle={styles.credentialsModalContent}
+        contentContainerStyle={styles.parentPickerModalContent}
       >
-        <View style={styles.credentialsSuccessHeader}>
-          <View style={styles.credentialsSuccessIcon}>
-            <MaterialDesignIcons name="check-decagram" size={34} color="#10B981" />
+        <View style={styles.modalHeader}>
+          <View style={styles.modalHeaderTitleRow}>
+            <MaterialDesignIcons name="domain" size={20} color={theme.colors.primary} />
+            <Text style={styles.modalHeaderTitle}>{t('selectAssemblyConstituency') || 'Select Assembly Constituency'}</Text>
           </View>
-          <Text style={styles.credentialsSuccessTitle}>
-            {t('teamMemberSuccessOnboarded') || 'Cadre Successfully Onboarded'}
-          </Text>
-          <Text style={styles.credentialsSuccessSub}>
-            {t('shareCredentialsPrompt') || 'Share these credentials with the team member to start ground campaigning.'}
-          </Text>
-        </View>
-
-        <View style={styles.credentialsCard}>
-          <View style={styles.credentialRow}>
-            <Text style={styles.credentialLabel}>{t('fullName') || 'Name'}</Text>
-            <Text style={styles.credentialVal}>{createdMemberData?.name}</Text>
-          </View>
-          <View style={styles.credentialDivider} />
-          <View style={styles.credentialRow}>
-            <Text style={styles.credentialLabel}>{t('phoneNumber') || 'Mobile'}</Text>
-            <Text style={[styles.credentialVal, { fontFamily: FontFamily.bold }]}>{createdMemberData?.mobile}</Text>
-          </View>
-          <View style={styles.credentialDivider} />
-          <View style={styles.credentialRow}>
-            <Text style={styles.credentialLabel}>Login Password</Text>
-            <Text style={[styles.credentialVal, styles.credentialPassword]}>{createdMemberData?.password}</Text>
-          </View>
-        </View>
-
-        <View style={styles.credentialsActions}>
-          <TouchableOpacity
-            style={styles.whatsAppBtn}
-            onPress={handleShareWhatsApp}
-            activeOpacity={0.85}
-          >
-            <MaterialDesignIcons name="whatsapp" size={20} color="#FFFFFF" />
-            <Text style={styles.whatsAppBtnText}>{t('shareOnWhatsApp') || 'Share on WhatsApp'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.shareCredentialsBtn}
-            onPress={handleShareCredentials}
-            activeOpacity={0.85}
-          >
-            <MaterialDesignIcons name="share-variant" size={18} color={theme.colors.primary} />
-            <Text style={styles.shareCredentialsBtnText}>{t('copyCredentials') || 'Share Credentials'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.doneBtn}
-            onPress={() => {
-              setCreatedMemberData(null);
-              navigation.goBack();
-            }}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.doneBtnText}>{t('done') || 'Done'}</Text>
+          <TouchableOpacity onPress={() => setIsAcPickerOpen(false)}>
+            <MaterialDesignIcons name="close" size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
+
+        <View style={styles.parentSearchBox}>
+          <MaterialDesignIcons name="search" size={18} color={theme.colors.textSecondary} />
+          <TextInput
+            style={styles.parentSearchInput}
+            placeholder={t('searchAcPlaceholder') || 'Search assembly constituency...'}
+            placeholderTextColor={theme.colors.textSecondary}
+            value={acSearch}
+            onChangeText={setAcSearch}
+          />
+        </View>
+
+        <FlatList
+          data={filteredAcs}
+          keyExtractor={(item) => item.id}
+          style={styles.parentList}
+          showsVerticalScrollIndicator={true}
+          renderItem={({ item }: { item: any }) => {
+            const isSelected = selectedAcId === item.id;
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.parentItem,
+                  isSelected && styles.parentItemSelected,
+                ]}
+                onPress={() => {
+                  setSelectedAcId(item.id);
+                  setSelectedBoothIds([]);
+                  setIsAcPickerOpen(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.parentItemAvatar}>
+                  <MaterialDesignIcons name="domain" size={18} color={theme.colors.primary} />
+                </View>
+                <View style={styles.parentItemTextCol}>
+                  <Text style={styles.parentItemName}>{item.name}</Text>
+                  {item.acNumber !== undefined && (
+                    <Text style={styles.parentItemRole}>AC #{item.acNumber}</Text>
+                  )}
+                </View>
+                {isSelected && (
+                  <MaterialDesignIcons name="check-circle" size={20} color={theme.colors.primary} />
+                )}
+              </TouchableOpacity>
+            );
+          }}
+          ListEmptyComponent={
+            <View style={styles.parentEmptyBox}>
+              <MaterialDesignIcons name="alert-circle-outline" size={28} color={theme.colors.textSecondary} />
+              <Text style={styles.parentEmptyText}>{t('noAcsFound') || 'No Assembly Constituencies Found'}</Text>
+            </View>
+          }
+        />
       </Modal>
+
+      {/* Attachment Picker Modal for Avatar Photo */}
+      <AttachmentPickerModal
+        visible={isAttachmentModalOpen}
+        mediaTypesOnly={true}
+        onClose={() => setIsAttachmentModalOpen(false)}
+        onSelectFile={(_fileName, fileUri) => {
+          setAvatarUri(fileUri);
+          setIsAttachmentModalOpen(false);
+        }}
+        onSelectFiles={(files) => {
+          if (files && files.length > 0) {
+            setAvatarUri(files[0].uri);
+          }
+          setIsAttachmentModalOpen(false);
+        }}
+      />
     </SafeView>
   );
 };
@@ -871,20 +882,16 @@ const createStyles = (theme: Theme) =>
       marginTop: -4,
     },
     roleGrid: {
-      flexDirection: 'row',
       gap: 10,
-      flexWrap: 'wrap',
-      marginTop: 4,
     },
     roleCard: {
+      gap: 4,
       flex: 1,
-      minWidth: '46%',
       padding: 12,
+      borderWidth: 1,
       borderRadius: 14,
-      borderWidth: 1.5,
       borderColor: theme.colors.border || '#E2E8F0',
       backgroundColor: theme.colors.subtleSurface || '#F8FAFC',
-      gap: 4,
     },
     roleCardTop: {
       flexDirection: 'row',
@@ -1070,56 +1077,6 @@ const createStyles = (theme: Theme) =>
     boothBadgeTextActive: {
       color: theme.colors.primary || '#1E40AF',
     },
-    tabsList: {
-      gap: 8,
-      marginTop: 4,
-    },
-    tabAccessItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      borderRadius: 12,
-      backgroundColor: theme.colors.subtleSurface || '#F8FAFC',
-      borderWidth: 1,
-      borderColor: theme.colors.border || '#E2E8F0',
-    },
-    tabAccessItemActive: {
-      borderColor: theme.colors.primary,
-      backgroundColor: `${theme.colors.primary}12`,
-    },
-    tabAccessLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      flex: 1,
-    },
-    tabIconBox: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: 'rgba(0,0,0,0.04)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    tabAccessLabel: {
-      fontFamily: FontFamily.medium,
-      fontSize: rfValue(12.5),
-      color: theme.colors.text || '#0F172A',
-    },
-    togglePill: {
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 6,
-      backgroundColor: '#94A3B8',
-    },
-    togglePillText: {
-      fontFamily: FontFamily.bold,
-      fontSize: rfValue(9),
-      color: '#FFFFFF',
-      letterSpacing: 0.5,
-    },
     actionsRow: {
       flexDirection: 'row',
       gap: 12,
@@ -1220,8 +1177,8 @@ const createStyles = (theme: Theme) =>
       gap: 10,
     },
     parentItemSelected: {
-      borderColor: theme.colors.primary,
-      backgroundColor: `${theme.colors.primary}15`,
+      borderColor: `${theme.colors.primary}20`,
+      backgroundColor: `${theme.colors.primary}09`,
     },
     parentItemAvatar: {
       width: 36,
@@ -1261,124 +1218,68 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.textSecondary,
     },
 
-    // Credentials Success Modal Styles
-    credentialsModalContent: {
-      width: '90%',
-      backgroundColor: theme.colors.surface,
-      borderRadius: 22,
-      padding: 20,
-      alignSelf: 'center',
-      ...getShadow(10, '#0F172A', 0.25),
-    },
-    credentialsSuccessHeader: {
-      alignItems: 'center',
-      marginBottom: 16,
-      gap: 4,
-    },
-    credentialsSuccessIcon: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    // Avatar Photo & Status Styles
+    avatarContainer: {
       alignItems: 'center',
       justifyContent: 'center',
+      gap: 6,
       marginBottom: 6,
     },
-    credentialsSuccessTitle: {
-      fontFamily: FontFamily.bold,
-      fontSize: rfValue(16),
-      color: theme.colors.text,
-      textAlign: 'center',
+    avatarWrapper: {
+      position: 'relative',
+      width: 80,
+      height: 80,
     },
-    credentialsSuccessSub: {
-      fontFamily: FontFamily.body,
-      fontSize: rfValue(11.5),
-      color: theme.colors.textSecondary,
-      textAlign: 'center',
-      paddingHorizontal: 8,
+    avatarCircle: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      borderWidth: 2,
+      borderColor: theme.colors.primary || '#1E40AF',
     },
-    credentialsCard: {
-      backgroundColor: theme.colors.subtleSurface,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      padding: 14,
-      marginBottom: 16,
+    avatarBadge: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      backgroundColor: theme.colors.primary || '#1E40AF',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: '#FFFFFF',
+    },
+    avatarSubtext: {
+      fontFamily: FontFamily.medium,
+      fontSize: rfValue(11),
+      color: theme.colors.primary || '#1E40AF',
+    },
+    statusRow: {
+      flexDirection: 'row',
       gap: 8,
     },
-    credentialRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+    statusChip: {
+      flex: 1,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border || '#E2E8F0',
       alignItems: 'center',
+      backgroundColor: theme.colors.subtleSurface || '#F8FAFC',
     },
-    credentialLabel: {
+    statusChipActive: {
+      borderColor: `${theme.colors.primary}30` || '#1E40AF',
+      backgroundColor: `${theme.colors.primary}20`,
+    },
+    statusChipText: {
       fontFamily: FontFamily.medium,
       fontSize: rfValue(11.5),
-      color: theme.colors.textSecondary,
+      color: theme.colors.textSecondary || '#64748B',
     },
-    credentialVal: {
+    statusChipTextActive: {
       fontFamily: FontFamily.bold,
-      fontSize: rfValue(12.5),
-      color: theme.colors.text,
-    },
-    credentialDivider: {
-      height: 1,
-      backgroundColor: theme.colors.border,
-    },
-    credentialPassword: {
-      fontFamily: FontFamily.bold,
-      fontSize: rfValue(13),
-      color: '#10B981',
-      backgroundColor: 'rgba(16, 185, 129, 0.1)',
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4,
-    },
-    credentialsActions: {
-      gap: 8,
-    },
-    whatsAppBtn: {
-      height: 46,
-      borderRadius: 12,
-      backgroundColor: '#25D366',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      ...getShadow(3, '#25D366', 0.3),
-    },
-    whatsAppBtnText: {
-      fontFamily: FontFamily.bold,
-      fontSize: rfValue(13),
-      color: '#FFFFFF',
-    },
-    shareCredentialsBtn: {
-      height: 44,
-      borderRadius: 12,
-      backgroundColor: theme.colors.subtleSurface,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-    },
-    shareCredentialsBtnText: {
-      fontFamily: FontFamily.bold,
-      fontSize: rfValue(13),
-      color: theme.colors.text,
-    },
-    doneBtn: {
-      height: 42,
-      borderRadius: 12,
-      backgroundColor: theme.colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 2,
-    },
-    doneBtnText: {
-      fontFamily: FontFamily.bold,
-      fontSize: rfValue(13),
-      color: '#FFFFFF',
+      color: theme.colors.primary || '#1E40AF',
     },
   });

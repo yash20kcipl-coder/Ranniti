@@ -40,7 +40,7 @@ export const PrimaryMetricsGrid: React.FC<PrimaryMetricsGridProps> = ({
       >
         <View style={styles.cardTopRow}>
           <View style={[styles.iconBox, { backgroundColor: '#EFF6FF' }]}>
-            <Home {...({ size: 20, color: '#3B82F6' } as any)} />
+            <Home {...({ size: 18, color: '#3B82F6' } as any)} />
           </View>
           <View style={styles.arrowPill}>
             <ArrowUpRight {...({ size: 14, color: '#3B82F6' } as any)} />
@@ -72,7 +72,7 @@ export const PrimaryMetricsGrid: React.FC<PrimaryMetricsGridProps> = ({
       >
         <View style={styles.cardTopRow}>
           <View style={[styles.iconBox, { backgroundColor: '#ECFDF5' }]}>
-            <Users {...({ size: 20, color: '#10B981' } as any)} />
+            <Users {...({ size: 18, color: '#10B981' } as any)} />
           </View>
           <View style={[styles.arrowPill, { backgroundColor: '#ECFDF5' }]}>
             <ArrowUpRight {...({ size: 14, color: '#10B981' } as any)} />
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: 100,
     justifyContent: 'center',
     alignItems: 'center',
   },

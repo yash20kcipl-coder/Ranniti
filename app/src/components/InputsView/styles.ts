@@ -16,11 +16,11 @@ export const getStyles = (theme: Theme) =>
       textAlignVertical: 'top',
     },
     fieldLabel: {
-      fontFamily: FontFamily.medium,
-      fontSize: rfValue(13),
-      color: theme.colors.textSecondary,
-      marginBottom: theme.space.xs,
-      letterSpacing: 0.2,
+      fontFamily: FontFamily.bold,
+      fontSize: rfValue(13.5),
+      color: theme.colors.text,
+      marginBottom: 6,
+      letterSpacing: 0.1,
     },
     segmentContainer: {
       flexDirection: 'row',

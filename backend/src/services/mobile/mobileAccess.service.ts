@@ -7,6 +7,7 @@ export interface MobileAccessConfig {
   mobileScreens: string[];
   voterPermissions: {
     canViewVoter: boolean;
+    canCreateVoter: boolean;
     canEditContact: boolean;
     canEditDemographics: boolean;
     canEditInclination: boolean;
@@ -51,6 +52,7 @@ export class MobileAccessService {
             mobileScreens: screens,
             voterPermissions: {
               canViewVoter: matchedRole.voterPermissions?.canViewVoter ?? matchedRole.voterPermissions?.can_view_voter ?? true,
+              canCreateVoter: matchedRole.voterPermissions?.canCreateVoter ?? matchedRole.voterPermissions?.can_create_voter ?? false,
               canEditContact: matchedRole.voterPermissions?.canEditContact ?? matchedRole.voterPermissions?.can_edit_contact ?? true,
               canEditDemographics: matchedRole.voterPermissions?.canEditDemographics ?? matchedRole.voterPermissions?.can_edit_demographics ?? false,
               canEditInclination: matchedRole.voterPermissions?.canEditInclination ?? matchedRole.voterPermissions?.can_edit_inclination ?? true,
@@ -74,6 +76,7 @@ export class MobileAccessService {
         mobileScreens: ['voter_search', 'family_tree', 'survey', 'booth_analytics', 'gate_meetings'],
         voterPermissions: {
           canViewVoter: true,
+          canCreateVoter: true,
           canEditContact: true,
           canEditDemographics: true,
           canEditInclination: true,
@@ -92,6 +95,7 @@ export class MobileAccessService {
         mobileScreens: ['voter_search', 'family_tree', 'survey', 'booth_analytics', 'gate_meetings'],
         voterPermissions: {
           canViewVoter: true,
+          canCreateVoter: true,
           canEditContact: true,
           canEditDemographics: true,
           canEditInclination: true,
@@ -110,6 +114,7 @@ export class MobileAccessService {
         mobileScreens: ['voter_search', 'family_tree', 'survey', 'booth_analytics'],
         voterPermissions: {
           canViewVoter: true,
+          canCreateVoter: true,
           canEditContact: true,
           canEditDemographics: false,
           canEditInclination: true,
@@ -128,9 +133,10 @@ export class MobileAccessService {
       mobileScreens: ['voter_search', 'family_tree', 'survey'],
       voterPermissions: {
         canViewVoter: true,
+        canCreateVoter: false,
         canEditContact: true,
         canEditDemographics: false,
-        canEditInclination: true,
+        canEditInclination: false,
         canEditVoterStatus: false,
         canManageFamily: false,
         canExportData: false,
@@ -167,6 +173,7 @@ export class MobileAccessService {
             mobileScreens: r.accessibleTabs?.mobileScreens || r.accessibleTabs?.mobile_screens || [],
             voterPermissions: {
               canViewVoter: r.voterPermissions?.canViewVoter ?? r.voterPermissions?.can_view_voter ?? true,
+              canCreateVoter: r.voterPermissions?.canCreateVoter ?? r.voterPermissions?.can_create_voter ?? false,
               canEditContact: r.voterPermissions?.canEditContact ?? r.voterPermissions?.can_edit_contact ?? true,
               canEditDemographics: r.voterPermissions?.canEditDemographics ?? r.voterPermissions?.can_edit_demographics ?? false,
               canEditInclination: r.voterPermissions?.canEditInclination ?? r.voterPermissions?.can_edit_inclination ?? true,

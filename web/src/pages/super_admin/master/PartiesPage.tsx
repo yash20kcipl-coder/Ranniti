@@ -1,17 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import toast from 'react-hot-toast';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { PageHeader } from '@/components/common/PageHeader';
-import { DataTable, type Column } from '@/components/common/DataTable';
-import { TableActions } from '@/components/common/TableActions';
-import { SafeImage } from '@/components/common/SafeImage';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { ImportModal } from '@/components/common/ImportModal';
-import { FilterBar, type FilterField } from '@/components/common/FilterBar';
-import { exportToExcel, parseExcelFile } from '@/utils/exportImport';
-import { startBulkImportJob } from '@/redux/actions/importJobs';
 import { Flag } from 'lucide-react';
+import toast from 'react-hot-toast';
 import {
   fetchSuperAdminMasterCategoryData,
   createSuperAdminMasterCategoryItem,
@@ -19,7 +7,19 @@ import {
   deleteSuperAdminMasterCategoryItem,
   syncAllSuperAdminMasters,
 } from '@/redux/actions/masterSuperAdmin';
+import React, { useState, useMemo } from 'react';
+import { exportToExcel } from '@/utils/exportImport';
+import { SafeImage } from '@/components/common/SafeImage';
+import { PageHeader } from '@/components/common/PageHeader';
+import { ImportModal } from '@/components/common/ImportModal';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { TableActions } from '@/components/common/TableActions';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { PartyFormModal } from '@/components/common/master/form';
+import { startBulkImportFileJob } from '@/redux/actions/importJobs';
+import { DataTable, type Column } from '@/components/common/DataTable';
+import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
 export const PartiesPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -177,24 +177,19 @@ export const PartiesPage: React.FC = () => {
     toast.success('Political Parties exported successfully');
   };
 
-  const handleImport = async (file: File, parsedRecords?: Record<string, any>[]) => {
+  const handleImport = async (file: File) => {
     try {
-      const records = parsedRecords && parsedRecords.length > 0 ? parsedRecords : await parseExcelFile(file);
-      if (!records.length) {
-        toast.error('The uploaded file contains no data');
-        return;
-      }
       await dispatch(
-        startBulkImportJob('parties', records, () => {
+        startBulkImportFileJob('parties', file, () => {
           const params: Record<string, string> = {};
           if (search.trim()) params.search = search.trim();
           dispatch(fetchSuperAdminMasterCategoryData('parties', '/masters/parties', false, params));
         })
       );
-      toast.success('Bulk import job queued for Political Parties!');
+      toast.success('Bulk import job started for Political Parties!');
       setIsImportModalOpen(false);
-    } catch {
-      toast.error('Failed to queue import');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start import');
     }
   };
 

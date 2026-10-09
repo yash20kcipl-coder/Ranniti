@@ -18,6 +18,7 @@ export const SCREENS = {
   CONTACT_SYNC: 'contactsync',
   TEAM_MANAGEMENT: 'teammanagement',
   ONBOARD_TEAM_MEMBER: 'onboardteammember',
+  VOLUNTEER_DETAIL: 'volunteerdetail',
   PROFILE: 'profile',
   SETTINGS: 'settings',
   NOTIFICATIONS: 'notifications',

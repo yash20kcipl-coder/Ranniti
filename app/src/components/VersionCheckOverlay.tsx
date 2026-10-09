@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,35 +8,47 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
-import { MaterialDesignIcons } from './MaterialDesignIcons';
-import { useAppTheme } from '../hooks/useAppTheme';
+import React, { useState } from 'react';
+import { useLanguage } from '../languages';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
+import { useAppTheme } from '../hooks/useAppTheme';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 
 const { width } = Dimensions.get('window');
 
 interface VersionCheckOverlayProps {
-  status: 'loading' | 'allowed' | 'force-update' | 'recommended-update';
   storeUrl: string;
+  updateTitle?: string;
+  onRetry?: () => void;
   latestVersion: string;
+  updateMessage?: string;
+  maintenanceMessage?: string;
   onDismissRecommended?: () => void;
+  status: 'loading' | 'allowed' | 'force-update' | 'recommended-update' | 'maintenance';
 }
 
 export const VersionCheckOverlay: React.FC<VersionCheckOverlayProps> = ({
   status,
   storeUrl,
   latestVersion,
+  updateTitle,
+  updateMessage,
+  maintenanceMessage,
   onDismissRecommended,
+  onRetry,
 }) => {
   const { theme, styles } = useAppTheme(createStyles);
+  const { t } = useLanguage();
   const [userDismissed, setUserDismissed] = useState(false);
 
   if (status === 'loading' || status === 'allowed') return null;
 
+  const isMaintenance = status === 'maintenance';
   const isForceUpdate = status === 'force-update';
 
   // If recommended update was dismissed by the user, don't render
-  if (!isForceUpdate && userDismissed) return null;
+  if (!isForceUpdate && !isMaintenance && userDismissed) return null;
 
   const handleUpdate = () => {
     if (storeUrl) {
@@ -54,83 +65,132 @@ export const VersionCheckOverlay: React.FC<VersionCheckOverlayProps> = ({
     }
   };
 
+  const getModalIcon = () => {
+    if (isMaintenance) return 'wrench-clock';
+    if (isForceUpdate) return 'cloud-download';
+    return 'alert-decagram-outline';
+  };
+
+  const getIconColor = () => {
+    if (isMaintenance) return '#F59E0B'; // Amber
+    if (isForceUpdate) return theme.colors.error;
+    return theme.colors.primary;
+  };
+
+  const getTitleText = () => {
+    if (updateTitle) return updateTitle;
+    if (isMaintenance) return t('underMaintenanceTitle');
+    if (isForceUpdate) return t('updateRequired');
+    return t('newVersionAvailable');
+  };
+
+  const getBodyText = () => {
+    if (isMaintenance) return maintenanceMessage || t('underMaintenanceMessage');
+    if (updateMessage) return updateMessage;
+    if (isForceUpdate) {
+      return `${t('criticalUpdateMessage')}${latestVersion ? ` (v${latestVersion})` : ''}`;
+    }
+    return `${t('recommendedUpdateMessage')}${latestVersion ? ` (v${latestVersion})` : ''}`;
+  };
+
   return (
     <Modal
       visible={true}
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={isForceUpdate ? () => {} : handleDismiss}
+      onRequestClose={isForceUpdate || isMaintenance ? () => { } : handleDismiss}
     >
       <View style={styles.backdrop}>
         <StatusBar barStyle="light-content" />
 
-        
-        {/* Update Card */}
+        {/* Update / Maintenance Card */}
         <View style={styles.card}>
           {/* Header Icon */}
           <View
             style={[
               styles.iconContainer,
               {
-                backgroundColor: isForceUpdate
-                  ? 'rgba(244, 63, 94, 0.15)'
-                  : 'rgba(99, 102, 241, 0.15)',
-                borderColor: isForceUpdate
-                  ? 'rgba(244, 63, 94, 0.3)'
-                  : 'rgba(99, 102, 241, 0.3)',
+                backgroundColor: isMaintenance
+                  ? 'rgba(245, 158, 11, 0.15)'
+                  : isForceUpdate
+                    ? 'rgba(244, 63, 94, 0.15)'
+                    : 'rgba(99, 102, 241, 0.15)',
+                borderColor: isMaintenance
+                  ? 'rgba(245, 158, 11, 0.3)'
+                  : isForceUpdate
+                    ? 'rgba(244, 63, 94, 0.3)'
+                    : 'rgba(99, 102, 241, 0.3)',
               },
             ]}
           >
             <MaterialDesignIcons
-              name={isForceUpdate ? 'cloud-download' : 'alert-decagram-outline'}
+              name={getModalIcon()}
               size={36}
-              color={isForceUpdate ? theme.colors.error : theme.colors.primary}
+              color={getIconColor()}
             />
           </View>
 
           {/* Title */}
           <Text style={[styles.title, { fontFamily: FontFamily.extraBold }]}>
-            {isForceUpdate ? 'Update Required' : 'Update Available'}
+            {getTitleText()}
           </Text>
 
           {/* Description */}
           <Text style={[styles.description, { fontFamily: FontFamily.medium }]}>
-            {isForceUpdate
-              ? 'A critical new version of the app is available. Please update to the latest version to continue using the application.'
-              : `A new version of the app (${latestVersion}) is available. We recommend updating to access new features and performance enhancements.`}
+            {getBodyText()}
           </Text>
 
           {/* Action Buttons */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleUpdate}
-              style={[
-                styles.updateBtn,
-                {
-                  backgroundColor: isForceUpdate
-                    ? theme.colors.error
-                    : theme.colors.primary,
-                },
-              ]}
-            >
-              <MaterialDesignIcons name="open-in-app" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={[styles.updateBtnText, { fontFamily: FontFamily.bodyBold }]}>
-                Update Now
-              </Text>
-            </TouchableOpacity>
-
-            {!isForceUpdate && (
+            {isMaintenance ? (
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={handleDismiss}
-                style={styles.cancelBtn}
+                onPress={onRetry}
+                style={[styles.updateBtn, { backgroundColor: '#F59E0B' }]}
               >
-                <Text style={[styles.cancelBtnText, { fontFamily: FontFamily.medium, color: theme.colors.textSecondary }]}>
-                  Later
+                <MaterialDesignIcons name="refresh" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={[styles.updateBtnText, { fontFamily: FontFamily.bodyBold }]}>
+                  {t('retryConnection')}
                 </Text>
               </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleUpdate}
+                  style={[
+                    styles.updateBtn,
+                    {
+                      backgroundColor: isForceUpdate
+                        ? theme.colors.error
+                        : theme.colors.primary,
+                    },
+                  ]}
+                >
+                  <MaterialDesignIcons name="open-in-app" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.updateBtnText, { fontFamily: FontFamily.bodyBold }]}>
+                    {t('updateNow')}
+                  </Text>
+                </TouchableOpacity>
+
+                {!isForceUpdate && (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleDismiss}
+                    style={styles.cancelBtn}
+                  >
+                    <Text
+                      style={[
+                        styles.cancelBtnText,
+                        { fontFamily: FontFamily.medium, color: theme.colors.textSecondary },
+                      ]}
+                    >
+                      {t('skipForNow')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
         </View>
@@ -213,4 +273,5 @@ const createStyles = (theme: any) =>
       fontSize: rfValue(13),
     },
   });
+
 export default VersionCheckOverlay;

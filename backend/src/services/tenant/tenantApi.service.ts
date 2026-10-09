@@ -398,7 +398,7 @@ export class TenantApiService {
     tenantDbName?: string | null
   ) {
     const isFiltered = !!params?.search;
-    const cacheKey = !isFiltered ? `ranniti:tenant:${tenantDbName || 'master'}:booth_options:${JSON.stringify(params || {})}` : null;
+    const cacheKey = !isFiltered ? `ranniti:tenant:${tenantDbName || 'master'}:booth_options_v3:${JSON.stringify(params || {})}` : null;
 
     const fetchBoothOptions = async () => {
       const sqlParams: any[] = [];
@@ -436,7 +436,6 @@ export class TenantApiService {
         conditions.push('1=1');
       }
 
-
       if (params?.wardId) {
         sqlParams.push(params.wardId);
         conditions.push(`b.ward_id = $${sqlParams.length}`);
@@ -461,8 +460,11 @@ export class TenantApiService {
           b.id, 
           b.booth_number AS "boothNumber", 
           b.name, 
-          b.ac_id AS "acId"
+          b.ac_id AS "acId",
+          b.ward_id AS "wardId",
+          w.name AS "wardName"
         FROM booths b
+        LEFT JOIN wards w ON w.id = b.ward_id
         ${whereClause}
         ORDER BY b.booth_number ASC
         LIMIT $${sqlParams.length}

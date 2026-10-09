@@ -4,8 +4,8 @@
  */
 
 const appVersion = {
-  android: "0.0.1",
-  ios: "0.0.1"
+  android: "1.0.0",
+  ios: "1.0.0"
 };
 
 export default appVersion;

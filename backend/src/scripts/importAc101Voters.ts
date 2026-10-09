@@ -103,7 +103,7 @@ export const importAc101Voters = async (): Promise<void> => {
       ward_id: wardId,
       booth_number: num,
       name: `Booth #${num} (${acInfo.ac_name})`,
-      location_building: `Primary School / Community Station #${num}, Gariyadhar`,
+      location_building: ``,
     });
   }
 
@@ -135,12 +135,18 @@ export const importAc101Voters = async (): Promise<void> => {
   let totalFailed = 0;
   let rowCount = 0;
 
+  const truncateStr = (val: any, maxLen: number): string | null => {
+    if (val === undefined || val === null || val === '') return null;
+    const str = String(val).trim();
+    return str.length > 0 ? str.substring(0, maxLen) : null;
+  };
+
   const flushBatch = async (rows: Record<string, any>[]) => {
     const dbRows = rows.map((r) => {
       const boothNo = Number(r['Booth No'] || r['BoothNo'] || 1);
       const boothId = existingBoothMap.get(boothNo) || null;
-      const relation = r['Relation'] ? String(r['Relation']).trim() : null;
-      const guardianName = r['Guardian Name'] ? String(r['Guardian Name']).trim() : null;
+      const relation = truncateStr(r['Relation'], 100);
+      const guardianName = truncateStr(r['Guardian Name'], 255);
 
       return {
         epic_no: r['EPIC No'] ? String(r['EPIC No']).trim().toUpperCase() : '',
@@ -152,21 +158,21 @@ export const importAc101Voters = async (): Promise<void> => {
         booth_id: boothId,
         serial_no: r['Serial No'] ? Number(r['Serial No']) : null,
         section_no: r['Section No'] ? Number(r['Section No']) : null,
-        house_no: r['House No'] ? String(r['House No']).trim() : null,
-        first_name: r['First Name (Local)'] ? String(r['First Name (Local)']).trim() : null,
-        middle_name: r['Middle Name (Local)'] ? String(r['Middle Name (Local)']).trim() : null,
-        surname: r['Surname (Local)'] ? String(r['Surname (Local)']).trim() : null,
+        house_no: truncateStr(r['House No'], 100),
+        first_name: truncateStr(r['First Name (Local)'], 150),
+        middle_name: truncateStr(r['Middle Name (Local)'], 150),
+        surname: truncateStr(r['Surname (Local)'], 150),
         relation,
         guardian_name: guardianName,
         gender: r['Gender'] ? String(r['Gender']).trim() : 'Other',
         age: r['Age'] ? Number(r['Age']) : null,
         dob: r['DOB'] || null,
-        mobile_no: r['Mobile No'] ? String(r['Mobile No']).trim() : null,
-        voter_type: r['Voter Type'] || 'Voter',
-        status: r['Status'] || 'ACTIVE',
+        mobile_no: truncateStr(r['Mobile No'], 15),
+        voter_type: truncateStr(r['Voter Type'], 50) || 'Voter',
+        status: truncateStr(r['Status'], 20) || 'ACTIVE',
         is_dead: String(r['Is Dead'] || '').trim().toUpperCase() === 'YES',
-        taluka: r['Taluka'] ? String(r['Taluka']).trim() : 'Gariadhar',
-        village: r['Village'] ? String(r['Village']).trim() : null,
+        taluka: truncateStr(r['Taluka'], 150) || 'Gariadhar',
+        village: truncateStr(r['Village'], 150),
         full_address: null,
         voter_address: r['Voter Address'] ? String(r['Voter Address']).trim() : null,
         is_family_influencer: false,

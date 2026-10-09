@@ -8,7 +8,7 @@ export const MOBILE_SCREEN_TO_ROUTES_MAP: Record<string, string[]> = {
   voter_search: [SCREENS.VOTER_LIST, SCREENS.VOTER_DETAIL, SCREENS.ADD_EDIT_VOTER],
   family_tree: [SCREENS.FAMILY_MAPPING],
   gate_meetings: [SCREENS.INFLUENCER_MAPPING, SCREENS.CONTACT_SYNC],
-  team_management: [SCREENS.TEAM_MANAGEMENT],
+  team_management: [SCREENS.TEAM_MANAGEMENT, SCREENS.ONBOARD_TEAM_MEMBER, SCREENS.VOLUNTEER_DETAIL],
 };
 
 /**
@@ -33,7 +33,11 @@ export const hasScreenAccess = (accessConfig: any, screenName: string): boolean 
   }
 
   // Team Management: Accessible if user has team_management screen OR has cadre creation rights OR is a leader
-  if (screenName === SCREENS.TEAM_MANAGEMENT) {
+  if (
+    screenName === SCREENS.TEAM_MANAGEMENT ||
+    screenName === SCREENS.ONBOARD_TEAM_MEMBER ||
+    screenName === SCREENS.VOLUNTEER_DETAIL
+  ) {
     if (accessConfig.canCreateRoles && accessConfig.canCreateRoles.length > 0) {
       return true;
     }
@@ -65,7 +69,7 @@ export const hasScreenAccess = (accessConfig: any, screenName: string): boolean 
  */
 export const hasVoterPermission = (
   accessConfig: any,
-  permKey: 'canViewVoter' | 'canEditContact' | 'canEditDemographics' | 'canEditInclination' | 'canEditVoterStatus' | 'canManageFamily' | 'canExportData'
+  permKey: 'canViewVoter' | 'canCreateVoter' | 'canEditContact' | 'canEditDemographics' | 'canEditInclination' | 'canEditVoterStatus' | 'canManageFamily' | 'canExportData'
 ): boolean => {
   if (!accessConfig || !accessConfig.voterPermissions) {
     return false;

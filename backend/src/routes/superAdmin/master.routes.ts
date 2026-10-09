@@ -28,9 +28,15 @@ const router = Router();
 router.get('/bulk-import/jobs', MasterBulkController.getAllImportJobs);
 router.post('/bulk-import/:category', MasterBulkController.startBulkImport);
 router.get('/bulk-import/status/:jobId', MasterBulkController.getBulkImportStatus);
+router.get('/bulk-import/failed-records/:jobId', MasterBulkController.downloadFailedRecords);
 // File-upload route: accepts raw .xlsx via multipart — handles files of any size (up to 200 MB)
 router.post('/bulk-import-file/:category', excelUpload.single('file'), MasterBulkController.startBulkImportFile);
 router.get('/sample-template/:category', MasterBulkController.downloadSampleTemplate);
+
+// --- DEMO / BENCHMARK SANDBOX ENDPOINTS ---
+router.get('/bulk-import/demo/records', MasterBulkController.getDemoRecords);
+router.delete('/bulk-import/demo/purge', MasterBulkController.purgeDemoRecords);
+router.get('/bulk-import/demo/benchmark-file', MasterBulkController.downloadDemoBenchmarkFile);
 
 // --- MASTER DATA AUTO-SYNC ---
 router.post('/sync', masterController.syncMasters);

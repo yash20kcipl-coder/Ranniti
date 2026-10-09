@@ -11,6 +11,8 @@ export const STORAGE_KEYS = {
   PARENT_DATA: 'parent_data',
   APP_VERSION: 'app_version',
   NOTIFICATION_PREFERENCES: 'notification_preferences',
+  USER_MPIN: 'user_mpin',
+  IS_MPIN_SET: 'is_mpin_set',
 } as const;
 
 export const saveString = async (key: string, value: string) => {

@@ -54,6 +54,7 @@ export const seedMasters = async (): Promise<void> => {
     'create_tenants_table.sql',
     'create_campaign_settings_tables.sql',
     'create_voters_table.sql',
+    'create_otp_verifications_table.sql',
   ];
 
   for (const file of migrationFiles) {

@@ -26,6 +26,10 @@ export interface VolunteerBoothCoverage {
   totalBooths: number;
   coveredBooths: number;
   coveragePercentage: number;
+  supporterCoveredBooths?: number;
+  wardCoveredBooths?: number;
+  supporterCoveragePercentage?: number;
+  wardCoveragePercentage?: number;
 }
 
 export interface VolunteerState {

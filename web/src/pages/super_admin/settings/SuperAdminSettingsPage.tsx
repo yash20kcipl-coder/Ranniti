@@ -6,6 +6,7 @@ import {
   WhatsAppConfigSection,
   PushNotificationSection,
   TestWhatsAppModal,
+  AppVersionSection,
 } from '@/components/settings';
 import {
   Settings,
@@ -15,6 +16,7 @@ import {
   Save,
   Loader2,
   Package,
+  Smartphone,
 } from 'lucide-react';
 import {
   fetchSuperAdminSettings,
@@ -24,24 +26,25 @@ import {
   updateSuperAdminWhatsAppTemplate,
   deleteSuperAdminWhatsAppTemplate,
   syncSuperAdminMetaTemplates,
+  fetchSuperAdminAppVersions,
+  updateSuperAdminAppVersionConfig,
 } from '@/redux/actions/settings';
 import toast from 'react-hot-toast';
 import { TenantRoleManager } from '@/pages/super_admin/roles';
-import type { CampaignSettings, WhatsAppTemplate } from '@/types/settings.types';
-
-type SettingsTabKey = 'tenant-roles' | 'whatsapp-templates' | 'whatsapp-config' | 'push-notifications';
+import type { CampaignSettings, WhatsAppTemplate, SettingsTabKey, AppVersionConfig } from '@/types/settings.types';
 
 export const SuperAdminSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { settings, saving, whatsappTemplates = [] } = useAppSelector((state) => state.settings);
+  const { settings, saving, whatsappTemplates = [], appVersions = [] } = useAppSelector((state) => state.settings);
 
   const [isTestWhatsAppOpen, setIsTestWhatsAppOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTabKey>('tenant-roles');
   const [localSettings, setLocalSettings] = useState<CampaignSettings | null>(null);
 
-  // Initial load for Master DB
+  // Initial load for Master DB & App Versions
   useEffect(() => {
     dispatch(fetchSuperAdminSettings());
+    dispatch(fetchSuperAdminAppVersions());
   }, [dispatch]);
 
   // Sync local draft settings with store
@@ -78,6 +81,13 @@ export const SuperAdminSettingsPage: React.FC = () => {
     return dispatch(syncSuperAdminMetaTemplates());
   }, [dispatch]);
 
+  const handleUpdateAppVersion = React.useCallback(
+    (idOrPlatform: string, payload: Partial<AppVersionConfig>) => {
+      return dispatch(updateSuperAdminAppVersionConfig(idOrPlatform, payload));
+    },
+    [dispatch]
+  );
+
   const handleSaveSettings = async () => {
     if (!localSettings) return;
     try {
@@ -93,6 +103,12 @@ export const SuperAdminSettingsPage: React.FC = () => {
       id: 'tenant-roles',
       label: 'Tenant Feature Packages',
       icon: Package,
+    },
+    {
+      id: 'app-versions',
+      label: 'App Force Update Control',
+      icon: Smartphone,
+      count: appVersions.length,
     },
     {
       id: 'whatsapp-templates',
@@ -126,14 +142,14 @@ export const SuperAdminSettingsPage: React.FC = () => {
                 Super Admin Master Settings
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Manage global tenant feature packages, master Meta Cloud API credentials, and default push settings
+                Manage global tenant feature packages, app version force updates, master Meta API credentials, and default push settings
               </p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          {activeTab !== 'tenant-roles' && (
+          {activeTab !== 'tenant-roles' && activeTab !== 'app-versions' && (
             <button
               type="button"
               onClick={handleSaveSettings}
@@ -157,7 +173,15 @@ export const SuperAdminSettingsPage: React.FC = () => {
         activeTab={activeTab}
         onTabChange={(tabId) => setActiveTab(tabId)}
         views={{
+          'user-roles': <TenantRoleManager />,
           'tenant-roles': <TenantRoleManager />,
+          'app-versions': (
+            <AppVersionSection
+              appVersions={appVersions}
+              saving={saving}
+              onUpdateVersion={handleUpdateAppVersion}
+            />
+          ),
           'whatsapp-templates': (
             <WhatsAppTemplatesSection
               onFetchTemplates={handleFetchTemplates}

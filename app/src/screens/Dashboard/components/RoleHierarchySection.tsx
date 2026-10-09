@@ -110,7 +110,7 @@ export const RoleHierarchySection: React.FC<RoleHierarchySectionProps> = ({
         },
       ]}
     >
-      <Text style={styles.headerActionText}>{t('viewTeam')}</Text>
+      {/* <Text style={styles.headerActionText}>{t('viewTeam')}</Text> */}
       <ChevronRight size={13} color="#2563EB" />
     </TouchableOpacity>
   ) : undefined;
@@ -118,12 +118,12 @@ export const RoleHierarchySection: React.FC<RoleHierarchySectionProps> = ({
   return (
     <SectionContainer
       title={t('roleHierarchy')}
+      rightElement={rightElement}
+      onPressHeader={onPressHeader}
+      contentStyle={{ paddingBottom: 5 }}
+      accentColor={theme.colors.primary || '#1E40AF'}
       subtitle={subtitle || t('roleHierarchySubtitle')}
       icon={<Shield size={18} color={theme.colors.primary || '#1E40AF'} />}
-      accentColor={theme.colors.primary || '#1E40AF'}
-      onPressHeader={onPressHeader}
-      rightElement={rightElement}
-      contentStyle={{ paddingBottom: 5 }}
     >
       <View style={styles.listContainer}>
         {cards.map((item, index) => {
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
@@ -191,17 +191,16 @@ const styles = StyleSheet.create({
     color: '#2563EB',
   },
   listContainer: {
-    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderRadius: 14,
     overflow: 'hidden',
+    borderColor: 'transparent',
   },
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 10,
-    paddingHorizontal: 6,
   },
   listItemLeft: {
     flexDirection: 'row',
@@ -212,7 +211,7 @@ const styles = StyleSheet.create({
   listIconBox: {
     width: 32,
     height: 32,
-    borderRadius: 12,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },

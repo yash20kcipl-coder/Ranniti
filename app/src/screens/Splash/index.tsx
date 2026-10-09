@@ -13,10 +13,10 @@ import { AppUpdateModal } from '../../components';
 import { SCREENS } from '../../navigation/constants';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
+import { replace } from '../../navigation/navigationUtils';
 import Storage, { STORAGE_KEYS } from '../../utils/storage';
 import { useVersionCheck } from '../../hooks/useVersionCheck';
 import { fetchProfileAndRoleAccessAction } from '../../store/actions/auth';
-import { replace, navigateToDashboard } from '../../navigation/navigationUtils';
 
 const MINIMUM_SPLASH_TIME_MS = 2200;
 
@@ -144,21 +144,20 @@ const Splash: React.FC = () => {
 
   useEffect(() => {
     // Wait until both version check and minimum splash timer finish
-    performNavigation();
-    // if (versionInfo.status === 'loading') return;
+    if (versionInfo.status === 'loading') return;
 
-    // const interval = setInterval(() => {
-    //   if (splashTimerFinished.current) {
-    //     clearInterval(interval);
-    //     if (versionInfo.status === 'force-update') {
-    //       // Force update modal stays up, stop automatic navigation
-    //       return;
-    //     } else {
-    //       // Proceed normally
-    //       performNavigation();
-    //     }
-    //   }
-    // }, 100);
+    const interval = setInterval(() => {
+      if (splashTimerFinished.current) {
+        clearInterval(interval);
+        if (versionInfo.status === 'force-update') {
+          // Force update modal stays up, stop automatic navigation
+          return;
+        } else {
+          // Proceed normally
+          performNavigation();
+        }
+      }
+    }, 100);
 
     // return () => clearInterval(interval);
   }, [versionInfo.status, auth]);
@@ -201,7 +200,7 @@ const Splash: React.FC = () => {
       {/* Footer Section */}
       <View style={styles.footerContainer}>
         <View style={styles.loadingRow}>
-          <Text style={styles.loadingText}>Initializing...</Text>
+          <Text style={styles.loadingText}>{t('initializing') || 'Initializing...'}</Text>
         </View>
 
         <View style={styles.versionPill}>

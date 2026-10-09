@@ -1,17 +1,20 @@
 import * as XLSX from 'xlsx';
 import { masterConfig } from '@/config/masterConfig';
+import { FailedRecordsModal } from './FailedRecordsModal';
+import type { ImportJob } from '@/redux/actions/importJobs';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { fetchJobStatus, dismissJob, executeJobCallback } from '@/redux/actions/importJobs';
-import { fetchVotersData, fetchVoterStats } from '@/redux/actions/voter';
-import { fetchSuperAdminMasterCategoryData } from '@/redux/actions/masterSuperAdmin';
-import { fetchTenantMasterCategoryData } from '@/redux/actions/masterTenant';
 import { TENANT_MASTER_ENDPOINTS } from '@/hooks/useTenantMasterData';
-import { Loader2, CheckCircle2, AlertCircle, X, ChevronDown, ChevronUp, Database, Download } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { fetchVotersData, fetchVoterStats } from '@/redux/actions/voter';
+import { fetchTenantMasterCategoryData } from '@/redux/actions/masterTenant';
+import { fetchSuperAdminMasterCategoryData } from '@/redux/actions/masterSuperAdmin';
+import { fetchJobStatus, dismissJob, executeJobCallback } from '@/redux/actions/importJobs';
+import { Loader2, CheckCircle2, AlertCircle, X, ChevronDown, ChevronUp, Database, Download, Eye } from 'lucide-react';
 
 export const BackgroundImportWidget: React.FC = () => {
   const dispatch = useAppDispatch();
   const [isMinimized, setIsMinimized] = useState(false);
+  const [selectedFailedJob, setSelectedFailedJob] = useState<ImportJob | null>(null);
   const refreshedJobsRef = useRef<Set<string>>(new Set());
   const autoDismissJobsRef = useRef<Set<string>>(new Set());
   const voterFilters = useAppSelector((state) => state.voter.filters);
@@ -217,23 +220,33 @@ export const BackgroundImportWidget: React.FC = () => {
                       </p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         {isFinished
-                          ? `${job.insertedCount || 0} inserted • ${job.failedCount || 0} failed`
+                          ? `${job.insertedCount || 0} inserted • ${job.failedCount || 0} failed • ⏱️ ${((job.durationMs || 0) / 1000).toFixed(1)}s (${job.recordsPerSecond || 0} rec/s)`
                           : isFailed
-                            ? job.errorMessage || 'Import failed'
-                            : `${job.processedRecords || 0} / ${job.totalRecords || '?'} records (${job.recordsPerSecond || 0} rec/s)`}
+                            ? `${job.errorMessage || 'Import failed'} • ⏱️ ${((job.durationMs || 0) / 1000).toFixed(1)}s`
+                            : `${job.processedRecords || 0} / ${job.totalRecords || '?'} records • ⏱️ ${((Date.now() - new Date(job.startedAt).getTime()) / 1000).toFixed(1)}s (${job.recordsPerSecond || 0} rec/s)`}
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      {/* Show Report button ONLY if there are import errors or issues */}
+                      {/* Show Report & Failed Records buttons if there are import errors or issues */}
                       {hasJobErrors && (
-                        <button
-                          type="button"
-                          onClick={() => downloadImportReport(job)}
-                          className="flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-white bg-amber-50 hover:bg-amber-100 dark:bg-amber-600/30 dark:hover:bg-amber-600/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-400/30 transition-colors cursor-pointer"
-                          title="Download Import Summary & Error Log (.XLSX)"
-                        >
-                          <Download className="w-3 h-3" /> Report
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFailedJob(job)}
+                            className="flex items-center gap-1 text-[11px] font-semibold text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-white bg-rose-50 hover:bg-rose-100 dark:bg-rose-600/30 dark:hover:bg-rose-600/50 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-400/30 transition-colors cursor-pointer"
+                            title="Inspect Missed and Failed Rows"
+                          >
+                            <Eye className="w-3 h-3" /> Failed ({job.failedCount || job.errors?.length || 0})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadImportReport(job)}
+                            className="flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-white bg-amber-50 hover:bg-amber-100 dark:bg-amber-600/30 dark:hover:bg-amber-600/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-400/30 transition-colors cursor-pointer"
+                            title="Download Import Summary & Error Log (.XLSX)"
+                          >
+                            <Download className="w-3 h-3" /> Report
+                          </button>
+                        </>
                       )}
                       {isFinished ? (
                         <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
@@ -277,6 +290,12 @@ export const BackgroundImportWidget: React.FC = () => {
           </div>
         )}
       </div>
+
+      <FailedRecordsModal
+        isOpen={!!selectedFailedJob}
+        onClose={() => setSelectedFailedJob(null)}
+        job={selectedFailedJob}
+      />
     </div>
   );
 };

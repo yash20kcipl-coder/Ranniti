@@ -33,6 +33,7 @@ import {
   WardsPage,
   PartiesPage,
   BoothsPage,
+  BulkUploadTestPage,
 } from '@/pages/super_admin/master';
 
 // Super Admin Settings Page
@@ -78,6 +79,8 @@ export const SuperAdminRoutes: React.FC = () => {
       <Route path="master/wards" element={<WardsPage />} />
       <Route path="master/parties" element={<PartiesPage />} />
       <Route path="master/booths" element={<BoothsPage />} />
+      <Route path="master/bulk-test" element={<BulkUploadTestPage />} />
+      <Route path="master/demo" element={<Navigate to="master/bulk-test" replace />} />
       <Route path="StateAssembly/*" element={<Navigate to="master/acs" replace />} />
 
       {/* Super Admin System Settings */}

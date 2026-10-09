@@ -1,17 +1,20 @@
 import { Platform } from 'react-native';
 import { useDispatch } from 'react-redux';
 import apiClient from '../api/apiClient';
-import appVersion, { isVersionLessThan } from '../utils/version';
 import Storage, { STORAGE_KEYS } from '../utils/storage';
 import { useState, useEffect, useCallback } from 'react';
 import { SET_APP_VERSION } from '../store/reducers/appVersion';
+import appVersion, { isVersionLessThan } from '../utils/version';
 
 export interface VersionStatus {
-  status: 'loading' | 'allowed' | 'force-update' | 'recommended-update';
+  status: 'loading' | 'allowed' | 'force-update' | 'recommended-update' | 'maintenance';
   storeUrl: string;
   latestVersion: string;
-  /** The version of the currently installed app (from version.ts) */
+  minVersion: string;
   currentVersion: string;
+  updateTitle?: string;
+  updateMessage?: string;
+  maintenanceMessage?: string;
 }
 
 /** Apply a version map to Redux, globalThis and AsyncStorage */
@@ -35,25 +38,26 @@ export const useVersionCheck = () => {
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
 
   // Current installed version from version.ts (the source of truth for this build)
-  const currentVersion: string = appVersion[platform] ?? '0.0.1';
+  const currentVersion: string = appVersion[platform] ?? '1.0.0';
 
   const [versionStatus, setVersionStatus] = useState<VersionStatus>({
     status: 'loading',
     storeUrl: '',
-    latestVersion: '',
+    latestVersion: currentVersion,
+    minVersion: currentVersion,
     currentVersion,
   });
 
   const checkVersion = useCallback(async () => {
     try {
-      // ── 1. Rehydrate from local storage first (so Splash shows a version immediately) ──
+      // ── 1. Rehydrate from local storage first ──
       const cached = await Storage.get(STORAGE_KEYS.APP_VERSION);
       if (cached && typeof cached === 'object') {
         dispatch({ type: SET_APP_VERSION, payload: cached });
         (globalThis as any).appVersion = cached;
       }
 
-      // ── 2. Fetch fresh data from the API ──
+      // ── 2. Fetch fresh data from backend public API ──
       const response = await apiClient.get('/app-versions');
 
       if (response.data?.success && Array.isArray(response.data.data)) {
@@ -63,10 +67,16 @@ export const useVersionCheck = () => {
         const versionMap: Record<string, any> = {};
         versionList.forEach((v) => {
           versionMap[v.platform] = {
+            id: v.id,
+            platform: v.platform,
             latestVersion: v.latestVersion,
             minVersion: v.minVersion,
             storeUrl: v.storeUrl,
             forceUpdate: v.forceUpdate,
+            updateTitle: v.updateTitle,
+            updateMessage: v.updateMessage,
+            maintenanceMode: v.maintenanceMode,
+            maintenanceMessage: v.maintenanceMessage,
           };
         });
 
@@ -75,33 +85,88 @@ export const useVersionCheck = () => {
 
         const platformConfig = versionMap[platform];
         if (platformConfig) {
-          const { minVersion, latestVersion, forceUpdate, storeUrl } = platformConfig;
+          const {
+            minVersion,
+            latestVersion,
+            forceUpdate,
+            storeUrl,
+            updateTitle,
+            updateMessage,
+            maintenanceMode,
+            maintenanceMessage,
+          } = platformConfig;
 
-          // Force update: installed version < minimum required version
-          if (forceUpdate && isVersionLessThan(currentVersion, minVersion)) {
-            setVersionStatus({ status: 'force-update', storeUrl, latestVersion, currentVersion });
+          // 1. Maintenance Mode
+          if (maintenanceMode) {
+            setVersionStatus({
+              status: 'maintenance',
+              storeUrl,
+              latestVersion,
+              minVersion,
+              currentVersion,
+              updateTitle,
+              updateMessage,
+              maintenanceMessage: maintenanceMessage || 'Ranniti is currently undergoing scheduled maintenance.',
+            });
             return;
           }
 
-          // Recommended update: installed version < latest version
-          if (isVersionLessThan(currentVersion, latestVersion)) {
-            setVersionStatus({ status: 'recommended-update', storeUrl, latestVersion, currentVersion });
+          // 2. Force Update (installed < minVersion OR global forceUpdate = true AND installed < latestVersion)
+          const isBelowMin = isVersionLessThan(currentVersion, minVersion);
+          const isBelowLatest = isVersionLessThan(currentVersion, latestVersion);
+
+          if (isBelowMin || (forceUpdate && isBelowLatest)) {
+            setVersionStatus({
+              status: 'force-update',
+              storeUrl,
+              latestVersion,
+              minVersion,
+              currentVersion,
+              updateTitle: updateTitle || 'App Update Required',
+              updateMessage,
+            });
+            return;
+          }
+
+          // 3. Recommended / Soft Update
+          if (isBelowLatest) {
+            setVersionStatus({
+              status: 'recommended-update',
+              storeUrl,
+              latestVersion,
+              minVersion,
+              currentVersion,
+              updateTitle: updateTitle || 'New Version Available',
+              updateMessage,
+            });
             return;
           }
         }
       }
 
-      setVersionStatus({ status: 'allowed', storeUrl: '', latestVersion: '', currentVersion });
+      setVersionStatus({
+        status: 'allowed',
+        storeUrl: '',
+        latestVersion: currentVersion,
+        minVersion: currentVersion,
+        currentVersion,
+      });
     } catch (error) {
       console.warn('⚠️ Version verification fetch failed:', error);
-      // Fail open — network issues must not block the app
-      setVersionStatus({ status: 'allowed', storeUrl: '', latestVersion: '', currentVersion });
+      // Fail open — network issues must not block app unless cached maintenance exists
+      setVersionStatus({
+        status: 'allowed',
+        storeUrl: '',
+        latestVersion: currentVersion,
+        minVersion: currentVersion,
+        currentVersion,
+      });
     }
   }, [dispatch, currentVersion, platform]);
 
-  // useEffect(() => {
-  //   checkVersion();
-  // }, [checkVersion]);
+  useEffect(() => {
+    checkVersion();
+  }, [checkVersion]);
 
   return { ...versionStatus, checkVersion };
 };

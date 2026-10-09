@@ -5,7 +5,6 @@ import {
 } from './components';
 import {
   VOLUNTEER_ROLE_OPTIONS,
-  STATUS_OPTIONS,
 } from '@/constants/dropdownOptions';
 import {
   fetchTenantVolunteers,

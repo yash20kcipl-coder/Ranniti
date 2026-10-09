@@ -97,13 +97,13 @@ export const AppTextInput: React.FC<AppTextInputProps> = ({
 const getStyles = (theme: Theme) => StyleSheet.create({
   container: {
     width: '100%',
-    marginBottom: theme.space.md,
+    marginBottom: 14,
   },
   label: {
-    fontSize: rfValue(15),
+    fontSize: rfValue(13.5),
     color: theme.colors.text,
-    marginBottom: theme.space.xs,
-    fontFamily: FontFamily.bodyBold,
+    marginBottom: 6,
+    fontFamily: FontFamily.bold,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -128,9 +128,9 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: FontFamily.body,
-    fontSize: rfValue(13.5),
+    fontSize: rfValue(15),
     color: theme.colors.text,
+    fontFamily: FontFamily.medium,
     paddingVertical: theme.space.sm,
   },
   errorText: {

@@ -1,11 +1,34 @@
+export const SET_MASTER_PCS = "SET_MASTER_PCS";
 export const SET_MASTER_ACS = "SET_MASTER_ACS";
 export const SET_MASTER_WARDS = "SET_MASTER_WARDS";
 export const SET_MASTER_CASTES = "SET_MASTER_CASTES";
 export const SET_MASTER_BOOTHS = "SET_MASTER_BOOTHS";
+export const SET_MASTER_STATES = "SET_MASTER_STATES";
 export const SET_MASTER_PARTIES = "SET_MASTER_PARTIES";
 export const SET_MASTER_LOADING = "SET_MASTER_LOADING";
 export const SET_BOOTHS_LOADING = "SET_BOOTHS_LOADING";
 export const SET_MASTER_RELIGIONS = "SET_MASTER_RELIGIONS";
+export const SET_MASTER_DISTRICTS = "SET_MASTER_DISTRICTS";
+export const SET_MASTER_TALUKAS = "SET_MASTER_TALUKAS";
+export const SET_MASTER_VILLAGES = "SET_MASTER_VILLAGES";
+
+export interface StateMasterItem {
+  id: string;
+  name: string;
+}
+
+export interface DistrictMasterItem {
+  id: string;
+  name: string;
+  stateId?: string;
+}
+
+export interface PcMasterItem {
+  id: string;
+  name: string;
+  pcNumber?: number;
+  stateId?: string;
+}
 
 export interface AcMasterItem {
   id: string;
@@ -13,6 +36,8 @@ export interface AcMasterItem {
   acNumber?: number;
   pcId?: string;
   pcName?: string;
+  districtId?: string;
+  stateId?: string;
 }
 
 export interface WardMasterItem {
@@ -47,26 +72,50 @@ export interface CasteMasterItem {
   name: string;
   category: string;
   religionId?: string;
+  parentCasteId?: string;
+}
+
+export interface TalukaMasterItem {
+  id: string;
+  name: string;
+  districtId?: string;
+}
+
+export interface VillageMasterItem {
+  id: string;
+  name: string;
+  talukaId?: string;
+  districtId?: string;
 }
 
 export interface MasterState {
+  states: StateMasterItem[];
+  districts: DistrictMasterItem[];
+  pcs: PcMasterItem[];
   acs: AcMasterItem[];
   wards: WardMasterItem[];
   booths: BoothMasterItem[];
   parties: PartyMasterItem[];
   religions: ReligionMasterItem[];
   castes: CasteMasterItem[];
+  talukas: TalukaMasterItem[];
+  villages: VillageMasterItem[];
   loading: boolean;
   boothsLoading: boolean;
 }
 
 const initialState: MasterState = {
+  states: [],
+  districts: [],
+  pcs: [],
   acs: [],
   wards: [],
   booths: [],
   parties: [],
   religions: [],
   castes: [],
+  talukas: [],
+  villages: [],
   loading: false,
   boothsLoading: false,
 };
@@ -113,6 +162,31 @@ const masterReducer = (state = initialState, action: any): MasterState => {
       return {
         ...state,
         castes: action.payload,
+      };
+    case SET_MASTER_STATES:
+      return {
+        ...state,
+        states: action.payload,
+      };
+    case SET_MASTER_DISTRICTS:
+      return {
+        ...state,
+        districts: action.payload,
+      };
+    case SET_MASTER_PCS:
+      return {
+        ...state,
+        pcs: action.payload,
+      };
+    case SET_MASTER_TALUKAS:
+      return {
+        ...state,
+        talukas: action.payload,
+      };
+    case SET_MASTER_VILLAGES:
+      return {
+        ...state,
+        villages: action.payload,
       };
     default:
       return state;

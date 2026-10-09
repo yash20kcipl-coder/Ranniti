@@ -1,17 +1,5 @@
-import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { PageHeader } from '@/components/common/PageHeader';
-import { DataTable, type Column } from '@/components/common/DataTable';
-import { TableActions } from '@/components/common/TableActions';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { ImportModal } from '@/components/common/ImportModal';
-import { FilterBar, type FilterField } from '@/components/common/FilterBar';
-import { exportToExcel, parseExcelFile } from '@/utils/exportImport';
-import { startBulkImportJob } from '@/redux/actions/importJobs';
 import { Vote } from 'lucide-react';
-import { useMasterData } from '@/hooks/useMasterData';
 import {
   fetchSuperAdminMasterCategoryData,
   createSuperAdminMasterCategoryItem,
@@ -19,32 +7,38 @@ import {
   deleteSuperAdminMasterCategoryItem,
   syncAllSuperAdminMasters,
 } from '@/redux/actions/masterSuperAdmin';
+import React, { useState, useMemo } from 'react';
+import { exportToExcel } from '@/utils/exportImport';
+import { useMasterData } from '@/hooks/useMasterData';
+import { PageHeader } from '@/components/common/PageHeader';
+import { ImportModal } from '@/components/common/ImportModal';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { TableActions } from '@/components/common/TableActions';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { BoothFormModal } from '@/components/common/master/form';
+import { startBulkImportFileJob } from '@/redux/actions/importJobs';
+import { DataTable, type Column } from '@/components/common/DataTable';
+import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
 export const BoothsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const {
-    wards: wardsData = [],
-    acs: acsData = [],
-    pcs: pcsData = [],
-    districts: districtsData = [],
-    states: statesData = [],
-  } = useMasterData(['wards', 'acs', 'pcs', 'districts', 'states']);
-  const boothsData = useAppSelector((state) => state.master.booths || []);
-  const boothsPagination = useAppSelector((state) => state.master.pagination?.booths);
-
   const [loading, setLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const boothsData = useAppSelector((state) => state.master.booths || []);
+  const boothsPagination = useAppSelector((state) => state.master.pagination?.booths);
+  const { wards: wardsData = [], acs: acsData = [], pcs: pcsData = [], districts: districtsData = [], states: statesData = [], }
+    = useMasterData(['wards', 'acs', 'pcs', 'districts', 'states']);
 
   // Pagination & Filter States
   const [page, setPage] = useState(1);
+  const [acId, setAcId] = useState('');
+  const [pcId, setPcId] = useState('');
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
+  const [wardId, setWardId] = useState('');
   const [stateId, setStateId] = useState('');
   const [districtId, setDistrictId] = useState('');
-  const [pcId, setPcId] = useState('');
-  const [acId, setAcId] = useState('');
-  const [wardId, setWardId] = useState('');
 
   // Modal States
   const [isDeleting, setIsDeleting] = useState(false);
@@ -219,6 +213,7 @@ export const BoothsPage: React.FC = () => {
   const columns: Column<any>[] = [
     { key: 'boothNumber', header: 'Booth No.', sortable: true },
     { key: 'name', header: 'Polling Station Name', sortable: true },
+    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => row.locationBuilding || '-' },
     { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => row.acName || '-' },
     { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => row.wardName || '-' },
     { key: 'totalVoters', header: 'Total Voters', sortable: true, render: (row) => row.totalVoters ?? 0 },
@@ -283,17 +278,12 @@ export const BoothsPage: React.FC = () => {
     toast.success('Booths exported successfully');
   };
 
-  const handleImport = async (file: File, parsedRecords?: Record<string, any>[], context?: Record<string, any>) => {
+  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
     try {
-      const records = parsedRecords && parsedRecords.length > 0 ? parsedRecords : await parseExcelFile(file);
-      if (!records.length) {
-        toast.error('The uploaded file contains no data');
-        return;
-      }
       await dispatch(
-        startBulkImportJob(
+        startBulkImportFileJob(
           'booths',
-          records,
+          file,
           () => {
             const params: Record<string, any> = { page, limit };
             if (stateId) params.stateId = stateId;
@@ -307,10 +297,10 @@ export const BoothsPage: React.FC = () => {
           context || { stateId, districtId, pcId, acId, wardId }
         )
       );
-      toast.success('Bulk import job queued for Booths!');
+      toast.success('Bulk import job started for Booths!');
       setIsImportModalOpen(false);
-    } catch {
-      toast.error('Failed to queue import');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start import');
     }
   };
 

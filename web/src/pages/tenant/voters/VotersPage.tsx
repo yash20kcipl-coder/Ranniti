@@ -201,8 +201,8 @@ export const VotersPage: React.FC = () => {
     } catch (_) { }
   };
 
-  const handleBulkImport = async (records: Record<string, any>[]) => {
-    await dispatch(importVotersData(records, getApiParams()));
+  const handleBulkImport = async (fileOrRecords: any, context?: Record<string, any>) => {
+    await dispatch(importVotersData(fileOrRecords, getApiParams(), context));
   };
 
   const handleExportVoters = () => {

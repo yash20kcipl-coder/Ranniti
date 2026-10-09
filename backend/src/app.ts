@@ -8,6 +8,7 @@ import compression from 'compression';
 import { ApiError } from './utils/apiError';
 import { fileUrlMiddleware } from './utils/fileUrl';
 import { errorHandler } from './middlewares/error.middleware';
+import { sanitizeMiddleware } from './middlewares/sanitize.middleware';
 import { responseTimeLogger } from './middlewares/responseTime.middleware';
 import express, { Express, Request, Response, NextFunction } from 'express';
 
@@ -43,6 +44,9 @@ export const createApp = (): Express => {
   // Body parser (configured with 50mb limit to handle bulk imports, voter profiles, and large payloads)
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+  // Global request sanitizer: strips HTML/script tags and prevents Stored XSS
+  app.use(sanitizeMiddleware);
 
   // File URL helper middleware & static uploads folder
   app.use(fileUrlMiddleware);

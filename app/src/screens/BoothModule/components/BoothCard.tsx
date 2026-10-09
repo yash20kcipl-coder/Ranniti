@@ -106,15 +106,12 @@ export const BoothCard: React.FC<BoothCardProps> = ({
                 {booth.acName}
               </Text>
             )}
-            {Boolean(booth.locationBuilding && (booth.wardNumber || booth.wardName || booth.acName)) && (
-              <Text style={[styles.dotSep, { color: textMuted }]}>•</Text>
-            )}
-            {Boolean(booth.locationBuilding) && (
-              <Text style={[styles.subInfoText, { color: textMuted }]} numberOfLines={1}>
-                {booth.locationBuilding}
-              </Text>
-            )}
           </View>
+          {Boolean(booth.locationBuilding) && (
+            <Text style={[styles.subInfoText, { color: textMuted }]} numberOfLines={1}>
+              {booth.locationBuilding}
+            </Text>
+          )}
         </View>
 
         <View style={styles.headerRight}>
@@ -378,8 +375,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   turnoutDot: {
-    width: 5,
-    height: 5,
+    width: 4,
+    height: 4,
     borderRadius: 2.5,
   },
   turnoutPillText: {

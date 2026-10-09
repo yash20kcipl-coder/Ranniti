@@ -7,8 +7,8 @@ export interface FamilyGroup {
   headName: string;
   headMobile: string;
   headEpic: string;
-  headPhoto: string;
-  address: string;
+  headPhoto?: string;
+  address?: string;
   totalMembers: number;
   members: Array<{
     id: string;
@@ -17,100 +17,26 @@ export interface FamilyGroup {
     age: number;
     gender: string;
     epicNo: string;
-    mobile: string;
+    mobile?: string;
     isVoted: boolean;
-    supportingParty: string;
+    supportingParty?: string;
   }>;
 }
 
-export const DEMO_FAMILIES: FamilyGroup[] = [
-  {
-    familyId: 'fam-01',
-    headName: 'Ramesh Kumar Sharma',
-    headMobile: '+919829012345',
-    headEpic: 'RJ14829102',
-    headPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    address: '142 Bapu Bazar, Johari Market, Jaipur',
-    totalMembers: 3,
-    members: [
-      {
-        id: 'voter-101',
-        name: 'Ramesh Kumar Sharma (Head)',
-        relation: 'Self',
-        age: 52,
-        gender: 'Male',
-        epicNo: 'RJ14829102',
-        mobile: '+919829012345',
-        isVoted: true,
-        supportingParty: 'Party A',
-      },
-      {
-        id: 'voter-102',
-        name: 'Sunita Sharma',
-        relation: 'Wife',
-        age: 48,
-        gender: 'Female',
-        epicNo: 'RJ14829103',
-        mobile: '+919829012346',
-        isVoted: true,
-        supportingParty: 'Party A',
-      },
-      {
-        id: 'voter-103',
-        name: 'Pankaj Sharma',
-        relation: 'Son',
-        age: 24,
-        gender: 'Male',
-        epicNo: 'RJ14829104',
-        mobile: '+919829012347',
-        isVoted: false,
-        supportingParty: 'Party A',
-      },
-    ],
-  },
-  {
-    familyId: 'fam-02',
-    headName: 'Mohammad Imran Khan',
-    headMobile: '+919829055443',
-    headEpic: 'RJ14930219',
-    headPhoto: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150',
-    address: 'Shop 88, Ramganj Circle, Jaipur',
-    totalMembers: 2,
-    members: [
-      {
-        id: 'voter-104',
-        name: 'Mohammad Imran Khan (Head)',
-        relation: 'Self',
-        age: 39,
-        gender: 'Male',
-        epicNo: 'RJ14930219',
-        mobile: '+919829055443',
-        isVoted: false,
-        supportingParty: 'Party B',
-      },
-      {
-        id: 'voter-104b',
-        name: 'Fatima Imran Khan',
-        relation: 'Wife',
-        age: 35,
-        gender: 'Female',
-        epicNo: 'RJ14930220',
-        mobile: '+919829055444',
-        isVoted: false,
-        supportingParty: 'Party B',
-      },
-    ],
-  },
-];
-
 interface FamilyState {
   families: FamilyGroup[];
+  totalFamilies: number;
+  totalMembers: number;
+  votedMembers: number;
   searchQuery: string;
   loading: boolean;
 }
 
 const initialState: FamilyState = {
-  families: DEMO_FAMILIES,
+  families: [],
+  totalFamilies: 0,
+  totalMembers: 0,
+  votedMembers: 0,
   searchQuery: '',
   loading: false,
 };
@@ -119,8 +45,42 @@ const familyMappingReducer = (state = initialState, action: any): FamilyState =>
   switch (action.type) {
     case SET_FAMILY_LOADING:
       return { ...state, loading: action.payload };
-    case SET_FAMILY_HEADS:
-      return { ...state, families: action.payload, loading: false };
+    case SET_FAMILY_HEADS: {
+      let families: FamilyGroup[] = [];
+      let totalFamilies = 0;
+
+      if (Array.isArray(action.payload)) {
+        families = action.payload;
+        totalFamilies = families.length;
+      } else if (action.payload && typeof action.payload === 'object') {
+        families = action.payload.families || [];
+        totalFamilies = action.payload.totalFamilies !== undefined ? action.payload.totalFamilies : families.length;
+      }
+
+      let totalMembers = 0;
+      let votedMembers = 0;
+
+      if (action.payload && typeof action.payload === 'object' && action.payload.totalMembers !== undefined) {
+        totalMembers = Number(action.payload.totalMembers);
+        votedMembers = Number(action.payload.votedMembers || 0);
+      } else {
+        families.forEach((fam) => {
+          totalMembers += Number(fam.totalMembers || fam.members?.length || 0);
+          (fam.members || []).forEach((mem) => {
+            if (mem.isVoted) votedMembers++;
+          });
+        });
+      }
+
+      return {
+        ...state,
+        families,
+        totalFamilies,
+        totalMembers,
+        votedMembers,
+        loading: false,
+      };
+    }
     default:
       return state;
   }

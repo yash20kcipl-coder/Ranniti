@@ -109,7 +109,7 @@ export const seedTenantUserRoles = async (): Promise<void> => {
         canViewVoter: true,
         canEditContact: false,
         canEditDemographics: false,
-        canEditInclination: true,
+        canEditInclination: false,
         canEditVoterStatus: false,
         canManageFamily: false,
         canExportData: false,

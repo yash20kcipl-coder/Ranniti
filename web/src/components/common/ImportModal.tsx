@@ -5,12 +5,12 @@ import type { MasterField } from '@/config/masterConfig';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { downloadSampleExcelTemplate } from '@/utils/exportImport';
 import { fetchTenantBoothOptions } from '@/redux/actions/voterTenant';
 import { fetchSuperAdminBoothOptions } from '@/redux/actions/voterSuperAdmin';
 import { useMasterData, type MasterCategoryKey } from '@/hooks/useMasterData';
-import { parseExcelFile, downloadSampleExcelTemplate } from '@/utils/exportImport';
 import { downloadSampleTemplate, startBulkImportFileJob } from '@/redux/actions/importJobs';
-import { Upload, Download, FileSpreadsheet, AlertCircle, Trash2, Loader2, SlidersHorizontal } from 'lucide-react';
+import { Upload, Download, FileSpreadsheet, AlertCircle, Trash2, SlidersHorizontal } from 'lucide-react';
 
 export interface ImportModalProps {
   isOpen: boolean;
@@ -19,7 +19,7 @@ export interface ImportModalProps {
   categoryKey?: string;
   sampleParams?: Record<string, any>;
   fields?: MasterField[];
-  onImport?: (records: Record<string, any>[], context?: Record<string, any>) => Promise<void>;
+  onImport?: (recordsOrFile: any, context?: Record<string, any>) => Promise<void>;
   onSubmit?: (file: File, records?: Record<string, any>[], context?: Record<string, any>) => Promise<void>;
 }
 
@@ -37,25 +37,20 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const user = useAppSelector((state) => state.auth.user);
   const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'super_admin';
 
-  const [isParsing, setIsParsing] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [parsedData, setParsedData] = useState<Record<string, any>[]>([]);
-  const [isLargeFile, setIsLargeFile] = useState(false);
-
-  /** Files over this threshold are uploaded raw to the server — no client-side parsing */
-  const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024; // 20 MB
 
   // Hierarchy Selection State for Dual-Mode (Scoped vs Generic)
-  const [stateId, setStateId] = useState<string>('');
-  const [districtId, setDistrictId] = useState<string>('');
-  const [talukaId, setTalukaId] = useState<string>('');
   const [pcId, setPcId] = useState<string>('');
   const [acId, setAcId] = useState<string>('');
+  const [wardId, setWardId] = useState<string>('');
   const [boothId, setBoothId] = useState<string>('');
-  const [boothOptions, setBoothOptions] = useState<{ value: string; label: string }[]>([]);
+  const [stateId, setStateId] = useState<string>('');
+  const [talukaId, setTalukaId] = useState<string>('');
   const [religionId, setReligionId] = useState<string>('');
+  const [districtId, setDistrictId] = useState<string>('');
+  const [boothOptions, setBoothOptions] = useState<{ value: string; label: string }[]>([]);
 
   // Sync initial scope from sampleParams when modal opens
   useEffect(() => {
@@ -65,6 +60,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       setTalukaId(sampleParams?.talukaId ? String(sampleParams.talukaId) : '');
       setPcId(sampleParams?.pcId ? String(sampleParams.pcId) : '');
       setAcId(sampleParams?.acId ? String(sampleParams.acId) : '');
+      setWardId(sampleParams?.wardId ? String(sampleParams.wardId) : '');
       setBoothId(sampleParams?.boothId ? String(sampleParams.boothId) : '');
       setReligionId(sampleParams?.religionId ? String(sampleParams.religionId) : '');
     }
@@ -85,11 +81,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         return ['states', 'districts', 'pcs'];
       case 'wards':
       case 'booths':
-        return ['pcs', 'acs'];
+        return ['pcs', 'acs', 'wards'];
       case 'castes':
         return ['religions'];
       case 'voters':
-        return ['states', 'districts', 'pcs', 'acs'];
+        return ['states', 'districts', 'pcs', 'acs', 'wards'];
       default:
         return [];
     }
@@ -101,6 +97,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     talukas: talukasData = [],
     pcs: pcsData = [],
     acs: acsData = [],
+    wards: wardsData = [],
     religions: religionsData = [],
   } = useMasterData(requiredCategories);
 
@@ -112,11 +109,15 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         return;
       }
       const fetchAction = isSuperAdmin ? fetchSuperAdminBoothOptions : fetchTenantBoothOptions;
-      dispatch(fetchAction({ acId, saveToStore: false }))
+      dispatch(fetchAction({ acId, wardId: wardId || undefined, saveToStore: false }))
         .then((options: any[]) => {
+          let filtered = options || [];
+          if (wardId) {
+            filtered = filtered.filter((b: any) => String(b.wardId) === String(wardId));
+          }
           setBoothOptions([
             { value: '', label: 'All Booths (Generic)' },
-            ...(options || []).map((b: any) => ({
+            ...filtered.map((b: any) => ({
               label: `Booth #${b.boothNumber || b.boothNo || b.id} - ${b.name || b.boothName || 'Station'}`,
               value: String(b.id),
             })),
@@ -127,7 +128,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         });
     },
     150,
-    [categoryKey, acId, isSuperAdmin, dispatch]
+    [categoryKey, acId, wardId, isSuperAdmin, dispatch]
   );
 
   // Dropdown options
@@ -183,6 +184,19 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     ...filteredAcs.map((a: any) => ({ value: String(a.id), label: a.name })),
   ], [filteredAcs]);
 
+  const filteredWards = useMemo(() => {
+    if (!acId) return wardsData;
+    return wardsData.filter((w: any) => String(w.acId) === String(acId));
+  }, [wardsData, acId]);
+
+  const wardOptions = useMemo(() => [
+    { value: '', label: 'All Wards (Generic)' },
+    ...filteredWards.map((w: any) => ({
+      value: String(w.id),
+      label: `${w.wardNumber ? `#${w.wardNumber} - ` : ''}${w.name}`,
+    })),
+  ], [filteredWards]);
+
   const religionOptions = useMemo(() => [
     { value: '', label: 'All Religions (Generic)' },
     ...religionsData.map((r: any) => ({ value: String(r.id), label: r.name })),
@@ -195,6 +209,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     setTalukaId('');
     setPcId('');
     setAcId('');
+    setWardId('');
     setBoothId('');
   };
 
@@ -202,6 +217,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     setDistrictId(val);
     setTalukaId('');
     setAcId('');
+    setWardId('');
     setBoothId('');
     if (!stateId && val) {
       const dist = districtsData.find((d: any) => String(d.id) === String(val));
@@ -223,6 +239,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const handlePcChange = (val: string) => {
     setPcId(val);
     setAcId('');
+    setWardId('');
     setBoothId('');
     if (!stateId && val) {
       const pc = pcsData.find((p: any) => String(p.id) === String(val));
@@ -232,6 +249,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
   const handleAcChange = (val: string) => {
     setAcId(val);
+    setWardId('');
     setBoothId('');
     if (val) {
       const ac = acsData.find((a: any) => String(a.id) === String(val));
@@ -239,6 +257,17 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         if (!pcId && ac.pcId) setPcId(String(ac.pcId));
         if (!districtId && ac.districtId) setDistrictId(String(ac.districtId));
         if (!stateId && ac.stateId) setStateId(String(ac.stateId));
+      }
+    }
+  };
+
+  const handleWardChange = (val: string) => {
+    setWardId(val);
+    setBoothId('');
+    if (val) {
+      const ward = wardsData.find((w: any) => String(w.id) === String(val));
+      if (ward) {
+        if (!acId && ward.acId) setAcId(String(ward.acId));
       }
     }
   };
@@ -253,12 +282,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     setTalukaId('');
     setPcId('');
     setAcId('');
+    setWardId('');
     setBoothId('');
     setReligionId('');
   };
 
   const hasSelectedScope = Boolean(
-    stateId || districtId || talukaId || pcId || acId || boothId || religionId
+    stateId || districtId || talukaId || pcId || acId || wardId || boothId || religionId
   );
 
   const activeContext = useMemo(() => {
@@ -268,10 +298,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     if (talukaId) ctx.talukaId = talukaId;
     if (pcId) ctx.pcId = pcId;
     if (acId) ctx.acId = acId;
+    if (wardId) ctx.wardId = wardId;
     if (boothId) ctx.boothId = boothId;
     if (religionId) ctx.religionId = religionId;
     return ctx;
-  }, [stateId, districtId, talukaId, pcId, acId, boothId, religionId]);
+  }, [stateId, districtId, talukaId, pcId, acId, wardId, boothId, religionId]);
 
   const hasScopeSelectors = Boolean(
     categoryKey &&
@@ -280,11 +311,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
   const handleReset = () => {
     setFile(null);
-    setParsedData([]);
     setErrorMsg(null);
-    setIsParsing(false);
     setIsSubmitting(false);
-    setIsLargeFile(false);
   };
 
   const handleModalClose = () => {
@@ -292,13 +320,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     onClose();
   };
 
-  const handleFileChange = async (selectedFile: File | null) => {
+  const handleFileChange = (selectedFile: File | null) => {
     if (!selectedFile) return;
 
     setFile(selectedFile);
     setErrorMsg(null);
-    setIsLargeFile(false);
-    setParsedData([]);
 
     const fileNameLower = selectedFile.name.toLowerCase();
     if (!fileNameLower.endsWith('.xlsx') && !fileNameLower.endsWith('.xls')) {
@@ -306,29 +332,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       return;
     }
 
-    // Large files: skip client-side parsing — backend will stream them
-    if (selectedFile.size > LARGE_FILE_THRESHOLD) {
-      setIsLargeFile(true);
-      toast.success(`Large file detected (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB) — will upload directly to server.`);
-      return;
-    }
-
-    setIsParsing(true);
-    try {
-      const records = await parseExcelFile(selectedFile);
-      if (records.length === 0) {
-        setErrorMsg('The selected Excel file contains no valid data rows.');
-        setParsedData([]);
-      } else {
-        setParsedData(records);
-        toast.success(`Successfully parsed ${records.length} records from ${selectedFile.name}`);
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to parse Excel file.');
-      setParsedData([]);
-    } finally {
-      setIsParsing(false);
-    }
+    const fileSizeMb = (selectedFile.size / (1024 * 1024)).toFixed(2);
+    toast.success(`Selected ${selectedFile.name} (${fileSizeMb} MB) ready for upload.`);
   };
 
   const handleDownloadTemplate = async () => {
@@ -364,24 +369,15 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       const mergedContext = { ...sampleParams, ...activeContext };
 
       if (onSubmit) {
-        await onSubmit(file, parsedData, mergedContext);
-      } else if (isLargeFile && categoryKey) {
-        // Large file path: upload raw file to backend streaming endpoint
+        await onSubmit(file, undefined, mergedContext);
+      } else if (categoryKey) {
         await dispatch(
           startBulkImportFileJob(categoryKey, file, undefined, mergedContext)
         );
-        toast.success('Large file upload started. Track progress in the import jobs panel.');
-        handleModalClose();
-        return;
       } else if (onImport) {
-        if (parsedData.length === 0) {
-          toast.error('No records available to import.');
-          setIsSubmitting(false);
-          return;
-        }
-        await onImport(parsedData, mergedContext);
+        await onImport(file as any, mergedContext);
       }
-      toast.success('Import completed successfully!');
+      toast.success('Bulk import initiated. Track live progress in the monitor panel.');
       handleModalClose();
     } catch (err: any) {
       toast.error(err.message || 'Import failed.');
@@ -412,7 +408,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       isOpen={isOpen}
       onClose={handleModalClose}
       onSubmit={handleSubmitImport}
-      submitText={isSubmitting ? 'Uploading...' : isLargeFile ? `Upload File (${file ? (file.size / 1024 / 1024).toFixed(1) : 0} MB)` : `Import ${parsedData.length} Records`}
+      submitText={isSubmitting ? 'Uploading...' : file ? `Upload & Import (${(file.size / 1024 / 1024).toFixed(1)} MB)` : 'Import Excel'}
     >
       <div className="space-y-4 text-left">
         {/* Top helper bar with download sample template */}
@@ -508,6 +504,19 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 />
               )}
 
+              {['voters', 'booths'].includes(categoryKey!) && (
+                <FormInput
+                  label="Ward / Prabhag"
+                  type="select"
+                  searchable
+                  value={wardId}
+                  onChange={(e) => handleWardChange(String(e.target.value))}
+                  options={wardOptions}
+                  placeholder={acId ? 'All Wards (Generic)' : 'Select AC First'}
+                  disabled={!acId}
+                />
+              )}
+
               {categoryKey === 'voters' && (
                 <FormInput
                   label="Polling Booth"
@@ -549,12 +558,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         )}
 
         {/* File Dropzone */}
-        {isParsing ? (
-          <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-emerald-500/50 rounded-2xl bg-emerald-50/40 dark:bg-slate-950/60">
-            <Loader2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400 animate-spin" />
-            <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-200">Parsing Excel spreadsheet...</p>
-          </div>
-        ) : !file ? (
+        {!file ? (
           <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl bg-slate-50 dark:bg-slate-950/60 hover:bg-slate-100/70 dark:hover:bg-slate-900/60 transition-all cursor-pointer group">
             <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-800 group-hover:scale-110 transition-transform">
               <Upload className="w-6 h-6" />
@@ -562,7 +566,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
               Click to select or drag and drop Excel file (.XLSX) here
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">.XLSX or .XLS — up to 200 MB (large files upload to server)</p>
+            <p className="text-[11px] text-slate-500 mt-1">.XLSX or .XLS — backend streams datasets up to 200 MB</p>
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -578,12 +582,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 <div>
                   <p className="text-xs font-semibold text-slate-900 dark:text-white">{file.name}</p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {(file.size / 1024 / 1024).toFixed(1)} MB •{' '}
-                    {isLargeFile ? (
-                      <span className="text-blue-500 font-semibold">Ready to upload to server ↑</span>
-                    ) : (
-                      `${parsedData.length} records parsed`
-                    )}
+                    {(file.size / 1024 / 1024).toFixed(2)} MB •{' '}
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Backend Streaming Ready</span>
                   </p>
                 </div>
               </div>

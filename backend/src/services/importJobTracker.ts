@@ -3,6 +3,7 @@ import { logger } from '../utils/logger';
 
 export interface ImportJobError {
   index: number;
+  row?: Record<string, any>;
   error: string;
 }
 
@@ -73,11 +74,16 @@ class ImportJobTrackerService {
     job.recordsPerSecond = elapsedSec > 0 ? Math.round(processedRecords / elapsedSec) : 0;
 
     if (errors.length > 0) {
-      job.errors = [...job.errors, ...errors].slice(0, 100);
+      job.errors = [...job.errors, ...errors].slice(0, 500);
     }
   }
 
-  completeJob(jobId: string, insertedCount?: number, failedCount?: number): void {
+  completeJob(
+    jobId: string,
+    insertedCount?: number,
+    failedCount?: number,
+    errors: ImportJobError[] = []
+  ): void {
     const job = this.jobs.get(jobId);
     if (!job) return;
 
@@ -89,8 +95,14 @@ class ImportJobTrackerService {
     job.progressPercent = 100;
     job.completedAt = new Date().toISOString();
     job.durationMs = Date.now() - new Date(job.startedAt).getTime();
+    if (job.durationMs > 0) {
+      job.recordsPerSecond = Math.round((job.processedRecords / (job.durationMs / 1000)));
+    }
+    if (errors.length > 0) {
+      job.errors = errors.slice(0, 500);
+    }
 
-    logger.info(`[ImportJobTracker] Job completed: ${jobId} (Inserted: ${job.insertedCount}, Failed: ${job.failedCount})`);
+    logger.info(`[ImportJobTracker] Job completed: ${jobId} (Inserted: ${job.insertedCount}, Failed: ${job.failedCount}, Duration: ${job.durationMs}ms)`);
   }
 
   failJob(jobId: string, errorMessage: string): void {

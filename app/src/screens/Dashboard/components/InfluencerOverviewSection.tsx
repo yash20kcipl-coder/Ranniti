@@ -6,7 +6,6 @@ import { FontFamily } from '../../../utils/typography';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { Sparkles, Users, PhoneCall } from 'lucide-react-native';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { getShadow } from '../../../utils/shadow';
 
 interface InfluencerOverviewSectionProps {
   influencers: {
@@ -95,12 +94,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   influencerBox: {
-    flex: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 10,
-    alignItems: 'center',
     gap: 6,
+    flex: 1,
+    padding: 10,
+    borderWidth: .5,
+    borderRadius: 10,
+    alignItems: 'center',
   },
   boxHeaderRow: {
     flexDirection: 'row',

@@ -92,7 +92,7 @@ export const splashStyles = (theme: Theme, insets: any) =>
     brandSub: {
       marginTop: 6,
       textAlign: 'center',
-      fontSize: rfValue(20),
+      fontSize: rfValue(18),
       fontFamily: FontFamily.medium,
       color: 'rgba(255, 255, 255, 1)',
     },

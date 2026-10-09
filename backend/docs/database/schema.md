@@ -31,7 +31,11 @@ For the complete multi-tenant database placement and deletion architecture, see 
 | **`tenant_roles`**                 | [`tenant_roles.md`](./tables/tenant_roles.md)                                 | Tier 1 Super Admin Tenant feature access packages & tab ceilings                           |
 | **`tenant_user_roles`**            | [`tenant_user_roles.md`](./tables/tenant_user_roles.md)                       | Tier 2 Tenant User Roles (PC/AC Leaders, Sub-Leaders, Supporters) & voter edit permissions |
 | **`tenant_sync_outbox`**           | [`tenant_sync_outbox.md`](./tables/tenant_sync_outbox.md)                     | Transactional outbox queue for resilient Tenant DB -> Master DB auto-updates               |
+| **`otp_verifications`**            | [`otp_verifications.md`](./tables/otp_verifications.md)                       | Mobile OTP authentication codes, rate limit tracking, attempts counter & expiration        |
 | **`audit_logs`**                   | [`audit_logs.md`](./tables/audit_logs.md)                                     | Security audit trail, administrative action tracking, and event logging                   |
+| **`bulk_upload_demos`**            | [`bulk_upload_demos.md`](./tables/bulk_upload_demos.md)                       | Dedicated sandbox and benchmark testing table for Super Admin bulk imports                 |
+| **`app_versions`**                 | [`app_versions.md`](./tables/app_versions.md)                                 | Mobile app version thresholds, store URLs, force update rules, and maintenance status      |
+
 
 
 ---

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { contactSupportStyles } from './styles';
+import { useLanguage } from '../../../languages';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../../hooks/useAppTheme';
@@ -10,6 +11,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { openEmailComposer, openPhoneDialer } from '../../../utils/linkingUtils';
 
 const ContactSupport = () => {
+  const { t } = useLanguage();
   const navigation = useNavigation();
   const { theme, styles } = useAppTheme<ReturnType<typeof contactSupportStyles>>(contactSupportStyles);
 
@@ -53,13 +55,13 @@ const ContactSupport = () => {
           <View style={styles.logoCircle}>
             <MaterialDesignIcons name="headset" size={56} color="#FFFFFF" />
           </View>
-          <Text style={styles.brandName}>Support Team</Text>
+          <Text style={styles.brandName}>{t('supportTeam') || 'Support Team'}</Text>
         </View>
 
         <View style={styles.bottomSection}>
-          <Text style={styles.welcomeTitle}>Contact Us</Text>
+          <Text style={styles.welcomeTitle}>{t('contactUs') || 'Contact Us'}</Text>
           <Text style={styles.welcomeSub}>
-            Having trouble logging in or resetting your password? Get in touch with our team directly.
+            {t('contactSupportDesc') || 'Having trouble logging in or resetting your password? Get in touch with our team directly.'}
           </Text>
 
           <View style={styles.contactContainer}>
@@ -67,7 +69,7 @@ const ContactSupport = () => {
               <View style={styles.iconContainer}>
                 <MaterialDesignIcons name="email-outline" size={32} color={theme.colors.primary} />
               </View>
-              <Text style={styles.contactLabel}>Email Us</Text>
+              <Text style={styles.contactLabel}>{t('emailUs') || 'Email Us'}</Text>
               {loading ? <ActivityIndicator size="small" color={theme.colors.primary} /> : <Text style={styles.contactValue}>{email}</Text>}
             </TouchableOpacity>
 
@@ -75,7 +77,7 @@ const ContactSupport = () => {
               <View style={styles.iconContainer}>
                 <MaterialDesignIcons name="phone-outline" size={32} color={theme.colors.primary} />
               </View>
-              <Text style={styles.contactLabel}>Call Us</Text>
+              <Text style={styles.contactLabel}>{t('callUs') || 'Call Us'}</Text>
               {loading ? <ActivityIndicator size="small" color={theme.colors.primary} /> : <Text style={styles.contactValue}>{phone}</Text>}
             </TouchableOpacity>
           </View>

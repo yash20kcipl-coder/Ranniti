@@ -88,7 +88,9 @@ export class AdminUserService {
          COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'ac_leader')::int AS "acLeadersCount",
          COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'sub_leader')::int AS "subLeadersCount",
          COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'supporter')::int AS "supportersCount",
-         COUNT(DISTINCT CASE WHEN u.role IN ('supporter', 'sub_leader') THEN uba.booth_id END)::int AS "coveredBooths"
+         COUNT(DISTINCT CASE WHEN u.role IN ('supporter', 'sub_leader') THEN uba.booth_id END)::int AS "coveredBooths",
+         COUNT(DISTINCT CASE WHEN u.role = 'supporter' THEN uba.booth_id END)::int AS "supporterCoveredBooths",
+         COUNT(DISTINCT CASE WHEN u.role = 'sub_leader' THEN uba.booth_id END)::int AS "wardCoveredBooths"
        FROM tenant_users u
        LEFT JOIN user_booth_assignments uba ON uba.user_id = u.id
        WHERE u.role IN ('pc_leader', 'ac_leader', 'sub_leader', 'supporter')`
@@ -104,7 +106,12 @@ export class AdminUserService {
 
     const row = cadreRes.rows[0] || {};
     const coveredBooths = row.coveredBooths || 0;
+    const supporterCoveredBooths = row.supporterCoveredBooths || 0;
+    const wardCoveredBooths = row.wardCoveredBooths || 0;
+
     const coveragePercentage = totalBooths > 0 ? Math.round((coveredBooths / totalBooths) * 100) : 0;
+    const supporterCoveragePercentage = totalBooths > 0 ? Math.round((supporterCoveredBooths / totalBooths) * 100) : 0;
+    const wardCoveragePercentage = totalBooths > 0 ? Math.round((wardCoveredBooths / totalBooths) * 100) : 0;
 
     return {
       totalCadre: row.totalCadre || 0,
@@ -114,7 +121,11 @@ export class AdminUserService {
       supportersCount: row.supportersCount || 0,
       totalBooths,
       coveredBooths,
+      supporterCoveredBooths,
+      wardCoveredBooths,
       coveragePercentage,
+      supporterCoveragePercentage,
+      wardCoveragePercentage,
     };
   }
 

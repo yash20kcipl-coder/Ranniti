@@ -151,11 +151,10 @@ const BoothGrid: React.FC<BoothGridProps> = ({
               <div
                 key={booth.id}
                 onClick={() => onToggle(booth.id)}
-                className={`p-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all flex items-start justify-between gap-2 ${
-                  isSelected
+                className={`p-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all flex items-start justify-between gap-2 ${isSelected
                     ? 'bg-indigo-50/90 dark:bg-indigo-950/70 border-indigo-400 dark:border-indigo-600 text-indigo-900 dark:text-indigo-200 font-semibold shadow-sm'
                     : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
-                }`}
+                  }`}
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -178,9 +177,8 @@ const BoothGrid: React.FC<BoothGridProps> = ({
                   )}
                 </div>
                 <div
-                  className={`w-4 h-4 rounded${singleSelect ? '-full' : ''} flex items-center justify-center text-white shrink-0 mt-0.5 ${
-                    isSelected ? 'bg-indigo-600' : 'border border-slate-300 dark:border-slate-600'
-                  }`}
+                  className={`w-4 h-4 rounded${singleSelect ? '-full' : ''} flex items-center justify-center text-white shrink-0 mt-0.5 ${isSelected ? 'bg-indigo-600' : 'border border-slate-300 dark:border-slate-600'
+                    }`}
                 >
                   {isSelected && <span className="text-[10px] font-bold">✓</span>}
                 </div>

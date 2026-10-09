@@ -1,17 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import toast from 'react-hot-toast';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { PageHeader } from '@/components/common/PageHeader';
-import { DataTable, type Column } from '@/components/common/DataTable';
-import { TableActions } from '@/components/common/TableActions';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { ImportModal } from '@/components/common/ImportModal';
-import { FilterBar, type FilterField } from '@/components/common/FilterBar';
-import { exportToExcel, parseExcelFile } from '@/utils/exportImport';
-import { startBulkImportJob } from '@/redux/actions/importJobs';
 import { Map } from 'lucide-react';
-import { useMasterData } from '@/hooks/useMasterData';
+import toast from 'react-hot-toast';
 import {
   fetchSuperAdminMasterCategoryData,
   createSuperAdminMasterCategoryItem,
@@ -19,7 +7,19 @@ import {
   deleteSuperAdminMasterCategoryItem,
   syncAllSuperAdminMasters,
 } from '@/redux/actions/masterSuperAdmin';
+import React, { useState, useMemo } from 'react';
+import { exportToExcel } from '@/utils/exportImport';
+import { useMasterData } from '@/hooks/useMasterData';
+import { PageHeader } from '@/components/common/PageHeader';
+import { ImportModal } from '@/components/common/ImportModal';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
+import { TableActions } from '@/components/common/TableActions';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { TalukaFormModal } from '@/components/common/master/form';
+import { startBulkImportFileJob } from '@/redux/actions/importJobs';
+import { DataTable, type Column } from '@/components/common/DataTable';
+import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
 export const TalukasPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -183,17 +183,12 @@ export const TalukasPage: React.FC = () => {
     toast.success('Talukas exported successfully');
   };
 
-  const handleImport = async (file: File, parsedRecords?: Record<string, any>[], context?: Record<string, any>) => {
+  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
     try {
-      const records = parsedRecords && parsedRecords.length > 0 ? parsedRecords : await parseExcelFile(file);
-      if (!records.length) {
-        toast.error('The uploaded file contains no data');
-        return;
-      }
       await dispatch(
-        startBulkImportJob(
+        startBulkImportFileJob(
           'talukas',
-          records,
+          file,
           () => {
             const params: Record<string, string> = {};
             if (stateId) params.stateId = stateId;
@@ -204,10 +199,10 @@ export const TalukasPage: React.FC = () => {
           context || { stateId, districtId }
         )
       );
-      toast.success('Bulk import job queued for Talukas!');
+      toast.success('Bulk import job started for Talukas!');
       setIsImportModalOpen(false);
-    } catch {
-      toast.error('Failed to queue import');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start import');
     }
   };
 

@@ -40,16 +40,16 @@ export const setMasterFetching = (category: string, isFetching: boolean) => ({
 
 const parseMasterData = (raw: any): any[] => {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    return raw.villages || raw.booths || raw.acs || raw.pcs || raw.wards || raw.talukas || raw.districts || raw.states || raw.castes || raw.religions || raw.parties || raw.data || [];
+    return raw.villages || raw.booths || raw.acs || raw.pcs || raw.wards || raw.talukas || raw.districts || raw.states || raw.castes || raw.religions || raw.parties || raw.records || raw.data || [];
   }
   return Array.isArray(raw) ? raw : [];
 };
 
 const getMasterEndpointData = async (endpoint: string, params?: Record<string, any>) => {
   const res = await api.get(endpoint, { params });
+  const pagination = res.data?.pagination || (res.data?.data && typeof res.data.data === 'object' && !Array.isArray(res.data.data) ? res.data.data.pagination : undefined);
   const raw = res.data?.data || res.data;
   const items = parseMasterData(raw);
-  const pagination = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw.pagination : undefined;
   return { items, pagination };
 };
 
@@ -342,3 +342,78 @@ export const updateSuperAdminBooth = (id: string, payload: Record<string, any>) 
 
 export const deleteSuperAdminBooth = (id: string) =>
   deleteSuperAdminMasterCategoryItem('booths', '/super-admin/masters/booths', id);
+
+// ─── BULK UPLOAD DEMO SANDBOX ──────────────────────────────────────────────
+export const fetchSuperAdminDemoRecords = (
+  params?: { page?: number; limit?: number; search?: string; batchId?: string },
+  showLoader = false
+) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setMasterFetching('demoRecords', true));
+    if (showLoader) {
+      dispatch(setMasterLoading(true));
+    }
+    try {
+      const res = await api.get('/super-admin/masters/bulk-import/demo/records', { params });
+      const raw = res.data?.data || res.data;
+      const pagination = raw?.pagination || res.data?.pagination;
+      const items = parseMasterData(raw);
+      dispatch(setMasterData('demoRecords', items, pagination));
+      return { items, pagination };
+    } catch (err) {
+      if (showLoader) {
+        dispatch(errorHandler(err));
+      }
+      throw err;
+    } finally {
+      dispatch(setMasterFetching('demoRecords', false));
+      if (showLoader) {
+        dispatch(setMasterLoading(false));
+      }
+    }
+  };
+};
+
+export const purgeSuperAdminDemoRecords = (batchId?: string) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setMasterLoading(true));
+    try {
+      const res = await api.delete('/super-admin/masters/bulk-import/demo/purge', {
+        params: batchId ? { batchId } : undefined,
+      });
+      // Refresh list
+      const fetchRes = await api.get('/super-admin/masters/bulk-import/demo/records');
+      const raw = fetchRes.data?.data || fetchRes.data;
+      const pagination = raw?.pagination || fetchRes.data?.pagination;
+      const items = parseMasterData(raw);
+      dispatch(setMasterData('demoRecords', items, pagination));
+      return res.data?.data || res.data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(setMasterLoading(false));
+    }
+  };
+};
+
+export const downloadSuperAdminDemoBenchmarkFile = (count = 1000, includeInvalid = true) => {
+  return async () => {
+    const res = await api.get('/super-admin/masters/bulk-import/demo/benchmark-file', {
+      params: { count, includeInvalid },
+      responseType: 'blob',
+    });
+    const blob = new Blob([res.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `demo_bulk_benchmark_${count}_rows.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    return res;
+  };
+};

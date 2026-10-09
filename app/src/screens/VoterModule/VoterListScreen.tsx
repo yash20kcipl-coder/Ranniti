@@ -2,6 +2,7 @@ import {
   MdFlatList,
   SearchHeaderWithFilter,
   Fab,
+  PartySelectModal,
 } from '../../components';
 import {
   fetchVotersAction,
@@ -10,6 +11,8 @@ import {
   updateVoterPartyAction,
   setVoterFiltersAction,
 } from '../../store/actions/voters';
+import { View } from 'react-native';
+import toast from '../../utils/toast';
 import { voterListStyles } from './styles';
 import { useLanguage } from '../../languages';
 import { RootState } from '../../store/store';
@@ -19,22 +22,24 @@ import VoterSkeleton from './components/VoterSkeleton';
 import { useSelector, useDispatch } from 'react-redux';
 import VoterFilterModal from './components/VoterFilterModal';
 import AppliedFiltersBar from './components/AppliedFiltersBar';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { hasVoterPermission } from '../../utils/permissionUtils';
 import VoterListEmptyState from './components/VoterListEmptyState';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
-import { fetchFilterMasterDataAction } from '../../store/actions/master';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-
-const PARTIES = ['Party A', 'Party B', 'Independent', 'Undecided'];
+import { fetchFilterMasterDataAction, fetchMasterPartiesAction } from '../../store/actions/master';
 
 export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
   const { t } = useLanguage();
   const dispatch = useDispatch<any>();
   const master = useSelector((state: RootState) => state.master);
+  const access = useSelector((state: RootState) => (state.auth as any)?.access);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const canCreateVoter = hasVoterPermission(access, 'canCreateVoter');
+  const canEditParty = hasVoterPermission(access, 'canEditInclination');
   const [partyModalVoterId, setPartyModalVoterId] = useState<string | null>(null);
-  const { theme, styles } = useAppTheme<ReturnType<typeof voterListStyles>>(voterListStyles);
+  const { styles } = useAppTheme<ReturnType<typeof voterListStyles>>(voterListStyles);
   const { voters, filters, loading, loadingMore, pagination } = useSelector((state: RootState) => state.voters);
+  const currentModalVoter = useMemo(() => voters.find((v) => v.id === partyModalVoterId), [voters, partyModalVoterId]);
 
   useEffect(() => {
     if (route?.params?.boothId) {
@@ -44,11 +49,15 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
 
   useDebouncedEffect(() => {
     dispatch(fetchFilterMasterDataAction());
-  }, [dispatch], 200);
+    if (!master.parties || master.parties.length === 0) {
+      dispatch(fetchMasterPartiesAction());
+    }
+  }, [dispatch, master.parties?.length], 200);
 
   const handleRefresh = useCallback(() => {
     dispatch(fetchVotersAction(1, false));
     dispatch(fetchFilterMasterDataAction());
+    dispatch(fetchMasterPartiesAction());
   }, [dispatch]);
 
   const handleLoadMore = useCallback(() => {
@@ -69,12 +78,16 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
   }, [dispatch, voters]);
 
   const handleOpenPartyModal = useCallback((voterId: string) => {
+    if (!canEditParty) {
+      toast.error(t('noPermissionEditParty') || 'You do not have permission to change political party support');
+      return;
+    }
     setPartyModalVoterId(voterId);
-  }, []);
+  }, [canEditParty, t]);
 
-  const handleSelectParty = (party: string) => {
+  const handleSelectParty = (partyId: string | null, partyName: string) => {
     if (partyModalVoterId) {
-      dispatch(updateVoterPartyAction(partyModalVoterId, party));
+      dispatch(updateVoterPartyAction(partyModalVoterId, partyId, partyName));
       setPartyModalVoterId(null);
     }
   };
@@ -135,10 +148,11 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
     <VoterCard
       t={t}
       voter={item}
+      canEditParty={canEditParty}
       onSelectParty={handleOpenPartyModal}
       onToggleVoted={handleToggleVoted}
     />
-  ), [handleOpenPartyModal, handleToggleVoted, t]);
+  ), [canEditParty, handleOpenPartyModal, handleToggleVoted, t]);
 
   const renderVoterSkeleton = useCallback(() => <VoterSkeleton />, []);
 
@@ -201,11 +215,13 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
       />
 
       {/* Reusable Common Floating Action Button */}
-      <Fab
-        size={20}
-        icon="plus"
-        onPress={() => navigation?.navigate('addeditvoter')}
-      />
+      {canCreateVoter && (
+        <Fab
+          size={20}
+          icon="plus"
+          onPress={() => navigation?.navigate('addeditvoter')}
+        />
+      )}
 
       {/* Search Filter Modal (uses AppModal) */}
       <VoterFilterModal
@@ -217,32 +233,16 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
         onDismiss={() => setIsFilterModalOpen(false)}
       />
 
-      {/* Supporting Party Modal Selector */}
-      <Modal
+      {/* Reusable Common Supporting Party Modal Selector */}
+      <PartySelectModal
+        canEdit={canEditParty}
+        onSelectParty={handleSelectParty}
         visible={Boolean(partyModalVoterId)}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPartyModalVoterId(null)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setPartyModalVoterId(null)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('supportingParty')}</Text>
-            {PARTIES.map((party) => (
-              <TouchableOpacity
-                key={party}
-                style={styles.partyOption}
-                onPress={() => handleSelectParty(party)}
-              >
-                <Text style={styles.partyOptionText}>{party}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setPartyModalVoterId(null)}
+        currentPartyId={currentModalVoter?.partyId}
+        currentPartyName={currentModalVoter?.supportingParty}
+        voterName={currentModalVoter ? (currentModalVoter.name || currentModalVoter.englishName) : undefined}
+      />
     </View>
   );
 };

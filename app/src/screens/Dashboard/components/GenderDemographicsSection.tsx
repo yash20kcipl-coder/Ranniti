@@ -173,7 +173,7 @@ export const GenderDemographicsSection: React.FC<GenderDemographicsProps> = memo
             {/* Donut Hole Overlay */}
             <View style={styles.donutCenter}>
               <Text style={styles.donutCenterValue}>{totalAgeVoters.toLocaleString()}</Text>
-              <Text style={styles.donutCenterLabel}>Total</Text>
+              <Text style={styles.donutCenterLabel}>{t('total') || 'Total'}</Text>
             </View>
           </View>
         </TouchableOpacity>
