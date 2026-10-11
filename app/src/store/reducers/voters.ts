@@ -45,6 +45,8 @@ export interface Voter {
   boothId?: string;
   acId?: string;
   pcId?: string;
+  stateId?: string;
+  districtId?: string;
   serialNo: number;
   sectionNo?: string | number;
   houseNo?: string;
@@ -59,6 +61,8 @@ export interface Voter {
   stateName?: string;
 
   // Socio-demographics
+  religionId?: string;
+  casteId?: string;
   casteName?: string;
   subcasteName?: string;
   religionName?: string;

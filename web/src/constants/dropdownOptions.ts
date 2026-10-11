@@ -123,4 +123,20 @@ export const SUBORDINATE_ROLE_DELEGATION_OPTIONS = [
   { key: 'supporter', label: 'Campaign Supporter / Volunteer', desc: 'Can perform ground surveys and booth voter lookups' },
 ];
 
+export const RELATION_OPTIONS: Option[] = [
+  { label: 'All Relations', value: '' },
+  { label: 'Father', value: 'Father' },
+  { label: 'Husband', value: 'Husband' },
+  { label: 'Mother', value: 'Mother' },
+  { label: 'Other', value: 'Other' },
+];
+
+export const FORM_RELATION_OPTIONS: Option[] = [
+  { label: 'Select Relation', value: '' },
+  { label: 'Father', value: 'Father' },
+  { label: 'Husband', value: 'Husband' },
+  { label: 'Mother', value: 'Mother' },
+  { label: 'Other', value: 'Other' },
+];
+
 

@@ -13,11 +13,11 @@ import {
   withSpring,
 } from 'react-native-reanimated';
 import React, { useState } from 'react';
-import { MaterialDesignIcons } from './MaterialDesignIcons';
-import { useAppTheme } from '../hooks/useAppTheme';
+import { Theme } from '../constants/theme';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
-import { Theme } from '../constants/theme';
+import { useAppTheme } from '../hooks/useAppTheme';
+import { MaterialDesignIcons } from './MaterialDesignIcons';
 
 export interface AppTextInputProps extends TextInputProps {
   label?: string;

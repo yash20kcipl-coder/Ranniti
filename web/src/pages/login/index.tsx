@@ -5,7 +5,7 @@ import { useAppDispatch } from '@/redux/hooks';
 import { loginUser } from '@/redux/actions/auth';
 import { FormInput } from '@/components/common/FormInput';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
-import { BarChart3, Users2, Lock, Mail, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { BarChart3, Users2, Lock, Mail, Loader2, CheckCircle2 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -58,10 +58,6 @@ export const LoginPage: React.FC = () => {
         {/* Login Form Container */}
         <div className="my-auto py-6 sm:py-8 max-w-md w-full mx-auto space-y-6 sm:space-y-7">
           <div className="text-left space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-full text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-              <Sparkles size={14} />
-              <span>Admin Access Portal</span>
-            </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Sign In to Dashboard</h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Manage campaign strategies, booth intelligence, and voters master data.</p>
           </div>
@@ -109,7 +105,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
+              className="w-full py-2.5 px-6 rounded-md bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-[12px] shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
             >
               {loading ? (
                 <>

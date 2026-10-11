@@ -61,6 +61,98 @@ export class MobileVoterController {
     res.status(response.statusCode).json(response.body);
   });
 
+  getFamilyCandidates = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const user = req.mobileUser!;
+    const params = {
+      influencerId: req.query.influencerId as string,
+      boothId: req.query.boothId as string,
+      search: req.query.search as string,
+      houseNo: req.query.houseNo as string,
+      sameHouseOnly: req.query.sameHouseOnly as string,
+      sameSurnameOnly: req.query.sameSurnameOnly as string,
+      unassignedOnly: req.query.unassignedOnly as string,
+      sectionNo: req.query.sectionNo ? Number(req.query.sectionNo) : undefined,
+      gender: req.query.gender as string,
+      page: req.query.page ? Number(req.query.page) : 1,
+      limit: req.query.limit ? Number(req.query.limit) : 10,
+    };
+
+    const result = await mobileVoterService.getFamilyCandidates(user, params);
+    const transformedCandidates = attachFileUrls(result.data, ['avatar'], req);
+    const transformedInfluencer = result.influencer
+      ? attachFileUrls([result.influencer], ['avatar'], req)[0]
+      : null;
+
+    const response = ApiResponse.success(
+      {
+        voters: transformedCandidates,
+        pagination: {
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: result.totalPages,
+        },
+        influencer: transformedInfluencer,
+      },
+      'Family candidates retrieved successfully'
+    );
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getSocialCandidates = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const user = req.mobileUser!;
+    const params = {
+      influencerId: req.query.influencerId as string,
+      boothId: req.query.boothId as string,
+      search: req.query.search as string,
+      sectionNo: req.query.sectionNo ? Number(req.query.sectionNo) : undefined,
+      gender: req.query.gender as string,
+      voterType: req.query.voterType as string,
+      casteId: req.query.casteId as string,
+      unassignedOnly: req.query.unassignedOnly as string,
+      page: req.query.page ? Number(req.query.page) : 1,
+      limit: req.query.limit ? Number(req.query.limit) : 10,
+    };
+
+    const result = await mobileVoterService.getSocialCandidates(user, params);
+    const transformedCandidates = attachFileUrls(result.data, ['avatar'], req);
+    const transformedInfluencer = result.influencer
+      ? attachFileUrls([result.influencer], ['avatar'], req)[0]
+      : null;
+
+    const response = ApiResponse.success(
+      {
+        voters: transformedCandidates,
+        pagination: {
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: result.totalPages,
+        },
+        influencer: transformedInfluencer,
+      },
+      'Social candidates retrieved successfully'
+    );
+    res.status(response.statusCode).json(response.body);
+  });
+
+  bulkAssignInfluencer = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const user = req.mobileUser!;
+    const { influencerId, influencerType, voterIds } = req.body;
+
+    const count = await mobileVoterService.bulkAssignInfluencer(user, {
+      influencerId,
+      influencerType,
+      voterIds,
+    });
+
+    const response = ApiResponse.success(
+      { updatedCount: count },
+      `${count} voters successfully linked to influencer`
+    );
+    res.status(response.statusCode).json(response.body);
+  });
+
   getVoterById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const voterId = req.params.id as string;
     const user = req.mobileUser!;

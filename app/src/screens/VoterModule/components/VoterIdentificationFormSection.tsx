@@ -9,6 +9,12 @@ import { AttachmentPickerModal } from '../../../components/AttachmentPickerModal
 import { FontFamily } from '../../../utils/typography';
 import { rfValue } from '../../../utils/responsive';
 import { Theme } from '../../../constants/theme';
+import {
+  FORM_GENDER_OPTIONS,
+  FORM_BLOOD_GROUP_OPTIONS,
+  getStatusOptions,
+  getVoterTypeOptions,
+} from '../../../constants/dropdownOptions';
 
 interface VoterIdentificationFormSectionProps {
   formData: any;
@@ -20,35 +26,6 @@ interface VoterIdentificationFormSectionProps {
   canEditVoterStatus: boolean;
   canEditInclination: boolean;
 }
-
-const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
-
-const BLOOD_GROUPS: DropdownOption[] = [
-  { id: 'A+', label: 'A+' },
-  { id: 'A-', label: 'A-' },
-  { id: 'B+', label: 'B+' },
-  { id: 'B-', label: 'B-' },
-  { id: 'O+', label: 'O+' },
-  { id: 'O-', label: 'O-' },
-  { id: 'AB+', label: 'AB+' },
-  { id: 'AB-', label: 'AB-' },
-];
-
-const STATUS_LIST: DropdownOption[] = [
-  { id: 'ACTIVE', label: 'ACTIVE' },
-  { id: 'INACTIVE', label: 'INACTIVE' },
-  { id: 'SHIFTED', label: 'SHIFTED' },
-  { id: 'DELETED', label: 'DELETED' },
-];
-
-const INCLINATION_LIST: DropdownOption[] = [
-  { id: 'Voter', label: 'Voter' },
-  { id: 'Core Supporter', label: 'Core Supporter' },
-  { id: 'Leaning', label: 'Leaning' },
-  { id: 'Neutral', label: 'Neutral' },
-  { id: 'Opposition', label: 'Opposition' },
-  { id: 'Hardcore Opposition', label: 'Hardcore Opposition' },
-];
 
 export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSectionProps> = ({
   formData,
@@ -63,27 +40,8 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
-  const statusOptions: DropdownOption[] = React.useMemo(
-    () => [
-      { id: 'ACTIVE', label: t('statusActive') },
-      { id: 'INACTIVE', label: t('statusInactive') },
-      { id: 'SHIFTED', label: t('statusShifted') },
-      { id: 'DELETED', label: t('statusDeleted') },
-    ],
-    [t]
-  );
-
-  const inclinationOptions: DropdownOption[] = React.useMemo(
-    () => [
-      { id: 'Voter', label: t('voterTypeVoter') },
-      { id: 'Core Supporter', label: t('voterTypeCore') },
-      { id: 'Leaning', label: t('voterTypeLeaning') },
-      { id: 'Neutral', label: t('voterTypeNeutral') },
-      { id: 'Opposition', label: t('voterTypeOpposition') },
-      { id: 'Hardcore Opposition', label: t('voterTypeHardcoreOpposition') },
-    ],
-    [t]
-  );
+  const statusOptions = React.useMemo(() => getStatusOptions(t), [t]);
+  const voterTypeOptions = React.useMemo(() => getVoterTypeOptions(t), [t]);
 
   const calculateAge = (dobString: string): number | null => {
     if (!dobString) return null;
@@ -105,7 +63,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
     setFormData((prev: any) => ({
       ...prev,
       dob: dateStr,
-      age: age !== null ? String(age) : prev.age,
+      age: age !== null ? String(age) : '',
     }));
   };
 
@@ -188,7 +146,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
         <View style={styles.row}>
           <View style={styles.flex1}>
             <AppTextInput
-              label={`${t('firstNameEng')} *`}
+              label={`${t('firstNameEng')}`}
               placeholder="First Name"
               value={formData.engFirstName}
               editable={canEditDemographics}
@@ -252,7 +210,8 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
         <View style={styles.fieldBlock}>
           <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>{t('gender')}</Text>
           <View style={[styles.pillRow, !canEditDemographics && { opacity: 0.6 }]}>
-            {GENDER_OPTIONS.map((g) => {
+            {FORM_GENDER_OPTIONS.map((gOpt) => {
+              const g = gOpt.id;
               const isSelected = formData.gender === g;
               const genderLabel = g === 'Female' ? t('female') : g === 'Male' ? t('male') : t('other');
               return (
@@ -292,7 +251,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
         </View>
       </View>
 
-      {/* Date of Birth & Age */}
+      {/* Date of Birth & Auto-calculated Age */}
       <View style={styles.row}>
         <View style={styles.flex1}>
           <TouchableOpacity
@@ -313,22 +272,25 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
 
         <View style={styles.flex1}>
           <AppTextInput
-            label={t('age')}
-            placeholder="e.g. 42"
-            value={formData.age ? String(formData.age) : ''}
-            keyboardType="numeric"
-            editable={canEditDemographics}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, age: val }))}
-            icon="numeric"
+            label={`${t('age')} (${t('calculated') || 'Calculated'})`}
+            placeholder="—"
+            value={formData.age ? `${formData.age} ${t('years') || 'yrs'}` : ''}
+            editable={false}
+            icon="calculator-variant-outline"
             containerStyle={{ marginBottom: 0 }}
           />
         </View>
       </View>
+      <Text style={[styles.ageHelperText, { color: theme.colors.textSecondary }]}>
+        {formData.age
+          ? `${t('autoCalculatedAge') || 'Auto-calculated Age'}: ${formData.age} ${t('years') || 'yrs'}`
+          : (t('ageCalculatedAuto') || 'Age is calculated automatically from Date of Birth')}
+      </Text>
 
       {/* Blood Group */}
       <AppDropdown
         icon="water-outline"
-        options={BLOOD_GROUPS}
+        options={FORM_BLOOD_GROUP_OPTIONS}
         label={t('bloodGroup')}
         value={formData.bloodGroup}
         disabled={!canEditDemographics}
@@ -336,27 +298,20 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
         onSelect={(val) => setFormData((prev: any) => ({ ...prev, bloodGroup: val }))}
       />
 
-      {/* Status & Living Status */}
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <AppDropdown
-            icon="account-check-outline"
-            options={statusOptions}
-            value={formData.status}
-            label={t('selectStatus')}
-            disabled={!canEditVoterStatus}
-            placeholder={t('selectStatus')}
-            onSelect={(val) => setFormData((prev: any) => ({ ...prev, status: val }))}
-          />
-        </View>
-
-      </View>
-
-      {/* Voter Type / Inclination */}
+      {/* Status */}
       <AppDropdown
-        icon="bullseye-arrow"
+        options={statusOptions}
+        value={formData.status}
+        label={t('selectStatus')}
+        disabled={!canEditVoterStatus}
+        placeholder={t('selectStatus')}
+        onSelect={(val) => setFormData((prev: any) => ({ ...prev, status: val }))}
+      />
+
+      {/* Voter Type */}
+      <AppDropdown
         value={formData.voterType}
-        options={inclinationOptions}
+        options={voterTypeOptions}
         label={t('selectVoterType')}
         disabled={!canEditInclination}
         placeholder={t('selectVoterType')}
@@ -506,5 +461,12 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontFamily: FontFamily.bold,
     fontSize: rfValue(12.5),
+  },
+  ageHelperText: {
+    fontSize: rfValue(11),
+    fontFamily: FontFamily.medium,
+    marginTop: -4,
+    marginBottom: 4,
+    paddingHorizontal: 2,
   },
 });

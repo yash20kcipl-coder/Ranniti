@@ -93,13 +93,13 @@ export const VoterAffinitySection: React.FC<VoterAffinitySectionProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Political View Tile */}
+        {/* Political Party View Tile */}
         <View style={[styles.tile, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
-          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{t('politicalView')}</Text>
+          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{t('politicalPartyPreference') || 'Party Preference'}</Text>
           <View style={[styles.viewPill, { borderColor: '#CBD5E1', backgroundColor: '#FFFFFF' }]}>
-            <MaterialDesignIcons name="chart-bubble" size={13} color="#475569" />
+            <MaterialDesignIcons name="flag-outline" size={13} color="#475569" />
             <Text style={styles.viewText}>
-              {voter.politicalView || voter.voterType || 'Pending'}
+              {voter.partyName || voter.partyId || 'Uncommitted'}
             </Text>
           </View>
         </View>

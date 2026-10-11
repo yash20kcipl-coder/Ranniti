@@ -1,6 +1,6 @@
 import { logger } from '../../utils/logger';
+import { TenantPoolManager } from '../pool/tenantPoolManager';
 import { dbPool, query as executeMasterQuery } from '../../queries/dbPool';
-import { TenantPoolManager } from '../../utils/tenantPoolManager';
 import { Voter, AutoMapFamiliesParams, AutoMapFamiliesResult } from '../../models/voter.model';
 
 async function executeFamilyQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
@@ -259,7 +259,7 @@ export class FamilyMappingService {
         v.mobile_no AS "mobileNo",
         v.voter_address AS "voterAddress",
         v.party_id AS "partyId",
-        v.voter_type AS "voterType",
+        NULL::text AS "voterType",
         v.is_family_influencer AS "isFamilyInfluencer",
         v.family_influencer_id AS "familyInfluencerId",
         v.family_id AS "familyId",
@@ -642,7 +642,7 @@ export class FamilyMappingService {
         v.avatar,
         v.voter_address AS "voterAddress",
         v.full_address AS "fullAddress",
-        v.voter_type AS "voterType",
+        NULL::text AS "voterType",
         v.party_id AS "partyId",
         p.name AS "partyName",
         p.symbol_logo AS "partySymbol",
@@ -679,7 +679,7 @@ export class FamilyMappingService {
         v.mobile_no AS "mobileNo",
         v.avatar,
         v.voter_address AS "voterAddress",
-        v.voter_type AS "voterType",
+        NULL::text AS "voterType",
         v.party_id AS "partyId",
         p.name AS "partyName",
         p.symbol_logo AS "partySymbol",

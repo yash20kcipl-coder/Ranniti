@@ -14,19 +14,54 @@ import type { PushTriggerConfig } from '@/types/settings.types';
 interface NotificationTriggersCardProps {
   triggers: PushTriggerConfig;
   onChange: (updatedTriggers: PushTriggerConfig) => void;
+  loading?: boolean;
 }
 
 export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> = ({
   triggers,
   onChange,
+  loading = false,
 }) => {
+  if (loading) {
+    return (
+      <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5 animate-pulse">
+        <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-800 shrink-0" />
+          <div className="space-y-2">
+            <div className="h-4 w-52 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="h-3 w-72 bg-slate-200 dark:bg-slate-800 rounded" />
+          </div>
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 flex items-center justify-between gap-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <div className="h-4 w-44 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-64 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+              </div>
+              <div className="w-11 h-6 rounded-full bg-slate-200 dark:bg-slate-700 shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const safeTriggers: PushTriggerConfig = triggers || {
     dailyBriefing: false,
     briefingTime: '07:00',
-    surveyMilestone: false,
-    voterTurnoutAlert: false,
-    turnoutThreshold: 50,
-    emergencyBroadcast: true,
+    surveyMilestones: false,
+    pollDayTurnout: false,
+    urgentBroadcasts: false,
+    quietHoursEnabled: false,
+    quietHoursStart: '22:00',
+    quietHoursEnd: '06:30',
   };
 
   const updateTrigger = (field: keyof PushTriggerConfig, value: any) => {
@@ -34,10 +69,10 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
   };
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5">
+    <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-        <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
+        <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
           <BellRing className="w-5 h-5" />
         </div>
         <div>
@@ -52,7 +87,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
 
       <div className="space-y-4">
         {/* Trigger 1: Daily Booth Briefing */}
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mt-0.5">
               <CalendarCheck className="w-4 h-4" />
@@ -95,7 +130,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
         </div>
 
         {/* Trigger 2: Voter Survey Milestones */}
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mt-0.5">
               <Flag className="w-4 h-4" />
@@ -126,7 +161,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
         </div>
 
         {/* Trigger 3: Election Day Hourly Turnout */}
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 mt-0.5">
               <Vote className="w-4 h-4" />
@@ -157,7 +192,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
         </div>
 
         {/* Trigger 4: Urgent War Room Broadcasts */}
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 mt-0.5">
               <AlertOctagon className="w-4 h-4" />
@@ -188,7 +223,7 @@ export const NotificationTriggersCard: React.FC<NotificationTriggersCardProps> =
         </div>
 
         {/* Delivery Control: Quiet Hours (DND) */}
-        <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 space-y-3">
+        <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 mt-0.5">

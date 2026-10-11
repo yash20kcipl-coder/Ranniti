@@ -13,11 +13,18 @@ export class MasterAutoSyncService {
     entityId: string,
     action: 'CREATE' | 'UPDATE' | 'DELETE',
     payload: Record<string, any>,
-    isRetry = false
+    isRetry = false,
+    origin: 'tenant' | 'master' = 'tenant'
   ): Promise<boolean> {
+    if (origin === 'master') {
+      logger.info(`[MasterAutoSync] Skipping sync for ${entityType} (${entityId}) - originated from Master DB (anti-echo).`);
+      return true;
+    }
+
     try {
       let sql = '';
       let params: any[] = [];
+      const timestamp = payload.updatedAt || payload.updated_at || new Date();
 
       if (action === 'DELETE') {
         if (entityType === 'ac') {
@@ -33,41 +40,45 @@ export class MasterAutoSyncService {
       } else if (entityType === 'ac') {
         sql = `
           INSERT INTO assembly_constituencies (id, ac_number, name, district_id, pc_id, created_at, updated_at)
-          VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, $5, NOW(), $6)
           ON CONFLICT (id) DO UPDATE SET
             ac_number = EXCLUDED.ac_number,
             name = EXCLUDED.name,
             district_id = COALESCE(EXCLUDED.district_id, assembly_constituencies.district_id),
             pc_id = COALESCE(EXCLUDED.pc_id, assembly_constituencies.pc_id),
-            updated_at = NOW();
+            updated_at = EXCLUDED.updated_at
+          WHERE assembly_constituencies.updated_at IS NULL OR EXCLUDED.updated_at >= assembly_constituencies.updated_at;
         `;
         params = [
           entityId || payload.id,
-          payload.acNumber ?? payload.acNo ?? 1,
-          payload.name || payload.acName || 'Unnamed AC',
-          payload.districtId || null,
-          payload.pcId || null,
+          payload.acNumber ?? payload.acNo ?? payload.ac_number ?? 1,
+          payload.name || payload.acName || payload.ac_name || 'Unnamed AC',
+          payload.districtId || payload.district_id || null,
+          payload.pcId || payload.pc_id || null,
+          timestamp,
         ];
       } else if (entityType === 'ward') {
         sql = `
           INSERT INTO wards (id, ward_number, name, ac_id, created_at, updated_at)
-          VALUES ($1, $2, $3, $4, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, NOW(), $5)
           ON CONFLICT (id) DO UPDATE SET
             ward_number = EXCLUDED.ward_number,
             name = EXCLUDED.name,
             ac_id = COALESCE(EXCLUDED.ac_id, wards.ac_id),
-            updated_at = NOW();
+            updated_at = EXCLUDED.updated_at
+          WHERE wards.updated_at IS NULL OR EXCLUDED.updated_at >= wards.updated_at;
         `;
         params = [
           entityId || payload.id,
-          payload.wardNumber ?? payload.wardNo ?? 1,
-          payload.name || payload.wardName || 'Ward No. 1',
-          payload.acId || null,
+          payload.wardNumber ?? payload.wardNo ?? payload.ward_number ?? 1,
+          payload.name || payload.wardName || payload.ward_name || 'Ward No. 1',
+          payload.acId || payload.ac_id || null,
+          timestamp,
         ];
       } else if (entityType === 'booth') {
         sql = `
           INSERT INTO booths (id, booth_number, name, ac_id, ward_id, village_id, total_voters, created_at, updated_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
           ON CONFLICT (id) DO UPDATE SET
             booth_number = EXCLUDED.booth_number,
             name = EXCLUDED.name,
@@ -75,16 +86,18 @@ export class MasterAutoSyncService {
             ward_id = COALESCE(EXCLUDED.ward_id, booths.ward_id),
             village_id = COALESCE(EXCLUDED.village_id, booths.village_id),
             total_voters = COALESCE(EXCLUDED.total_voters, booths.total_voters),
-            updated_at = NOW();
+            updated_at = EXCLUDED.updated_at
+          WHERE booths.updated_at IS NULL OR EXCLUDED.updated_at >= booths.updated_at;
         `;
         params = [
           entityId || payload.id,
-          payload.boothNumber ?? payload.boothNo ?? 1,
-          payload.name || payload.boothName || 'Polling Station',
-          payload.acId || null,
-          payload.wardId || null,
-          payload.villageId || null,
-          payload.totalVoters ?? 0,
+          payload.boothNumber ?? payload.boothNo ?? payload.booth_number ?? 1,
+          payload.name || payload.boothName || payload.booth_name || 'Polling Station',
+          payload.acId || payload.ac_id || null,
+          payload.wardId || payload.ward_id || null,
+          payload.villageId || payload.village_id || null,
+          payload.totalVoters ?? payload.total_voters ?? 0,
+          timestamp,
         ];
       } else if (entityType === 'voter') {
         sql = `
@@ -92,16 +105,16 @@ export class MasterAutoSyncService {
             id, epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
             first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname,
             gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
-            profession_type, profession, religion_id, caste_id, subcaste_name, voter_type,
+            profession_type, profession, religion_id, caste_id, subcaste_name,
             status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
             party_id, family_id, is_family_influencer, is_social_influencer, created_at, updated_at
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
             $11, $12, $13, $14, $15, $16,
             $17, $18, $19, $20, $21, $22, $23,
-            $24, $25, $26, $27, $28, $29,
-            $30, $31, $32, $33, $34, $35, $36, $37,
-            $38, $39, $40, $41, NOW(), NOW()
+            $24, $25, $26, $27, $28,
+            $29, $30, $31, $32, $33, $34, $35, $36,
+            $37, $38, $39, $40, NOW(), $41
           )
           ON CONFLICT (epic_no) DO UPDATE SET
             state_id = COALESCE(EXCLUDED.state_id, voters.state_id),
@@ -130,7 +143,6 @@ export class MasterAutoSyncService {
             religion_id = COALESCE(EXCLUDED.religion_id, voters.religion_id),
             caste_id = COALESCE(EXCLUDED.caste_id, voters.caste_id),
             subcaste_name = COALESCE(EXCLUDED.subcaste_name, voters.subcaste_name),
-            voter_type = COALESCE(EXCLUDED.voter_type, voters.voter_type),
             status = COALESCE(EXCLUDED.status, voters.status),
             is_dead = COALESCE(EXCLUDED.is_dead, voters.is_dead),
             blood_group = COALESCE(EXCLUDED.blood_group, voters.blood_group),
@@ -143,50 +155,51 @@ export class MasterAutoSyncService {
             family_id = COALESCE(EXCLUDED.family_id, voters.family_id),
             is_family_influencer = COALESCE(EXCLUDED.is_family_influencer, voters.is_family_influencer),
             is_social_influencer = COALESCE(EXCLUDED.is_social_influencer, voters.is_social_influencer),
-            updated_at = NOW();
+            updated_at = EXCLUDED.updated_at
+          WHERE voters.updated_at IS NULL OR EXCLUDED.updated_at >= voters.updated_at;
         `;
         params = [
           entityId || payload.id,
-          payload.epicNo,
-          payload.stateId || null,
-          payload.districtId || null,
-          payload.pcId || null,
-          payload.acId || null,
-          payload.boothId || null,
-          payload.serialNo || null,
-          payload.sectionNo || null,
-          payload.houseNo || null,
-          payload.firstName || null,
-          payload.engFirstName || null,
-          payload.middleName || null,
-          payload.engMiddleName || null,
+          payload.epicNo || payload.epic_no,
+          payload.stateId || payload.state_id || null,
+          payload.districtId || payload.district_id || null,
+          payload.pcId || payload.pc_id || null,
+          payload.acId || payload.ac_id || null,
+          payload.boothId || payload.booth_id || null,
+          payload.serialNo || payload.serial_no || null,
+          payload.sectionNo || payload.section_no || null,
+          payload.houseNo || payload.house_no || null,
+          payload.firstName || payload.first_name || null,
+          payload.engFirstName || payload.eng_first_name || null,
+          payload.middleName || payload.middle_name || null,
+          payload.engMiddleName || payload.eng_middle_name || null,
           payload.surname || null,
-          payload.engSurname || null,
+          payload.engSurname || payload.eng_surname || null,
           payload.gender || null,
           payload.dob || null,
           payload.age || null,
-          payload.mobileNo || null,
+          payload.mobileNo || payload.mobile_no || null,
           payload.email || null,
-          payload.aadhaarNo || null,
-          payload.panNo || null,
-          payload.professionType || null,
+          payload.aadhaarNo || payload.aadhaar_no || null,
+          payload.panNo || payload.pan_no || null,
+          payload.professionType || payload.profession_type || null,
           payload.profession || null,
-          payload.religionId || null,
-          payload.casteId || null,
-          payload.subcasteName || null,
-          payload.voterType || 'Voter',
+          payload.religionId || payload.religion_id || null,
+          payload.casteId || payload.caste_id || null,
+          payload.subcasteName || payload.subcaste_name || null,
           payload.status || 'ACTIVE',
-          payload.isDead ?? false,
-          payload.bloodGroup || null,
+          payload.isDead ?? payload.is_dead ?? false,
+          payload.bloodGroup || payload.blood_group || null,
           payload.avatar || null,
           payload.taluka || null,
           payload.village || null,
-          payload.fullAddress || null,
-          payload.voterAddress || null,
-          payload.partyId || null,
-          payload.familyId || null,
-          payload.isFamilyInfluencer ?? false,
-          payload.isSocialInfluencer ?? false,
+          payload.fullAddress || payload.full_address || null,
+          payload.voterAddress || payload.voter_address || null,
+          payload.partyId || payload.party_id || null,
+          payload.familyId || payload.family_id || null,
+          payload.isFamilyInfluencer ?? payload.is_family_influencer ?? false,
+          payload.isSocialInfluencer ?? payload.is_social_influencer ?? false,
+          timestamp,
         ];
       }
 
@@ -196,7 +209,7 @@ export class MasterAutoSyncService {
     } catch (err: any) {
       logger.warn(`[MasterAutoSync] Sync failed for ${entityType} (${entityId}). Action: ${action}: ${err.message}`);
       if (!isRetry) {
-        await this.enqueueOutbox(tenantPool, entityType, entityId, action, payload, err.message);
+        await this.enqueueOutbox(tenantPool, entityType, entityId, action, payload, err.message, origin);
       }
       return false;
     }
@@ -231,7 +244,8 @@ export class MasterAutoSyncService {
           $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++},
           $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++},
           $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++},
-          $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}
+          $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++}, $${pIdx++},
+          NOW(), $${pIdx++}
         )`);
 
         valuesParams.push(
@@ -263,7 +277,6 @@ export class MasterAutoSyncService {
           row.religionId || row.religion_id || null,
           row.casteId || row.caste_id || null,
           row.subcasteName || row.subcaste_name || null,
-          row.voterType || row.voter_type || 'Voter',
           row.status || 'Active',
           row.isDead ?? row.is_dead ?? false,
           row.bloodGroup || row.blood_group || null,
@@ -273,7 +286,8 @@ export class MasterAutoSyncService {
           row.voterAddress || row.voter_address || null,
           row.partyId || row.party_id || null,
           row.isFamilyInfluencer ?? row.is_family_influencer ?? false,
-          row.isSocialInfluencer ?? row.is_social_influencer ?? false
+          row.isSocialInfluencer ?? row.is_social_influencer ?? false,
+          row.updatedAt || row.updated_at || new Date()
         );
       }
 
@@ -284,7 +298,7 @@ export class MasterAutoSyncService {
           id, epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
           first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname,
           gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
-          profession_type, profession, religion_id, caste_id, subcaste_name, voter_type,
+          profession_type, profession, religion_id, caste_id, subcaste_name,
           status, is_dead, blood_group, taluka, village, full_address, voter_address,
           party_id, is_family_influencer, is_social_influencer, created_at, updated_at
         ) VALUES ${valueTuples.join(', ')}
@@ -298,14 +312,14 @@ export class MasterAutoSyncService {
           religion_id = COALESCE(EXCLUDED.religion_id, voters.religion_id),
           caste_id = COALESCE(EXCLUDED.caste_id, voters.caste_id),
           subcaste_name = COALESCE(EXCLUDED.subcaste_name, voters.subcaste_name),
-          voter_type = COALESCE(EXCLUDED.voter_type, voters.voter_type),
           status = COALESCE(EXCLUDED.status, voters.status),
           is_dead = COALESCE(EXCLUDED.is_dead, voters.is_dead),
           blood_group = COALESCE(EXCLUDED.blood_group, voters.blood_group),
           party_id = COALESCE(EXCLUDED.party_id, voters.party_id),
           is_family_influencer = COALESCE(EXCLUDED.is_family_influencer, voters.is_family_influencer),
           is_social_influencer = COALESCE(EXCLUDED.is_social_influencer, voters.is_social_influencer),
-          updated_at = NOW()
+          updated_at = EXCLUDED.updated_at
+        WHERE voters.updated_at IS NULL OR EXCLUDED.updated_at >= voters.updated_at;
       `;
 
       try {
@@ -316,7 +330,7 @@ export class MasterAutoSyncService {
         totalErrors += chunk.length;
         if (!isRetry) {
           for (const v of chunk) {
-            await this.enqueueOutbox(tenantPool, 'voter', v.id || v.epicNo, 'UPDATE', v, err.message);
+            await this.enqueueOutbox(tenantPool, 'voter', v.id || v.epicNo, 'UPDATE', v, err.message, 'tenant');
           }
         }
       }
@@ -334,18 +348,20 @@ export class MasterAutoSyncService {
     entityId: string,
     action: string,
     payload: Record<string, any>,
-    errorMessage: string
+    errorMessage: string,
+    origin: 'tenant' | 'master' = 'tenant'
   ): Promise<void> {
     try {
       const outboxSql = `
-        INSERT INTO tenant_sync_outbox (entity_type, entity_id, action, payload, status, error_message, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, 'pending', $5, NOW(), NOW());
+        INSERT INTO tenant_sync_outbox (entity_type, entity_id, action, payload, origin, status, error_message, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, 'pending', $6, NOW(), NOW());
       `;
       await tenantPool.query(outboxSql, [
         entityType,
         entityId,
         action,
         JSON.stringify(payload),
+        origin,
         errorMessage,
       ]);
     } catch (e: any) {

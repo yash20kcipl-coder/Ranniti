@@ -166,7 +166,7 @@ export const BulkUploadTestPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header (AGENTS.md Rule #18) */}
       <PageHeader
         title="Bulk Upload Sandbox & Benchmark"
@@ -197,7 +197,7 @@ export const BulkUploadTestPage: React.FC = () => {
       />
 
       {/* Top Testing Controls Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Card 1: Benchmark Data Generator */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
           <div className="space-y-4">

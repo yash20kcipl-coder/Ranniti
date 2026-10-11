@@ -1,6 +1,5 @@
 import { ApiError } from '../utils/apiError';
 import { asyncHandler } from '../utils/asyncHandler';
-import { UserRecord } from '../queries/auth.queries';
 import { Request, Response, NextFunction } from 'express';
 import { verifyJwtToken, JwtPayload } from '../utils/jwt';
 import { mobileAuthService } from '../services/mobileAuth.service';
@@ -33,6 +32,11 @@ export const authenticateMobileUser = asyncHandler(async (req: Request, _res: Re
 
   if (!userId) {
     return next(ApiError.unauthorized('User identity missing'));
+  }
+
+  const ALLOWED_APP_ROLES = ['pc_leader', 'ac_leader', 'sub_leader', 'supporter'];
+  if (!ALLOWED_APP_ROLES.includes(payload.role)) {
+    return next(ApiError.forbidden('Forbidden: Web administrative accounts cannot access Mobile Application endpoints'));
   }
 
   req.mobileUser = await mobileAuthService.getMobileProfileFast(userId, tenantDbName);

@@ -42,7 +42,6 @@ CREATE TABLE IF NOT EXISTS voters (
     religion_id UUID REFERENCES religions(id) ON DELETE SET NULL,
     caste_id UUID REFERENCES castes(id) ON DELETE SET NULL,
     subcaste_name VARCHAR(150),
-    voter_type VARCHAR(50) DEFAULT 'Voter',
     
     -- Extended Profile & Campaign Overlays
     status VARCHAR(20) DEFAULT 'Active',
@@ -80,7 +79,6 @@ CREATE INDEX IF NOT EXISTS idx_voters_is_dead ON voters(is_dead);
 CREATE INDEX IF NOT EXISTS idx_voters_party_id ON voters(party_id);
 CREATE INDEX IF NOT EXISTS idx_voters_blood_group ON voters(blood_group);
 CREATE INDEX IF NOT EXISTS idx_voters_gender ON voters(gender);
-CREATE INDEX IF NOT EXISTS idx_voters_voter_type ON voters(voter_type);
 CREATE INDEX IF NOT EXISTS idx_voters_age ON voters(age);
 CREATE INDEX IF NOT EXISTS idx_voters_section_no ON voters(section_no);
 CREATE INDEX IF NOT EXISTS idx_voters_created_at ON voters(created_at DESC);

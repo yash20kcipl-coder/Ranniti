@@ -21,12 +21,14 @@ interface AppVersionSectionProps {
   appVersions: AppVersionConfig[];
   saving: boolean;
   onUpdateVersion: (idOrPlatform: string, payload: Partial<AppVersionConfig>) => Promise<any>;
+  loading?: boolean;
 }
 
 export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
   appVersions,
   saving,
   onUpdateVersion,
+  loading = false,
 }) => {
   const [editingConfig, setEditingConfig] = useState<AppVersionConfig | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,6 +36,50 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
     open: boolean;
     config: AppVersionConfig | null;
   }>({ open: false, config: null });
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-pulse">
+        {[1, 2].map((i) => (
+          <div
+            key={i}
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm flex flex-col justify-between space-y-6"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-800 shrink-0" />
+                  <div className="space-y-2">
+                    <div className="h-4 w-44 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="h-3 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+                  </div>
+                </div>
+                <div className="h-6 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-slate-100 dark:bg-slate-800/40 rounded-lg space-y-2">
+                  <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-5 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+                <div className="p-3 bg-slate-100 dark:bg-slate-800/40 rounded-lg space-y-2">
+                  <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-5 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800/40 space-y-2">
+                <div className="h-3.5 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="h-9 w-full bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              <div className="h-9 w-full bg-slate-200 dark:bg-slate-800 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const androidConfig = appVersions.find((v) => v.platform === 'android');
   const iosConfig = appVersions.find((v) => v.platform === 'ios');
@@ -86,13 +132,13 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
     const Icon = isAndroid ? Smartphone : Apple;
 
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm flex flex-col justify-between space-y-6">
         <div>
           {/* Header Bar */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md ${isAndroid
+                className={`w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-md ${isAndroid
                   ? 'bg-emerald-600 shadow-emerald-600/30'
                   : 'bg-sky-600 shadow-sky-600/30'
                   }`}
@@ -127,21 +173,21 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
 
           {/* Details Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-5">
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Min Version</p>
               <p className="text-base font-black text-slate-900 dark:text-white mt-1">
                 v{config?.minVersion || '1.0.0'}
               </p>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Latest Version</p>
               <p className="text-base font-black text-indigo-600 dark:text-indigo-400 mt-1">
                 v{config?.latestVersion || '1.0.0'}
               </p>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Force Update</p>
               <p className="text-sm font-bold mt-1">
                 {config?.forceUpdate ? (
@@ -152,7 +198,7 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
               </p>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Maintenance</p>
               <p className="text-sm font-bold mt-1">
                 {config?.maintenanceMode ? (
@@ -165,7 +211,7 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
           </div>
 
           {/* Title & Message Preview */}
-          <div className="space-y-3 bg-slate-50/70 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+          <div className="space-y-3 bg-slate-50/70 dark:bg-slate-800/30 p-4 rounded-lg border border-slate-100 dark:border-slate-800">
             <div>
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Update Modal Title</p>
               <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">
@@ -204,7 +250,7 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
               <button
                 type="button"
                 onClick={() => handleEditClick(config)}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
               >
                 <Edit className="w-4 h-4" />
                 Configure App Version
@@ -213,7 +259,7 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
               <button
                 type="button"
                 onClick={() => handleToggleMaintenance(config)}
-                className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${config.maintenanceMode
+                className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${config.maintenanceMode
                   ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-600/20'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
                   }`}
@@ -231,7 +277,7 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
   return (
     <div className="space-y-6">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-lg p-6 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 max-w-3xl space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 text-xs font-bold">
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -357,14 +403,14 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 transition-all disabled:opacity-60 cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 transition-all disabled:opacity-60 cursor-pointer"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 <span>{saving ? 'Saving...' : 'Save Version Settings'}</span>

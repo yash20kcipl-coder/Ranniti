@@ -19,6 +19,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { navigateToDashboard } from '../../../navigation/navigationUtils';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { sendOtpAction, verifyOtpAction, verifyMpinAction, fetchProfileAndRoleAccessAction } from '../../../store/actions/auth';
+import { getAppVersion } from '../../../utils/version';
 
 const RANNITI_LOGO = require('../../../assets/images/ranniti-logo.png');
 
@@ -32,7 +33,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [mpinInput, setMpinInput] = useState('');
   const [step, setStep] = useState<StepState>('phone');
-  const [identifier, setIdentifier] = useState('7990088388');
+  const [identifier, setIdentifier] = useState('');
   const [loginMode, setLoginMode] = useState<LoginMode>('otp');
   const { theme, styles } = useAppTheme<ReturnType<typeof loginStyles>>(loginStyles);
 
@@ -287,13 +288,13 @@ const Login = () => {
 
           {/* Footer Contact Support */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>{t('needHelpLoggingIn') || 'Need help logging in?'}</Text>
-            <TouchableOpacity
+            <Text style={styles.footerText}>{t('appName')} {t('appVersion')}</Text>
+            {/* <TouchableOpacity
               onPress={() => navigation.navigate(SCREENS.CONTACT_SUPPORT as never)}
               activeOpacity={0.7}
-            >
-              <Text style={styles.footerLink}>{t('contactSupport') || 'Contact Support'}</Text>
-            </TouchableOpacity>
+            > */}
+            <Text style={styles.footerLink}>{getAppVersion()}</Text>
+            {/* </TouchableOpacity> */}
           </View>
         </View>
       </ScrollView>

@@ -135,12 +135,20 @@ export function resolveBreadcrumbs(pathname: string): { title: string; breadcrum
     const segments = path.split('/');
     const tabKey = segments[3] || 'religions';
     const tabLabel = MASTER_KEY_LABELS[tabKey] || tabKey.charAt(0).toUpperCase() + tabKey.slice(1);
+    const categoryLabel =
+      ['districts', 'talukas', 'villages', 'pcs', 'acs', 'wards', 'booths'].includes(tabKey)
+        ? 'Geography & Divisions'
+        : ['religions', 'castes'].includes(tabKey)
+        ? 'Demographics'
+        : tabKey === 'parties'
+        ? 'Political Entities'
+        : 'Testing & Tools';
 
     return {
-      title: `Master: ${tabLabel}`,
+      title: tabLabel,
       breadcrumbs: [
         { label: 'Platform', href: '/dashboard' },
-        { label: 'Master Data', href: `/dashboard/master/${tabKey}` },
+        { label: categoryLabel, href: `/dashboard/master/${tabKey}` },
         { label: tabLabel },
       ],
     };
@@ -153,10 +161,10 @@ export function resolveBreadcrumbs(pathname: string): { title: string; breadcrum
     const tabLabel = MASTER_KEY_LABELS[tabKey] || tabKey.charAt(0).toUpperCase() + tabKey.slice(1);
 
     return {
-      title: `Campaign Master: ${tabLabel}`,
+      title: tabLabel,
       breadcrumbs: [
         { label: 'Campaign', href: '/dashboard' },
-        { label: 'Master Data', href: `/dashboard/tenant-master/${tabKey}` },
+        { label: 'Geography & Divisions', href: `/dashboard/tenant-master/${tabKey}` },
         { label: tabLabel },
       ],
     };

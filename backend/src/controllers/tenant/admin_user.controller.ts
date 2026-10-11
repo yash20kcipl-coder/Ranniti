@@ -7,31 +7,16 @@ import { adminUserService } from '../../services/tenant/admin_user.service';
 import { generateVolunteerDefaultPassword } from '../../utils/volunteerPassword';
 
 export class AdminUserController {
-  private async resolveTenantDb(req: Request): Promise<string | null> {
-    if (req.user?.tenantDbName) {
-      return req.user.tenantDbName;
-    }
-    if (req.user?.userId) {
-      const { query } = await import('../../queries/dbPool');
-      const tRes = await query(`SELECT tenant_db_name FROM tenants WHERE id = $1 LIMIT 1`, [req.user.userId]);
-      const dbName = tRes.rows[0]?.tenant_db_name || null;
-      if (dbName && req.user) {
-        req.user.tenantDbName = dbName;
-      }
-      return dbName;
-    }
-    return null;
-  }
-
   getAdminUsers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const users = await adminUserService.getAllAdminUsers();
+    const tenantDbName = req.tenantDbName || (req.query.tenantDbName as string);
+    const users = await adminUserService.getAllAdminUsers(tenantDbName);
     const formattedUsers = attachFileUrls(users, undefined, req);
     const response = ApiResponse.success(formattedUsers, 'Admin users retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
 
   getVolunteers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const tenantDbName = (await this.resolveTenantDb(req)) || (req.query.tenantDbName as string);
+    const tenantDbName = req.tenantDbName || (req.query.tenantDbName as string);
     if (!tenantDbName) {
       const response = ApiResponse.success([], 'No tenant database configured for user');
       res.status(response.statusCode).json(response.body);
@@ -52,7 +37,7 @@ export class AdminUserController {
   });
 
   getVolunteerBoothCoverage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const tenantDbName = (await this.resolveTenantDb(req)) || (req.query.tenantDbName as string);
+    const tenantDbName = req.tenantDbName || (req.query.tenantDbName as string);
     if (!tenantDbName) {
       const response = ApiResponse.success({
         totalCadre: 0,
@@ -75,7 +60,7 @@ export class AdminUserController {
 
   getAdminUserById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const tenantDbName = await this.resolveTenantDb(req);
+    const tenantDbName = req.tenantDbName;
     const user = await adminUserService.getAdminUserById(id, tenantDbName);
     const formattedUser = attachFileUrls(user, undefined, req);
     const response = ApiResponse.success(formattedUser, 'Admin user retrieved successfully');
@@ -84,7 +69,7 @@ export class AdminUserController {
 
   getTeamMembers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const parentId = (req.query.parentId as string) || req.user!.userId;
-    const tenantDbName = await this.resolveTenantDb(req);
+    const tenantDbName = req.tenantDbName;
     const users = await adminUserService.getTeamMembersByParentId(parentId, tenantDbName);
     const formattedUsers = attachFileUrls(users, undefined, req);
     const response = ApiResponse.success(formattedUsers, 'Team members retrieved successfully');
@@ -107,7 +92,7 @@ export class AdminUserController {
       ? req.body.email.trim().toLowerCase()
       : `${cleanPhone || cleanName || 'user'}@ranniti.internal`;
 
-    let tenantDbName = (await this.resolveTenantDb(req)) || req.body.tenantDbName;
+    const tenantDbName = req.tenantDbName || req.body.tenantDbName;
 
     let parentLeaderId = req.body.parentLeaderId;
     if (!parentLeaderId || parentLeaderId === 'null' || parentLeaderId === req.user?.userId) {
@@ -140,7 +125,7 @@ export class AdminUserController {
 
   updateAdminUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const tenantDbName = await this.resolveTenantDb(req);
+    const tenantDbName = req.tenantDbName;
     const updatedUser = await adminUserService.updateAdminUser(id, req.body, tenantDbName);
     const formattedUser = attachFileUrls(updatedUser, ['avatar'], req);
     const response = ApiResponse.success(formattedUser, 'Admin user updated successfully');
@@ -149,7 +134,7 @@ export class AdminUserController {
 
   deleteAdminUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const tenantDbName = await this.resolveTenantDb(req);
+    const tenantDbName = req.tenantDbName;
     await adminUserService.deleteAdminUser(id, tenantDbName);
     const response = ApiResponse.success(null, 'Admin user deleted successfully');
     res.status(response.statusCode).json(response.body);
@@ -158,7 +143,7 @@ export class AdminUserController {
   toggleVolunteerStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const requestedStatus = req.body?.status;
-    const tenantDbName = await this.resolveTenantDb(req);
+    const tenantDbName = req.tenantDbName;
     const updatedUser = await adminUserService.toggleVolunteerStatus(id, requestedStatus, tenantDbName);
     const formattedUser = attachFileUrls(updatedUser, ['avatar'], req);
     const statusMsg = formattedUser.status === 'active' ? 'enabled' : 'disabled';

@@ -1,6 +1,9 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
+// Tenant Dashboard Page
+import TenantDashboardPage from '@/pages/tenant/dashboard';
+
 // Tenant Voters Pages
 import {
   VotersPage as TenantVotersPage,
@@ -21,8 +24,9 @@ import { TenantSettingsPage } from '@/pages/tenant/settings';
 export const TenantRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Default Dashboard Redirect -> Voters Directory */}
-      <Route index element={<Navigate to="/dashboard/voters" replace />} />
+      {/* Tenant Campaign Command Dashboard */}
+      <Route index element={<TenantDashboardPage />} />
+      <Route path="dashboard" element={<TenantDashboardPage />} />
 
       {/* Voter Management (Tenant endpoints) */}
       <Route path="voters" element={<TenantVotersPage />} />
@@ -40,11 +44,12 @@ export const TenantRoutes: React.FC = () => {
       <Route path="volunteers" element={<TenantVolunteersPage />} />
 
       {/* Tenant Settings & User Roles */}
+      <Route path="settings" element={<TenantSettingsPage />} />
       <Route path="settings/roles" element={<TenantUserRoleManager />} />
       <Route path="settings/*" element={<TenantSettingsPage />} />
 
       {/* Fallback within Tenant dashboard */}
-      <Route path="*" element={<Navigate to="/dashboard/voters" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };

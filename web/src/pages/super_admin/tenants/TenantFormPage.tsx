@@ -9,7 +9,6 @@ import {
   Save,
   Sparkles,
   Database,
-  ShieldCheck,
   Loader2,
   Search,
   X,
@@ -35,7 +34,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { fetchTenantRolePackages } from '@/redux/actions/role';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { FileUploadInput } from '@/components/common/FileUploadInput';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -49,16 +48,17 @@ export const TenantFormPage: React.FC = () => {
 
   const [saving, setSaving] = useState(false);
   const [fetching, setFetching] = useState(isEditMode);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [originalAcIds, setOriginalAcIds] = useState<string[]>([]);
   const [pendingRemoveAcId, setPendingRemoveAcId] = useState<string | null>(null);
   const [pendingRemovePcId, setPendingRemovePcId] = useState<string | null>(null);
-  const [originalAcIds, setOriginalAcIds] = useState<string[]>([]);
 
   // Form Fields
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [organizationName, setOrganizationName] = useState('');
   const [tenantRoleId, setTenantRoleId] = useState('');
+  const [organizationName, setOrganizationName] = useState('');
   const [avatar, setAvatar] = useState<File | string | null>(null);
   const [selectedPcIds, setSelectedPcIds] = useState<string[]>([]);
   const [selectedAcIds, setSelectedAcIds] = useState<string[]>([]);
@@ -67,8 +67,8 @@ export const TenantFormPage: React.FC = () => {
   const [expandedPcIds, setExpandedPcIds] = useState<string[]>([]);
 
   // Search & filter states for assigned constituencies on the main card
-  const [assignedSearchQuery, setAssignedSearchQuery] = useState('');
   const [activeStateFilter, setActiveStateFilter] = useState('all');
+  const [assignedSearchQuery, setAssignedSearchQuery] = useState('');
 
   // Add / Edit Modal States
   const [isConstituencyModalOpen, setIsConstituencyModalOpen] = useState(false);
@@ -431,14 +431,23 @@ export const TenantFormPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim()) return toast.error('Please enter full user name');
-    if (!email.trim()) return toast.error('Please enter email address');
-    if (!mobile.trim()) return toast.error('Please enter mobile number');
-    if (!organizationName.trim()) return toast.error('Please enter organization name');
+    const newErrors: Record<string, string> = {};
+    if (!organizationName.trim()) newErrors.organizationName = 'Please enter organization name';
+    if (!name.trim()) newErrors.name = 'Please enter administrator full name';
+    if (!email.trim()) newErrors.email = 'Please enter email address';
+    if (!mobile.trim()) newErrors.mobile = 'Please enter mobile number';
     if (selectedAcIds.length === 0) {
-      return toast.error('Please assign at least one Assembly Constituency (AC)');
+      newErrors.acIds = 'Please assign at least one Assembly Constituency (AC)';
     }
 
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      const firstError = Object.values(newErrors)[0];
+      toast.error(firstError);
+      return;
+    }
+
+    setErrors({});
     setSaving(true);
     try {
       // Ensure all parent PCs of selected ACs are included in payload
@@ -492,59 +501,76 @@ export const TenantFormPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-6 pb-20">
+    <div className="space-y-4">
       {/* Reusable PageHeader Component (Rule 18) */}
       <PageHeader
-        title={isEditMode ? 'Edit Tenant Account' : 'Provision New Tenant Account'}
+        title={isEditMode ? (organizationName || 'Edit Tenant Account') : 'Provision New Tenant'}
         subtitle={
           isEditMode
             ? 'Update campaign organization details, administrator info, and assigned Lok Sabha / Vidhan Sabha constituencies'
             : 'Setup isolated database infrastructure and assign campaign office constituencies'
         }
-        icon={<Building className="w-6 h-6" />}
+        icon={isEditMode ? <Building2 className="w-5 h-5 text-indigo-500" /> : <Building className="w-5 h-5 text-indigo-500" />}
         badge={
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-            <Sparkles size={12} className="text-amber-500" />
-            {isEditMode ? 'Tenant Edit Mode' : 'New Provisioning'}
-          </span>
+          isEditMode ? (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+                #{id ? id.slice(-8) : 'TENANT'}
+              </span>
+              {tenantDbName && (
+                <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700">
+                  {tenantDbName}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+              New Provisioning
+            </span>
+          )
         }
         actions={
-          <Link
-            to="/dashboard/tenants"
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all cursor-pointer"
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/tenants')}
+            className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer shadow-2xs"
           >
-            <ArrowLeft size={16} />
-            <span>Back to Tenants</span>
-          </Link>
+            <ArrowLeft className="w-4 h-4" />
+            Back to Tenants
+          </button>
         }
       />
 
       {/* Main Form Layout - 12-Column Responsive Grid */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
           {/* Left Column (6 Cols): Organization Profile */}
           <div className="lg:col-span-6 flex flex-col">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full space-y-5">
-              <div className="space-y-5">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between h-full space-y-4">
+              <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50">
-                    <Building2 className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50 shrink-0">
+                    <Building2 className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                       Organization Profile
                     </h3>
                     <p className="text-[11px] text-slate-400">Campaign office & contact details</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                   <FormInput
                     name="organizationName"
                     label="Organization / Campaign Name"
                     placeholder="e.g. Pune Central Election Samiti"
                     value={organizationName}
-                    onChange={(e) => setOrganizationName(e.target.value)}
+                    error={errors.organizationName}
+                    onChange={(e) => {
+                      setOrganizationName(e.target.value);
+                      if (errors.organizationName) setErrors((prev) => ({ ...prev, organizationName: '' }));
+                    }}
                     required
                     icon={<Building2 size={16} />}
                   />
@@ -554,7 +580,11 @@ export const TenantFormPage: React.FC = () => {
                     label="Administrator Full Name"
                     placeholder="e.g. Rajesh Patil"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    error={errors.name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
+                    }}
                     required
                     icon={<Users size={16} />}
                   />
@@ -565,7 +595,11 @@ export const TenantFormPage: React.FC = () => {
                     label="Email Address (Login Username)"
                     placeholder="e.g. rajesh@campaign.org"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    error={errors.email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+                    }}
                     required
                     icon={<Mail size={16} />}
                   />
@@ -576,7 +610,11 @@ export const TenantFormPage: React.FC = () => {
                     label="Mobile Number (10 Digits)"
                     placeholder="e.g. 9820011223"
                     value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
+                    error={errors.mobile}
+                    onChange={(e) => {
+                      setMobile(e.target.value);
+                      if (errors.mobile) setErrors((prev) => ({ ...prev, mobile: '' }));
+                    }}
                     required
                     icon={<Phone size={16} />}
                   />
@@ -594,13 +632,13 @@ export const TenantFormPage: React.FC = () => {
                       icon={<Shield size={16} />}
                     />
                     {selectedRole && (
-                      <div className="p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs flex flex-col gap-1.5 mt-2">
+                      <div className="p-3 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs flex flex-col gap-1.5 mt-2">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-indigo-900 dark:text-indigo-200">
                             {selectedRole.roleName}
                           </span>
                           {selectedRole.isDefault && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white shadow-xs">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white shadow-xs font-mono">
                               Default Package
                             </span>
                           )}
@@ -614,7 +652,7 @@ export const TenantFormPage: React.FC = () => {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                             Enabled Tabs:
                           </span>
-                          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 font-mono">
                             {selectedRole.allowedTabs?.webTabs?.length || 0} Web Tabs, {selectedRole.allowedTabs?.masterSubTabs?.length || 0} Sub-Tabs
                           </span>
                         </div>
@@ -625,17 +663,17 @@ export const TenantFormPage: React.FC = () => {
               </div>
 
               {/* Campaign Avatar Upload */}
-              <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800 mt-4">
+              <div className="space-y-2 pt-3.5 border-t border-slate-100 dark:border-slate-800 mt-2">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   Profile Photo / Campaign Symbol
                 </label>
                 {isEditMode && existingAvatarUrl && !avatar && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl mb-3 border border-slate-200/60 dark:border-slate-700/60">
+                  <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg mb-2.5 border border-slate-200/60 dark:border-slate-700/60">
                     <SafeImage
                       src={existingAvatarUrl}
                       alt={name}
                       fallbackText={name}
-                      className="w-12 h-12 rounded-xl object-cover"
+                      className="w-10 h-10 rounded-lg object-cover"
                     />
                     <div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -658,15 +696,15 @@ export const TenantFormPage: React.FC = () => {
 
           {/* Right Column (6 Cols): Assigned Constituencies (SHOWS SELECTED ONLY) */}
           <div className="lg:col-span-6 flex flex-col">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col h-full space-y-5">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col h-full space-y-4">
               {/* Header with Title, Counts & Add Button */}
               <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50">
-                    <Landmark className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50 shrink-0">
+                    <Landmark className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                       Assigned Constituencies
                     </h3>
                     <p className="text-[11px] text-slate-400">
@@ -676,13 +714,13 @@ export const TenantFormPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                  <span className="text-xs font-bold font-mono px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
                     {selectedAcIds.length} {selectedAcIds.length === 1 ? 'AC' : 'ACs'} ({assignedPcs.length} {assignedPcs.length === 1 ? 'PC' : 'PCs'})
                   </span>
                   <button
                     type="button"
                     onClick={handleOpenAddModal}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer"
                   >
                     <Plus size={14} />
                     <span>Add</span>
@@ -707,7 +745,7 @@ export const TenantFormPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setAssignedSearchQuery('')}
-                        className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                        className="p-2.5 rounded-md border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
                         title="Clear search"
                       >
                         <X size={16} />
@@ -721,10 +759,11 @@ export const TenantFormPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setActiveStateFilter('all')}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${activeStateFilter === 'all'
-                          ? 'bg-indigo-600 text-white shadow-xs'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-                          }`}
+                        className={`px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                          activeStateFilter === 'all'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                        }`}
                       >
                         All States ({assignedPcs.length})
                       </button>
@@ -735,10 +774,11 @@ export const TenantFormPage: React.FC = () => {
                             key={st}
                             type="button"
                             onClick={() => setActiveStateFilter(st)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${activeStateFilter === st
-                              ? 'bg-indigo-600 text-white shadow-xs'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-                              }`}
+                            className={`px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                              activeStateFilter === st
+                                ? 'bg-indigo-600 text-white shadow-xs'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                            }`}
                           >
                             {st} ({count})
                           </button>
@@ -770,12 +810,12 @@ export const TenantFormPage: React.FC = () => {
               <div className="flex-1 flex flex-col min-h-[220px]">
                 {assignedPcs.length === 0 ? (
                   /* Clean Empty State */
-                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/70 dark:bg-slate-900/40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto border border-indigo-100 dark:border-indigo-900/40">
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/70 dark:bg-slate-900/40 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 space-y-3">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto border border-indigo-100 dark:border-indigo-900/40">
                       <MapPin className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
                         No Constituencies Assigned Yet
                       </h4>
                       <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
@@ -785,7 +825,7 @@ export const TenantFormPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleOpenAddModal}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                     >
                       <Plus size={15} />
                       <span>Assign Constituencies</span>
@@ -793,7 +833,7 @@ export const TenantFormPage: React.FC = () => {
                   </div>
                 ) : displayedAssignedPcs.length === 0 ? (
                   /* No Search Matches State */
-                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/70 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/70 dark:bg-slate-900/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 space-y-2">
                     <Search className="w-8 h-8 text-slate-400 mx-auto" />
                     <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       No assigned constituencies match "{assignedSearchQuery}"
@@ -821,7 +861,7 @@ export const TenantFormPage: React.FC = () => {
                       return (
                         <div
                           key={pc.id}
-                          className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden transition-all hover:border-slate-300 dark:hover:border-slate-700"
+                          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden transition-all hover:border-slate-300 dark:hover:border-slate-700"
                         >
                           {/* Header of PC card */}
                           <div className="p-3.5 flex items-center justify-between gap-3">
@@ -829,14 +869,14 @@ export const TenantFormPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => toggleExpandPc(pc.id)}
-                                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                 title={isExpanded ? 'Collapse' : 'Expand'}
                               >
                                 {isExpanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
                               </button>
 
                               <div className="min-w-0">
-                                <h4 className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+                                <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
                                   {pc.pcNumber ? `${pc.pcNumber} - ` : ''}{pc.name}
                                 </h4>
                                 <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
@@ -848,10 +888,11 @@ export const TenantFormPage: React.FC = () => {
                             <div className="flex items-center gap-2 shrink-0">
                               {/* Assigned Status Badge */}
                               <span
-                                className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${allAssigned
-                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
-                                  : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60'
-                                  }`}
+                                className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-md ${
+                                  allAssigned
+                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                                    : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60'
+                                }`}
                               >
                                 {selectedAcsInThisPc.length} / {pcAcList.length} assigned
                               </span>
@@ -860,7 +901,7 @@ export const TenantFormPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditModal(pc.id)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-400 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-400 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                                 title="Edit ACs for this PC"
                               >
                                 <Pencil size={12} />
@@ -871,7 +912,7 @@ export const TenantFormPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleRemovePc(pc.id)}
-                                className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                                 title="Remove PC"
                               >
                                 <Trash2 size={14} />
@@ -898,7 +939,7 @@ export const TenantFormPage: React.FC = () => {
                                   {selectedAcsInThisPc.map((ac: any) => (
                                     <span
                                       key={ac.id}
-                                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold shadow-2xs"
+                                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-mono font-medium shadow-2xs"
                                     >
                                       <span>
                                         {ac.acNumber ? `${ac.acNumber} - ` : ''}{ac.name}
@@ -930,13 +971,13 @@ export const TenantFormPage: React.FC = () => {
               </div>
 
               {/* Bottom Summary Bar: anchored at bottom */}
-              <div className="mt-auto p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+              <div className="mt-auto p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                   <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                   <span>
-                    Assigned: <strong>{selectedAcIds.length}</strong> Assembly{' '}
+                    Assigned: <strong className="font-mono">{selectedAcIds.length}</strong> Assembly{' '}
                     {selectedAcIds.length === 1 ? 'Constituency' : 'Constituencies'} across{' '}
-                    <strong>{assignedPcs.length}</strong> Parliamentary{' '}
+                    <strong className="font-mono">{assignedPcs.length}</strong> Parliamentary{' '}
                     {assignedPcs.length === 1 ? 'Seat' : 'Seats'}
                   </span>
                 </div>
@@ -953,16 +994,16 @@ export const TenantFormPage: React.FC = () => {
         </div>
 
         {/* PostgreSQL Schema Isolation Full-Width Banner */}
-        <div className="bg-gradient-to-r from-indigo-50/90 via-slate-50 to-indigo-50/90 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 text-slate-900 dark:text-white rounded-2xl p-6 shadow-sm dark:shadow-xl border border-indigo-200/80 dark:border-indigo-500/20">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center gap-3.5">
-              <div className="p-3 rounded-2xl bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 shrink-0">
-                <Database className="w-6 h-6" />
+        <div className="bg-gradient-to-r from-indigo-50/90 via-slate-50 to-indigo-50/90 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 text-slate-900 dark:text-white rounded-xl p-5 shadow-xs border border-indigo-200/80 dark:border-indigo-500/20">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center shrink-0">
+                <Database className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-extrabold text-base">PostgreSQL Schema Isolation</h4>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 uppercase tracking-wider">
+                  <h4 className="font-bold text-sm">PostgreSQL Schema Isolation</h4>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 uppercase tracking-wider">
                     Active Security
                   </span>
                 </div>
@@ -972,49 +1013,61 @@ export const TenantFormPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full md:w-auto">
-              <div className="p-3.5 bg-white dark:bg-slate-800/80 rounded-xl border border-indigo-100 dark:border-slate-700/60 min-w-[200px] shadow-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto">
+              <div className="p-3 bg-white dark:bg-slate-800/80 rounded-lg border border-indigo-100 dark:border-slate-700/60 min-w-[200px] shadow-2xs">
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Assigned DB Schema</p>
                 <p className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-300 truncate mt-0.5">
                   {tenantDbName || 'ranniti_tenant_[firstname]_[mobile4]'}
                 </p>
               </div>
 
-              <div className="p-3.5 bg-white dark:bg-slate-800/80 rounded-xl border border-indigo-100 dark:border-slate-700/60 flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-semibold text-xs min-w-[200px] shadow-xs">
-                <Shield className="w-4 h-4 shrink-0" />
-                <span>Row & Table Level Security Enforcement</span>
+              <div className="p-3 bg-white dark:bg-slate-800/80 rounded-lg border border-indigo-100 dark:border-slate-700/60 min-w-[200px] shadow-2xs">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Access Control Policy</p>
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 truncate mt-0.5">
+                  <Shield className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
+                  <span>Row & Table Level Isolation</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Standard Form Action Footer Bar */}
-        <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 font-medium">
-            <ShieldCheck size={16} className="text-emerald-500" />
-            <span>Changes will sync immediately with backend database records</span>
+        {/* Sticky Bottom Actions Footer (Flush Bottom Aligned) */}
+        <div className="sticky -bottom-4 sm:-bottom-6 z-30 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-6 py-3.5 px-4 sm:px-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between">
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs text-slate-600 dark:text-slate-300">
+              {isEditMode ? (
+                <>
+                  Editing Tenant: <strong className="font-semibold text-slate-900 dark:text-white">{organizationName || id}</strong>
+                </>
+              ) : (
+                'Ready to provision tenant infrastructure'
+              )}
+            </span>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-            <Link
-              to="/dashboard/tenants"
-              className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/tenants')}
+              className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               Cancel
-            </Link>
+            </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Saving Changes...</span>
                 </>
               ) : (
                 <>
-                  <Save size={16} />
+                  <Save className="w-3.5 h-3.5" />
                   <span>{isEditMode ? 'Update Tenant' : 'Provision Tenant'}</span>
                 </>
               )}

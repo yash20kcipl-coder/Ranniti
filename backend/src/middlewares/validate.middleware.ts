@@ -5,11 +5,14 @@ import { Request, Response, NextFunction } from 'express';
 export const validate = (schema: AnyZodObject) => {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
-      await schema.parseAsync({
+      const parsed = await schema.parseAsync({
         body: req.body,
         query: req.query,
         params: req.params,
       });
+      if (parsed.body !== undefined) req.body = parsed.body;
+      if (parsed.query !== undefined) (req as any).query = parsed.query;
+      if (parsed.params !== undefined) req.params = parsed.params;
       next();
     } catch (error) {
       if (error instanceof ZodError) {

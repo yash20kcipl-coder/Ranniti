@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import { Theme } from '../../../constants/theme';
 import { getShadow } from '../../../utils/shadow';
 import { rfValue } from '../../../utils/responsive';
@@ -7,6 +8,7 @@ import { Voter } from '../../../store/reducers/voters';
 import { SafeImage } from '../../../components/SafeImage';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { openPhoneDialer, openWhatsAppChat } from '../../../utils/linkingUtils';
+import { logVolunteerInteractionAction } from '../../../store/actions/voters';
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 
 interface VoterDetailHeaderProps {
@@ -16,12 +18,30 @@ interface VoterDetailHeaderProps {
 }
 
 export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, theme }) => {
+  const dispatch = useDispatch();
   const hindiName = voter.hindiName || voter.name;
   const englishName = voter.englishName || '';
   const mobile = voter.mobile || voter.mobileNo || '';
 
+  const handleCall = () => {
+    if (voter?.id) {
+      dispatch(logVolunteerInteractionAction({ voterId: voter.id, boothId: voter.boothId, activityType: 'call' }) as any);
+    }
+    openPhoneDialer(mobile);
+  };
+
+  const handleWhatsApp = () => {
+    if (voter?.id) {
+      dispatch(logVolunteerInteractionAction({ voterId: voter.id, boothId: voter.boothId, activityType: 'whatsapp' }) as any);
+    }
+    openWhatsAppChat(mobile, `Namaste ${englishName || hindiName}, greetings from Ranniti.`);
+  };
+
   const handleSms = () => {
     if (mobile) {
+      if (voter?.id) {
+        dispatch(logVolunteerInteractionAction({ voterId: voter.id, boothId: voter.boothId, activityType: 'sms' }) as any);
+      }
       const clean = mobile.replace(/[^0-9+]/g, '');
       Linking.openURL(`sms:${clean}`);
     }
@@ -195,7 +215,7 @@ export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, 
         <View style={styles.quickActionsRow}>
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => openPhoneDialer(mobile)}
+            onPress={handleCall}
             style={[styles.actionBtn, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}
           >
             <View style={[styles.actionIconCircle, { backgroundColor: '#DBEAFE' }]}>
@@ -206,12 +226,7 @@ export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, 
 
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() =>
-              openWhatsAppChat(
-                mobile,
-                `Namaste ${englishName || hindiName}, greetings from Ranniti.`
-              )
-            }
+            onPress={handleWhatsApp}
             style={[styles.actionBtn, { backgroundColor: '#DCFCE7', borderColor: '#BBF7D0' }]}
           >
             <View style={[styles.actionIconCircle, { backgroundColor: '#BBF7D0' }]}>

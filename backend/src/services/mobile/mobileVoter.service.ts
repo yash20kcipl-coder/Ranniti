@@ -72,6 +72,63 @@ export class MobileVoterService {
     );
   }
 
+  async getFamilyCandidates(
+    user: Omit<UserRecord, 'passwordHash'>,
+    params: any
+  ) {
+    if (user.assignedBoothIds && user.assignedBoothIds.length > 0) {
+      if (params.boothId && !user.assignedBoothIds.includes(params.boothId)) {
+        throw ApiError.forbidden('Access denied: Booth is outside your assigned scope');
+      }
+    }
+    const { VoterService } = await import('../tenant/voter.service');
+    return await VoterService.getFamilyCandidates({
+      ...params,
+      tenantDbName: user.tenantDbName,
+    });
+  }
+
+  async getSocialCandidates(
+    user: Omit<UserRecord, 'passwordHash'>,
+    params: any
+  ) {
+    if (user.assignedBoothIds && user.assignedBoothIds.length > 0) {
+      if (params.boothId && !user.assignedBoothIds.includes(params.boothId)) {
+        throw ApiError.forbidden('Access denied: Booth is outside your assigned scope');
+      }
+    }
+    const { VoterService } = await import('../tenant/voter.service');
+    return await VoterService.getSocialCandidates({
+      ...params,
+      tenantDbName: user.tenantDbName,
+    });
+  }
+
+  async bulkAssignInfluencer(
+    user: Omit<UserRecord, 'passwordHash'>,
+    payload: {
+      influencerId: string | null;
+      influencerType: 'family' | 'social';
+      voterIds: string[];
+    }
+  ) {
+    const roleAccess = await mobileAccessService.getRoleAccessConfig({
+      role: user.role,
+      tenantDbName: user.tenantDbName,
+    });
+    if (!roleAccess.voterPermissions.canManageFamily) {
+      throw ApiError.forbidden('Your role is not allowed to manage influencer relationships');
+    }
+
+    const { VoterService } = await import('../tenant/voter.service');
+    return await VoterService.bulkAssignInfluencer(
+      payload.influencerId || null,
+      payload.influencerType,
+      payload.voterIds,
+      user.tenantDbName
+    );
+  }
+
   async createVoterWithPermissionCheck(
     user: Omit<UserRecord, 'passwordHash'>,
     voterData: Partial<Voter>
@@ -129,9 +186,53 @@ export class MobileVoterService {
       voterData.pcId = user.assignedPcId;
     }
 
+    // Contact field guard for creation
+    const contactKeys = [
+      'mobileNo', 'email', 'houseNo', 'streetName', 'address',
+      'fullAddress', 'voterAddress', 'village', 'taluka'
+    ];
+    const specifiesContact = contactKeys.some(key => Boolean((voterData as any)[key]));
+    if (specifiesContact && !perms.canEditContact) {
+      throw ApiError.forbidden('Your role is not allowed to set voter contact details');
+    }
+
+    // Demographic field guard for creation (non-essential optional attributes)
+    const demographicKeys = [
+      'casteId', 'casteName', 'religionId', 'religionName',
+      'subcasteName', 'bloodGroup', 'professionType', 'profession',
+      'avatar', 'aadhaarNo', 'panNo', 'dob'
+    ];
+    const specifiesDemographics = demographicKeys.some(key => Boolean((voterData as any)[key]));
+    if (specifiesDemographics && !perms.canEditDemographics) {
+      throw ApiError.forbidden('Your role is not allowed to set voter demographic details');
+    }
+
     // Inclination and political party guard for creation
-    if ((voterData.partyId || (voterData.voterType && voterData.voterType !== 'Voter')) && !perms.canEditInclination) {
+    const specifiesInclination =
+      (voterData.partyId !== undefined && voterData.partyId !== null) ||
+      (voterData.voterType !== undefined && voterData.voterType !== null && voterData.voterType !== 'Voter');
+    if (specifiesInclination && !perms.canEditInclination) {
       throw ApiError.forbidden('Your role is not allowed to set voter political party or inclination details');
+    }
+
+    // Voter status field guard for creation
+    const statusKeys = ['status', 'isDead', 'isShifted', 'isVoted'];
+    const specifiesStatus = statusKeys.some(key => {
+      const val = (voterData as any)[key];
+      return val !== undefined && val !== null && val !== false && val !== 'Active';
+    });
+    if (specifiesStatus && !perms.canEditVoterStatus) {
+      throw ApiError.forbidden('Your role is not allowed to set voter status flags');
+    }
+
+    // Family / Social Influencer field guard for creation
+    const familyKeys = [
+      'familyInfluencerId', 'socialInfluencerId', 'isFamilyInfluencer', 'isSocialInfluencer',
+      'influencerRole', 'familyId'
+    ];
+    const specifiesFamily = familyKeys.some(key => Boolean((voterData as any)[key]));
+    if (specifiesFamily && !perms.canManageFamily) {
+      throw ApiError.forbidden('Your role is not allowed to set voter influencer tags');
     }
 
     const { VoterService } = await import('../tenant/voter.service');

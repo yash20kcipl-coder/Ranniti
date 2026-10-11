@@ -40,7 +40,7 @@ export const seedTenantUserRoles = async (): Promise<void> => {
       accessibleTabs: {
         webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
         masterSubTabs: ['pcs', 'acs', 'wards', 'booths', 'religions', 'castes', 'parties'],
-        mobileScreens: ['voter_search', 'family_tree', 'survey', 'booth_analytics', 'gate_meetings'],
+        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics', 'gate_meetings'],
       },
       voterPermissions: {
         canViewVoter: true,
@@ -61,7 +61,7 @@ export const seedTenantUserRoles = async (): Promise<void> => {
       accessibleTabs: {
         webTabs: ['dashboard', 'voter_directory', 'master_data'],
         masterSubTabs: ['acs', 'wards', 'booths', 'castes'],
-        mobileScreens: ['voter_search', 'family_tree', 'survey', 'booth_analytics'],
+        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics'],
       },
       voterPermissions: {
         canViewVoter: true,
@@ -82,7 +82,7 @@ export const seedTenantUserRoles = async (): Promise<void> => {
       accessibleTabs: {
         webTabs: ['dashboard', 'voter_directory'],
         masterSubTabs: ['booths'],
-        mobileScreens: ['voter_search', 'family_tree', 'survey'],
+        mobileScreens: ['voter_search', 'family_tree'],
       },
       voterPermissions: {
         canViewVoter: true,
@@ -103,7 +103,7 @@ export const seedTenantUserRoles = async (): Promise<void> => {
       accessibleTabs: {
         webTabs: ['dashboard', 'voter_directory'],
         masterSubTabs: [],
-        mobileScreens: ['voter_search', 'survey'],
+        mobileScreens: ['voter_search'],
       },
       voterPermissions: {
         canViewVoter: true,

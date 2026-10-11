@@ -2,16 +2,26 @@ import { Modal } from '../Modal';
 import { SafeImage } from '../SafeImage';
 import { customDrawerStyles } from './styles';
 import { useLanguage } from '../../languages';
+import { getAppVersion } from '../../utils/version';
 import React, { useState, useContext } from 'react';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutAction } from '../../store/actions/auth';
-import { DRAWER_MENU } from '../../navigation/constants';
 import { ThemeContext } from '../../context/ThemeContext';
 import { MaterialDesignIcons } from '../MaterialDesignIcons';
 import { hasScreenAccess } from '../../utils/permissionUtils';
+import { navigationRef } from '../../navigation/navigationUtils';
+import { DRAWER_MENU, SCREENS } from '../../navigation/constants';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
+
+// Map stack child routes to their parent drawer menu item so the active nav pill is never hidden
+const SUB_ROUTE_TO_DRAWER_MAP: Record<string, string> = {
+  [SCREENS.VOTER_DETAIL]: SCREENS.VOTER_LIST,
+  [SCREENS.ADD_EDIT_VOTER]: SCREENS.VOTER_LIST,
+  [SCREENS.VOLUNTEER_DETAIL]: SCREENS.TEAM_MANAGEMENT,
+  [SCREENS.ONBOARD_TEAM_MEMBER]: SCREENS.TEAM_MANAGEMENT,
+};
 
 const CustomDrawer = (props: DrawerContentComponentProps) => {
   const { state } = props;
@@ -19,10 +29,24 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
   const dispatch = useDispatch();
   const { mode, setMode } = useContext(ThemeContext);
   const isDarkMode = mode === 'dark';
-  const activeRouteName = state.routes[state.index].name;
   const { user, access } = useSelector((state: any) => state.auth);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const { theme, styles } = useAppTheme<ReturnType<typeof customDrawerStyles>>(customDrawerStyles);
+
+  // Compute active route robustly across drawer and root stack screens
+  const drawerCurrentRoute = (state?.routes?.[state?.index ?? 0]?.name || '').toLowerCase();
+  const globalCurrentRoute = (
+    navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name || '' : ''
+  ).toLowerCase();
+
+  const isItemActive = (itemName: string) => {
+    const target = itemName.toLowerCase();
+    if (drawerCurrentRoute === target) return true;
+    if (SUB_ROUTE_TO_DRAWER_MAP[drawerCurrentRoute] === target) return true;
+    if (globalCurrentRoute === target) return true;
+    if (SUB_ROUTE_TO_DRAWER_MAP[globalCurrentRoute] === target) return true;
+    return false;
+  };
 
   const handleNavigation = (routeName: string) => {
     props.navigation.navigate(routeName);
@@ -88,8 +112,8 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
               {user?.name || ''}
             </Text>
             <View style={styles.rolePill}>
-              <Text style={styles.userRole}>
-                {user?.roleName || t('pcLeader') || ''}
+              <Text style={styles.userRole} numberOfLines={1}>
+                {user?.roleName || t('pcLeader') || 'LEADER'}
               </Text>
             </View>
           </View>
@@ -97,7 +121,11 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
       </View>
 
       {/* Menu Sections */}
-      <ScrollView contentContainerStyle={styles.drawerContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.drawerContent}
+        showsVerticalScrollIndicator={false}
+      >
         {Object.entries(menuCategories).map(([category, items]) => (
           <View key={category}>
             <View style={styles.categoryHeader}>
@@ -105,7 +133,7 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
             </View>
 
             {items.map((item: any) => {
-              const isActive = activeRouteName === item.name;
+              const isActive = isItemActive(item.name);
               return (
                 <TouchableOpacity
                   key={item.name}
@@ -116,11 +144,14 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
                   }}
                   style={[styles.drawerItem, isActive && styles.drawerItemActive]}
                 >
+                  {/* Left Pill Highlight Indicator Bar */}
+                  {isActive && <View style={styles.activePillIndicator} />}
+
                   <View style={[styles.drawerItemIcon, isActive && styles.drawerItemIconActive]}>
                     <MaterialDesignIcons
-                      size={15}
+                      size={16}
                       name={item.icon}
-                      color={isActive ? theme.colors.primary : theme.colors.textSecondary}
+                      color={isActive ? '#FFFFFF' : theme.colors.textSecondary}
                     />
                   </View>
                   <Text style={[styles.drawerItemText, isActive && styles.drawerItemTextActive]}>
@@ -142,22 +173,6 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
       {/* Footer Controls */}
       <View style={styles.footer}>
         <View style={styles.quickActionRow}>
-          {/* Theme Toggle Button */}
-          {/* <TouchableOpacity
-            style={styles.themeToggleBtn}
-            onPress={handleToggleTheme}
-            activeOpacity={0.7}
-          >
-            <MaterialDesignIcons
-              name={isDarkMode ? 'sun' : 'moon'}
-              size={18}
-              color={theme.colors.text}
-            />
-            <Text style={styles.themeToggleText}>
-              {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-            </Text>
-          </TouchableOpacity> */}
-
           {/* Logout Button */}
           <TouchableOpacity
             style={styles.logoutButton}
@@ -169,7 +184,7 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>Ranniti Campaign OS • v2.4.0</Text>
+        <Text style={styles.version}>{t('appName')} Campaign OS • v{getAppVersion()}</Text>
       </View>
 
       {/* Logout Confirmation Modal */}

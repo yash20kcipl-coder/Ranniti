@@ -381,12 +381,17 @@ export const TenantVolunteersPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
       <PageHeader
         title="Field Volunteers & Cadre"
         subtitle="Manage PC/AC leaders, sub-leaders, and ground supporters with booth territory assignments"
-        icon={<Users className="w-5 h-5 text-indigo-600" />}
+        icon={<Users className="w-5 h-5 text-indigo-500" />}
+        badge={
+          <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+            {volunteers.length} Cadres
+          </span>
+        }
         onAddClick={handleOpenCreateModal}
         addLabel="Onboard Volunteer"
       />
@@ -396,15 +401,9 @@ export const TenantVolunteersPage: React.FC = () => {
         coverage={coverage}
         totalVolunteers={volunteers.length}
         totalBoothsCount={coverage?.totalBooths || availableBooths.length}
+        selectedRole={selectedRole}
+        onSelectRole={(role) => setSelectedRole(role)}
       />
-
-      {/* Post-Creation WhatsApp & Credentials Banner */}
-      {/* {lastCreatedCredentials && (
-        <VolunteerCredentialsBanner
-          credentials={lastCreatedCredentials}
-          onDismiss={() => dispatch(clearLastCreatedCredentials())}
-        />
-      )} */}
 
       {/* Standard FilterBar */}
       <FilterBar
@@ -415,8 +414,8 @@ export const TenantVolunteersPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      {/* Standard DataTable */}
-      <div className="rounded-2xl dark:bg-slate-900/60 dark:border dark:border-slate-800 dark:p-1">
+      {/* Standard DataTable Container */}
+      <div className="rounded-lg">
         <DataTable
           columns={columns}
           data={volunteers}
@@ -431,7 +430,7 @@ export const TenantVolunteersPage: React.FC = () => {
                   type="button"
                   onClick={() => setStatusToggleTarget(row)}
                   title={row.status === 'active' ? 'Active — Click to Disable' : 'Disabled — Click to Enable'}
-                  className={`p-1.5 rounded-lg border transition-colors ${row.status === 'active'
+                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${row.status === 'active'
                     ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-300'
                     : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
                     }`}

@@ -28,18 +28,21 @@ export class SyncOutboxRetryService {
           entity_id UUID NOT NULL,
           action VARCHAR(20) NOT NULL,
           payload JSONB NOT NULL,
+          origin VARCHAR(20) NOT NULL DEFAULT 'tenant',
           status VARCHAR(20) DEFAULT 'pending',
           retry_count INT DEFAULT 0,
           error_message TEXT,
           created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
         );
+        ALTER TABLE tenant_sync_outbox ADD COLUMN IF NOT EXISTS origin VARCHAR(20) NOT NULL DEFAULT 'tenant';
+        CREATE INDEX IF NOT EXISTS idx_tenant_sync_outbox_status ON tenant_sync_outbox (status);
       `).catch(() => {});
       this.verifiedTenantDbs.add(tenantDbName);
     }
 
     const selectSql = `
-      SELECT id, entity_type, entity_id, action, payload, retry_count
+      SELECT id, entity_type, entity_id, action, payload, retry_count, origin
       FROM tenant_sync_outbox
       WHERE status IN ('pending', 'failed') AND retry_count < 10
       ORDER BY created_at ASC
@@ -78,6 +81,16 @@ export class SyncOutboxRetryService {
     }
 
     for (const { item, payloadObj } of otherItems) {
+      if (item.origin === 'master') {
+        // Echo prevention: Record originated from Master DB, mark synced without re-pushing
+        await tenantPool.query(
+          `UPDATE tenant_sync_outbox SET status = 'synced', updated_at = NOW() WHERE id = $1`,
+          [item.id]
+        );
+        processedCount++;
+        continue;
+      }
+
       const success = await MasterAutoSyncService.syncEntityToMaster(
         tenantPool,
         item.entity_type,

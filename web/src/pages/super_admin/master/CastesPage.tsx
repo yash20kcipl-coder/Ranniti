@@ -118,10 +118,24 @@ export const CastesPage: React.FC = () => {
 
   // Columns Definition
   const columns: Column<any>[] = [
-    { key: 'name', header: 'Caste / Subcaste Name', sortable: true },
-    { key: 'category', header: 'Category', sortable: true },
-    { key: 'religionName', header: 'Religion', sortable: true, render: (row) => row.religionName || '-' },
-    { key: 'parentCasteName', header: 'Parent Caste', sortable: true, render: (row) => row.parentCasteName || '-' },
+    {
+      key: 'name',
+      header: 'Caste / Subcaste Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      sortable: true,
+      render: (row) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+          {row.category || '-'}
+        </span>
+      ),
+    },
+    { key: 'religionName', header: 'Religion', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.religionName || '-'}</span> },
+    { key: 'parentCasteName', header: 'Parent Caste', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.parentCasteName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -218,11 +232,16 @@ export const CastesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Castes & Subcastes"
         icon={<Users className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage caste categories and social classifications."
+        badge={
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
+            {filteredCastes.length} {filteredCastes.length === 1 ? 'Record' : 'Records'}
+          </span>
+        }
         onAddClick={handleOpenAdd}
         addLabel="Add Caste"
         onImportClick={() => setIsImportModalOpen(true)}
@@ -239,20 +258,18 @@ export const CastesPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={filteredCastes}
-          loading={loading}
-          showHeader={false}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEdit(row)}
-              onDelete={() => handleOpenDelete(row)}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredCastes}
+        loading={loading}
+        showHeader={false}
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEdit(row)}
+            onDelete={() => handleOpenDelete(row)}
+          />
+        )}
+      />
 
       <CasteFormModal
         isOpen={isModalOpen}

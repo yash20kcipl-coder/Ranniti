@@ -1,7 +1,7 @@
 import { logger } from '../../utils/logger';
 import { UserRecord } from '../../queries/auth.queries';
 import { query as masterQuery } from '../../queries/dbPool';
-import { TenantPoolManager } from '../../utils/tenantPoolManager';
+import { TenantPoolManager } from '../pool/tenantPoolManager';
 
 
 export interface MobileBoothItem {

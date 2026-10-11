@@ -8,10 +8,14 @@ import { FontFamily } from '../../../utils/typography';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { SafeImage } from '../../../components/SafeImage';
 import { SocialInfluencer } from '../../../store/reducers/influencers';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { toggleVotedStatusAction } from '../../../store/actions/voters';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { openPhoneDialer, openWhatsAppChat } from '../../../utils/linkingUtils';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface InfluencerCardProps {
   item: SocialInfluencer;
@@ -24,44 +28,69 @@ export const InfluencerCard: React.FC<InfluencerCardProps> = ({ item }) => {
   const { theme, styles } = useAppTheme(createStyles);
 
   const voters = item.influencedVoters || [];
+  const totalInfluenced = item.influencedVotersCount || voters.length;
+  const votedCount = voters.filter((v) => v.isVoted).length;
+  const turnoutPercent = totalInfluenced > 0 ? Math.round((votedCount / totalInfluenced) * 100) : 0;
+
+  const handleToggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded((prev) => !prev);
+  };
 
   return (
     <View style={styles.card}>
       {/* Influencer Header Details */}
       <View style={styles.headerRow}>
-        <SafeImage
-          src={item.photo || item.avatar}
-          name={item.name}
-          alt={item.name}
-          placeholderType="avatar"
-          style={styles.photo}
-        />
+        <View style={styles.avatarWrapper}>
+          <SafeImage
+            src={item.photo || item.avatar}
+            name={item.name}
+            alt={item.name}
+            placeholderType="avatar"
+            style={styles.photo}
+          />
+          <View style={styles.starBadgeDot}>
+            <MaterialDesignIcons name="star" size={11} color="#FFFFFF" />
+          </View>
+        </View>
+
         <View style={styles.infoCol}>
           {/* Badges Row */}
           <View style={styles.badgeRow}>
             {item.isSocialInfluencer && (
               <View style={[styles.typeBadge, styles.socialBadge]}>
+                <MaterialDesignIcons name="account-star" size={10} color="#4338CA" />
                 <Text style={styles.socialBadgeText}>{t('socialInfluencer') || 'Social'}</Text>
               </View>
             )}
             {item.isFamilyInfluencer && (
               <View style={[styles.typeBadge, styles.familyBadge]}>
+                <MaterialDesignIcons name="home-account" size={10} color="#B45309" />
                 <Text style={styles.familyBadgeText}>{t('familyHead') || 'Family Head'}</Text>
               </View>
             )}
-            {!!item.supportingParty && (
-              <View style={styles.partyBadge}>
+            {Boolean(item.supportingParty) && (
+              <View style={[styles.typeBadge, styles.partyBadge]}>
                 <Text style={styles.partyBadgeText}>{item.supportingParty}</Text>
               </View>
             )}
           </View>
 
-          <Text style={styles.nameText}>{item.name}</Text>
-          <Text style={styles.professionText}>{item.profession || 'Community Leader'}</Text>
-          {!!item.influenceArea && (
+          <Text style={[styles.nameText, { color: theme.colors.text }]} numberOfLines={1}>
+            {item.name}
+          </Text>
+
+          <View style={styles.professionRow}>
+            <MaterialDesignIcons name="briefcase-outline" size={12} color={theme.colors.textSecondary} />
+            <Text style={[styles.professionText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              {item.profession || 'Community Leader'}
+            </Text>
+          </View>
+
+          {Boolean(item.influenceArea) && (
             <View style={styles.areaRow}>
               <MaterialDesignIcons name="map-marker-outline" size={12} color={theme.colors.textSecondary} />
-              <Text style={styles.areaText} numberOfLines={1}>
+              <Text style={[styles.areaText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                 {item.influenceArea}
               </Text>
             </View>
@@ -70,79 +99,158 @@ export const InfluencerCard: React.FC<InfluencerCardProps> = ({ item }) => {
 
         {/* Quick Contact Buttons */}
         <View style={styles.quickContactCol}>
-          {!!item.mobile && (
+          {Boolean(item.mobile) && (
             <>
               <TouchableOpacity
                 style={[styles.actionIconBtn, { backgroundColor: '#EFF6FF' }]}
                 onPress={() => openPhoneDialer(item.mobile)}
-                activeOpacity={0.7}
+                activeOpacity={0.75}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               >
-                <MaterialDesignIcons name="phone-outline" size={16} color="#2563EB" />
+                <MaterialDesignIcons name="phone-outline" size={15} color="#2563EB" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionIconBtn, { backgroundColor: '#F0FDF4' }]}
                 onPress={() => openWhatsAppChat(item.mobile)}
-                activeOpacity={0.7}
+                activeOpacity={0.75}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               >
-                <MaterialDesignIcons name="whatsapp" size={16} color="#16A34A" />
+                <MaterialDesignIcons name="whatsapp" size={15} color="#16A34A" />
               </TouchableOpacity>
             </>
           )}
         </View>
       </View>
 
-      {/* Influenced Voters Summary & Accordion Toggle */}
+      {/* Influenced Voters Accordion Toggle */}
       <TouchableOpacity
-        style={styles.accordionHeader}
-        onPress={() => setIsExpanded((prev) => !prev)}
+        style={[styles.accordionHeader, { backgroundColor: theme.colors.inputBackground }]}
+        onPress={handleToggleExpand}
         activeOpacity={0.8}
       >
         <View style={styles.accordionLabelRow}>
           <MaterialDesignIcons name="account-group-outline" size={16} color={theme.colors.primary} />
-          <Text style={styles.accordionTitle}>
-            {t('influencedVoters') || 'Influenced Voters'} ({item.influencedVotersCount || voters.length})
+          <Text style={[styles.accordionTitle, { color: theme.colors.text }]}>
+            {t('influencedVoters') || 'Influenced Voters'} ({totalInfluenced})
           </Text>
         </View>
 
-        <MaterialDesignIcons
-          name={isExpanded ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={theme.colors.textSecondary}
-        />
+        <View style={styles.accordionRightRow}>
+          {totalInfluenced > 0 && (
+            <View
+              style={[
+                styles.turnoutPill,
+                {
+                  backgroundColor:
+                    turnoutPercent === 100
+                      ? '#DCFCE7'
+                      : turnoutPercent > 0
+                        ? '#FEF3C7'
+                        : '#F1F5F9',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.turnoutPillText,
+                  {
+                    color:
+                      turnoutPercent === 100
+                        ? '#15803D'
+                        : turnoutPercent > 0
+                          ? '#B45309'
+                          : '#64748B',
+                  },
+                ]}
+              >
+                {votedCount}/{totalInfluenced} • {turnoutPercent}%
+              </Text>
+            </View>
+          )}
+
+          <MaterialDesignIcons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={theme.colors.textSecondary}
+          />
+        </View>
       </TouchableOpacity>
 
       {/* Expanded Influenced Voters List */}
       {isExpanded && (
         <View style={styles.votersListContainer}>
           {voters.length === 0 ? (
-            <Text style={styles.emptyVotersText}>
-              {t('noInfluencedVoters') || 'No voters mapped under this influencer yet.'}
-            </Text>
+            <View style={styles.emptyVotersBox}>
+              <MaterialDesignIcons name="information-outline" size={16} color={theme.colors.textSecondary} />
+              <Text style={[styles.emptyVotersText, { color: theme.colors.textSecondary }]}>
+                {t('noInfluencedVoters') || 'No voters mapped under this influencer yet.'}
+              </Text>
+            </View>
           ) : (
             voters.map((voter) => (
-              <View key={voter.id} style={styles.voterItemCard}>
+              <View
+                key={voter.id}
+                style={[
+                  styles.voterItemCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    borderLeftColor: voter.isVoted ? '#16A34A' : '#CBD5E1',
+                  },
+                ]}
+              >
                 <View style={styles.voterDetails}>
-                  <Text style={styles.voterNameText}>{voter.name}</Text>
-                  <Text style={styles.voterMetaText}>
-                    EPIC: {voter.epicNo} {voter.boothNo ? `• ${voter.boothNo}` : ''}
+                  <Text style={[styles.voterNameText, { color: theme.colors.text }]} numberOfLines={1}>
+                    {voter.name}
                   </Text>
+                  <View style={styles.voterMetaRow}>
+                    <View style={styles.epicPill}>
+                      <Text style={styles.epicText}>{voter.epicNo || 'NO EPIC'}</Text>
+                    </View>
+                    {Boolean(voter.boothNo) && (
+                      <Text style={[styles.boothText, { color: theme.colors.textSecondary }]}>
+                        Booth #{voter.boothNo}
+                      </Text>
+                    )}
+                  </View>
                 </View>
 
-                {/* Interactive Voted Status Toggle Button */}
-                <TouchableOpacity
-                  style={[styles.votedBadgeBtn, voter.isVoted ? styles.votedActive : styles.votedInactive]}
-                  onPress={() => dispatch(toggleVotedStatusAction(voter.id))}
-                  activeOpacity={0.8}
-                >
-                  <MaterialDesignIcons
-                    name={voter.isVoted ? 'check-circle' : 'close-circle-outline'}
-                    size={14}
-                    color={voter.isVoted ? '#15803D' : '#64748B'}
-                  />
-                  <Text style={[styles.votedBadgeText, voter.isVoted ? styles.votedTextActive : styles.votedTextInactive]}>
-                    {voter.isVoted ? (t('voted') || 'Voted') : (t('notVoted') || 'Not Voted')}
-                  </Text>
-                </TouchableOpacity>
+                {/* Quick actions & Voted status toggle button */}
+                <View style={styles.voterActionsRow}>
+                  {Boolean(voter.mobile) && (
+                    <TouchableOpacity
+                      style={styles.voterCallBtn}
+                      onPress={() => openPhoneDialer(voter.mobile)}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <MaterialDesignIcons name="phone-outline" size={13} color="#2563EB" />
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Interactive Voted Status Toggle Button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.votedBadgeBtn,
+                      voter.isVoted ? styles.votedActive : styles.votedInactive,
+                    ]}
+                    onPress={() => dispatch(toggleVotedStatusAction(voter.id))}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialDesignIcons
+                      name={voter.isVoted ? 'check-circle' : 'circle-outline'}
+                      size={13}
+                      color={voter.isVoted ? '#15803D' : '#64748B'}
+                    />
+                    <Text
+                      style={[
+                        styles.votedBadgeText,
+                        voter.isVoted ? styles.votedTextActive : styles.votedTextInactive,
+                      ]}
+                    >
+                      {voter.isVoted ? t('voted') || 'VOTED' : t('notVoted') || 'PENDING'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))
           )}
@@ -156,22 +264,39 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     card: {
       backgroundColor: theme.colors.surface || '#FFFFFF',
-      borderRadius: 16,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: theme.colors.border || '#E2E8F0',
       padding: 14,
-      marginBottom: 12,
+      marginBottom: 10,
+      gap: 12,
       ...getShadow(2, '#000000', 0.04),
     },
     headerRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: 12,
+    },
+    avatarWrapper: {
+      position: 'relative',
     },
     photo: {
       width: 52,
       height: 52,
       borderRadius: 26,
+    },
+    starBadgeDot: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: '#4F46E5',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: theme.colors.surface || '#FFFFFF',
     },
     infoCol: {
       flex: 1,
@@ -180,66 +305,68 @@ const createStyles = (theme: Theme) =>
     badgeRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: 6,
+      gap: 5,
       marginBottom: 2,
     },
     typeBadge: {
-      paddingHorizontal: 6,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      paddingHorizontal: 7,
       paddingVertical: 2,
-      borderRadius: 6,
+      borderRadius: 8,
     },
     socialBadge: {
-      backgroundColor: '#EFF6FF',
+      backgroundColor: '#EEF2FF',
     },
     socialBadgeText: {
       fontFamily: FontFamily.bold,
-      fontSize: rfValue(10),
-      color: '#1E40AF',
+      fontSize: rfValue(9.5),
+      color: '#4338CA',
     },
     familyBadge: {
-      backgroundColor: '#F5F3FF',
+      backgroundColor: '#FEF3C7',
     },
     familyBadgeText: {
       fontFamily: FontFamily.bold,
-      fontSize: rfValue(10),
-      color: '#6D28D9',
+      fontSize: rfValue(9.5),
+      color: '#B45309',
     },
     partyBadge: {
-      backgroundColor: '#FEF3C7',
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 6,
+      backgroundColor: '#F1F5F9',
     },
     partyBadgeText: {
-      fontFamily: FontFamily.bold,
-      fontSize: rfValue(10),
-      color: '#D97706',
+      fontFamily: FontFamily.medium,
+      fontSize: rfValue(9.5),
+      color: '#475569',
     },
     nameText: {
       fontFamily: FontFamily.bold,
       fontSize: rfValue(15),
-      color: theme.colors.text || '#0F172A',
+      letterSpacing: -0.2,
+    },
+    professionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
     },
     professionText: {
       fontFamily: FontFamily.medium,
-      fontSize: rfValue(12),
-      color: theme.colors.textSecondary || '#475569',
+      fontSize: rfValue(11.5),
     },
     areaRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      marginTop: 2,
     },
     areaText: {
-      fontFamily: FontFamily.body,
+      fontFamily: FontFamily.medium,
       fontSize: rfValue(11),
-      color: theme.colors.textSecondary || '#64748B',
-      flex: 1,
     },
     quickContactCol: {
-      gap: 8,
+      flexDirection: 'column',
+      gap: 6,
+      alignItems: 'center',
     },
     actionIconBtn: {
       width: 34,
@@ -247,86 +374,129 @@ const createStyles = (theme: Theme) =>
       borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(0, 0, 0, 0.05)',
     },
     accordionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: theme.colors.subtleSurface || '#F8FAFC',
-      borderRadius: 10,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-      marginTop: 12,
-      borderWidth: 1,
-      borderColor: theme.colors.border || '#E2E8F0',
+      paddingVertical: 9,
+      paddingHorizontal: 12,
+      borderRadius: 12,
     },
     accordionLabelRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 6,
     },
     accordionTitle: {
       fontFamily: FontFamily.bold,
-      fontSize: rfValue(12),
-      color: theme.colors.text || '#0F172A',
+      fontSize: rfValue(12.5),
+    },
+    accordionRightRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    turnoutPill: {
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: 8,
+    },
+    turnoutPillText: {
+      fontFamily: FontFamily.bold,
+      fontSize: rfValue(10),
     },
     votersListContainer: {
-      marginTop: 8,
+      gap: 8,
+      paddingTop: 4,
+    },
+    emptyVotersBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: 6,
-      paddingLeft: 4,
+      padding: 10,
+      backgroundColor: 'rgba(0,0,0,0.02)',
+      borderRadius: 10,
     },
     emptyVotersText: {
-      fontFamily: FontFamily.body,
-      fontSize: rfValue(11),
-      color: theme.colors.textSecondary || '#64748B',
-      fontStyle: 'italic',
-      paddingVertical: 6,
+      fontFamily: FontFamily.medium,
+      fontSize: rfValue(11.5),
+      flex: 1,
     },
     voterItemCard: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: theme.colors.surface || '#FFFFFF',
       padding: 10,
-      borderRadius: 8,
+      borderRadius: 12,
       borderWidth: 1,
-      borderColor: theme.colors.border || '#E2E8F0',
+      borderLeftWidth: 3.5,
+      gap: 8,
     },
     voterDetails: {
       flex: 1,
-      paddingRight: 8,
+      gap: 3,
     },
     voterNameText: {
       fontFamily: FontFamily.bold,
-      fontSize: rfValue(12),
-      color: theme.colors.text || '#0F172A',
+      fontSize: rfValue(13),
     },
-    voterMetaText: {
-      fontFamily: FontFamily.body,
-      fontSize: rfValue(11),
-      color: theme.colors.textSecondary || '#64748B',
-      marginTop: 1,
+    voterMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    epicPill: {
+      backgroundColor: '#F1F5F9',
+      paddingHorizontal: 6,
+      paddingVertical: 1.5,
+      borderRadius: 6,
+    },
+    epicText: {
+      fontFamily: FontFamily.medium,
+      fontSize: rfValue(10),
+      color: '#475569',
+    },
+    boothText: {
+      fontFamily: FontFamily.medium,
+      fontSize: rfValue(10.5),
+    },
+    voterActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    voterCallBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: '#EFF6FF',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     votedBadgeBtn: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
       paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 6,
+      paddingVertical: 5,
+      borderRadius: 8,
       borderWidth: 1,
     },
     votedActive: {
-      backgroundColor: '#F0FDF4',
-      borderColor: '#BBF7D0',
+      backgroundColor: '#DCFCE7',
+      borderColor: '#86EFAC',
     },
     votedInactive: {
       backgroundColor: '#F8FAFC',
       borderColor: '#E2E8F0',
     },
     votedBadgeText: {
-      fontFamily: FontFamily.medium,
+      fontFamily: FontFamily.bold,
       fontSize: rfValue(10),
+      letterSpacing: 0.3,
     },
     votedTextActive: {
       color: '#15803D',

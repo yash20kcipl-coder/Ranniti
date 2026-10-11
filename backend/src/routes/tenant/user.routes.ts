@@ -7,29 +7,29 @@ import {
 import { Router } from 'express';
 import { validate } from '../../middlewares/validate.middleware';
 import { optionalUpload } from '../../middlewares/upload.middleware';
+import { authenticateJwt, requireAdmin } from '../../middlewares/auth.middleware';
 import { adminUserController } from '../../controllers/tenant/admin_user.controller';
-import { authenticateJwt, requireAdmin, requireSubLeader } from '../../middlewares/auth.middleware';
 
 const router = Router();
 
 router.use(authenticateJwt);
 
-router.get('/volunteers', requireSubLeader, adminUserController.getVolunteers);
-router.get('/volunteers/coverage', requireSubLeader, adminUserController.getVolunteerBoothCoverage);
+router.get('/volunteers', requireAdmin, adminUserController.getVolunteers);
+router.get('/volunteers/coverage', requireAdmin, adminUserController.getVolunteerBoothCoverage);
 
-router.get('/team', requireSubLeader, adminUserController.getTeamMembers);
+router.get('/team', requireAdmin, adminUserController.getTeamMembers);
 
 // Dedicated status toggle / update routes
 router.patch(
   '/volunteers/:id/status',
-  requireSubLeader,
+  requireAdmin,
   validate(updateAdminUserStatusSchema),
   adminUserController.toggleVolunteerStatus
 );
 
 router.patch(
   '/:id/status',
-  requireSubLeader,
+  requireAdmin,
   validate(updateAdminUserStatusSchema),
   adminUserController.toggleVolunteerStatus
 );
@@ -38,7 +38,7 @@ router
   .route('/')
   .get(requireAdmin, adminUserController.getAdminUsers)
   .post(
-    requireSubLeader,
+    requireAdmin,
     optionalUpload('avatar', 'avatars'),
     validate(createAdminUserSchema),
     adminUserController.createAdminUser
@@ -46,7 +46,7 @@ router
 
 router
   .route('/:id')
-  .get(requireSubLeader, validate(getAdminUserByIdSchema), adminUserController.getAdminUserById)
+  .get(requireAdmin, validate(getAdminUserByIdSchema), adminUserController.getAdminUserById)
   .put(
     requireAdmin,
     optionalUpload('avatar', 'avatars'),

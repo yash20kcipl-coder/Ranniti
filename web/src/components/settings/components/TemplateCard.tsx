@@ -72,7 +72,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
   };
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+    <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
       {/* Top Header Row */}
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
@@ -99,14 +99,14 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
 
         {/* Rejection Reason if any */}
         {template.metaStatus === 'REJECTED' && template.metaRejectionReason && (
-          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300">
+          <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300">
             <span className="font-semibold">Rejection Reason: </span>
             <span>{template.metaRejectionReason}</span>
           </div>
         )}
 
         {/* Message Content Preview Box */}
-        <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 p-3 space-y-2">
+        <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 p-3 space-y-2">
           {template.headerContent && (
             <div className="text-xs font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-1.5 truncate">
               {template.headerType === 'TEXT'
@@ -165,7 +165,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
           <button
             type="button"
             onClick={() => onPreview(template)}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             title="Preview Live on Mobile Chat"
           >
             <Eye className="w-3.5 h-3.5 text-slate-500" />
@@ -175,7 +175,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
           <button
             type="button"
             onClick={() => onTestSend(template)}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer"
             title="Send Test WhatsApp Message"
           >
             <Send className="w-3.5 h-3.5 text-emerald-600" />

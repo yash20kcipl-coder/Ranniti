@@ -1,5 +1,6 @@
 import { TabContainer, type TabItem } from '@/components/common/TabContainer';
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import {
   WhatsAppTemplatesSection,
@@ -15,8 +16,8 @@ import {
   Bell,
   Save,
   Loader2,
-  Package,
   Smartphone,
+  Shield,
 } from 'lucide-react';
 import {
   fetchSuperAdminSettings,
@@ -35,11 +36,25 @@ import type { CampaignSettings, WhatsAppTemplate, SettingsTabKey, AppVersionConf
 
 export const SuperAdminSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { settings, saving, whatsappTemplates = [], appVersions = [] } = useAppSelector((state) => state.settings);
+  const { settings, loading, saving, whatsappTemplates = [], appVersions = [] } = useAppSelector((state) => state.settings);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as SettingsTabKey | null;
 
   const [isTestWhatsAppOpen, setIsTestWhatsAppOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<SettingsTabKey>('tenant-roles');
+  const [activeTab, setActiveTab] = useState<SettingsTabKey>(() => tabParam || 'tenant-roles');
   const [localSettings, setLocalSettings] = useState<CampaignSettings | null>(null);
+
+  useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam, activeTab]);
+
+  const handleTabChange = (tabId: SettingsTabKey) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId }, { replace: true });
+  };
 
   // Initial load for Master DB & App Versions
   useEffect(() => {
@@ -101,8 +116,8 @@ export const SuperAdminSettingsPage: React.FC = () => {
   const navTabs: TabItem<SettingsTabKey>[] = [
     {
       id: 'tenant-roles',
-      label: 'Tenant Feature Packages',
-      icon: Package,
+      label: 'Tenant Roles & Packages',
+      icon: Shield,
     },
     {
       id: 'app-versions',
@@ -171,7 +186,7 @@ export const SuperAdminSettingsPage: React.FC = () => {
       <TabContainer<SettingsTabKey>
         tabs={navTabs}
         activeTab={activeTab}
-        onTabChange={(tabId) => setActiveTab(tabId)}
+        onTabChange={handleTabChange}
         views={{
           'user-roles': <TenantRoleManager />,
           'tenant-roles': <TenantRoleManager />,
@@ -179,6 +194,7 @@ export const SuperAdminSettingsPage: React.FC = () => {
             <AppVersionSection
               appVersions={appVersions}
               saving={saving}
+              loading={loading}
               onUpdateVersion={handleUpdateAppVersion}
             />
           ),
@@ -189,28 +205,23 @@ export const SuperAdminSettingsPage: React.FC = () => {
               onUpdateTemplate={handleUpdateTemplate}
               onDeleteTemplate={handleDeleteTemplate}
               onSyncTemplates={handleSyncTemplates}
+              loading={loading}
             />
           ),
-          'whatsapp-config': localSettings ? (
+          'whatsapp-config': (
             <WhatsAppConfigSection
-              settings={localSettings}
+              settings={localSettings || ({} as CampaignSettings)}
               onChange={handleUpdateLocal}
               onOpenTestSend={() => setIsTestWhatsAppOpen(true)}
+              loading={loading || !localSettings}
             />
-          ) : (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-            </div>
           ),
-          'push-notifications': localSettings ? (
+          'push-notifications': (
             <PushNotificationSection
-              settings={localSettings}
+              settings={localSettings || ({} as CampaignSettings)}
               onChange={handleUpdateLocal}
+              loading={loading || !localSettings}
             />
-          ) : (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-            </div>
           ),
         }}
       />

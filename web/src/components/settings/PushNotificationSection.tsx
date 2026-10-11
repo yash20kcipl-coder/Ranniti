@@ -5,11 +5,13 @@ import { FcmCredentialsCard, NotificationTriggersCard, TestNotificationModal } f
 interface PushNotificationSectionProps {
   settings: CampaignSettings;
   onChange: (updated: Partial<CampaignSettings>) => void;
+  loading?: boolean;
 }
 
 export const PushNotificationSection: React.FC<PushNotificationSectionProps> = ({
   settings,
   onChange,
+  loading = false,
 }) => {
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
 
@@ -24,12 +26,14 @@ export const PushNotificationSection: React.FC<PushNotificationSectionProps> = (
         settings={settings}
         onChange={onChange}
         onOpenTestModal={() => setIsTestModalOpen(true)}
+        loading={loading}
       />
 
       {/* Automated Triggers Card */}
       <NotificationTriggersCard
         triggers={settings.pushTriggers}
         onChange={handleTriggersChange}
+        loading={loading}
       />
 
       {/* Test Notification Modal */}

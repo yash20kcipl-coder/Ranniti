@@ -46,9 +46,8 @@ export const VoterRowActions: React.FC<VoterRowActionsProps> = ({
               e.stopPropagation();
               setActiveRowMenuId(isMenuOpen ? null : row.id);
             }}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer ${
-              isMenuOpen ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : ''
-            }`}
+            className={`w-8 h-8 rounded-md flex items-center justify-center bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-2xs active:scale-95 ${isMenuOpen ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : ''
+              }`}
             title="Influencer Options"
           >
             <MoreVertical size={14} />

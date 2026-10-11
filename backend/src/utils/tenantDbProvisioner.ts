@@ -92,9 +92,13 @@ export class TenantDbProvisioner {
       'create_master_tables.sql',
       'create_tenant_users_table.sql',
       'create_voters_table.sql',
+      'remove_voter_type_column.sql',
       'create_campaign_settings_tables.sql',
+      'remove_tenant_whatsapp_config_and_templates.sql',
       'create_tenant_user_roles_table.sql',
       'create_user_synced_contacts_table.sql',
+      'create_tenant_sync_outbox_table.sql',
+      'create_volunteer_activity_logs_table.sql',
     ];
 
     const migrationsDir = path.join(__dirname, '../database/migrations');
@@ -114,31 +118,33 @@ export class TenantDbProvisioner {
       await tenantPool.query(`
         INSERT INTO tenant_user_roles (role_name, role_key, description, accessible_tabs, voter_permissions, can_create_roles, is_system_default)
         VALUES
-          ('PC Leader', 'pc_leader', 'Parliamentary Constituency Campaign Lead', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["ac_leader","sub_leader","supporter"]'::jsonb, true),
-          ('AC Leader', 'ac_leader', 'Assembly Constituency Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["sub_leader","supporter"]'::jsonb, true),
-          ('Sub-Leader / Ward Coordinator', 'sub_leader', 'Ward & Prabhag Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey","booth_analytics"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":true,"canExportData":false}'::jsonb, '["supporter"]'::jsonb, true),
-          ('Campaign Supporter / Volunteer', 'supporter', 'Booth Level Field Worker', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","survey"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":false,"canExportData":false}'::jsonb, '[]'::jsonb, true)
+          ('PC Leader', 'pc_leader', 'Parliamentary Constituency Campaign Lead', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["ac_leader","sub_leader","supporter"]'::jsonb, true),
+          ('AC Leader', 'ac_leader', 'Assembly Constituency Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","booth_analytics","gate_meetings"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["sub_leader","supporter"]'::jsonb, true),
+          ('Sub-Leader / Ward Coordinator', 'sub_leader', 'Ward & Prabhag Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","booth_analytics"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":true,"canExportData":false}'::jsonb, '["supporter"]'::jsonb, true),
+          ('Campaign Supporter / Volunteer', 'supporter', 'Booth Level Field Worker', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":false,"canExportData":false}'::jsonb, '[]'::jsonb, true)
         ON CONFLICT DO NOTHING;
       `);
       logger.info(`[TenantProvisioner] Seeded default system roles for '${tenantDbName}'`);
     }
 
-    // Ensure tenant_sync_outbox table exists
-    const outboxTableSql = `
+    // Ensure tenant_sync_outbox table and origin column exist
+    await tenantPool.query(`
       CREATE TABLE IF NOT EXISTS tenant_sync_outbox (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         entity_type VARCHAR(50) NOT NULL,
         entity_id UUID NOT NULL,
         action VARCHAR(20) NOT NULL,
         payload JSONB NOT NULL,
+        origin VARCHAR(20) NOT NULL DEFAULT 'tenant',
         status VARCHAR(20) DEFAULT 'pending',
         retry_count INT DEFAULT 0,
         error_message TEXT,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
-    `;
-    await tenantPool.query(outboxTableSql);
+      ALTER TABLE tenant_sync_outbox ADD COLUMN IF NOT EXISTS origin VARCHAR(20) NOT NULL DEFAULT 'tenant';
+      CREATE INDEX IF NOT EXISTS idx_tenant_sync_outbox_status ON tenant_sync_outbox (status);
+    `).catch(() => {});
 
     // Seed campaign settings & WhatsApp templates for the newly provisioned tenant DB
     await seedSettings(tenantDbName);

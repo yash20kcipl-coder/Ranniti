@@ -52,8 +52,8 @@ const initialDashboardState: DashboardState = {
     supportersCount: 0,
   },
   genderData: {
-    male: 152,
-    female: 148,
+    male: 0,
+    female: 0,
     other: 0
   },
   ageData: {

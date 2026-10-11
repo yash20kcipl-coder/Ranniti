@@ -1,11 +1,20 @@
 import { query } from '../../queries/dbPool';
 import { ApiError } from '../../utils/apiError';
-import { AdminUser, UpdateAdminUserInput } from '../../models/admin_user.model';
-import { TenantPoolManager } from '../../utils/tenantPoolManager';
 import { AuthQueries } from '../../queries/auth.queries';
+import { AdminUser } from '../../models/admin_user.model';
+import { TenantPoolManager } from '../pool/tenantPoolManager';
 
 export class AdminUserService {
-  async getAllAdminUsers(): Promise<AdminUser[]> {
+  async getAllAdminUsers(tenantDbName?: string | null): Promise<AdminUser[]> {
+    if (tenantDbName) {
+      const res = await TenantPoolManager.query(
+        tenantDbName,
+        `SELECT id, name, email, role, role_name AS "roleName", mobile, avatar, status,
+                created_at AS "createdAt", updated_at AS "updatedAt"
+         FROM tenant_users ORDER BY created_at DESC`
+      );
+      return res.rows;
+    }
     const res = await query(
       `SELECT id, name, email, role, role_name AS "roleName", mobile, avatar, status,
               created_at AS "createdAt", updated_at AS "updatedAt"
@@ -198,9 +207,9 @@ export class AdminUserService {
               [id]
             );
             if (tCheck.rows[0]) return tCheck.rows[0];
-          } catch {}
+          } catch { }
         }
-      } catch {}
+      } catch { }
     }
 
     const res = await query(
@@ -347,7 +356,7 @@ export class AdminUserService {
 
     try {
       await query(`DELETE FROM user_booth_assignments WHERE user_id = $1`, [id]);
-    } catch {}
+    } catch { }
     await query(`DELETE FROM admin_users WHERE id = $1`, [id]);
   }
 }

@@ -1,26 +1,28 @@
-import { influencerStyles } from './styles';
-import NoData from '../../components/NoData';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, FlatList } from 'react-native';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import { RootState } from '../../store/store';
 import { useLanguage } from '../../languages';
-import { View, FlatList } from 'react-native';
-import { Skeleton } from '../../components/Skeleton';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { useSelector, useDispatch } from 'react-redux';
-import React, { useState, useEffect, useMemo } from 'react';
+import { influencerStyles } from './styles';
 import { InfluencerCard } from './components/InfluencerCard';
-import { BoothMasterItem } from '../../store/reducers/master';
-import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
-import { SocialInfluencer } from '../../store/reducers/influencers';
 import { InfluencerKpiCards } from './components/InfluencerKpiCards';
 import { InfluencerFilterBar } from './components/InfluencerFilterBar';
+import { InfluencerCardSkeleton } from './components/InfluencerCardSkeleton';
+import { BoothMasterItem } from '../../store/reducers/master';
+import { SocialInfluencer } from '../../store/reducers/influencers';
+import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { fetchInfluencersAction } from '../../store/actions/influencers';
 import { fetchFilterMasterDataAction } from '../../store/actions/master';
 import { BoothSelectorModal } from '../TeamModule/components/BoothSelectorModal';
 import { SearchHeaderWithFilter } from '../../components/SearchHeaderWithFilter';
+import NoData from '../../components/NoData';
 
 export const InfluencerMappingScreen: React.FC = () => {
   const { t } = useLanguage();
   const dispatch = useDispatch<any>();
+  const navigation = useNavigation<any>();
   const { theme, styles } = useAppTheme<ReturnType<typeof influencerStyles>>(influencerStyles);
 
   // Redux state selectors
@@ -85,11 +87,21 @@ export const InfluencerMappingScreen: React.FC = () => {
     return `${selectedBoothIds.length} Booths`;
   }, [selectedBoothIds, masterBooths]);
 
+  const canGoBack = Boolean(navigation?.canGoBack && navigation.canGoBack());
+  const handleBackPress = () => {
+    if (canGoBack) {
+      navigation.goBack();
+    } else if (navigation?.openDrawer) {
+      navigation.openDrawer();
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header with Search and Booth Filter Button */}
       <SearchHeaderWithFilter
         showBackButton
+        onBackPress={handleBackPress}
         value={search}
         onChangeText={setSearch}
         showFilter
@@ -105,6 +117,7 @@ export const InfluencerMappingScreen: React.FC = () => {
         data={influencers}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listPadding}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.headerContainer}>
             {/* KPI Cards Header for Social Influencers */}
@@ -117,7 +130,9 @@ export const InfluencerMappingScreen: React.FC = () => {
             <InfluencerFilterBar
               selectedBoothName={selectedBoothName}
               onOpenBoothModal={() => setIsBoothModalOpen(true)}
+              onClearBoothFilter={() => setSelectedBoothIds([])}
               isVolunteer={isVolunteer}
+              totalCount={totalCount || influencers.length}
             />
           </View>
         }
@@ -125,9 +140,9 @@ export const InfluencerMappingScreen: React.FC = () => {
         ListEmptyComponent={
           loading ? (
             <View style={styles.loadingShimmerBox}>
-              <Skeleton height={140} borderRadius={16} style={styles.shimmerMargin} />
-              <Skeleton height={140} borderRadius={16} style={styles.shimmerMargin} />
-              <Skeleton height={140} borderRadius={16} style={styles.shimmerMargin} />
+              <InfluencerCardSkeleton />
+              <InfluencerCardSkeleton />
+              <InfluencerCardSkeleton />
             </View>
           ) : (
             <NoData
@@ -156,6 +171,5 @@ export const InfluencerMappingScreen: React.FC = () => {
     </View>
   );
 };
-
 
 export default InfluencerMappingScreen;

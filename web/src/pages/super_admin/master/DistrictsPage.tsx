@@ -96,8 +96,13 @@ export const DistrictsPage: React.FC = () => {
 
   // Columns Definition
   const columns: Column<any>[] = [
-    { key: 'name', header: 'District Name', sortable: true },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => row.stateName || '-' },
+    {
+      key: 'name',
+      header: 'District Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -194,11 +199,16 @@ export const DistrictsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Districts"
         icon={<Building2 className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage administrative district divisions."
+        badge={
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
+            {filteredDistricts.length} {filteredDistricts.length === 1 ? 'Record' : 'Records'}
+          </span>
+        }
         onAddClick={handleOpenAdd}
         addLabel="Add District"
         onImportClick={() => setIsImportModalOpen(true)}
@@ -215,20 +225,18 @@ export const DistrictsPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={filteredDistricts}
-          loading={loading}
-          showHeader={false}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEdit(row)}
-              onDelete={() => handleOpenDelete(row)}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredDistricts}
+        loading={loading}
+        showHeader={false}
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEdit(row)}
+            onDelete={() => handleOpenDelete(row)}
+          />
+        )}
+      />
 
       <DistrictFormModal
         isOpen={isModalOpen}

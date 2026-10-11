@@ -226,7 +226,6 @@ export class SampleTemplateService {
       addListValidation('W', registerDynamicLookup('Parties', partyNames));
       addListValidation('X', registerDynamicLookup('Talukas', talukaNames));
       addListValidation('Y', registerDynamicLookup('Villages', villageNames));
-      addListValidation('Z', '"Voter,Neutral Voter,Non Voter,Student,Senior,NRI,VIP"');
       addListValidation('AA', '"ACTIVE,INACTIVE,SHIFTED,UNVERIFIED,PENDING"');
       addListValidation('AB', '"Yes,No"');
       addListValidation('AC', '"Yes,No"');

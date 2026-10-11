@@ -143,12 +143,27 @@ export const TenantBoothsPage: React.FC = () => {
   };
 
   const columns: Column<any>[] = [
-    { key: 'boothNumber', header: 'Booth No.', sortable: true },
-    { key: 'name', header: 'Polling Station Name', sortable: true },
-    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => row.locationBuilding || '-' },
-    { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => row.acName || '-' },
-    { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => row.wardName || '-' },
-    { key: 'totalVoters', header: 'Total Voters', sortable: true, render: (row) => row.totalVoters ?? 0 },
+    {
+      key: 'boothNumber',
+      header: 'Booth No.',
+      sortable: true,
+      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.boothNumber || '-'}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Polling Station Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.locationBuilding || '-'}</span> },
+    { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.acName || '-'}</span> },
+    { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.wardName || '-'}</span> },
+    {
+      key: 'totalVoters',
+      header: 'Total Voters',
+      sortable: true,
+      render: (row) => <span className="font-mono font-semibold text-xs text-indigo-600 dark:text-indigo-400">{(row.totalVoters ?? 0).toLocaleString()}</span>,
+    },
   ];
 
   const filterFields: FilterField[] = [
@@ -198,7 +213,7 @@ export const TenantBoothsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Polling Booths"
         subtitle="Manage individual polling booth locations under Wards and Assembly Constituencies."
@@ -227,37 +242,35 @@ export const TenantBoothsPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl dark:bg-slate-900/60 dark:border dark:border-slate-800 dark:p-1">
-        <DataTable
-          columns={columns}
-          data={boothsData}
-          loading={loading}
-          showHeader={false}
-          serverPagination={{
-            page: paginationMeta?.page || page,
-            limit: paginationMeta?.limit || limit,
-            total: paginationMeta?.total || boothsData.length,
-            totalPages: paginationMeta?.totalPages || 1,
-            onPageChange: (newPage) => setPage(newPage),
-            onLimitChange: (newLimit) => {
-              setLimit(newLimit);
-              setPage(1);
-            },
-          }}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => {
-                setEditingItem(row);
-                setIsModalOpen(true);
-              }}
-              onDelete={() => {
-                setItemToDelete(row);
-                setDeleteModalOpen(true);
-              }}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={boothsData}
+        loading={loading}
+        showHeader={false}
+        serverPagination={{
+          page: paginationMeta?.page || page,
+          limit: paginationMeta?.limit || limit,
+          total: paginationMeta?.total || boothsData.length,
+          totalPages: paginationMeta?.totalPages || 1,
+          onPageChange: (newPage) => setPage(newPage),
+          onLimitChange: (newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          },
+        }}
+        actions={(row) => (
+          <TableActions
+            onEdit={() => {
+              setEditingItem(row);
+              setIsModalOpen(true);
+            }}
+            onDelete={() => {
+              setItemToDelete(row);
+              setDeleteModalOpen(true);
+            }}
+          />
+        )}
+      />
 
       <BoothFormModal
         isOpen={isModalOpen}

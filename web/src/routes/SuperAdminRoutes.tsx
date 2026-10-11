@@ -18,8 +18,6 @@ import {
   TenantDetailPage,
 } from '@/pages/super_admin/tenants';
 
-// Super Admin Role Package Manager
-import { TenantRoleManager } from '@/pages/super_admin/roles';
 
 // Super Admin Master Data Pages
 import {
@@ -64,11 +62,13 @@ export const SuperAdminRoutes: React.FC = () => {
       <Route path="tenants/:id" element={<TenantDetailPage />} />
       <Route path="tenants/:id/edit" element={<TenantFormPage />} />
 
-      {/* Tenant Role Package Management */}
-      <Route path="settings/tenant-roles" element={<TenantRoleManager />} />
+      {/* Roles & Feature Packages (Hosted within Settings Tab) */}
+      <Route path="roles" element={<Navigate to="/dashboard/settings?tab=tenant-roles" replace />} />
+      <Route path="roles/*" element={<Navigate to="/dashboard/settings?tab=tenant-roles" replace />} />
+      <Route path="settings/tenant-roles" element={<Navigate to="/dashboard/settings?tab=tenant-roles" replace />} />
 
       {/* Master Data */}
-      <Route path="master" element={<Navigate to="master/religions" replace />} />
+      <Route path="master" element={<Navigate to="/dashboard/master/districts" replace />} />
       <Route path="master/religions" element={<ReligionsPage />} />
       <Route path="master/castes" element={<CastesPage />} />
       <Route path="master/districts" element={<DistrictsPage />} />
@@ -80,10 +80,13 @@ export const SuperAdminRoutes: React.FC = () => {
       <Route path="master/parties" element={<PartiesPage />} />
       <Route path="master/booths" element={<BoothsPage />} />
       <Route path="master/bulk-test" element={<BulkUploadTestPage />} />
-      <Route path="master/demo" element={<Navigate to="master/bulk-test" replace />} />
-      <Route path="StateAssembly/*" element={<Navigate to="master/acs" replace />} />
+      <Route path="master/demo" element={<Navigate to="/dashboard/master/bulk-test" replace />} />
+      <Route path="StateAssembly/*" element={<Navigate to="/dashboard/master/acs" replace />} />
 
       {/* Super Admin System Settings */}
+      <Route path="settings" element={<SuperAdminSettingsPage />} />
+      <Route path="settings/*" element={<SuperAdminSettingsPage />} />
+      <Route path="super-admin/settings" element={<SuperAdminSettingsPage />} />
       <Route path="super-admin/settings/*" element={<SuperAdminSettingsPage />} />
 
       {/* Fallback within Super Admin dashboard - absolute path prevents relative loop */}

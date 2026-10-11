@@ -264,7 +264,7 @@ export const seedVoters = async (count: number = 1000): Promise<void> => {
       INSERT INTO voters (
         epic_no, state_id, district_id, pc_id, ac_id, booth_id, ward_id, village_id, serial_no, section_no, house_no,
         first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname,
-        gender, dob, age, mobile_no, religion_id, caste_id, voter_type,
+        gender, dob, age, mobile_no, religion_id, caste_id,
         status, is_dead, blood_group, taluka, village, full_address, voter_address, party_id,
         is_family_influencer, is_social_influencer, family_id
       ) VALUES 
@@ -293,7 +293,6 @@ export const seedVoters = async (count: number = 1000): Promise<void> => {
         mobile_no = EXCLUDED.mobile_no,
         religion_id = EXCLUDED.religion_id,
         caste_id = EXCLUDED.caste_id,
-        voter_type = EXCLUDED.voter_type,
         status = EXCLUDED.status,
         is_dead = EXCLUDED.is_dead,
         blood_group = EXCLUDED.blood_group,

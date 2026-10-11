@@ -109,7 +109,7 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
   return (
     <div className="space-y-6">
       {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -130,7 +130,7 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
               type="button"
               onClick={handleSyncMeta}
               disabled={syncing}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-60 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-60 cursor-pointer"
               title="Sync approval statuses from Meta Cloud API"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${syncing ? 'animate-spin' : ''}`} />
@@ -144,7 +144,7 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
               setTemplateToEdit(null);
               setIsBuilderOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Create Template</span>
@@ -153,7 +153,7 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="flex-1 max-w-md">
           <FormInput
             name="template_search"
@@ -200,12 +200,42 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
 
       {/* Templates Grid or Empty State */}
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center text-slate-400 space-y-2">
-          <RefreshCw className="w-6 h-6 animate-spin text-emerald-500" />
-          <p className="text-xs font-medium">Loading WhatsApp templates...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-pulse">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-4 flex flex-col justify-between"
+            >
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                      <div className="h-3 w-10 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </div>
+                  </div>
+                  <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                </div>
+                <div className="p-3 rounded-md bg-slate-100 dark:bg-slate-800/60 space-y-2">
+                  <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-4/5 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-2/3 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="h-7 w-20 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                <div className="flex items-center gap-1.5">
+                  <div className="h-7 w-16 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                  <div className="h-7 w-7 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                  <div className="h-7 w-7 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredTemplates.length === 0 ? (
-        <div className="py-16 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 space-y-3">
+        <div className="py-16 text-center rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 space-y-3">
           <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
             <Inbox className="w-6 h-6" />
           </div>
@@ -223,7 +253,7 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
               setTemplateToEdit(null);
               setIsBuilderOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Create New Template</span>

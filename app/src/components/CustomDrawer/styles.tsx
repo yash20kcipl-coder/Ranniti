@@ -90,9 +90,11 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
       alignSelf: 'flex-start',
       backgroundColor: 'rgba(255, 255, 255, 0.2)',
       paddingHorizontal: 8,
-      paddingVertical: 2,
+      paddingVertical: 3,
       borderRadius: 12,
       marginTop: 4,
+      minHeight: 20,
+      justifyContent: 'center',
     },
     userRole: {
       fontFamily: FontFamily.bodyBold,
@@ -109,6 +111,9 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
     },
 
     // Content Scroll View
+    scrollView: {
+      flex: 1,
+    },
     drawerContent: {
       paddingHorizontal: 14,
       paddingBottom: 24,
@@ -134,16 +139,25 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
       paddingHorizontal: 14,
       borderRadius: 14,
       marginBottom: 4,
-      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'transparent',
     },
     drawerItemActive: {
-      borderLeftWidth: 5,
-      borderLeftColor: theme.colors.primary,
-      backgroundColor: theme.colors.vegBackground || 'rgba(30, 64, 175, 0.08)',
+      backgroundColor: theme.colors.vegBackground || 'rgba(30, 64, 175, 0.10)',
+      borderColor: theme.colors.cardBorder || 'rgba(30, 64, 175, 0.20)',
+    },
+    activePillIndicator: {
+      position: 'absolute',
+      left: 0,
+      top: 8,
+      bottom: 8,
+      width: 4,
+      borderRadius: 2,
+      backgroundColor: theme.colors.primary,
     },
     drawerItemIcon: {
-      width: 35,
-      height: 35,
+      width: 36,
+      height: 36,
       marginRight: 12,
       borderRadius: 10,
       alignItems: 'center',
@@ -151,17 +165,17 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
       backgroundColor: theme.colors.inputBackground,
     },
     drawerItemIconActive: {
-      backgroundColor: 'rgba(30, 64, 175, 0.08)',
+      backgroundColor: theme.colors.primary,
     },
     drawerItemText: {
       flex: 1,
-      fontSize: rfValue(16),
+      fontSize: rfValue(15),
       color: theme.colors.text,
-      fontFamily: FontFamily.bodyBold,
+      fontFamily: FontFamily.medium,
     },
     drawerItemTextActive: {
       color: theme.colors.primary,
-      fontFamily: FontFamily.black,
+      fontFamily: FontFamily.bold,
     },
     badgeContainer: {
       backgroundColor: theme.colors.primary,
@@ -207,9 +221,10 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
       color: theme.colors.text,
     },
     logoutButton: {
+      width: "100%",
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 10,
+      paddingVertical: 12,
       paddingHorizontal: 14,
       borderRadius: 12,
       backgroundColor: 'rgba(239, 68, 68, 0.08)',

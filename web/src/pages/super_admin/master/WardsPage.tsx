@@ -185,9 +185,19 @@ export const WardsPage: React.FC = () => {
 
   // Columns Definition
   const columns: Column<any>[] = [
-    { key: 'wardNumber', header: 'Ward No.', sortable: true },
-    { key: 'name', header: 'Ward / Prabhag Name', sortable: true },
-    { key: 'acName', header: 'Assembly Constituency (AC)', sortable: true, render: (row) => row.acName || '-' },
+    {
+      key: 'wardNumber',
+      header: 'Ward No.',
+      sortable: true,
+      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.wardNumber || '-'}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Ward / Prabhag Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'acName', header: 'Assembly Constituency (AC)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.acName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -287,11 +297,16 @@ export const WardsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Wards (Prabhags)"
         icon={<Layers className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage electoral wards / prabhags under Assembly Constituencies."
+        badge={
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
+            {wardsPagination?.total ?? wardsData.length} {(wardsPagination?.total ?? wardsData.length) === 1 ? 'Record' : 'Records'}
+          </span>
+        }
         onAddClick={handleOpenAdd}
         addLabel="Add Ward"
         onImportClick={() => setIsImportModalOpen(true)}
@@ -308,35 +323,33 @@ export const WardsPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={wardsData}
-          loading={loading}
-          showHeader={false}
-          serverPagination={
-            wardsPagination
-              ? {
-                page: wardsPagination.page,
-                limit: wardsPagination.limit,
-                total: wardsPagination.total,
-                totalPages: wardsPagination.totalPages,
-                onPageChange: (newPage) => setPage(newPage),
-                onLimitChange: (newLimit) => {
-                  setLimit(newLimit);
-                  setPage(1);
-                },
-              }
-              : undefined
-          }
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEdit(row)}
-              onDelete={() => handleOpenDelete(row)}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={wardsData}
+        loading={loading}
+        showHeader={false}
+        serverPagination={
+          wardsPagination
+            ? {
+              page: wardsPagination.page,
+              limit: wardsPagination.limit,
+              total: wardsPagination.total,
+              totalPages: wardsPagination.totalPages,
+              onPageChange: (newPage) => setPage(newPage),
+              onLimitChange: (newLimit) => {
+                setLimit(newLimit);
+                setPage(1);
+              },
+            }
+            : undefined
+        }
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEdit(row)}
+            onDelete={() => handleOpenDelete(row)}
+          />
+        )}
+      />
 
       <WardFormModal
         isOpen={isModalOpen}

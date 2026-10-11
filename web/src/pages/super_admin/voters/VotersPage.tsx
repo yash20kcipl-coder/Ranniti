@@ -303,12 +303,14 @@ export const SuperAdminVotersPage: React.FC = () => {
   const filterPresets = buildVoterFilterPresets(filterStateBundle);
   const columns = buildVoterTableColumns();
 
+
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Super Admin Voter Directory"
         icon={<Vote className="w-6 h-6" />}
-        subtitle="Global electoral directory, booth assignments, master data management, and system overlays"
+        subtitle="Global electoral directory, booth assignments, master data management, and tactical campaign overlays"
         onImportClick={() => setIsImportModalOpen(true)}
         importLabel="Import Voters (Excel)"
         onExportClick={handleExportVoters}
@@ -317,7 +319,17 @@ export const SuperAdminVotersPage: React.FC = () => {
         addLabel="Add Voter"
       />
 
-      <VoterStatsCards stats={stats} />
+      <VoterStatsCards
+        stats={stats}
+        activeGender={gender}
+        activeVoterType={voterType}
+        onToggleGender={(g) => setGender((prev) => (prev.toLowerCase() === g.toLowerCase() ? '' : g))}
+        onToggleVoterType={(vt) => setVoterType((prev) => (prev === vt ? '' : vt))}
+        onResetQuickFilters={() => {
+          setGender('');
+          setVoterType('');
+        }}
+      />
 
       <FilterBar
         searchPlaceholder="Search Name, EPIC No, Mobile, House..."
@@ -328,12 +340,13 @@ export const SuperAdminVotersPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl dark:bg-slate-900/60 dark:border dark:border-slate-800 dark:p-1">
+      <div className="rounded-lg">
         <DataTable
           columns={columns}
           data={voters}
           loading={loading}
           showHeader={false}
+          selectable={false}
           serverPagination={{
             page: pagination?.page || page,
             limit: pagination?.limit || limit,

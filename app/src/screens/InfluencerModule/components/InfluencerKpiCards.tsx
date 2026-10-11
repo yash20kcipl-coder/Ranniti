@@ -23,31 +23,67 @@ export const InfluencerKpiCards: React.FC<InfluencerKpiCardsProps> = ({
 
   return (
     <View style={styles.gridContainer}>
-      {/* Card 1: Social Influencers */}
-      <View style={[styles.card, { borderColor: `${theme.colors.primary}30` }]}>
-        <View style={[styles.iconWrapper, { backgroundColor: `${theme.colors.primary}15` }]}>
-          <MaterialDesignIcons name="account-star" size={20} color={theme.colors.primary} />
+      {/* Card 1: Social Leaders */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.colors.surface || '#FFFFFF',
+            borderColor: `${theme.colors.primary}25`,
+          },
+        ]}
+      >
+        <View style={[styles.iconWrapper, { backgroundColor: `${theme.colors.primary}12` }]}>
+          <MaterialDesignIcons name="account-star" size={18} color={theme.colors.primary} />
         </View>
-        <Text style={styles.cardValue}>{totalCount}</Text>
-        <Text style={styles.cardLabel}>{t('socialLeaders') || 'Social Leaders'}</Text>
+        <Text style={[styles.cardValue, { color: theme.colors.text }]} numberOfLines={1}>
+          {totalCount.toLocaleString()}
+        </Text>
+        <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+          {t('socialLeaders') || 'Social Leaders'}
+        </Text>
       </View>
 
       {/* Card 2: Total Influenced Voters */}
-      <View style={[styles.card, { borderColor: `${theme.colors.info || '#0D9488'}30` }]}>
-        <View style={[styles.iconWrapper, { backgroundColor: `${theme.colors.info || '#0D9488'}15` }]}>
-          <MaterialDesignIcons name="account-group" size={20} color={theme.colors.info || '#0D9488'} />
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.colors.surface || '#FFFFFF',
+            borderColor: 'rgba(16, 185, 129, 0.25)',
+          },
+        ]}
+      >
+        <View style={[styles.iconWrapper, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+          <MaterialDesignIcons name="account-group" size={18} color="#059669" />
         </View>
-        <Text style={styles.cardValue}>{totalInfluencedVoters}</Text>
-        <Text style={styles.cardLabel}>{t('votersInfluenced') || 'Voters Influenced'}</Text>
+        <Text style={[styles.cardValue, { color: theme.colors.text }]} numberOfLines={1}>
+          {totalInfluencedVoters.toLocaleString()}
+        </Text>
+        <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+          {t('votersInfluenced') || 'Voters Reached'}
+        </Text>
       </View>
 
       {/* Card 3: Average Reach */}
-      <View style={[styles.card, { borderColor: `${theme.colors.warning || '#D97706'}30` }]}>
-        <View style={[styles.iconWrapper, { backgroundColor: `${theme.colors.warning || '#D97706'}15` }]}>
-          <MaterialDesignIcons name="chart-bell-curve-cumulative" size={20} color={theme.colors.warning || '#D97706'} />
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.colors.surface || '#FFFFFF',
+            borderColor: 'rgba(245, 158, 11, 0.25)',
+          },
+        ]}
+      >
+        <View style={[styles.iconWrapper, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+          <MaterialDesignIcons name="chart-bell-curve-cumulative" size={18} color="#D97706" />
         </View>
-        <Text style={styles.cardValue}>{avgVoters}</Text>
-        <Text style={styles.cardLabel}>{t('avgReachPerLeader') || 'Avg Reach / Leader'}</Text>
+        <Text style={[styles.cardValue, { color: theme.colors.text }]} numberOfLines={1}>
+          {avgVoters}
+        </Text>
+        <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+          {t('avgReachPerLeader') || 'Avg / Leader'}
+        </Text>
       </View>
     </View>
   );
@@ -57,34 +93,32 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     gridContainer: {
       flexDirection: 'row',
-      gap: 10,
+      gap: 8,
       marginBottom: 12,
     },
     card: {
       flex: 1,
-      backgroundColor: theme.colors.surface || '#FFFFFF',
-      borderRadius: 14,
-      padding: 12,
+      borderRadius: 12,
+      padding: 10,
       borderWidth: 1,
-      gap: 4,
-      ...getShadow(2, '#0F172A', 0.04),
+      ...getShadow(2, '#000000', 0.04),
     },
     iconWrapper: {
       width: 32,
       height: 32,
-      borderRadius: 8,
+      borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 2,
+      marginBottom: 6,
     },
     cardValue: {
       fontFamily: FontFamily.bold,
       fontSize: rfValue(16),
-      color: theme.colors.text || '#0F172A',
+      letterSpacing: -0.3,
     },
     cardLabel: {
       fontFamily: FontFamily.medium,
       fontSize: rfValue(10.5),
-      color: theme.colors.textSecondary || '#64748B',
+      marginTop: 2,
     },
   });

@@ -35,9 +35,10 @@ import {
 import {
   Save,
   ArrowLeft,
-  ShieldAlert,
-  CheckCircle2,
+  UserPlus,
+  UserCheck,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import {
   FamilyInfluencerAssignModal,
   SocialInfluencerAssignModal,
@@ -59,7 +60,6 @@ export const VoterFormPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [sameAddress, setSameAddress] = useState(false);
   const [loadingVoter, setLoadingVoter] = useState(false);
-  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Voter metadata (for influencer counts and linked info)
   const [voterMeta, setVoterMeta] = useState<any | null>(null);
@@ -96,6 +96,8 @@ export const VoterFormPage: React.FC = () => {
     firstName: '',
     middleName: '',
     surname: '',
+    guardianName: '',
+    relation: '',
     gender: 'Male',
     dob: '',
     age: '',
@@ -173,6 +175,8 @@ export const VoterFormPage: React.FC = () => {
               firstName: voter.firstName || '',
               middleName: voter.middleName || '',
               surname: voter.surname || '',
+              guardianName: voter.guardianName || voter.relativeName || '',
+              relation: voter.relation || '',
               gender: voter.gender || 'Male',
               dob: typeof voter.dob === 'string' ? voter.dob.split('T')[0] : '',
               age: voter.age
@@ -214,7 +218,7 @@ export const VoterFormPage: React.FC = () => {
           }
         })
         .catch(() => {
-          setToastMessage({ type: 'error', text: 'Failed to load voter details' });
+          toast.error('Failed to load voter details');
         })
         .finally(() => {
           setLoadingVoter(false);
@@ -407,7 +411,19 @@ export const VoterFormPage: React.FC = () => {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    const firstErrorKey = Object.keys(newErrors)[0];
+    if (firstErrorKey) {
+      toast.error('Please fill required fields (EPIC Number, First Name, and Booth)');
+      const el = document.querySelector(`[name="${firstErrorKey}"]`) as HTMLElement;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+      }
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -415,7 +431,6 @@ export const VoterFormPage: React.FC = () => {
     if (!validateForm()) return;
 
     setSubmitting(true);
-    setToastMessage(null);
 
     const payload: Record<string, any> = {
       epicNo: formData.epicNo.toUpperCase().trim(),
@@ -433,6 +448,8 @@ export const VoterFormPage: React.FC = () => {
       firstName: formData.firstName.trim() || null,
       middleName: formData.middleName.trim() || null,
       surname: formData.surname.trim() || null,
+      guardianName: formData.guardianName?.trim() || null,
+      relation: formData.relation?.trim() || null,
       gender: formData.gender,
       dob: formData.dob || null,
       age: formData.age ? Number(formData.age) : null,
@@ -466,10 +483,10 @@ export const VoterFormPage: React.FC = () => {
     try {
       if (isEditMode && id) {
         await dispatch(updateVoterItem(id, payload));
-        setToastMessage({ type: 'success', text: 'Voter details updated successfully!' });
+        toast.success('Voter details updated successfully!');
       } else {
         await dispatch(createVoterItem(payload));
-        setToastMessage({ type: 'success', text: 'New voter created successfully!' });
+        toast.success('New voter created successfully!');
       }
 
       // Auto-refresh master categories in Redux store for newly added values (non-blocking)
@@ -477,12 +494,9 @@ export const VoterFormPage: React.FC = () => {
       dispatch(fetchTenantMasterCategoryData('castes', TENANT_MASTER_ENDPOINTS.castes, false)).catch(() => { });
       setTimeout(() => {
         navigate('/dashboard/voters');
-      }, 1000);
+      }, 800);
     } catch (err: any) {
-      setToastMessage({
-        type: 'error',
-        text: err?.response?.data?.message || 'Failed to save voter details. Please try again.',
-      });
+      toast.error(err?.response?.data?.message || 'Failed to save voter details. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -618,54 +632,43 @@ export const VoterFormPage: React.FC = () => {
   const bloodGroupOptions = BLOOD_GROUP_OPTIONS;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <PageHeader
-        title={isEditMode ? 'Edit Voter Details' : 'Register New Voter'}
+        title={isEditMode ? ([formData.engFirstName, formData.engSurname].filter(Boolean).join(' ') || 'Edit Voter Details') : 'Register New Voter'}
         subtitle={
           isEditMode
-            ? `Update profile, contact info, status, party affiliation, and influencers for EPIC #${formData.epicNo || id}`
-            : 'Fill in complete voter information, electoral geography, extended status, and influencer links'
+            ? `Update electoral and demographic profile for EPIC #${formData.epicNo || id}`
+            : 'Fill in complete voter information, electoral geography, and influencer links'
+        }
+        icon={isEditMode ? <UserCheck className="w-5 h-5 text-indigo-500" /> : <UserPlus className="w-5 h-5 text-indigo-500" />}
+        badge={
+          isEditMode ? (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+                #{formData.epicNo || 'EPIC'}
+              </span>
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${formData.status === 'ACTIVE' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                {formData.status || 'ACTIVE'}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+              New Voter Registration
+            </span>
+          )
         }
         actions={
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard/voters')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium text-xs border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none transition-all cursor-pointer"
-            >
-              <ArrowLeft size={14} />
-              <span>Back to List</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting || loadingVoter}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-lg shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50"
-            >
-              <Save size={14} />
-              <span>{submitting ? 'Saving...' : isEditMode ? 'Update Profile' : 'Save Voter'}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/voters')}
+            className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer shadow-2xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Directory</span>
+          </button>
         }
       />
-
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          className={`flex items-center gap-3 p-4 rounded-xl border text-sm font-medium transition-all ${toastMessage.type === 'success'
-            ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
-            : 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-300'
-            }`}
-        >
-          {toastMessage.type === 'success' ? (
-            <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-          ) : (
-            <ShieldAlert size={18} className="text-rose-600 dark:text-rose-400 shrink-0" />
-          )}
-          <span>{toastMessage.text}</span>
-        </div>
-      )}
 
       {loadingVoter ? (
         <div className="flex flex-col items-center justify-center p-16 space-y-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
@@ -673,16 +676,16 @@ export const VoterFormPage: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400 text-sm">Fetching voter profile records...</p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Section 1: Identification & Profile Status */}
           <VoterIdentificationFormSection
-            formData={formData}
             errors={errors}
+            formData={formData}
             handleChange={handleChange}
             setFormData={setFormData}
             statusOptions={statusOptions}
-            voterTypeOptions={voterTypeOptions}
             genderOptions={genderOptions}
+            voterTypeOptions={voterTypeOptions}
             bloodGroupOptions={bloodGroupOptions}
           />
 
@@ -700,7 +703,19 @@ export const VoterFormPage: React.FC = () => {
             handleSameAddressToggle={handleSameAddressToggle}
           />
 
-          {/* Section 3: Party Affiliation & Influencer Networks */}
+          {/* Section 3: Contact & Demographics */}
+          <VoterDemographicsFormSection
+            formData={formData}
+            errors={errors}
+            handleChange={handleChange}
+            religionSuggestions={religionSuggestions}
+            casteSuggestions={casteSuggestions}
+            subcasteSuggestions={subcasteSuggestions}
+            religionOptions={religionOptions}
+            casteOptions={casteOptions}
+          />
+
+          {/* Section 4: Party Affiliation & Influencer Networks */}
           <VoterInfluencerFormSection
             formData={formData}
             handleChange={handleChange}
@@ -722,35 +737,32 @@ export const VoterFormPage: React.FC = () => {
             setLinkModalOpen={setLinkModalOpen}
           />
 
-          {/* Section 4: Contact & Demographics */}
-          <VoterDemographicsFormSection
-            formData={formData}
-            errors={errors}
-            handleChange={handleChange}
-            religionSuggestions={religionSuggestions}
-            casteSuggestions={casteSuggestions}
-            subcasteSuggestions={subcasteSuggestions}
-            religionOptions={religionOptions}
-            casteOptions={casteOptions}
-          />
+          {/* Sticky Bottom Actions Footer (Flush Bottom Aligned) */}
+          <div className="sticky -bottom-4 sm:-bottom-6 z-30 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-6 py-3.5 px-4 sm:px-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between">
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {isEditMode ? `Editing EPIC #${formData.epicNo || id}` : 'Ready to register voter'}
+              </span>
+            </div>
 
-          {/* Action Bar */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard/voters')}
-              className="px-6 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium text-xs border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none transition-all cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50"
-            >
-              <Save size={14} />
-              <span>{submitting ? 'Saving...' : isEditMode ? 'Update Profile' : 'Save Voter'}</span>
-            </button>
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard/voters')}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {submitting ? 'Saving...' : isEditMode ? 'Update Voter' : 'Register Voter'}
+              </button>
+            </div>
           </div>
         </form>
       )}

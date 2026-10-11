@@ -28,6 +28,7 @@ export interface FormInputProps {
   icon?: React.ReactNode;
   labelRightAction?: React.ReactNode;
   className?: string;
+  size?: 'sm' | 'md' | 'lg';
   /** @deprecated use type="autocomplete" + suggestions instead */
   list?: string;
 }
@@ -42,6 +43,7 @@ interface SearchableSelectProps {
   disabled?: boolean;
   searchable?: boolean;
   icon?: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg';
   baseInputStyles: string;
 }
 
@@ -153,7 +155,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
         required={required}
         disabled={disabled}
         autoComplete="off"
-        className={`${baseInputStyles} ${icon ? 'pl-10' : ''}`}
+        className={`${baseInputStyles} ${icon ? 'pl-10' : ''} font-slab text-xs`}
       />
       {showDropdown && dropdownCoords && createPortal(
         <div
@@ -175,7 +177,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
               <button
                 type="button"
                 onMouseDown={() => handleSelect(value.trim())}
-                className="w-full px-3 py-2 rounded-lg text-xs text-left transition-colors cursor-pointer flex items-center gap-2 bg-indigo-50/70 dark:bg-indigo-950/40 border border-dashed border-indigo-300 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 mb-1"
+                className="w-full px-3 py-1.5 rounded-lg text-xs font-slab text-left transition-colors cursor-pointer flex items-center gap-2 bg-indigo-50/70 dark:bg-indigo-950/40 border border-dashed border-indigo-300 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 mb-1"
               >
                 <span className="truncate">Add new <strong>"{value.trim()}"</strong></span>
               </button>
@@ -185,8 +187,8 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
                 key={`${s}-${index}`}
                 type="button"
                 onMouseDown={() => handleSelect(s)}
-                className={`w-full px-3 py-2 rounded-lg text-xs text-left transition-colors cursor-pointer flex items-center gap-2 ${s.toLowerCase() === value.toLowerCase().trim()
-                  ? 'bg-indigo-600 text-white font-semibold'
+                className={`w-full px-3 py-1.5 rounded-lg text-xs font-slab text-left transition-colors cursor-pointer flex items-center gap-2 ${s.toLowerCase() === value.toLowerCase().trim()
+                  ? 'bg-indigo-600 text-white font-medium'
                   : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80'
                   }`}
               >
@@ -213,6 +215,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   disabled = false,
   searchable = true,
   icon,
+  size = 'md',
   baseInputStyles,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -342,27 +345,22 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`${baseInputStyles} ${icon ? 'pl-10' : ''} pr-10 text-left text-sm transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none ${isOpen ? 'ring-2 ring-indigo-500/20 border-indigo-500' : ''
+        className={`${baseInputStyles} ${icon ? (size === 'sm' ? 'pl-8' : 'pl-10') : ''} ${size === 'sm' ? 'pr-8 text-[11px]' : 'pr-10 text-xs'} font-slab text-left transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none ${isOpen ? 'ring-2 ring-indigo-500/20 border-indigo-500' : ''
           }`}
       >
         {icon && (
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+          <div className={`absolute ${size === 'sm' ? 'left-2.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none`}>
             {icon}
           </div>
         )}
 
-        <span className={`block truncate ${selectedOption && selectedOption.value !== '' ? 'text-slate-900 dark:text-slate-100 font-medium' : 'text-slate-400 dark:text-slate-500'}`}>
+        <span className={`block truncate font-slab ${size === 'sm' ? 'text-[11px]' : 'text-xs'} ${selectedOption ? 'text-slate-900 dark:text-slate-100 font-normal' : 'text-slate-400 dark:text-slate-500 font-normal'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
 
         <ChevronDown
-          size={16}
-          className={`absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-200 ${isOpen
-            ? 'rotate-180 text-indigo-500'
-            : selectedOption && selectedOption.value !== ''
-              ? 'text-indigo-500/80 dark:text-indigo-400'
-              : 'text-slate-400'
-            }`}
+          size={size === 'sm' ? 14 : 16}
+          className={`absolute ${size === 'sm' ? 'right-2.5' : 'right-3.5'} top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-200 text-slate-500 dark:text-slate-400 ${isOpen ? 'rotate-180 text-indigo-500' : ''}`}
         />
       </button>
 
@@ -393,7 +391,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search in options..."
-                  className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full pl-8 pr-7 py-1.5 rounded-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-slab text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                   onClick={(e) => e.stopPropagation()}
                 />
                 {searchTerm && (
@@ -423,8 +421,8 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     key={String(opt.value)}
                     type="button"
                     onClick={() => handleSelect(opt.value)}
-                    className={`w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between text-left transition-colors cursor-pointer ${isSelected
-                      ? 'bg-indigo-600 text-white font-semibold'
+                    className={`w-full px-3 py-1.5 rounded-lg text-xs font-slab flex items-center justify-between text-left transition-colors cursor-pointer ${isSelected
+                      ? 'bg-indigo-600 text-white font-medium'
                       : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
                       }`}
                   >
@@ -465,47 +463,50 @@ export const FormInput: React.FC<FormInputProps> = ({
   icon,
   labelRightAction,
   className = '',
+  size = 'md',
   list,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
 
-  const hasValue =
-    value !== undefined &&
-    value !== null &&
-    value !== '' &&
-    value !== 'null' &&
-    value !== 'undefined' &&
-    !(Array.isArray(value) && value.length === 0);
+  const isSm = size === 'sm';
+  const sizeStyles = isSm
+    ? 'h-8 px-2.5 text-[11px] leading-tight font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-md'
+    : type === 'textarea'
+      ? 'px-3 py-2 text-xs leading-relaxed font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-md'
+      : 'h-9 px-3 text-xs leading-tight font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-md';
 
-  const baseInputStyles = `w-full px-4 py-2.5 rounded-xl border ${error
-    ? 'border-red-500/80 focus:border-red-500 bg-red-50/30 dark:bg-red-950/20'
-    : hasValue
-      ? 'bg-white dark:bg-slate-900 border-indigo-400/80 dark:border-indigo-600/80 text-slate-900 dark:text-slate-100 font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-    } text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs`;
+  const isFilled = value !== undefined && value !== null && String(value).trim() !== '' && value !== false;
+
+  const stateStyles = error
+    ? 'border-red-500 focus:border-red-500 bg-red-50/40 dark:bg-red-950/20 text-slate-900 dark:text-slate-100'
+    : isFilled
+      ? 'bg-slate-50/80 dark:bg-slate-800/60 border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 text-slate-900 dark:text-slate-100 font-normal focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs'
+      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 shadow-2xs';
+
+  const baseInputStyles = `w-full ${sizeStyles} border ${stateStyles} font-slab focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
 
   const renderInput = () => {
     switch (type) {
       case 'password':
         return (
           <div className="relative">
-            {icon && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">{icon}</div>}
+            {icon && <div className={`absolute ${isSm ? 'left-2.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-slate-400`}>{icon}</div>}
             <input
               type={showPassword ? 'text' : 'password'}
               name={name}
-              value={value || ''}
+              value={value ?? ''}
               onChange={onChange}
               placeholder={placeholder}
               required={required}
               disabled={disabled}
-              className={`${baseInputStyles} ${icon ? 'pl-10' : ''} pr-10`}
+              className={`${baseInputStyles} ${icon ? (isSm ? 'pl-8' : 'pl-10') : ''} ${isSm ? 'pr-8' : 'pr-10'} font-slab text-xs`}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+              className={`absolute ${isSm ? 'right-2.5' : 'right-3.5'} top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer`}
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPassword ? <EyeOff size={isSm ? 15 : 18} /> : <Eye size={isSm ? 15 : 18} />}
             </button>
           </div>
         );
@@ -522,6 +523,7 @@ export const FormInput: React.FC<FormInputProps> = ({
             disabled={disabled}
             searchable={searchable}
             icon={icon}
+            size={size}
             baseInputStyles={baseInputStyles}
           />
         );
@@ -550,7 +552,7 @@ export const FormInput: React.FC<FormInputProps> = ({
             required={required}
             disabled={disabled}
             rows={rows}
-            className={baseInputStyles}
+            className={`${baseInputStyles} font-slab text-xs`}
           />
         );
 
@@ -610,20 +612,37 @@ export const FormInput: React.FC<FormInputProps> = ({
           />
         );
 
+      case 'date':
+        return (
+          <div className="relative">
+            {icon && <div className={`absolute ${isSm ? 'left-2.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none`}>{icon}</div>}
+            <input
+              type="date"
+              name={name}
+              value={value ?? ''}
+              onChange={onChange}
+              placeholder={placeholder}
+              required={required}
+              disabled={disabled}
+              className={`${baseInputStyles} ${icon ? (isSm ? 'pl-8' : 'pl-10') : ''} pr-8 font-slab text-xs`}
+            />
+          </div>
+        );
+
       default:
         return (
           <div className="relative">
-            {icon && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">{icon}</div>}
+            {icon && <div className={`absolute ${isSm ? 'left-2.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none`}>{icon}</div>}
             <input
               type={type}
               name={name}
-              value={value || ''}
+              value={value ?? ''}
               onChange={onChange}
               placeholder={placeholder}
               required={required}
               disabled={disabled}
               list={list}
-              className={`${baseInputStyles} ${icon ? 'pl-10' : ''}`}
+              className={`${baseInputStyles} ${icon ? (isSm ? 'pl-8' : 'pl-10') : ''} font-slab text-xs`}
             />
           </div>
         );

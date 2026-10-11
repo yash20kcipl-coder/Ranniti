@@ -80,7 +80,7 @@ export const TestWhatsAppModal: React.FC<TestWhatsAppModalProps> = ({
       isLoading={isLoading}
     >
       <div className="space-y-4">
-        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-300">
+        <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-300">
           <div className="flex items-center gap-2 font-semibold">
             <Sparkles className="w-4 h-4 text-emerald-600" />
             <span>Interactive Sandbox Dispatch</span>
@@ -109,7 +109,7 @@ export const TestWhatsAppModal: React.FC<TestWhatsAppModalProps> = ({
 
         {/* Success Confirmation Box */}
         {result && (
-          <div className="p-3.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 space-y-1.5 animate-fadeIn">
+          <div className="p-3.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 space-y-1.5 animate-fadeIn">
             <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-200 font-bold text-xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>WhatsApp Message Dispatched Successfully!</span>

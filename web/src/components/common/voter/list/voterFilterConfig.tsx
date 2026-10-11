@@ -10,6 +10,9 @@ import {
   Mars,
   Venus,
   User,
+  Copy,
+  Check,
+  Phone,
 } from 'lucide-react';
 import {
   GENDER_OPTIONS,
@@ -21,6 +24,7 @@ import {
 import { SafeImage } from '@/components/common/SafeImage';
 import type { Column } from '@/components/common/DataTable';
 import type { FilterField, FilterPreset, Option } from '@/components/common/FilterBar';
+import { useState } from 'react';
 
 export interface VoterFilterState {
   filterParams: Record<string, string>;
@@ -630,64 +634,119 @@ export function buildVoterFilterPresets(state: VoterFilterState): FilterPreset[]
   ];
 }
 
+// ─── Epic Cell Component with Instant Copy ──────────────────────────────────
+const EpicCell: React.FC<{ epicNo?: string; isDead?: boolean }> = ({ epicNo, isDead }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!epicNo) return;
+    try {
+      navigator.clipboard?.writeText(epicNo);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Ignore clipboard write failures
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <div className="group/epic inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-xs font-bold border border-slate-300 dark:border-slate-700 shadow-2xs">
+        <span className="tracking-wide select-all">{epicNo || 'NO-EPIC'}</span>
+        {epicNo && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="p-0.5 rounded text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+            title={copied ? 'Copied!' : 'Copy EPIC number'}
+          >
+            {copied ? (
+              <Check size={11} className="text-emerald-500 stroke-[2.5]" />
+            ) : (
+              <Copy size={11} className="opacity-0 group-hover/epic:opacity-100 transition-opacity text-slate-500" />
+            )}
+          </button>
+        )}
+      </div>
+      {isDead && (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 font-bold text-[9px] border border-rose-300 dark:border-rose-800 uppercase tracking-wider font-mono">
+          <AlertTriangle size={9} /> DECEASED
+        </span>
+      )}
+    </div>
+  );
+};
+
 export function buildVoterTableColumns(): Column<any>[] {
   return [
     {
       key: 'epicNo',
       header: 'EPIC No.',
       sortable: true,
-      render: (row: any) => (
-        <div className="flex flex-col items-start gap-1">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-mono text-xs font-semibold border border-indigo-200 dark:border-indigo-500/20">
-            {row.epicNo}
-          </span>
-          {row.isDead && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold text-[10px] border border-rose-200 dark:border-rose-500/30">
-              <AlertTriangle size={10} /> DECEASED
-            </span>
-          )}
-        </div>
-      ),
+      render: (row: any) => <EpicCell epicNo={row.epicNo} isDead={row.isDead} />,
     },
     {
       key: 'name',
-      header: 'Voter Name & Photo',
+      header: 'Voter & Details',
       render: (row: any) => {
         const engName = [row.engFirstName, row.engMiddleName, row.engSurname].filter(Boolean).join(' ');
         const locName = [row.firstName, row.middleName, row.surname].filter(Boolean).join(' ');
+        const guardian = row.guardianName || row.relativeName;
+        const relation = row.relation;
         const g = (row.gender || '').toLowerCase();
         const isMale = g === 'male' || g === 'm';
         const isFemale = g === 'female' || g === 'f';
+        const phone = row.mobileNo || row.mobile;
 
         return (
           <div className="flex items-center gap-3">
             <SafeImage
               src={row.avatar}
               alt={engName}
-              fallbackText={engName}
-              className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 shrink-0"
+              fallbackText={engName || locName}
+              className="w-8 h-8 rounded-md object-cover border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shrink-0 shadow-2xs"
             />
-            <div className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-semibold text-slate-900 dark:text-slate-100">
-                  {locName || 'Unnamed Voter'}
+            <div className="flex flex-col min-w-0">
+              {/* Line 1: Primary Voter Name + Gender/Age Tag */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-slab font-bold text-slate-900 dark:text-slate-100 text-xs tracking-tight leading-snug">
+                  {locName || engName || 'Unnamed Voter'}
                 </span>
                 {(row.gender || row.age) && (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-700 dark:text-slate-300 font-semibold border border-slate-300 dark:border-slate-700 font-mono shadow-2xs">
                     {isMale ? (
-                      <Mars size={13} className="text-blue-500 shrink-0" />
+                      <Mars size={10} className="text-blue-600 dark:text-blue-400 shrink-0" />
                     ) : isFemale ? (
-                      <Venus size={13} className="text-pink-500 shrink-0" />
+                      <Venus size={10} className="text-pink-600 dark:text-pink-400 shrink-0" />
                     ) : (
-                      <User size={13} className="text-slate-400 shrink-0" />
+                      <User size={10} className="text-slate-500 shrink-0" />
                     )}
-                    {row.age && <span>({row.age} yrs)</span>}
+                    {row.age && <span className="tabular-nums text-[9px]">{row.age}y</span>}
                   </span>
                 )}
               </div>
-              {engName && engName !== locName && (
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">{engName}</span>
-              )}
+
+              {/* Line 2: Relation · Mobile · English Name (Clean Single Line) */}
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 truncate">
+                {guardian && (
+                  <span className="truncate">
+                    <span className="text-slate-400 dark:text-slate-500">{relation ? `${relation}: ` : 'Guardian: '}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{guardian}</span>
+                  </span>
+                )}
+                {guardian && phone && <span className="text-slate-300 dark:text-slate-600">·</span>}
+                {phone && (
+                  <span className="inline-flex items-center gap-1 font-mono text-slate-700 dark:text-slate-300 font-medium">
+                    <Phone size={10} className="text-slate-400" />
+                    <span>{phone}</span>
+                  </span>
+                )}
+                {(guardian || phone) && engName && engName !== locName && <span className="text-slate-300 dark:text-slate-600">·</span>}
+                {engName && engName !== locName && (
+                  <span className="truncate max-w-[150px] text-slate-500 dark:text-slate-400">{engName}</span>
+                )}
+              </div>
             </div>
           </div>
         );
@@ -696,39 +755,72 @@ export function buildVoterTableColumns(): Column<any>[] {
     {
       key: 'booth',
       header: 'Booth / Serial / House',
-      render: (row: any) => (
-        <div className="flex flex-col text-xs space-y-0.5">
-          <span className="text-slate-800 dark:text-slate-200 font-medium">{row.boothName || 'Unassigned'}</span>
-          <span className="text-slate-500 dark:text-slate-400">
-            {row.serialNo ? `Serial: #${row.serialNo}` : ''} {row.houseNo ? `| House: ${row.houseNo}` : ''}
-          </span>
-          {row.familyId && (
-            <div className="flex items-center gap-1.5 pt-0.5">
-              <span className="font-mono text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
-                {row.familyId}
-              </span>
-            </div>
-          )}
-        </div>
-      ),
+      render: (row: any) => {
+        const metadataItems = [
+          row.serialNo ? `Serial #${row.serialNo}` : null,
+          row.houseNo ? `House: ${row.houseNo}` : null,
+          row.sectionNo ? `Sec: ${row.sectionNo}` : null,
+        ].filter(Boolean);
+
+        return (
+          <div className="flex flex-col text-[11px] space-y-1">
+            {/* Line 1: Booth Title */}
+            <span className="text-slate-900 dark:text-slate-100 font-bold truncate max-w-[200px]" title={row.boothName}>
+              {row.boothName || 'Unassigned Booth'}
+            </span>
+
+            {/* Line 2: Serial · House · Sec (Clean Monospace Metadata) */}
+            {metadataItems.length > 0 && (
+              <div className="text-[11px] text-slate-600 dark:text-slate-400 font-mono font-medium">
+                {metadataItems.join(' · ')}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'party',
-      header: 'Party',
-      render: (row: any) => (
-        <div className="flex items-center gap-2 text-xs">
-          {row.partyName || row.partyAbbreviation ? (
-            <span
-              className="font-semibold text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-              title={row.partyName || ''}
-            >
-              {row.partyAbbreviation || row.partyName}
-            </span>
-          ) : (
-            <span className="text-slate-400 dark:text-slate-500 italic">-</span>
-          )}
-        </div>
-      ),
+      header: 'Party / Inclination',
+      render: (row: any) => {
+        const hasParty = Boolean(row.partyName || row.partyAbbreviation);
+        const voterType = row.voterType;
+
+        // Flags if the voterType signifies neutrality/undecided
+        const isNeutralOrUndecided =
+          voterType === 'Independent / Undecided' ||
+          voterType === 'Neutral Voter' ||
+          voterType === 'Undecided' ||
+          voterType === 'Independent';
+
+        // Do not display conflicting undecided/neutral tag if a specific party is already affiliated
+        const showVoterType =
+          Boolean(voterType) &&
+          voterType !== 'Voter' &&
+          (!hasParty || !isNeutralOrUndecided);
+
+        if (!hasParty && !showVoterType) {
+          return <span className="text-slate-400 dark:text-slate-600 font-mono text-xs">—</span>;
+        }
+
+        return (
+          <div className="flex flex-col gap-1 items-start text-xs">
+            {hasParty ? (
+              <span
+                className="font-bold text-slate-900 dark:text-slate-100 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[11px] shadow-2xs"
+                title={row.partyName || ''}
+              >
+                {row.partyAbbreviation || row.partyName}
+              </span>
+            ) : null}
+            {showVoterType && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60 shadow-2xs">
+                {voterType}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'influencer',
@@ -738,24 +830,24 @@ export function buildVoterTableColumns(): Column<any>[] {
         const isSocialInf = row.isSocialInfluencer || Number(row.socialInfluencedCount) > 0;
 
         if (!isFamilyInf && !isSocialInf) {
-          return <span className="text-slate-400 dark:text-slate-500 italic text-xs">-</span>;
+          return <span className="text-slate-400 dark:text-slate-600 font-mono text-xs">—</span>;
         }
 
         return (
           <div className="flex flex-col gap-1 items-start">
             {isFamilyInf && (
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20 text-[10px] font-semibold"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 border border-purple-300 dark:border-purple-700 text-[10px] font-bold shadow-2xs"
                 title={
                   Number(row.familyInfluencedCount) > 0
                     ? `Family Influencer for ${row.familyInfluencedCount} voter${row.familyInfluencedCount > 1 ? 's' : ''}`
                     : 'Family Influencer (Head of Household)'
                 }
               >
-                <Crown size={11} className="shrink-0 text-purple-600 dark:text-purple-400" />
-                <span>Family</span>
+                <Crown size={11} className="shrink-0 text-purple-700 dark:text-purple-300" />
+                <span>Family Head</span>
                 {Number(row.familyInfluencedCount) > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-purple-100 dark:bg-purple-500/25 text-[9px] font-bold ml-0.5">
+                  <span className="px-1 py-0.2 rounded-xs bg-purple-200 dark:bg-purple-800 text-[9px] font-bold font-mono ml-0.5">
                     {row.familyInfluencedCount}
                   </span>
                 )}
@@ -763,17 +855,17 @@ export function buildVoterTableColumns(): Column<any>[] {
             )}
             {isSocialInf && (
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 text-[10px] font-semibold"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 text-[10px] font-bold shadow-2xs"
                 title={
                   Number(row.socialInfluencedCount) > 0
                     ? `Social Influencer for ${row.socialInfluencedCount} voter${row.socialInfluencedCount > 1 ? 's' : ''}`
                     : 'Social Influencer (Community Leader)'
                 }
               >
-                <Sparkles size={11} className="shrink-0 text-amber-600 dark:text-amber-400" />
-                <span>Social</span>
+                <Sparkles size={11} className="shrink-0 text-amber-700 dark:text-amber-300" />
+                <span>Social Leader</span>
                 {Number(row.socialInfluencedCount) > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-500/25 text-[9px] font-bold ml-0.5">
+                  <span className="px-1 py-0.2 rounded-xs bg-amber-200 dark:bg-amber-800 text-[9px] font-bold font-mono ml-0.5">
                     {row.socialInfluencedCount}
                   </span>
                 )}
@@ -788,18 +880,29 @@ export function buildVoterTableColumns(): Column<any>[] {
       header: 'Status',
       render: (row: any) => {
         const st = (row.status || 'ACTIVE').toUpperCase();
+        const isLive = st === 'ACTIVE';
         const badgeColor =
-          st === 'ACTIVE'
-            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
+          isLive
+            ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/80'
             : st === 'SHIFTED'
-              ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
+              ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700/80'
               : st === 'UNVERIFIED'
-                ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20'
-                : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20';
+                ? 'bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-700/80'
+                : 'bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-700/80';
 
         return (
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold border ${badgeColor}`}>
-            {st}
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9.5px] font-bold font-mono border shadow-2xs ${badgeColor}`}>
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${isLive
+                ? 'bg-emerald-600 dark:bg-emerald-400 animate-pulse'
+                : st === 'SHIFTED'
+                  ? 'bg-amber-500'
+                  : st === 'UNVERIFIED'
+                    ? 'bg-purple-500'
+                    : 'bg-rose-500'
+                }`}
+            />
+            <span>{st}</span>
           </span>
         );
       },

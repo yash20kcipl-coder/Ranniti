@@ -105,17 +105,36 @@ export function AppDropdown<T extends string | number = string>({
     }
   }, [controlledIsOpen]);
 
+  const selectedItem = useMemo(() => {
+    if (value === undefined || value === null || value === '') return undefined;
+    return options.find((opt) => String(opt.id) === String(value));
+  }, [options, value]);
+
   // Map options to rich data containing displayLabel and searchContent
   const data = useMemo<DropdownItemData<T>[]>(() => {
-    return options.map((opt) => ({
+    const list: DropdownItemData<T>[] = options.map((opt) => ({
       ...opt,
       displayLabel: opt.sublabel ? `${opt.sublabel} - ${opt.label}` : opt.label,
       searchContent: `${opt.label} ${opt.sublabel || ''} ${String(opt.id)}`.toLowerCase(),
     }));
-  }, [options]);
 
-  const selectedItem = useMemo(() => {
-    return options.find((opt) => String(opt.id) === String(value));
+    // If a value is provided but not present in options yet (e.g. during async fetching),
+    // inject a fallback option so the dropdown input displays the selected value rather than placeholder
+    if (
+      value !== undefined &&
+      value !== null &&
+      value !== '' &&
+      !list.some((opt) => String(opt.id) === String(value))
+    ) {
+      list.unshift({
+        id: value,
+        label: String(value),
+        displayLabel: String(value),
+        searchContent: String(value).toLowerCase(),
+      } as DropdownItemData<T>);
+    }
+
+    return list;
   }, [options, value]);
 
   const handleSelect = (item: DropdownItemData<T>) => {
@@ -374,7 +393,7 @@ export function AppDropdown<T extends string | number = string>({
         labelField="displayLabel"
         valueField="id"
         searchField="searchContent"
-        value={value as any}
+        value={(selectedItem ? selectedItem.id : (value ?? '')) as any}
         placeholder={placeholder}
         search={searchable}
         searchPlaceholder={searchPlaceholder}

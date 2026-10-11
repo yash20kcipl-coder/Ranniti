@@ -43,7 +43,7 @@ export default FamilyCardSkeleton;
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     padding: 14,
     gap: 10,

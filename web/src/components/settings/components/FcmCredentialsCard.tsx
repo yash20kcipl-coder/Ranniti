@@ -16,16 +16,56 @@ interface FcmCredentialsCardProps {
   settings: CampaignSettings;
   onChange: (updatedFields: Partial<CampaignSettings>) => void;
   onOpenTestModal: () => void;
+  loading?: boolean;
 }
 
 export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
   settings,
   onChange,
   onOpenTestModal,
+  loading = false,
 }) => {
   const safeSettings = settings || ({} as CampaignSettings);
   const [isApnsOpen, setIsApnsOpen] = useState(false);
   const [jsonUploadError, setJsonUploadError] = useState<string | null>(null);
+
+  if (loading) {
+    return (
+      <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5 animate-pulse">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-800 shrink-0" />
+            <div className="space-y-2">
+              <div className="h-4 w-48 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-3 w-64 bg-slate-200 dark:bg-slate-800 rounded" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-28 bg-slate-200 dark:bg-slate-800 rounded-full" />
+            <div className="h-8 w-24 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          </div>
+        </div>
+        <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 h-20 flex items-center justify-between">
+          <div className="h-4 w-60 bg-slate-200 dark:bg-slate-700 rounded" />
+          <div className="h-9 w-40 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-44 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          </div>
+          <div className="sm:col-span-2 space-y-2">
+            <div className="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Parse dropped serviceAccountKey.json
   const handleJsonFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,11 +98,11 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
   const isConfigured = Boolean(safeSettings.fcmProjectId && (safeSettings.fcmPrivateKey || safeSettings.fcmServerKey));
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5">
+    <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
             <Bell className="w-5 h-5" />
           </div>
           <div>
@@ -90,7 +130,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
           <button
             type="button"
             onClick={onOpenTestModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/30 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/30 transition-all cursor-pointer"
           >
             <Send className="w-3 h-3" />
             <span>Test Ping</span>
@@ -99,7 +139,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
       </div>
 
       {/* Quick Service Account JSON File Upload */}
-      <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+      <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1.5">
             <FileCode className="w-4 h-4 text-indigo-500" />
@@ -175,7 +215,7 @@ export const FcmCredentialsCard: React.FC<FcmCredentialsCardProps> = ({
       </div>
 
       {/* Apple APNs (iOS Field App) Accordion */}
-      <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
         <button
           type="button"
           onClick={() => setIsApnsOpen(!isApnsOpen)}

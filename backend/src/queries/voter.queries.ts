@@ -1,7 +1,7 @@
 import { query, dbPool } from './dbPool';
 import { logger } from '../utils/logger';
-import { TenantPoolManager } from '../utils/tenantPoolManager';
 import { getTenantDbPool } from '../utils/tenantDbProvisioner';
+import { TenantPoolManager } from '../services/pool/tenantPoolManager';
 import { MasterAutoSyncService } from '../services/sync/masterAutoSync.service';
 import { Voter, VoterFilterParams, VoterStats, InfluencerOption, FamilyCandidateParams, SocialCandidateParams } from '../models/voter.model';
 
@@ -10,6 +10,44 @@ async function executeVoterQuery(sqlStr: string, queryValues: any[] = [], tenant
     return await TenantPoolManager.query(tenantDbName.trim(), sqlStr, queryValues);
   }
   return await query(sqlStr, queryValues);
+}
+
+function toNullableUuid(val: any): string | null {
+  if (val === undefined || val === null) return null;
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed || trimmed === '' || trimmed === 'null' || trimmed === 'undefined') return null;
+    return trimmed;
+  }
+  return null;
+}
+
+function toNullableInt(val: any): number | null {
+  if (val === undefined || val === null || val === '') return null;
+  const num = parseInt(String(val), 10);
+  return isNaN(num) ? null : num;
+}
+
+function toNullableDate(val: any): string | null {
+  if (val === undefined || val === null || val === '') return null;
+  return String(val);
+}
+
+function toNullableString(val: any): string | null {
+  if (val === undefined || val === null) return null;
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    return trimmed === '' ? null : trimmed;
+  }
+  return String(val);
+}
+
+function toNullableBool(val: any): boolean | null {
+  if (val === undefined || val === null || val === '') return null;
+  if (typeof val === 'boolean') return val;
+  if (val === 'true' || val === 1 || val === '1') return true;
+  if (val === 'false' || val === 0 || val === '0') return false;
+  return Boolean(val);
 }
 
 export class VoterQueries {
@@ -70,11 +108,6 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.voterType && params.voterType.toLowerCase() !== 'all') {
-      conditions.push(`LOWER(v.voter_type) = LOWER($${paramIndex})`);
-      values.push(params.voterType);
-      paramIndex++;
-    }
 
     const rawStatus = (params.status || (params as any).isVoted || '').toString().trim().toLowerCase();
     if (rawStatus && rawStatus !== 'all') {
@@ -241,7 +274,7 @@ export class VoterQueries {
         v.caste_id AS "casteId",
         cst.name AS "casteName",
         v.subcaste_name AS "subcasteName",
-        v.voter_type AS "voterType",
+        NULL::text AS "voterType",
 
         v.status,
         v.is_dead AS "isDead",
@@ -292,12 +325,20 @@ export class VoterQueries {
       ORDER BY ${sortClause}
     `;
 
-    const [countRes, dataRes] = await Promise.all([
-      executeVoterQuery(countSql, values, params.tenantDbName),
-      executeVoterQuery(dataSql, [...values, limit, offset], params.tenantDbName),
-    ]);
+    let total: number;
+    let dataRes: any;
 
-    const total = countRes.rows[0]?.total || 0;
+    if (typeof params.cachedTotal === 'number' && !isNaN(params.cachedTotal)) {
+      total = params.cachedTotal;
+      dataRes = await executeVoterQuery(dataSql, [...values, limit, offset], params.tenantDbName);
+    } else {
+      const [countRes, queryRes] = await Promise.all([
+        executeVoterQuery(countSql, values, params.tenantDbName),
+        executeVoterQuery(dataSql, [...values, limit, offset], params.tenantDbName),
+      ]);
+      total = countRes.rows[0]?.total || 0;
+      dataRes = queryRes;
+    }
 
     return {
       data: dataRes.rows,
@@ -349,7 +390,7 @@ export class VoterQueries {
         v.caste_id AS "casteId",
         cst.name AS "casteName",
         v.subcaste_name AS "subcasteName",
-        v.voter_type AS "voterType",
+        NULL::text AS "voterType",
 
         v.status,
         v.is_dead AS "isDead",
@@ -408,7 +449,7 @@ export class VoterQueries {
         epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
         first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname, relation, guardian_name,
         gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
-        profession_type, profession, religion_id, caste_id, subcaste_name, voter_type,
+        profession_type, profession, religion_id, caste_id, subcaste_name,
         status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
         party_id, family_influencer_id, social_influencer_id,
         is_family_influencer, is_social_influencer, family_id
@@ -416,64 +457,63 @@ export class VoterQueries {
         $1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14, $15, $16, $17,
         $18, $19, $20, $21, $22, $23, $24,
-        $25, $26, $27, $28, $29, $30,
-        $31, $32, $33, $34, $35, $36, $37, $38,
-        $39, $40, $41, $42, $43, $44
+        $25, $26, $27, $28, $29,
+        $30, $31, $32, $33, $34, $35, $36, $37,
+        $38, $39, $40, $41, $42, $43
       )
       RETURNING 
         id, epic_no AS "epicNo", serial_no AS "serialNo", section_no AS "sectionNo", house_no AS "houseNo",
         first_name AS "firstName", eng_first_name AS "engFirstName", middle_name AS "middleName", eng_middle_name AS "engMiddleName",
         surname, eng_surname AS "engSurname", relation, guardian_name AS "guardianName", gender, dob, age, mobile_no AS "mobileNo", email,
         aadhaar_no AS "aadhaarNo", pan_no AS "panNo", profession_type AS "professionType", profession,
-        voter_type AS "voterType", status, is_dead AS "isDead", blood_group AS "bloodGroup", avatar,
+        NULL::text AS "voterType", status, is_dead AS "isDead", blood_group AS "bloodGroup", avatar,
         is_family_influencer AS "isFamilyInfluencer", is_social_influencer AS "isSocialInfluencer",
         family_id AS "familyId",
         created_at AS "createdAt", updated_at AS "updatedAt"`,
       [
         data.epicNo,
-        data.stateId || null,
-        data.districtId || null,
-        data.pcId || null,
-        data.acId || null,
-        data.boothId || null,
-        data.serialNo || null,
-        data.sectionNo || null,
-        data.houseNo || null,
-        data.firstName || null,
-        data.engFirstName || null,
-        data.middleName || null,
-        data.engMiddleName || null,
-        data.surname || null,
-        data.engSurname || null,
-        data.relation || null,
-        data.guardianName || null,
-        data.gender || null,
-        data.dob || null,
-        data.age || null,
-        data.mobileNo || null,
-        data.email || null,
-        data.aadhaarNo || null,
-        data.panNo || null,
-        data.professionType || null,
-        data.profession || null,
-        data.religionId || null,
-        data.casteId || null,
-        data.subcasteName || null,
-        data.voterType || 'Voter',
-        data.status || 'ACTIVE',
-        data.isDead || false,
-        data.bloodGroup || null,
-        data.avatar || null,
-        data.taluka || null,
-        data.village || null,
-        data.fullAddress || null,
-        data.voterAddress || null,
-        data.partyId || null,
-        data.familyInfluencerId || null,
-        data.socialInfluencerId || null,
-        data.isFamilyInfluencer || false,
-        data.isSocialInfluencer || false,
-        data.familyId || null,
+        toNullableUuid(data.stateId),
+        toNullableUuid(data.districtId),
+        toNullableUuid(data.pcId),
+        toNullableUuid(data.acId),
+        toNullableUuid(data.boothId),
+        toNullableInt(data.serialNo),
+        toNullableInt(data.sectionNo),
+        toNullableString(data.houseNo),
+        toNullableString(data.firstName),
+        toNullableString(data.engFirstName),
+        toNullableString(data.middleName),
+        toNullableString(data.engMiddleName),
+        toNullableString(data.surname),
+        toNullableString(data.engSurname),
+        toNullableString(data.relation),
+        toNullableString(data.guardianName),
+        toNullableString(data.gender),
+        toNullableDate(data.dob),
+        toNullableInt(data.age),
+        toNullableString(data.mobileNo),
+        toNullableString(data.email),
+        toNullableString(data.aadhaarNo),
+        toNullableString(data.panNo),
+        toNullableString(data.professionType),
+        toNullableString(data.profession),
+        toNullableUuid(data.religionId),
+        toNullableUuid(data.casteId),
+        toNullableString(data.subcasteName),
+        toNullableString(data.status) || 'ACTIVE',
+        toNullableBool(data.isDead) || false,
+        toNullableString(data.bloodGroup),
+        toNullableString(data.avatar),
+        toNullableString(data.taluka),
+        toNullableString(data.village),
+        toNullableString(data.fullAddress),
+        toNullableString(data.voterAddress),
+        toNullableUuid(data.partyId),
+        toNullableUuid(data.familyInfluencerId),
+        toNullableUuid(data.socialInfluencerId),
+        toNullableBool(data.isFamilyInfluencer) || false,
+        toNullableBool(data.isSocialInfluencer) || false,
+        toNullableString(data.familyId),
       ],
       tenantDbName
     );
@@ -558,7 +598,6 @@ export class VoterQueries {
           data.religionId || null,
           data.casteId || null,
           data.subcasteName || null,
-          data.voterType || 'Voter',
           data.status || 'ACTIVE',
           data.isDead || false,
           data.bloodGroup || null,
@@ -575,7 +614,7 @@ export class VoterQueries {
           data.familyId || null
         );
 
-        pIndex += 44;
+        pIndex += 43;
       }
 
       const sql = `
@@ -583,7 +622,7 @@ export class VoterQueries {
           epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
           first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname, relation, guardian_name,
           gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
-          profession_type, profession, religion_id, caste_id, subcaste_name, voter_type,
+          profession_type, profession, religion_id, caste_id, subcaste_name,
           status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
           party_id, family_influencer_id, social_influencer_id,
           is_family_influencer, is_social_influencer, family_id
@@ -618,7 +657,6 @@ export class VoterQueries {
           religion_id = EXCLUDED.religion_id,
           caste_id = EXCLUDED.caste_id,
           subcaste_name = EXCLUDED.subcaste_name,
-          voter_type = EXCLUDED.voter_type,
           status = EXCLUDED.status,
           is_dead = EXCLUDED.is_dead,
           blood_group = EXCLUDED.blood_group,
@@ -694,7 +732,6 @@ export class VoterQueries {
         religion_id = COALESCE($26, religion_id),
         caste_id = COALESCE($27, caste_id),
         subcaste_name = COALESCE($28, subcaste_name),
-        voter_type = COALESCE($29, voter_type),
         status = COALESCE($30, status),
         is_dead = COALESCE($31, is_dead),
         blood_group = COALESCE($32, blood_group),
@@ -725,49 +762,49 @@ export class VoterQueries {
       RETURNING id, epic_no AS "epicNo", updated_at AS "updatedAt"`,
       [
         id,
-        data.epicNo !== undefined ? data.epicNo : null,
-        data.stateId !== undefined ? data.stateId : null,
-        data.districtId !== undefined ? data.districtId : null,
-        data.pcId !== undefined ? data.pcId : null,
-        data.acId !== undefined ? data.acId : null,
-        data.boothId !== undefined ? data.boothId : null,
-        data.serialNo !== undefined ? data.serialNo : null,
-        data.sectionNo !== undefined ? data.sectionNo : null,
-        data.houseNo !== undefined ? data.houseNo : null,
-        data.firstName !== undefined ? data.firstName : null,
-        data.engFirstName !== undefined ? data.engFirstName : null,
-        data.middleName !== undefined ? data.middleName : null,
-        data.engMiddleName !== undefined ? data.engMiddleName : null,
-        data.surname !== undefined ? data.surname : null,
-        data.engSurname !== undefined ? data.engSurname : null,
-        data.gender !== undefined ? data.gender : null,
-        data.dob !== undefined ? data.dob : null,
-        data.age !== undefined ? data.age : null,
-        data.mobileNo !== undefined ? data.mobileNo : null,
-        data.email !== undefined ? data.email : null,
-        data.aadhaarNo !== undefined ? data.aadhaarNo : null,
-        data.panNo !== undefined ? data.panNo : null,
-        data.professionType !== undefined ? data.professionType : null,
-        data.profession !== undefined ? data.profession : null,
-        data.religionId !== undefined ? data.religionId : null,
-        data.casteId !== undefined ? data.casteId : null,
-        data.subcasteName !== undefined ? data.subcasteName : null,
-        data.voterType !== undefined ? data.voterType : null,
-        data.status !== undefined ? data.status : null,
-        data.isDead !== undefined ? data.isDead : null,
-        data.bloodGroup !== undefined ? data.bloodGroup : null,
-        data.avatar !== undefined ? data.avatar : null,
-        data.taluka !== undefined ? data.taluka : null,
-        data.village !== undefined ? data.village : null,
-        data.fullAddress !== undefined ? data.fullAddress : null,
-        data.voterAddress !== undefined ? data.voterAddress : null,
-        data.relation !== undefined ? data.relation : null,
-        data.guardianName !== undefined ? data.guardianName : null,
-        data.partyId !== undefined ? data.partyId : null,
-        data.familyInfluencerId !== undefined ? data.familyInfluencerId : null,
-        data.socialInfluencerId !== undefined ? data.socialInfluencerId : null,
-        data.isFamilyInfluencer !== undefined ? data.isFamilyInfluencer : null,
-        data.isSocialInfluencer !== undefined ? data.isSocialInfluencer : null,
+        toNullableString(data.epicNo),
+        toNullableUuid(data.stateId),
+        toNullableUuid(data.districtId),
+        toNullableUuid(data.pcId),
+        toNullableUuid(data.acId),
+        toNullableUuid(data.boothId),
+        toNullableInt(data.serialNo),
+        toNullableInt(data.sectionNo),
+        toNullableString(data.houseNo),
+        toNullableString(data.firstName),
+        toNullableString(data.engFirstName),
+        toNullableString(data.middleName),
+        toNullableString(data.engMiddleName),
+        toNullableString(data.surname),
+        toNullableString(data.engSurname),
+        toNullableString(data.gender),
+        toNullableDate(data.dob),
+        toNullableInt(data.age),
+        toNullableString(data.mobileNo),
+        toNullableString(data.email),
+        toNullableString(data.aadhaarNo),
+        toNullableString(data.panNo),
+        toNullableString(data.professionType),
+        toNullableString(data.profession),
+        toNullableUuid(data.religionId),
+        toNullableUuid(data.casteId),
+        toNullableString(data.subcasteName),
+        toNullableString(data.voterType),
+        toNullableString(data.status),
+        toNullableBool(data.isDead),
+        toNullableString(data.bloodGroup),
+        toNullableString(data.avatar),
+        toNullableString(data.taluka),
+        toNullableString(data.village),
+        toNullableString(data.fullAddress),
+        toNullableString(data.voterAddress),
+        toNullableString(data.relation),
+        toNullableString(data.guardianName),
+        toNullableUuid(data.partyId),
+        toNullableUuid(data.familyInfluencerId),
+        toNullableUuid(data.socialInfluencerId),
+        toNullableBool(data.isFamilyInfluencer),
+        toNullableBool(data.isSocialInfluencer),
         data.familyInfluencerId !== undefined,
         data.socialInfluencerId !== undefined,
         data.partyId !== undefined,
@@ -1044,11 +1081,6 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.voterType && params.voterType.toLowerCase() !== 'all') {
-      conditions.push(`LOWER(voter_type) = LOWER($${paramIndex})`);
-      values.push(params.voterType);
-      paramIndex++;
-    }
 
     const rawStatus = (params.status || (params as any).isVoted || '').toString().trim().toLowerCase();
     if (rawStatus && rawStatus !== 'all') {
@@ -1150,7 +1182,7 @@ export class VoterQueries {
 
     const sql = `
       WITH filtered_voters AS (
-        SELECT gender, voter_type
+        SELECT gender
         FROM voters
         ${whereClause}
       )
@@ -1159,15 +1191,7 @@ export class VoterQueries {
         COUNT(*) FILTER (WHERE LOWER(gender) = 'male')::int AS "maleVoters",
         COUNT(*) FILTER (WHERE LOWER(gender) = 'female')::int AS "femaleVoters",
         COUNT(*) FILTER (WHERE LOWER(gender) NOT IN ('male', 'female'))::int AS "otherVoters",
-        (
-          SELECT COALESCE(json_object_agg(voter_type, cnt), '{}'::json)
-          FROM (
-            SELECT voter_type, COUNT(*)::int AS cnt
-            FROM filtered_voters
-            WHERE voter_type IS NOT NULL
-            GROUP BY voter_type
-          ) t
-        ) AS "voterTypeCounts"
+        '{}'::json AS "voterTypeCounts"
       FROM filtered_voters;
     `;
 
@@ -1226,11 +1250,6 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.voterType) {
-      conditions.push(`v.voter_type = $${paramIndex}`);
-      values.push(params.voterType);
-      paramIndex++;
-    }
 
     if (params.religionId) {
       conditions.push(`v.religion_id = $${paramIndex}`);
@@ -1281,7 +1300,7 @@ export class VoterQueries {
         rel.name AS "religionName",
         cst.name AS "casteName",
         v.subcaste_name AS "subcasteName",
-        v.voter_type AS "voterType",
+        NULL::text AS "voterType",
         v.status,
         v.is_dead AS "isDead",
         v.blood_group AS "bloodGroup",
@@ -1316,7 +1335,7 @@ export class VoterQueries {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    const res = await query(sql, [...values, limit, offset]);
+    const res = await executeVoterQuery(sql, [...values, limit, offset], params.tenantDbName);
     return res.rows;
   }
 
@@ -1568,11 +1587,6 @@ export class VoterQueries {
       paramIndex++;
     }
 
-    if (params.voterType && params.voterType.trim()) {
-      conditions.push(`v.voter_type = $${paramIndex}`);
-      values.push(params.voterType.trim());
-      paramIndex++;
-    }
 
     if (params.casteId && params.casteId.trim()) {
       conditions.push(`v.caste_id = $${paramIndex}`);
@@ -1609,7 +1623,7 @@ export class VoterQueries {
         v.gender,
         v.age,
         v.mobile_no AS "mobileNo",
-        v.voter_type AS "voterType",
+        NULL::text AS "voterType",
         c.name AS "casteName",
         v.avatar,
         v.booth_id AS "boothId",

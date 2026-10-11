@@ -95,8 +95,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const inlineFilters: FilterField[] = totalFiltersCount <= 4
     ? filters
     : hasExplicitPrimary
-    ? filters.filter((f) => f.isPrimary).slice(0, 2)
-    : [];
+      ? filters.filter((f) => f.isPrimary).slice(0, 2)
+      : [];
 
   // Group filters by category
   const categoriesMap = new Map<string, { icon?: React.ReactNode; fields: FilterField[] }>();
@@ -324,9 +324,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">Filter &amp; Refine</h3>
+                  <h3 className="font-slab text-lg font-bold text-slate-800 dark:text-white">Filter &amp; Refine</h3>
                   {draftActiveCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 text-xs font-semibold">
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 font-slab text-xs font-bold">
                       {draftActiveCount} active
                     </span>
                   )}
@@ -361,7 +361,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                         key={idx}
                         type="button"
                         onClick={() => handlePresetClickInDrawer(preset)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${isSelected
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-slab text-xs font-bold border transition-all cursor-pointer ${isSelected
                           ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30'
                           : 'bg-white dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border-indigo-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-700 dark:hover:text-white'
                           }`}
@@ -393,9 +393,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   >
                     <div className="flex items-center gap-2.5">
                       {category.icon && <span className="text-indigo-600 dark:text-indigo-400">{category.icon}</span>}
-                      <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{category.name}</span>
+                      <span className="font-slab text-sm font-bold text-slate-800 dark:text-slate-200">{category.name}</span>
                       {category.draftActiveCount > 0 && (
-                        <span className="ml-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 text-[11px] font-bold">
+                        <span className="ml-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 font-slab text-[11px] font-bold">
                           {category.draftActiveCount}
                         </span>
                       )}
@@ -455,7 +455,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               type="button"
               onClick={handleResetDraft}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-slab text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset All</span>
@@ -464,7 +464,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               type="button"
               onClick={handleApply}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-slab text-xs font-bold shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
             >
               <Check className="w-4 h-4" />
               <span>
@@ -478,33 +478,38 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     );
   };
 
+  const hasSearch = Boolean(searchValue && searchValue.trim());
+  const totalActiveFilterCount = activeFiltersCount + (hasSearch ? 1 : 0);
+
   return (
-    <div className={`p-4 rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none space-y-3 ${className}`}>
+    <div className={`p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-2.5 ${className}`}>
       {/* Top Controls Row */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-        {/* Search Field */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+        {/* Search Field (spans naturally) */}
         {onSearchChange && (
-          <div className="w-full lg:w-72 flex-shrink-0">
+          <div className="flex-1 min-w-[240px] max-w-md sm:max-w-lg lg:max-w-xl">
             <FormInput
               name="filter_search"
               type="text"
+              size="sm"
               placeholder={searchPlaceholder}
               value={searchValue}
               onChange={(e) => onSearchChange((e.target as any)?.value ?? e)}
-              icon={<Search className="w-4 h-4 text-slate-400" />}
+              icon={<Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />}
             />
           </div>
         )}
 
         {/* Inline Primary Filters + Drawer Trigger */}
-        <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2.5 flex-1">
+        <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2 flex-1">
           {inlineFilters.map((field) => {
             const activeFilterValues = filters.reduce((acc, f) => ({ ...acc, [f.key]: f.value }), {});
             return (
-              <div key={field.key} className="w-full sm:w-44 flex-shrink-0">
+              <div key={field.key} className="w-full sm:w-40 md:w-44 flex-shrink">
                 <FormInput
                   name={field.key}
                   type={field.type === 'pills' || field.type === 'notice' ? 'select' : (field.type || 'select')}
+                  size="sm"
                   value={field.value}
                   onChange={(e) => field.onChange((e.target as any)?.value ?? e)}
                   options={resolveFieldOptions(field, activeFilterValues)}
@@ -520,30 +525,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               type="button"
               onClick={() => setIsDrawerOpen(true)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all whitespace-nowrap flex-shrink-0 cursor-pointer ${activeFiltersCount > 0
-                ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/30'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600'
+              className={`inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-medium font-slab border transition-all whitespace-nowrap flex-shrink-0 cursor-pointer active:scale-[0.98] ${totalActiveFilterCount > 0
+                ? 'bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 shadow-2xs'
+                : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 shadow-2xs'
                 }`}
             >
-              <Filter className="w-4 h-4" />
+              <Filter className={`w-3.5 h-3.5 shrink-0 ${totalActiveFilterCount > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`} />
               <span>Filters</span>
-              {activeFiltersCount > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/30 text-white text-[10px] font-bold">
-                  {activeFiltersCount}
+              {totalActiveFilterCount > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-bold font-mono">
+                  {totalActiveFilterCount}
                 </span>
               )}
-            </button>
-          )}
-
-          {/* Reset Filters */}
-          {onReset && activeFiltersCount > 0 && (
-            <button
-              type="button"
-              onClick={onReset}
-              className="p-2.5 rounded-xl text-slate-500 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors flex-shrink-0 cursor-pointer"
-              title="Reset Filters"
-            >
-              <RotateCcw className="w-4 h-4" />
             </button>
           )}
 
@@ -552,22 +545,39 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       </div>
 
       {/* Active Filter Chips / Tags Cloud */}
-      {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 animate-fadeIn">
-          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-wider mr-1">
-            Active Filters ({activeFiltersCount}):
-          </span>
+      {totalActiveFilterCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800 animate-fadeIn">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 mr-1">
+            <Filter className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+            <span>Active Filters ({totalActiveFilterCount}):</span>
+          </div>
+
+          {hasSearch && (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-medium shadow-2xs">
+              <span className="text-slate-400 dark:text-slate-500">Search:</span>
+              <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[140px]">"{searchValue}"</span>
+              <button
+                type="button"
+                onClick={() => onSearchChange?.('')}
+                className="p-0.5 rounded text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                title="Clear search query"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
           {activeFilters.map((field) => (
             <div
               key={field.key}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-medium shadow-2xs"
             >
-              <span>{field.label}:</span>
-              <span className="font-bold text-indigo-900 dark:text-white">{getFilterDisplayValue(field)}</span>
+              <span className="text-slate-400 dark:text-slate-500">{field.label}:</span>
+              <span className="font-semibold text-slate-900 dark:text-white">{getFilterDisplayValue(field)}</span>
               <button
                 type="button"
                 onClick={() => field.onChange('')}
-                className="p-0.5 rounded hover:bg-indigo-100 dark:hover:bg-indigo-500/30 text-indigo-400 dark:text-indigo-300 hover:text-indigo-700 dark:hover:text-white transition-colors cursor-pointer"
+                className="p-0.5 rounded text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
                 title={`Clear ${field.label} filter`}
               >
                 <X className="w-3 h-3" />
@@ -579,9 +589,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <button
               type="button"
               onClick={onReset}
-              className="text-xs text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 underline underline-offset-2 ml-1 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:underline ml-1 cursor-pointer transition-colors"
             >
-              Clear All
+              <RotateCcw className="w-3 h-3" />
+              <span>Clear All</span>
             </button>
           )}
         </div>

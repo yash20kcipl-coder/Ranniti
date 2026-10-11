@@ -10,6 +10,7 @@ router.use(authenticateJwt, requireAdmin);
 router.get('/stats', tenantDataController.getStats);
 router.get('/booths', tenantDataController.getBooths);
 router.get('/profile', tenantDataController.getProfile);
+router.post('/stats/sync', tenantDataController.syncStats);
 router.get('/constituencies', tenantDataController.getConstituencies);
 
 export const tenantDataRoutes = router;

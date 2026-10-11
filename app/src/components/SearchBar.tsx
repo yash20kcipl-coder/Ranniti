@@ -54,7 +54,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   ...rest
 }) => {
   const { theme, styles } = useAppTheme(getStyles);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<any>(null);
 
   // Focus animation shared values
   const focusProgress = useSharedValue(0);

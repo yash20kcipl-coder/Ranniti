@@ -64,7 +64,7 @@ export const SearchWithFilters: React.FC<SearchWithFiltersProps> = ({
   onSelectOption,
 }) => {
   const { theme, styles } = useAppTheme(getStyles);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<any>(null);
 
   // Focus animation shared values
   const focusProgress = useSharedValue(0);

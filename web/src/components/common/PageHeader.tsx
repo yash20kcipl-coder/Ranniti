@@ -48,50 +48,53 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <div
       className={`relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4
-        bg-gradient-to-br from-indigo-50 via-slate-50 to-violet-50
-        dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950
-        p-6 rounded-2xl
-        border border-indigo-100/80 dark:border-white/10
-        shadow-lg shadow-indigo-100/60 dark:shadow-2xl dark:shadow-indigo-950/40
-        backdrop-blur-xl transition-all overflow-hidden ${className}`}
+        bg-white/95 dark:bg-slate-900/95
+        p-5 rounded-lg
+        border border-slate-200/90 dark:border-slate-800/90
+        shadow-xs dark:shadow-none
+        backdrop-blur-md transition-all ${className}`}
     >
-      {/* Light mode: soft indigo shimmer overlay */}
-      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-tr from-indigo-200/20 via-transparent to-violet-200/25 dark:from-indigo-500/5 dark:to-purple-500/8" />
-      {/* Top accent line */}
-      <div className="pointer-events-none absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-indigo-300/60 dark:via-indigo-400/40 to-transparent" />
+      {/* Subtle top tactical accent line */}
+      <div className="pointer-events-none absolute top-0 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-indigo-500/40 dark:via-indigo-400/30 to-transparent" />
 
-      <div className="relative flex items-center gap-3.5">
+      <div className="relative flex items-center gap-3.5 min-w-0">
         {icon && (
-          <div className="p-3 rounded-xl bg-indigo-100 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-400/25 flex-shrink-0 shadow-sm dark:shadow-inner dark:shadow-indigo-900/30">
+          <div className="w-11 h-11 rounded-md bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-500/30 flex items-center justify-center shrink-0 shadow-2xs">
             {icon}
           </div>
         )}
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">{title}</h1>
-            {badge && <div>{badge}</div>}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="font-slab text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
+              {title}
+            </h1>
+            {badge && <div className="shrink-0">{badge}</div>}
           </div>
-          {subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
+          {subtitle && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-normal line-clamp-2">
+              {subtitle}
+            </p>
+          )}
         </div>
       </div>
 
       {hasActionButtons && (
-        <div className="relative flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="relative flex flex-wrap items-center gap-2 shrink-0">
           {/* Built-in Auto-Sync Action */}
           {onSyncClick && (
             <button
               type="button"
               onClick={onSyncClick}
               disabled={isSyncing}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl
-                bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-500/15 dark:hover:bg-indigo-500/25
-                text-indigo-700 dark:text-indigo-300
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md
+                bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80
+                text-slate-700 dark:text-slate-200
                 font-semibold text-xs
-                border border-indigo-200 dark:border-indigo-500/30
-                shadow-sm dark:shadow-none
-                transition-all cursor-pointer disabled:opacity-50"
+                border border-slate-200 dark:border-slate-700
+                shadow-2xs
+                transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
             >
-              <RefreshCw size={14} className={`text-indigo-500 dark:text-indigo-400 ${isSyncing ? 'animate-spin' : ''}`} />
+              <RefreshCw size={13} className={`text-slate-500 dark:text-slate-400 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>{isSyncing ? 'Syncing...' : syncLabel}</span>
             </button>
           )}
@@ -101,15 +104,15 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <button
               type="button"
               onClick={onImportClick}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl
-                bg-violet-100 hover:bg-violet-200 dark:bg-violet-500/15 dark:hover:bg-violet-500/25
-                text-violet-700 dark:text-violet-300
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md
+                bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700/80
+                text-slate-700 dark:text-slate-200
                 font-semibold text-xs
-                border border-violet-200 dark:border-violet-500/30
-                shadow-sm dark:shadow-none
-                transition-all cursor-pointer"
+                border border-slate-300 dark:border-slate-700
+                shadow-2xs
+                transition-all cursor-pointer active:scale-[0.98]"
             >
-              <Upload size={14} className="text-violet-500 dark:text-violet-400" />
+              <Upload size={13} className="text-indigo-600 dark:text-indigo-400" />
               <span>{importLabel}</span>
             </button>
           )}
@@ -119,15 +122,15 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <button
               type="button"
               onClick={onExportClick}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl
-                bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md
+                bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20
                 text-emerald-700 dark:text-emerald-300
                 font-semibold text-xs
-                border border-emerald-200 dark:border-emerald-500/30
-                shadow-sm dark:shadow-none
-                transition-all cursor-pointer"
+                border border-emerald-200/90 dark:border-emerald-500/30
+                shadow-2xs
+                transition-all cursor-pointer active:scale-[0.98]"
             >
-              <Download size={14} className="text-emerald-500 dark:text-emerald-400" />
+              <Download size={13} className="text-emerald-600 dark:text-emerald-400" />
               <span>{exportLabel}</span>
             </button>
           )}
@@ -137,16 +140,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <button
               type="button"
               onClick={onAddClick}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl
-                bg-gradient-to-r from-indigo-500 to-purple-600
-                hover:from-indigo-400 hover:to-purple-500
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-md
+                bg-indigo-600 hover:bg-indigo-500 dark:bg-indigo-600 dark:hover:bg-indigo-500
                 text-white font-semibold text-xs
-                shadow-md shadow-indigo-400/30 dark:shadow-indigo-500/30
-                hover:shadow-lg hover:shadow-indigo-400/40 dark:hover:shadow-indigo-500/50
-                transition-all cursor-pointer whitespace-nowrap
-                border border-indigo-400/30"
+                shadow-xs shadow-indigo-600/30
+                border border-indigo-500/40
+                transition-all cursor-pointer whitespace-nowrap active:scale-[0.98]"
             >
-              <Plus size={16} />
+              <Plus size={14} className="stroke-[2.5]" />
               <span>{addLabel}</span>
             </button>
           )}

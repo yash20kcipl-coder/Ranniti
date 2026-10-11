@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { query as mainQuery, closeDbPool } from '../../queries/dbPool';
-import { TenantPoolManager } from '../../utils/tenantPoolManager';
 import { logger } from '../../utils/logger';
+import { query as mainQuery, closeDbPool } from '../../queries/dbPool';
+import { TenantPoolManager } from '../../services/pool/tenantPoolManager';
 
 export interface DefaultWhatsAppTemplate {
   metaTemplateId: string;
@@ -117,6 +117,13 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
       const sqlContent = fs.readFileSync(migrationPath, 'utf8');
       await queryFn(sqlContent);
     }
+    if (tenantDbName) {
+      const cleanupPath = path.join(__dirname, '../../database/migrations/remove_tenant_whatsapp_config_and_templates.sql');
+      if (fs.existsSync(cleanupPath)) {
+        const cleanupSql = fs.readFileSync(cleanupPath, 'utf8');
+        await queryFn(cleanupSql);
+      }
+    }
     const appVersionMigrationPath = path.join(__dirname, '../../database/migrations/create_app_versions_table.sql');
     if (fs.existsSync(appVersionMigrationPath)) {
       const sqlContent = fs.readFileSync(appVersionMigrationPath, 'utf8');
@@ -180,44 +187,46 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
       logger.info(`ℹ️ Campaign Settings already present for ${dbLabel}.`);
     }
 
-    // 2. Ensure unique index on whatsapp_templates
-    try {
-      await queryFn(`CREATE UNIQUE INDEX IF NOT EXISTS uq_whatsapp_templates_name_lang ON whatsapp_templates(name, language);`);
-    } catch (idxErr: any) {
-      // index may already exist
-    }
+    // 2. Seed WhatsApp Templates (Master DB Only)
+    if (!tenantDbName) {
+      try {
+        await queryFn(`CREATE UNIQUE INDEX IF NOT EXISTS uq_whatsapp_templates_name_lang ON whatsapp_templates(name, language);`);
+      } catch (idxErr: any) {
+        // index may already exist
+      }
 
-    // 3. Seed WhatsApp Templates
-    for (const t of DEFAULT_WHATSAPP_TEMPLATES) {
-      await queryFn(
-        `INSERT INTO whatsapp_templates (
-          meta_template_id, name, category, language, header_type, header_content, body_text, footer_text, buttons, variables, meta_status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11)
-        ON CONFLICT (name, language) DO UPDATE SET
-          meta_template_id = EXCLUDED.meta_template_id,
-          category = EXCLUDED.category,
-          header_type = EXCLUDED.header_type,
-          header_content = EXCLUDED.header_content,
-          body_text = EXCLUDED.body_text,
-          footer_text = EXCLUDED.footer_text,
-          buttons = EXCLUDED.buttons,
-          variables = EXCLUDED.variables,
-          meta_status = EXCLUDED.meta_status,
-          updated_at = NOW()`,
-        [
-          t.metaTemplateId,
-          t.name,
-          t.category,
-          t.language,
-          t.headerType,
-          t.headerContent,
-          t.bodyText,
-          t.footerText,
-          JSON.stringify(t.buttons || []),
-          JSON.stringify(t.variables || []),
-          t.metaStatus,
-        ]
-      );
+      for (const t of DEFAULT_WHATSAPP_TEMPLATES) {
+        await queryFn(
+          `INSERT INTO whatsapp_templates (
+            meta_template_id, name, category, language, header_type, header_content, body_text, footer_text, buttons, variables, meta_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11)
+          ON CONFLICT (name, language) DO UPDATE SET
+            meta_template_id = EXCLUDED.meta_template_id,
+            category = EXCLUDED.category,
+            header_type = EXCLUDED.header_type,
+            header_content = EXCLUDED.header_content,
+            body_text = EXCLUDED.body_text,
+            footer_text = EXCLUDED.footer_text,
+            buttons = EXCLUDED.buttons,
+            variables = EXCLUDED.variables,
+            meta_status = EXCLUDED.meta_status,
+            updated_at = NOW()`,
+          [
+            t.metaTemplateId,
+            t.name,
+            t.category,
+            t.language,
+            t.headerType,
+            t.headerContent,
+            t.bodyText,
+            t.footerText,
+            JSON.stringify(t.buttons || []),
+            JSON.stringify(t.variables || []),
+            t.metaStatus,
+          ]
+        );
+      }
+      logger.info(`✅ Seeded ${DEFAULT_WHATSAPP_TEMPLATES.length} WhatsApp Templates for Master DB.`);
     }
     logger.info(`✅ Seeded ${DEFAULT_WHATSAPP_TEMPLATES.length} WhatsApp Templates for ${dbLabel}.`);
   } catch (err: any) {

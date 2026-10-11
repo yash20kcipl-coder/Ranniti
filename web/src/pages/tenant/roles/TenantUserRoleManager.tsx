@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Users, UserCheck, Edit3, Smartphone, ShieldCheck, Lock, UserPlus } from 'lucide-react';
+import { Users, UserCheck, Edit3, Smartphone, ShieldCheck, Lock, UserPlus, Shield } from 'lucide-react';
+import { CountUp } from '@/components/common/CountUp';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { PageHeader } from '@/components/common/PageHeader';
 import { TableActions } from '@/components/common/TableActions';
@@ -37,7 +38,11 @@ const AVAILABLE_MOBILE_SCREENS = [
   { key: 'gate_meetings', label: 'Gate Meetings' },
 ];
 
-export const TenantUserRoleManager: React.FC = () => {
+interface TenantUserRoleManagerProps {
+  hideHeader?: boolean;
+}
+
+export const TenantUserRoleManager: React.FC<TenantUserRoleManagerProps> = ({ hideHeader = false }) => {
   const dispatch = useAppDispatch();
   const { tenantUserRoles = [] } = useAppSelector((state) => state.role);
 
@@ -49,6 +54,9 @@ export const TenantUserRoleManager: React.FC = () => {
   useDebouncedEffect(() => {
     dispatch(fetchTenantUserRoles());
   }, 500, [dispatch]);
+
+  const defaultRolesCount = tenantUserRoles.filter((r) => r.isSystemDefault).length;
+  const customRolesCount = tenantUserRoles.filter((r) => !r.isSystemDefault).length;
 
   const handleOpenCreateModal = () => {
     setEditingRole({
@@ -183,22 +191,125 @@ export const TenantUserRoleManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header Standard */}
-      <PageHeader
-        title="Field Roles & Volunteer Permissions"
-        subtitle="Manage fixed mobile roles (PC Leader, AC Leader, Sub-Leader, Supporter) and field delegation rights"
-        icon={<UserCheck size={22} />}
-        onAddClick={handleOpenCreateModal}
-        addLabel="Create Custom Role"
-      />
+      {!hideHeader && (
+        <PageHeader
+          title="Field Roles & Volunteer Permissions"
+          subtitle="Manage fixed mobile roles (PC Leader, AC Leader, Sub-Leader, Supporter) and field delegation rights"
+          icon={<UserCheck className="w-5 h-5 text-indigo-500" />}
+          badge={
+            <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+              {tenantUserRoles.length} Roles
+            </span>
+          }
+          onAddClick={handleOpenCreateModal}
+          addLabel="Create Custom Role"
+        />
+      )}
+
+      {/* Bento Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total User Roles */}
+        <div className="relative p-4 rounded-lg bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-blue-950/20 border border-indigo-200/90 dark:border-indigo-900/60 shadow-xs">
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider block">
+                Total Field Roles
+              </span>
+              <div className="text-2xl font-bold text-indigo-950 dark:text-white mt-1">
+                <CountUp to={tenantUserRoles.length} duration={1.2} />
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-md bg-indigo-600 text-white shadow-md shadow-indigo-500/25 flex items-center justify-center shrink-0">
+              <UserCheck size={17} />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+            <span>Configured Tiers</span>
+            <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-300/80 dark:border-indigo-500/40 font-mono">
+              Role Matrix
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: System Default Roles */}
+        <div className="relative p-4 rounded-lg bg-gradient-to-br from-purple-50/90 via-white to-fuchsia-50/50 dark:from-purple-950/40 dark:via-slate-900 dark:to-fuchsia-950/20 border border-purple-200/90 dark:border-purple-900/60 shadow-xs">
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider block">
+                System Defaults
+              </span>
+              <div className="text-2xl font-bold text-purple-950 dark:text-white mt-1">
+                <CountUp to={defaultRolesCount} duration={1.2} />
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-md bg-purple-600 text-white shadow-md shadow-purple-500/25 flex items-center justify-center shrink-0">
+              <Shield size={17} />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+            <span>Built-in Hierarchy</span>
+            <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-500/20 px-2 py-0.5 rounded-md border border-purple-300/80 dark:border-purple-500/40 font-mono">
+              Core Tiers
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Custom Field Roles */}
+        <div className="relative p-4 rounded-lg bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 border border-emerald-200/90 dark:border-emerald-900/60 shadow-xs">
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider block">
+                Custom Roles
+              </span>
+              <div className="text-2xl font-bold text-emerald-950 dark:text-white mt-1">
+                <CountUp to={customRolesCount} duration={1.2} />
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-md bg-emerald-600 text-white shadow-md shadow-emerald-500/25 flex items-center justify-center shrink-0">
+              <Users size={17} />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+            <span>Tenant Specific</span>
+            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-300/80 dark:border-emerald-500/40 font-mono">
+              Customized
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Mobile Access Scope */}
+        <div className="relative p-4 rounded-lg bg-gradient-to-br from-amber-50/90 via-white to-yellow-50/50 dark:from-amber-950/40 dark:via-slate-900 dark:to-yellow-950/20 border border-amber-200/90 dark:border-amber-900/60 shadow-xs">
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider block">
+                App Scope
+              </span>
+              <div className="text-2xl font-bold text-amber-950 dark:text-white mt-1 flex items-center gap-1.5">
+                <span>5</span>
+                <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Screens</span>
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-md bg-amber-600 text-white shadow-md shadow-amber-500/25 flex items-center justify-center shrink-0">
+              <Smartphone size={17} />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+            <span>Field App Modules</span>
+            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-300/80 dark:border-amber-500/40 font-mono">
+              Enforced
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Role Cards List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
         {tenantUserRoles.map((role) => (
           <div
             key={role.id}
-            className="group relative flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all duration-300"
+            className="group relative flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm hover:shadow-xl transition-all duration-300"
           >
             <div>
               <div className="flex items-start justify-between gap-3 mb-3">

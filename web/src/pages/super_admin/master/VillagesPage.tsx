@@ -163,10 +163,15 @@ export const VillagesPage: React.FC = () => {
 
   // Columns Definition
   const columns: Column<any>[] = [
-    { key: 'name', header: 'Village Name', sortable: true },
-    { key: 'talukaName', header: 'Taluka (Tehsil)', sortable: true, render: (row) => row.talukaName || '-' },
-    { key: 'districtName', header: 'District', sortable: true, render: (row) => row.districtName || '-' },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => row.stateName || '-' },
+    {
+      key: 'name',
+      header: 'Village Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'talukaName', header: 'Taluka (Tehsil)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.talukaName || '-'}</span> },
+    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.districtName || '-'}</span> },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -265,11 +270,16 @@ export const VillagesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Villages"
         icon={<MapPin className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage revenue villages for voter demographic and residential address tracking."
+        badge={
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
+            {villagesPagination?.total ?? villagesData.length} {(villagesPagination?.total ?? villagesData.length) === 1 ? 'Record' : 'Records'}
+          </span>
+        }
         onAddClick={handleOpenAdd}
         addLabel="Add Village"
         onImportClick={() => setIsImportModalOpen(true)}
@@ -286,35 +296,33 @@ export const VillagesPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
-        <DataTable
-          loading={loading}
-          columns={columns}
-          data={villagesData}
-          showHeader={false}
-          serverPagination={
-            villagesPagination
-              ? {
-                page: villagesPagination.page,
-                limit: villagesPagination.limit,
-                total: villagesPagination.total,
-                totalPages: villagesPagination.totalPages,
-                onPageChange: (newPage) => setPage(newPage),
-                onLimitChange: (newLimit) => {
-                  setLimit(newLimit);
-                  setPage(1);
-                },
-              }
-              : undefined
-          }
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEdit(row)}
-              onDelete={() => handleOpenDelete(row)}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        loading={loading}
+        columns={columns}
+        data={villagesData}
+        showHeader={false}
+        serverPagination={
+          villagesPagination
+            ? {
+              page: villagesPagination.page,
+              limit: villagesPagination.limit,
+              total: villagesPagination.total,
+              totalPages: villagesPagination.totalPages,
+              onPageChange: (newPage) => setPage(newPage),
+              onLimitChange: (newLimit) => {
+                setLimit(newLimit);
+                setPage(1);
+              },
+            }
+            : undefined
+        }
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEdit(row)}
+            onDelete={() => handleOpenDelete(row)}
+          />
+        )}
+      />
 
       <VillageFormModal
         isOpen={isModalOpen}

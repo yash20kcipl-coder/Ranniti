@@ -8,10 +8,11 @@ Transactional outbox queue table located in individual Tenant Databases. Stores 
 | Column Name | Data Type | Constraints | Description |
 |---|---|---|---|
 | `id` | `UUID` | `PRIMARY KEY DEFAULT gen_random_uuid()` | Unique identifier for outbox entry |
-| `entity_type` | `VARCHAR(50)` | `NOT NULL` | Entity type ('ac', 'ward', 'booth') |
+| `entity_type` | `VARCHAR(50)` | `NOT NULL` | Entity type ('ac', 'ward', 'booth', 'voter') |
 | `entity_id` | `UUID` | `NOT NULL` | Entity ID being synchronized |
 | `action` | `VARCHAR(20)` | `NOT NULL` | Operation action ('CREATE', 'UPDATE', 'DELETE') |
 | `payload` | `JSONB` | `NOT NULL` | Full record data payload for sync |
+| `origin` | `VARCHAR(20)` | `NOT NULL DEFAULT 'tenant'` | Originating database ('tenant' or 'master') for circular ping-pong prevention |
 | `status` | `VARCHAR(20)` | `DEFAULT 'pending'` | Sync status ('pending', 'synced', 'failed') |
 | `retry_count` | `INT` | `DEFAULT 0` | Number of retry attempts made by background worker |
 | `error_message` | `TEXT` | `NULL` | Error details from last failed sync attempt |

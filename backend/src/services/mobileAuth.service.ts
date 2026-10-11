@@ -10,6 +10,8 @@ export interface MobileLoginResult {
   user: Omit<UserRecord, 'passwordHash'>;
 }
 
+export const ALLOWED_MOBILE_ROLES = ['pc_leader', 'ac_leader', 'sub_leader', 'supporter'] as const;
+
 export class MobileAuthService {
   async mobileLogin(emailOrMobile: string, password: string, tenantDbName?: string): Promise<MobileLoginResult> {
     const user = await AuthQueries.findTenantUserByEmail(emailOrMobile, tenantDbName);
@@ -21,8 +23,7 @@ export class MobileAuthService {
       throw ApiError.forbidden(`Account is ${user.status}. Please contact administrator.`);
     }
 
-    const ALLOWED_MOBILE_ROLES = ['pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter'];
-    if (!ALLOWED_MOBILE_ROLES.includes(user.role)) {
+    if (!ALLOWED_MOBILE_ROLES.includes(user.role as any)) {
       throw ApiError.forbidden('Admin and Super Admin accounts must log in via the Web Portal.');
     }
 
@@ -88,11 +89,20 @@ export class MobileAuthService {
     }
     const { hashPassword } = await import('../utils/password');
     const { VolunteerAuthQueries } = await import('../queries/auth/volunteerAuth.queries');
-    
+
     const user = await VolunteerAuthQueries.findVolunteerById(userId, tenantDbName);
     if (!user) {
       throw ApiError.notFound('Mobile user profile not found');
     }
+
+    if (user.status !== 'active') {
+      throw ApiError.forbidden(`Account is ${user.status}. Please contact administrator.`);
+    }
+
+    if (!ALLOWED_MOBILE_ROLES.includes(user.role as any)) {
+      throw ApiError.forbidden('Admin and Super Admin accounts must log in via the Web Portal.');
+    }
+
     const targetDbName = user.tenantDbName || tenantDbName;
     if (!targetDbName) {
       throw ApiError.badRequest('Tenant database configuration missing');
@@ -119,6 +129,10 @@ export class MobileAuthService {
 
     if (user.status !== 'active') {
       throw ApiError.forbidden(`Account is ${user.status}. Please contact administrator.`);
+    }
+
+    if (!ALLOWED_MOBILE_ROLES.includes(user.role as any)) {
+      throw ApiError.forbidden('Admin and Super Admin accounts must log in via the Web Portal.');
     }
 
     if (!user.mpinHash) {

@@ -70,7 +70,12 @@ export const ReligionsPage: React.FC = () => {
 
   // Columns Definition
   const columns: Column<any>[] = [
-    { key: 'name', header: 'Religion Name', sortable: true },
+    {
+      key: 'name',
+      header: 'Religion Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
   ];
 
   // Actions
@@ -162,11 +167,16 @@ export const ReligionsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Religions"
         icon={<HeartHandshake className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage religious demographic classification categories."
+        badge={
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
+            {filteredReligions.length} {filteredReligions.length === 1 ? 'Record' : 'Records'}
+          </span>
+        }
         onAddClick={handleOpenAdd}
         addLabel="Add Religion"
         onImportClick={() => setIsImportModalOpen(true)}
@@ -182,20 +192,18 @@ export const ReligionsPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={filteredReligions}
-          loading={loading}
-          showHeader={false}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEdit(row)}
-              onDelete={() => handleOpenDelete(row)}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredReligions}
+        loading={loading}
+        showHeader={false}
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEdit(row)}
+            onDelete={() => handleOpenDelete(row)}
+          />
+        )}
+      />
 
       <ReligionFormModal
         isOpen={isModalOpen}

@@ -1,6 +1,6 @@
-import { query, closeDbPool } from '../queries/dbPool';
-import { TenantPoolManager } from '../utils/tenantPoolManager';
 import { logger } from '../utils/logger';
+import { query, closeDbPool } from '../queries/dbPool';
+import { TenantPoolManager } from '../services/pool/tenantPoolManager';
 
 /**
  * Validates that a table name contains only safe alphanumeric characters and underscores.

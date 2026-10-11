@@ -1,6 +1,6 @@
 import { query, dbPool } from './dbPool';
 import { CacheService } from '../services/cache.service';
-import { TenantPoolManager } from '../utils/tenantPoolManager';
+import { TenantPoolManager } from '../services/pool/tenantPoolManager';
 
 async function executeSettingsQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
   if (tenantDbName && tenantDbName.trim()) {

@@ -144,6 +144,7 @@ export interface VoterFilterParams {
   isSocialInfluencer?: boolean | string;
   influencerStatus?: string;
   influencerRole?: string;
+  cachedTotal?: number;
 }
 
 export interface InfluencerOption {

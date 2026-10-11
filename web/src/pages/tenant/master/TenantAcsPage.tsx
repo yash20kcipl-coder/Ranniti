@@ -120,11 +120,21 @@ export const TenantAcsPage: React.FC = () => {
   };
 
   const columns: Column<any>[] = [
-    { key: 'acNumber', header: 'AC No.', sortable: true },
-    { key: 'name', header: 'Assembly Name', sortable: true },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => row.stateName || '-' },
-    { key: 'districtName', header: 'District', sortable: true, render: (row) => row.districtName || '-' },
-    { key: 'pcName', header: 'PC', sortable: true, render: (row) => row.pcName || '-' },
+    {
+      key: 'acNumber',
+      header: 'AC No.',
+      sortable: true,
+      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.acNumber || '-'}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Assembly Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
+    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.districtName || '-'}</span> },
+    { key: 'pcName', header: 'PC', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.pcName || '-'}</span> },
   ];
 
   const pcOptions = useMemo(() => pcsData.map((p: any) => ({ label: p.name, value: p.id })), [pcsData]);
@@ -144,7 +154,7 @@ export const TenantAcsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Assembly Constituencies (AC)"
         subtitle="Manage Vidhan Sabha assembly constituencies scoped to your tenant."
@@ -172,26 +182,24 @@ export const TenantAcsPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl dark:bg-slate-900/60 dark:border dark:border-slate-800 dark:p-1">
-        <DataTable
-          columns={columns}
-          data={acsData}
-          loading={loading}
-          showHeader={false}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => {
-                setEditingItem(row);
-                setIsModalOpen(true);
-              }}
-              onDelete={() => {
-                setItemToDelete(row);
-                setDeleteModalOpen(true);
-              }}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={acsData}
+        loading={loading}
+        showHeader={false}
+        actions={(row) => (
+          <TableActions
+            onEdit={() => {
+              setEditingItem(row);
+              setIsModalOpen(true);
+            }}
+            onDelete={() => {
+              setItemToDelete(row);
+              setDeleteModalOpen(true);
+            }}
+          />
+        )}
+      />
 
       <AcFormModal
         isOpen={isModalOpen}

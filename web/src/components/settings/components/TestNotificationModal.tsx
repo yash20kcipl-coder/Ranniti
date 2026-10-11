@@ -71,7 +71,7 @@ export const TestNotificationModal: React.FC<TestNotificationModalProps> = ({
     >
       <div className="space-y-4">
         {error && (
-          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+          <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
@@ -122,7 +122,7 @@ export const TestNotificationModal: React.FC<TestNotificationModalProps> = ({
         />
 
         {result && (
-          <div className="p-3.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 space-y-1.5 animate-fadeIn">
+          <div className="p-3.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 space-y-1.5 animate-fadeIn">
             <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-200 font-bold text-xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Notification Dispatched Successfully!</span>

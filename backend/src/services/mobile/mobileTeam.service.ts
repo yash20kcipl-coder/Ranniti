@@ -3,7 +3,7 @@ import { ApiError } from '../../utils/apiError';
 import { hashPassword } from '../../utils/password';
 import { RoleQueries } from '../../queries/role.queries';
 import { mobileAccessService } from './mobileAccess.service';
-import { TenantPoolManager } from '../../utils/tenantPoolManager';
+import { TenantPoolManager } from '../pool/tenantPoolManager';
 import { AuthQueries, UserRecord } from '../../queries/auth.queries';
 import { generateVolunteerDefaultPassword } from '../../utils/volunteerPassword';
 
@@ -84,6 +84,17 @@ export class MobileTeamService {
     if (!targetAcId && (currentUser.role === 'ac_leader' || currentUser.role === 'sub_leader')) {
       targetAcId = currentUser.assignedAcId || payload.assignedAcId;
     }
+
+    // Validate parent leader hierarchy
+    await this.validateParentLeaderHierarchy(currentUser, payload.parentLeaderId, currentUser.tenantDbName);
+
+    // Validate booth and territory delegation boundaries
+    await this.validateBoothAndTerritoryDelegation(
+      currentUser,
+      targetAcId,
+      payload.assignedBoothIds,
+      currentUser.tenantDbName
+    );
 
     const passwordHash = await hashPassword(finalPassword);
     const createdUser = await AuthQueries.createTenantUser(
@@ -291,7 +302,7 @@ export class MobileTeamService {
         FROM tenant_users u
         INNER JOIN team_hierarchy th ON u.parent_leader_id = th.id
       )
-      SELECT u.id, u.name, u.email, u.mobile, u.role, u.status, th.id AS is_downline
+      SELECT u.id, u.name, u.email, u.mobile, u.role, u.status, u.assigned_ac_id AS "assignedAcId", th.id AS is_downline
       FROM tenant_users u
       LEFT JOIN team_hierarchy th ON th.id = u.id
       WHERE u.id = $3
@@ -320,6 +331,20 @@ export class MobileTeamService {
         );
       }
     }
+
+    // Validate parent leader hierarchy if updating parentLeaderId
+    if (payload.parentLeaderId !== undefined) {
+      await this.validateParentLeaderHierarchy(currentUser, payload.parentLeaderId, tenantDbName);
+    }
+
+    // Validate territory & booth delegation boundaries
+    const targetAcForUpdate = payload.assignedAcId !== undefined ? payload.assignedAcId : existingMember.assignedAcId;
+    await this.validateBoothAndTerritoryDelegation(
+      currentUser,
+      targetAcForUpdate,
+      payload.assignedBoothIds,
+      tenantDbName
+    );
 
     // Check uniqueness for email
     if (payload.email && payload.email !== existingMember.email) {
@@ -375,7 +400,6 @@ export class MobileTeamService {
         ac_leader: 'AC Leader',
         sub_leader: 'Sub-Leader / Ward Coordinator',
         supporter: 'Campaign Supporter / Volunteer',
-        leader: 'Assembly / Sub-Sector Leader',
       };
       updateFields.push(`role = $${pIdx++}`);
       updateValues.push(payload.role.trim());
@@ -415,14 +439,13 @@ export class MobileTeamService {
     // Sync booth assignments if provided
     if (payload.assignedBoothIds !== undefined && Array.isArray(payload.assignedBoothIds)) {
       await TenantPoolManager.query(tenantDbName, 'DELETE FROM user_booth_assignments WHERE user_id = $1', [memberId]);
-      for (const bId of payload.assignedBoothIds) {
-        if (bId) {
-          await TenantPoolManager.query(
-            tenantDbName,
-            'INSERT INTO user_booth_assignments (user_id, booth_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [memberId, bId]
-          );
-        }
+      const uniqueBooths = Array.from(new Set(payload.assignedBoothIds.filter(Boolean)));
+      for (const bId of uniqueBooths) {
+        await TenantPoolManager.query(
+          tenantDbName,
+          'INSERT INTO user_booth_assignments (user_id, booth_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [memberId, bId]
+        );
       }
     }
 
@@ -507,6 +530,114 @@ export class MobileTeamService {
     await TenantPoolManager.query(tenantDbName, 'DELETE FROM tenant_users WHERE id = $1', [memberId]);
 
     return { id: memberId, message: 'Team member deleted successfully' };
+  }
+
+  /**
+   * Validates that the target parentLeaderId is within the currentUser's downline or self
+   */
+  private async validateParentLeaderHierarchy(
+    currentUser: Omit<UserRecord, 'passwordHash'>,
+    parentLeaderId?: string | null,
+    tenantDbName?: string | null
+  ): Promise<void> {
+    const effectiveTenantDb = tenantDbName || currentUser.tenantDbName;
+    if (!effectiveTenantDb || !parentLeaderId || parentLeaderId === currentUser.id) return;
+
+    const downlineCheck = await TenantPoolManager.query(
+      effectiveTenantDb,
+      `WITH RECURSIVE team_hierarchy AS (
+         SELECT id FROM tenant_users WHERE id = $1
+         UNION ALL
+         SELECT u.id FROM tenant_users u
+         INNER JOIN team_hierarchy th ON u.parent_leader_id = th.id
+       )
+       SELECT id FROM team_hierarchy WHERE id = $2 LIMIT 1`,
+      [currentUser.id, parentLeaderId]
+    );
+
+    if (downlineCheck.rows.length === 0) {
+      throw ApiError.forbidden('The specified parent leader is not within your team hierarchy');
+    }
+  }
+
+  /**
+   * Validates that the territory (AC) and booth delegation requested by the currentUser
+   * strictly conforms to the leader's assigned geographic boundaries.
+   */
+  private async validateBoothAndTerritoryDelegation(
+    currentUser: Omit<UserRecord, 'passwordHash'>,
+    targetAcId?: string | null,
+    assignedBoothIds?: string[],
+    tenantDbName?: string | null
+  ): Promise<void> {
+    const effectiveTenantDb = tenantDbName || currentUser.tenantDbName;
+    if (!effectiveTenantDb) return;
+
+    // 1. Territory (AC) Scope Validation
+    if (currentUser.role === 'ac_leader' || currentUser.role === 'sub_leader') {
+      if (currentUser.assignedAcId && targetAcId && targetAcId !== currentUser.assignedAcId) {
+        throw ApiError.forbidden('You can only manage or assign team members within your assigned Assembly Constituency');
+      }
+    } else if (currentUser.role === 'pc_leader' && currentUser.assignedPcId && targetAcId) {
+      const acRes = await TenantPoolManager.query(
+        effectiveTenantDb,
+        'SELECT id FROM assembly_constituencies WHERE id = $1 AND pc_id = $2 LIMIT 1',
+        [targetAcId, currentUser.assignedPcId]
+      );
+      if (acRes.rows.length === 0) {
+        throw ApiError.forbidden('The assigned Assembly Constituency does not belong to your Parliamentary Constituency');
+      }
+    }
+
+    // 2. Booth Scope Validation
+    if (assignedBoothIds && assignedBoothIds.length > 0) {
+      const uniqueBoothIds = Array.from(new Set(assignedBoothIds.filter(Boolean)));
+      if (uniqueBoothIds.length === 0) return;
+
+      // Case A: Leader has specific assigned booth boundaries (e.g. sub_leader or supporter)
+      if (currentUser.assignedBoothIds && currentUser.assignedBoothIds.length > 0) {
+        const leaderBoothsSet = new Set(currentUser.assignedBoothIds);
+        const unauthorizedBooths = uniqueBoothIds.filter((bId) => !leaderBoothsSet.has(bId));
+        if (unauthorizedBooths.length > 0) {
+          throw ApiError.forbidden(
+            'You can only assign booths that are within your own assigned booths scope'
+          );
+        }
+      }
+      // Case B: Leader has AC-level coverage (no booth array, e.g. ac_leader)
+      else if (currentUser.assignedAcId) {
+        const boothCheckSql = `
+          SELECT id FROM booths 
+          WHERE id = ANY($1::uuid[]) AND ac_id = $2
+        `;
+        const res = await TenantPoolManager.query(effectiveTenantDb, boothCheckSql, [
+          uniqueBoothIds,
+          currentUser.assignedAcId,
+        ]);
+        if (res.rows.length !== uniqueBoothIds.length) {
+          throw ApiError.forbidden(
+            'One or more assigned booths do not belong to your assigned Assembly Constituency'
+          );
+        }
+      }
+      // Case C: Leader has PC-level coverage (no AC/booth array, e.g. pc_leader)
+      else if (currentUser.assignedPcId) {
+        const boothCheckSql = `
+          SELECT b.id FROM booths b
+          INNER JOIN assembly_constituencies ac ON ac.id = b.ac_id
+          WHERE b.id = ANY($1::uuid[]) AND ac.pc_id = $2
+        `;
+        const res = await TenantPoolManager.query(effectiveTenantDb, boothCheckSql, [
+          uniqueBoothIds,
+          currentUser.assignedPcId,
+        ]);
+        if (res.rows.length !== uniqueBoothIds.length) {
+          throw ApiError.forbidden(
+            'One or more assigned booths do not belong to your Parliamentary Constituency'
+          );
+        }
+      }
+    }
   }
 }
 

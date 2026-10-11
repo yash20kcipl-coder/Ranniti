@@ -32,6 +32,49 @@ export interface VolunteerBoothCoverage {
   wardCoveragePercentage?: number;
 }
 
+export interface VolunteerKpiStats {
+  totalContactsSynced: number;
+  totalCallsInitiated: number;
+  totalWhatsAppSent: number;
+  totalSmsSent: number;
+  totalVoterTouches: number;
+  activeVolunteersCount: number;
+  totalVolunteersCount: number;
+}
+
+export interface VolunteerRoleBreakdownItem {
+  role: string;
+  roleName: string;
+  volunteerCount: number;
+  contactsSynced: number;
+  callsInitiated: number;
+  whatsAppSent: number;
+  totalTouches: number;
+}
+
+export interface VolunteerLeaderboardItem {
+  id: string;
+  name: string;
+  mobile: string;
+  avatar: string | null;
+  role: string;
+  roleName: string;
+  assignedBoothsCount: number;
+  contactsSynced: number;
+  callsCount: number;
+  whatsAppCount: number;
+  smsCount: number;
+  totalTouches: number;
+  engagementScore: number;
+}
+
+export interface VolunteerAnalyticsPayload {
+  timeRange: '7d' | '30d' | 'all';
+  kpis: VolunteerKpiStats;
+  roleBreakdown: VolunteerRoleBreakdownItem[];
+  leaderboard: VolunteerLeaderboardItem[];
+}
+
 export interface VolunteerState {
   volunteers: VolunteerRecord[];
   coverage: VolunteerBoothCoverage | null;
@@ -44,6 +87,8 @@ export interface VolunteerState {
   } | null;
   availableBooths: any[];
   boothsLoading: boolean;
+  analytics: VolunteerAnalyticsPayload | null;
+  analyticsLoading: boolean;
 }
 
 const initialState: VolunteerState = {
@@ -54,6 +99,8 @@ const initialState: VolunteerState = {
   lastCreatedCredentials: null,
   availableBooths: [],
   boothsLoading: false,
+  analytics: null,
+  analyticsLoading: false,
 };
 
 export const SET_VOLUNTEERS = 'SET_VOLUNTEERS';
@@ -66,6 +113,8 @@ export const SET_LAST_CREATED_CREDENTIALS = 'SET_LAST_CREATED_CREDENTIALS';
 export const CLEAR_LAST_CREATED_CREDENTIALS = 'CLEAR_LAST_CREATED_CREDENTIALS';
 export const SET_VOLUNTEER_BOOTHS = 'SET_VOLUNTEER_BOOTHS';
 export const SET_VOLUNTEER_BOOTHS_LOADING = 'SET_VOLUNTEER_BOOTHS_LOADING';
+export const SET_VOLUNTEER_ANALYTICS = 'SET_VOLUNTEER_ANALYTICS';
+export const SET_VOLUNTEER_ANALYTICS_LOADING = 'SET_VOLUNTEER_ANALYTICS_LOADING';
 
 export default function volunteerReducer(state = initialState, action: any): VolunteerState {
   switch (action.type) {
@@ -133,6 +182,19 @@ export default function volunteerReducer(state = initialState, action: any): Vol
       return {
         ...state,
         boothsLoading: action.payload,
+      };
+
+    case SET_VOLUNTEER_ANALYTICS:
+      return {
+        ...state,
+        analytics: action.payload,
+        analyticsLoading: false,
+      };
+
+    case SET_VOLUNTEER_ANALYTICS_LOADING:
+      return {
+        ...state,
+        analyticsLoading: action.payload,
       };
 
     default:

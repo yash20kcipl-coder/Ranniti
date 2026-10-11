@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Shield, Layers, ChevronDown, ChevronRight, Check, UserCheck, Search, Users, Star, CheckCircle2, Sparkles } from 'lucide-react';
+import { CountUp } from '@/components/common/CountUp';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { PageHeader } from '@/components/common/PageHeader';
 import { TableActions, TableActionButton } from '@/components/common/TableActions';
@@ -67,8 +68,11 @@ const TAB_LABEL_MAP: Record<string, string> = {
   settings: 'Settings & Integrations',
 };
 
+interface TenantRoleManagerProps {
+  hideHeader?: boolean;
+}
 
-export const TenantRoleManager: React.FC = () => {
+export const TenantRoleManager: React.FC<TenantRoleManagerProps> = ({ hideHeader = false }) => {
   const dispatch = useAppDispatch();
   const { tenants = [] } = useAppSelector((state) => state.tenant);
   const { tenantRoles = [] } = useAppSelector((state) => state.role);
@@ -257,59 +261,138 @@ export const TenantRoleManager: React.FC = () => {
   const defaultPackage = tenantRoles.find((r) => r.isDefault);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header Standard */}
-      <PageHeader
-        title="Tenant Feature Packages (Super Admin)"
-        subtitle="Configure feature access packages & tab ceilings assigned to tenant subscriptions"
-        icon={<Package size={22} />}
-        onAddClick={handleOpenCreateModal}
-        addLabel="Create Tenant Package"
-      />
+      {!hideHeader ? (
+        <PageHeader
+          title="Tenant Feature Packages (Super Admin)"
+          subtitle="Configure feature access packages & tab ceilings assigned to tenant subscriptions"
+          icon={<Package className="w-5 h-5 text-indigo-500" />}
+          badge={
+            <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+              {tenantRoles.length} Packages
+            </span>
+          }
+          onAddClick={handleOpenCreateModal}
+          addLabel="Create Tenant Package"
+        />
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Package className="w-4 h-4 text-indigo-500" />
+              <span>Tenant Feature Packages</span>
+              <span className="font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+                {tenantRoles.length} Packages
+              </span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Configure feature access packages & tab ceilings assigned to tenant subscriptions
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenCreateModal}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition-all shrink-0 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>Create Tenant Package</span>
+          </button>
+        </div>
+      )}
 
-      {/* Top Metric Summary Cards */}
+      {/* Bento Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/60">
-            <Shield size={20} />
+        {/* Card 1: Total Feature Packages */}
+        <div className="relative p-4 rounded-lg bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-blue-950/20 border border-indigo-200/90 dark:border-indigo-900/60 shadow-xs">
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider block">
+                Total Packages
+              </span>
+              <div className="text-2xl font-bold text-indigo-950 dark:text-white mt-1">
+                <CountUp to={tenantRoles.length} duration={1.2} />
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-md bg-indigo-600 text-white shadow-md shadow-indigo-500/25 flex items-center justify-center shrink-0">
+              <Shield size={17} />
+            </div>
           </div>
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Packages</span>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">{tenantRoles.length}</h3>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/60">
-            <Star size={20} />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Default Provision Package</span>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
-              {defaultPackage?.roleName || 'None Set'}
-            </h3>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/60">
-            <Users size={20} />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Active Tenants</span>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">{tenants.length}</h3>
+          <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+            <span>Tier Configs</span>
+            <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-300/80 dark:border-indigo-500/40 font-mono">
+              Ceiling Matrix
+            </span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800/60">
-            <Sparkles size={20} />
+        {/* Card 2: Default Provision Package */}
+        <div className="relative p-4 rounded-lg bg-gradient-to-br from-amber-50/90 via-white to-yellow-50/50 dark:from-amber-950/40 dark:via-slate-900 dark:to-yellow-950/20 border border-amber-200/90 dark:border-amber-900/60 shadow-xs">
+          <div className="flex items-start justify-between">
+            <div className="min-w-0 pr-2">
+              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider block">
+                Default Package
+              </span>
+              <div className="text-sm font-bold text-amber-950 dark:text-white mt-2 truncate" title={defaultPackage?.roleName || 'None Set'}>
+                {defaultPackage?.roleName || 'None Set'}
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-md bg-amber-600 text-white shadow-md shadow-amber-500/25 flex items-center justify-center shrink-0">
+              <Star size={17} />
+            </div>
           </div>
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ceiling Enforcement</span>
-            <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-              <CheckCircle2 size={14} /> Strict Subscriptions
-            </h3>
+          <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+            <span>Auto Provisioned</span>
+            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-300/80 dark:border-amber-500/40 font-mono">
+              Default Tier
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Total Active Tenants */}
+        <div className="relative p-4 rounded-lg bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 border border-emerald-200/90 dark:border-emerald-900/60 shadow-xs">
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider block">
+                Assigned Tenants
+              </span>
+              <div className="text-2xl font-bold text-emerald-950 dark:text-white mt-1">
+                <CountUp to={tenants.length} duration={1.2} />
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-md bg-emerald-600 text-white shadow-md shadow-emerald-500/25 flex items-center justify-center shrink-0">
+              <Users size={17} />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+            <span>Active Subscriptions</span>
+            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-300/80 dark:border-emerald-500/40 font-mono">
+              Operating
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Ceiling Enforcement */}
+        <div className="relative p-4 rounded-lg bg-gradient-to-br from-purple-50/90 via-white to-fuchsia-50/50 dark:from-purple-950/40 dark:via-slate-900 dark:to-fuchsia-950/20 border border-purple-200/90 dark:border-purple-900/60 shadow-xs">
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider block">
+                Ceiling Control
+              </span>
+              <div className="text-sm font-bold text-purple-950 dark:text-white mt-2 flex items-center gap-1">
+                <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+                <span>Strict Enforced</span>
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-md bg-purple-600 text-white shadow-md shadow-purple-500/25 flex items-center justify-center shrink-0">
+              <Sparkles size={17} />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+            <span>Security Layer</span>
+            <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-500/20 px-2 py-0.5 rounded-md border border-purple-300/80 dark:border-purple-500/40 font-mono">
+              Active
+            </span>
           </div>
         </div>
       </div>
@@ -324,7 +407,7 @@ export const TenantRoleManager: React.FC = () => {
           return (
             <div
               key={role.id}
-              className={`group relative flex flex-col justify-between bg-white dark:bg-slate-900 border rounded-2xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 ${role.isDefault
+              className={`group relative flex flex-col justify-between bg-white dark:bg-slate-900 border rounded-xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 ${role.isDefault
                 ? 'border-indigo-400 dark:border-indigo-600 ring-2 ring-indigo-500/20'
                 : 'border-slate-200/80 dark:border-slate-800'
                 }`}

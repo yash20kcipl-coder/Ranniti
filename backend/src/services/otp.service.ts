@@ -1,7 +1,8 @@
 import { ApiError } from '../utils/apiError';
-import { OtpQueries } from '../queries/otp.queries';
 import { generateJwtToken } from '../utils/jwt';
+import { OtpQueries } from '../queries/otp.queries';
 import { AuthQueries } from '../queries/auth.queries';
+import { ALLOWED_MOBILE_ROLES } from './mobileAuth.service';
 import { mobileAccessService } from './mobile/mobileAccess.service';
 
 export class OtpService {
@@ -12,6 +13,20 @@ export class OtpService {
     const cleanMobile = mobile.trim();
     if (!cleanMobile || cleanMobile.length < 10) {
       throw ApiError.badRequest('Invalid mobile number. Please enter a 10-digit mobile number.');
+    }
+
+    // 0. Verify user exists and belongs to an authorized mobile role
+    const user = await AuthQueries.findTenantUserByEmail(cleanMobile);
+    if (!user) {
+      throw ApiError.notFound('No registered volunteer account found for this mobile number.');
+    }
+
+    if (user.status !== 'active') {
+      throw ApiError.forbidden(`Account is ${user.status}. Please contact your campaign administrator.`);
+    }
+
+    if (!ALLOWED_MOBILE_ROLES.includes(user.role as any)) {
+      throw ApiError.forbidden('Admin and Super Admin accounts must log in via the Web Portal.');
     }
 
     // Bypass rate limiting & cooldown checks in local demo mode / development
@@ -106,6 +121,10 @@ export class OtpService {
 
     if (user.status !== 'active') {
       throw ApiError.forbidden(`Account is ${user.status}. Please contact your campaign administrator.`);
+    }
+
+    if (!ALLOWED_MOBILE_ROLES.includes(user.role as any)) {
+      throw ApiError.forbidden('Admin and Super Admin accounts must log in via the Web Portal.');
     }
 
     // 6. Generate Mobile Access JWT Token & Role Config

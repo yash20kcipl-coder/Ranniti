@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  Database,
   Users,
   UserCheck,
   Settings,
@@ -18,11 +17,10 @@ import {
   X,
   PanelLeftClose,
   FlaskConical,
-  Shield,
 } from 'lucide-react';
-import React from 'react';
 import { NavPill } from './NavPill';
 import { logout } from '@/redux/actions/auth';
+import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setMasterTab } from '@/redux/actions/masterSuperAdmin';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -31,8 +29,6 @@ export interface NavItem {
   path: string;
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
-  isMaster?: boolean;
-  isTenantMaster?: boolean;
   section: 'operations' | 'administration' | 'system';
 }
 
@@ -41,14 +37,12 @@ export const navItems: NavItem[] = [
   { path: '/dashboard/voters', label: 'Voter Directory', icon: Vote, section: 'operations' },
   { path: '/dashboard/volunteers', label: 'Volunteers', icon: UserCheck, section: 'operations' },
   { path: '/dashboard/tenants', label: 'Tenant Accounts', icon: Users, section: 'operations' },
-  { path: '/dashboard/master', label: 'Master Data', icon: Database, isMaster: true, section: 'administration' },
-  { path: '/dashboard/tenant-master', label: 'Master Data', icon: Database, isTenantMaster: true, section: 'administration' },
-  { path: '/dashboard/roles', label: 'Role Packages', icon: Shield, section: 'administration' },
   { path: '/dashboard/settings', label: 'Settings', icon: Settings, section: 'system' },
 ];
 
 export const masterSections = [
   {
+    key: 'geography',
     title: 'Geography & Divisions',
     icon: MapPin,
     items: [
@@ -62,6 +56,7 @@ export const masterSections = [
     ],
   },
   {
+    key: 'demographics',
     title: 'Demographics',
     icon: Users,
     items: [
@@ -70,13 +65,15 @@ export const masterSections = [
     ],
   },
   {
-    title: 'Political & Entities',
+    key: 'political',
+    title: 'Political Entities',
     icon: Flag,
     items: [
       { key: 'parties', label: 'Political Parties', icon: Flag },
     ],
   },
   {
+    key: 'tools',
     title: 'Testing & Tools',
     icon: FlaskConical,
     items: [
@@ -87,6 +84,7 @@ export const masterSections = [
 
 export const tenantMasterSections = [
   {
+    key: 'geography',
     title: 'Geography & Divisions',
     icon: MapPin,
     items: [
@@ -114,13 +112,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAppSelector((state) => state.user.myprofile);
-  const masterState = useAppSelector((state) => state.master as any);
-  const activeTabKey = masterState?.activeTab || 'religions';
 
-  const isMasterPath = location.pathname.startsWith('/dashboard/master');
-  const isTenantMasterPath = location.pathname.startsWith('/dashboard/tenant-master');
+  // ── Single Source of Truth: Derive active sub-tab directly from location.pathname ──
+  const currentMasterTab = location.pathname.startsWith('/dashboard/master/')
+    ? location.pathname.split('/dashboard/master/')[1]?.split('/')[0]?.split('?')[0] || null
+    : null;
 
-  const totalMasterCount = masterSections.reduce((acc, sec) => acc + sec.items.length, 0);
+  const currentTenantMasterTab = location.pathname.startsWith('/dashboard/tenant-master/')
+    ? location.pathname.split('/dashboard/tenant-master/')[1]?.split('/')[0]?.split('?')[0] || null
+    : null;
+
+  // Track which multi-item category accordion is currently expanded
+  const [openMasterCategory, setOpenMasterCategory] = useState<string | null>(() => {
+    if (currentMasterTab) {
+      const found = masterSections.find((sec) =>
+        sec.items.length > 1 && sec.items.some((item) => item.key === currentMasterTab)
+      );
+      return found ? found.key : 'geography';
+    }
+    return null;
+  });
+
+  const [openTenantCategory, setOpenTenantCategory] = useState<string | null>(() => {
+    return currentTenantMasterTab ? 'geography' : null;
+  });
+
+  // Automatically keep expanded category in sync with the active route
+  useEffect(() => {
+    if (currentMasterTab) {
+      const found = masterSections.find((sec) =>
+        sec.items.length > 1 && sec.items.some((item) => item.key === currentMasterTab)
+      );
+      if (found) {
+        setOpenMasterCategory(found.key);
+      }
+    }
+  }, [currentMasterTab]);
+
+  useEffect(() => {
+    if (currentTenantMasterTab) {
+      setOpenTenantCategory('geography');
+    }
+  }, [currentTenantMasterTab]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -151,11 +184,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           border-r border-slate-200/80 dark:border-slate-800/80
           flex flex-col justify-between
           transition-[width,transform] duration-200 ease-in-out
-          shadow-xl lg:shadow-none ${
-          isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } ${
-          isSidebarCollapsed ? 'lg:w-18 w-72' : 'lg:w-68 w-72'
-        }`}
+          shadow-xl lg:shadow-none ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          } ${isSidebarCollapsed ? 'lg:w-18 w-72' : 'lg:w-68 w-72'
+          }`}
       >
         <div className="flex flex-col h-full min-h-0 overflow-hidden">
           {/* LOGO & BRAND HEADER */}
@@ -230,7 +261,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* GROUP 1: OPERATIONS */}
             <div className="space-y-1">
               {!isSidebarCollapsed && (
-                <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400/90 dark:text-slate-500/90">
                   Operations
                 </div>
               )}
@@ -265,186 +296,195 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* GROUP 2: ADMINISTRATION */}
             <div className="space-y-1">
               {!isSidebarCollapsed && (
-                <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400/90 dark:text-slate-500/90">
                   Administration
                 </div>
               )}
-              {navItems
-                .filter((item) => {
-                  if (item.section !== 'administration') return false;
-                  if (item.path === '/dashboard/roles') return isSuperAdmin;
-                  if (item.isMaster) return isSuperAdmin;
-                  if (item.isTenantMaster) {
-                    if (isSuperAdmin) return false;
-                    const allowed = (user as any)?.allowedMasterSubTabs as string[] | undefined;
-                    return !allowed || allowed.length > 0;
-                  }
-                  return true;
-                })
-                .map((item) => {
-                  const Icon = item.icon;
 
-                  /* ── SUPER ADMIN MASTER ACCORDION ─────────────────────── */
-                  if (item.isMaster) {
-                    const isActive = isMasterPath;
-                    return (
-                      <NavPill
-                        key={item.path}
-                        label={item.label}
-                        icon={Icon}
-                        isActive={isActive}
-                        isCollapsed={isSidebarCollapsed}
-                        badge={totalMasterCount}
-                        onClick={() => {
-                          if (isSidebarCollapsed) {
-                            navigate(`/dashboard/master/${activeTabKey}`);
-                          } else if (!isMasterPath) {
-                            navigate(`/dashboard/master/${activeTabKey}`);
-                          }
-                        }}
-                      >
-                        <div className="space-y-3 py-1 text-left">
-                          {masterSections.map((section) => {
-                            const SectionIcon = section.icon;
-                            return (
-                              <div key={section.title} className="space-y-1">
-                                <div className="px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400/90 flex items-center gap-1.5">
-                                  <SectionIcon size={10} className="text-indigo-500 dark:text-indigo-400" />
-                                  <span>{section.title}</span>
-                                </div>
-                                <div className="space-y-0.5">
-                                  {section.items.map((sub) => {
-                                    const subPath = `/dashboard/master/${sub.key}`;
-                                    const isSubActive =
-                                      location.pathname === subPath || (isMasterPath && activeTabKey === sub.key);
-                                    return (
-                                      <NavPill
-                                        key={sub.key}
-                                        variant="sub-pill"
-                                        to={subPath}
-                                        onClick={() => {
-                                          dispatch(setMasterTab(sub.key));
-                                          onCloseMobileSidebar();
-                                        }}
-                                        label={sub.label}
-                                        icon={sub.icon}
-                                        isActive={isSubActive}
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </NavPill>
-                    );
-                  }
-
-                  /* ── TENANT MASTER ACCORDION ─────────────────────────── */
-                  if (item.isTenantMaster) {
-                    const userAllowedSubTabs = ((user as any)?.allowedMasterSubTabs as string[] | undefined) ?? [
-                      'acs',
-                      'wards',
-                      'booths',
-                    ];
-                    const availableItems = tenantMasterSections
-                      .map((sec) => ({
-                        ...sec,
-                        items: sec.items.filter((sub) => userAllowedSubTabs.includes(sub.key)),
-                      }))
-                      .filter((sec) => sec.items.length > 0);
-
-                    const totalTenantSubCount = availableItems.reduce(
-                      (acc, sec) => acc + sec.items.length,
-                      0
-                    );
-                    const firstAllowedTab = availableItems[0]?.items[0]?.key || 'acs';
-                    const isActive = isTenantMasterPath;
+              {/* SUPER ADMIN MASTER CATEGORIES */}
+              {isSuperAdmin &&
+                masterSections.map((section) => {
+                  // Rule: If there is only one child, no need to add parent wrapper — child is parent!
+                  if (section.items.length === 1) {
+                    const single = section.items[0];
+                    const isSingleActive = currentMasterTab === single.key;
 
                     return (
                       <NavPill
-                        key={item.path}
-                        label={item.label}
-                        icon={Icon}
-                        isActive={isActive}
-                        isCollapsed={isSidebarCollapsed}
-                        badge={totalTenantSubCount}
+                        key={single.key}
+                        to={`/dashboard/master/${single.key}`}
                         onClick={() => {
-                          if (isSidebarCollapsed) {
-                            navigate(`/dashboard/tenant-master/${firstAllowedTab}`);
-                          } else if (!isTenantMasterPath) {
-                            navigate(`/dashboard/tenant-master/${firstAllowedTab}`);
-                          }
+                          dispatch(setMasterTab(single.key));
+                          onCloseMobileSidebar();
                         }}
-                      >
-                        <div className="space-y-3 py-1 text-left">
-                          {availableItems.map((section) => {
-                            const SectionIcon = section.icon;
-                            return (
-                              <div key={section.title} className="space-y-1">
-                                <div className="px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400/90 flex items-center gap-1.5">
-                                  <SectionIcon size={10} className="text-indigo-500 dark:text-indigo-400" />
-                                  <span>{section.title}</span>
-                                </div>
-                                <div className="space-y-0.5">
-                                  {section.items.map((sub) => {
-                                    const subPath = `/dashboard/tenant-master/${sub.key}`;
-                                    const isSubActive =
-                                      location.pathname === subPath ||
-                                      (location.pathname === '/dashboard/tenant-master' && firstAllowedTab === sub.key);
-                                    return (
-                                      <NavPill
-                                        key={sub.key}
-                                        variant="sub-pill"
-                                        to={subPath}
-                                        onClick={onCloseMobileSidebar}
-                                        label={sub.label}
-                                        icon={sub.icon}
-                                        isActive={isSubActive}
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </NavPill>
+                        label={single.label}
+                        icon={single.icon}
+                        isActive={isSingleActive}
+                        isCollapsed={isSidebarCollapsed}
+                      />
                     );
                   }
 
-                  /* Standard Admin Item (e.g. Roles) */
-                  const isActive = location.pathname.startsWith(item.path);
+                  // Multiple children (>1): Render as collapsible category accordion
+                  const SectionIcon = section.icon;
+                  const isCategoryOpen = openMasterCategory === section.key;
+                  const hasActiveChild = Boolean(
+                    currentMasterTab && section.items.some((sub) => sub.key === currentMasterTab)
+                  );
+
                   return (
                     <NavPill
-                      key={item.path}
-                      to={item.path}
-                      onClick={onCloseMobileSidebar}
-                      label={item.label}
-                      icon={Icon}
-                      isActive={isActive}
+                      key={section.key}
+                      label={section.title}
+                      icon={SectionIcon}
+                      isActive={hasActiveChild}
                       isCollapsed={isSidebarCollapsed}
-                    />
+                      badge={section.items.length}
+                      hasSubmenu={true}
+                      isSubmenuOpen={isCategoryOpen}
+                      onToggleSubmenu={(e) => {
+                        e.stopPropagation();
+                        setOpenMasterCategory((prev) => (prev === section.key ? null : section.key));
+                      }}
+                      onClick={() => {
+                        if (isSidebarCollapsed) {
+                          navigate(`/dashboard/master/${section.items[0].key}`);
+                        } else {
+                          setOpenMasterCategory((prev) => (prev === section.key ? null : section.key));
+                          if (!hasActiveChild) {
+                            navigate(`/dashboard/master/${section.items[0].key}`);
+                          }
+                        }
+                      }}
+                    >
+                      <div className="space-y-0.5 py-0.5">
+                        {section.items.map((sub) => {
+                          const subPath = `/dashboard/master/${sub.key}`;
+                          const isSubActive = currentMasterTab === sub.key;
+
+                          return (
+                            <NavPill
+                              key={sub.key}
+                              variant="sub-pill"
+                              to={subPath}
+                              onClick={() => {
+                                dispatch(setMasterTab(sub.key));
+                                onCloseMobileSidebar();
+                              }}
+                              label={sub.label}
+                              icon={sub.icon}
+                              isActive={isSubActive}
+                            />
+                          );
+                        })}
+                      </div>
+                    </NavPill>
                   );
                 })}
+
+              {/* TENANT ADMIN MASTER CATEGORIES */}
+              {!isSuperAdmin &&
+                tenantMasterSections.map((section) => {
+                  const userAllowedSubTabs = ((user as any)?.allowedMasterSubTabs as string[] | undefined) ?? [
+                    'acs',
+                    'wards',
+                    'booths',
+                  ];
+                  const availableItems = section.items.filter((sub) =>
+                    userAllowedSubTabs.includes(sub.key)
+                  );
+                  if (availableItems.length === 0) return null;
+
+                  // If only one child allowed, child is parent!
+                  if (availableItems.length === 1) {
+                    const single = availableItems[0];
+                    const isSingleActive = currentTenantMasterTab === single.key;
+
+                    return (
+                      <NavPill
+                        key={single.key}
+                        to={`/dashboard/tenant-master/${single.key}`}
+                        onClick={onCloseMobileSidebar}
+                        label={single.label}
+                        icon={single.icon}
+                        isActive={isSingleActive}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                    );
+                  }
+
+                  // Multiple children (>1): Render as collapsible accordion
+                  const SectionIcon = section.icon;
+                  const isCategoryOpen = openTenantCategory === section.key;
+                  const hasActiveChild = Boolean(
+                    currentTenantMasterTab &&
+                    availableItems.some((sub) => sub.key === currentTenantMasterTab)
+                  );
+
+                  return (
+                    <NavPill
+                      key={section.key}
+                      label={section.title}
+                      icon={SectionIcon}
+                      isActive={hasActiveChild}
+                      isCollapsed={isSidebarCollapsed}
+                      badge={availableItems.length}
+                      hasSubmenu={true}
+                      isSubmenuOpen={isCategoryOpen}
+                      onToggleSubmenu={(e) => {
+                        e.stopPropagation();
+                        setOpenTenantCategory((prev) => (prev === section.key ? null : section.key));
+                      }}
+                      onClick={() => {
+                        if (isSidebarCollapsed) {
+                          navigate(`/dashboard/tenant-master/${availableItems[0].key}`);
+                        } else {
+                          setOpenTenantCategory((prev) => (prev === section.key ? null : section.key));
+                          if (!hasActiveChild) {
+                            navigate(`/dashboard/tenant-master/${availableItems[0].key}`);
+                          }
+                        }
+                      }}
+                    >
+                      <div className="space-y-0.5 py-0.5">
+                        {availableItems.map((sub) => {
+                          const subPath = `/dashboard/tenant-master/${sub.key}`;
+                          const isSubActive = currentTenantMasterTab === sub.key;
+
+                          return (
+                            <NavPill
+                              key={sub.key}
+                              variant="sub-pill"
+                              to={subPath}
+                              onClick={onCloseMobileSidebar}
+                              label={sub.label}
+                              icon={sub.icon}
+                              isActive={isSubActive}
+                            />
+                          );
+                        })}
+                      </div>
+                    </NavPill>
+                  );
+                })}
+
             </div>
 
             {/* GROUP 3: SYSTEM */}
             <div className="space-y-1">
               {!isSidebarCollapsed && (
-                <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400/90 dark:text-slate-500/90">
                   System
                 </div>
               )}
               {navItems
                 .filter((item) => item.section === 'system')
                 .map((item) => {
-                  const targetPath = item.path === '/dashboard/settings' && isSuperAdmin
-                    ? '/dashboard/super-admin/settings'
-                    : item.path;
+                  const targetPath = item.path;
                   const Icon = item.icon;
-                  const isActive = location.pathname.startsWith(targetPath);
+                  const isActive =
+                    location.pathname.startsWith('/dashboard/settings') ||
+                    location.pathname.startsWith('/dashboard/super-admin/settings');
 
                   return (
                     <NavPill

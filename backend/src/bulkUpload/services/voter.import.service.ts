@@ -289,6 +289,7 @@ export class VoterImportService {
         `;
         await query(updateCountSql, [boothIdList]);
         await CacheService.invalidatePattern('ranniti:masters:booths*');
+        await CacheService.invalidatePattern('ranniti:tenant:stats*');
         logger.info(`[VoterImportService] Successfully updated total_voters count for affected booths.`);
       } catch (err: any) {
         logger.error(`[VoterImportService] Failed to update total_voters count on affected booths:`, err);

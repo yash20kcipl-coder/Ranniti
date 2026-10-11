@@ -18,7 +18,7 @@ export class VoterController {
       acId: req.query.acId as string,
       pcId: req.query.pcId as string,
       acIds: req.user?.role !== 'super_admin' && assignedAcIds.length > 0 ? assignedAcIds : undefined,
-      tenantDbName: req.user?.tenantDbName,
+      tenantDbName: (req.tenantDbName || req.user?.tenantDbName),
       gender: req.query.gender as string,
       voterType: req.query.voterType as string,
       status: req.query.status as string,
@@ -54,7 +54,7 @@ export class VoterController {
 
   static getVoterById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const voter = await VoterService.getVoterById(id, req.user?.tenantDbName);
+    const voter = await VoterService.getVoterById(id, (req.tenantDbName || req.user?.tenantDbName));
     if (!voter) {
       const errRes = ApiResponse.error('Voter record not found', 404);
       res.status(errRes.statusCode).json(errRes.body);
@@ -66,7 +66,7 @@ export class VoterController {
   });
 
   static createVoter = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const newVoter = await VoterService.createVoter(req.body, req.user?.tenantDbName);
+    const newVoter = await VoterService.createVoter(req.body, (req.tenantDbName || req.user?.tenantDbName));
     const formattedVoter = attachFileUrls(newVoter, ['avatar'], req);
     const response = ApiResponse.success(formattedVoter, 'Voter created successfully', 201);
     res.status(response.statusCode).json(response.body);
@@ -74,7 +74,7 @@ export class VoterController {
 
   static updateVoter = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const updatedVoter = await VoterService.updateVoter(id, req.body, req.user?.tenantDbName);
+    const updatedVoter = await VoterService.updateVoter(id, req.body, (req.tenantDbName || req.user?.tenantDbName));
     if (!updatedVoter) {
       const errRes = ApiResponse.error('Voter not found or update failed', 404);
       res.status(errRes.statusCode).json(errRes.body);
@@ -87,7 +87,7 @@ export class VoterController {
 
   static deleteVoter = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const success = await VoterService.deleteVoter(id, req.user?.tenantDbName);
+    const success = await VoterService.deleteVoter(id, (req.tenantDbName || req.user?.tenantDbName));
     if (!success) {
       const errRes = ApiResponse.error('Voter not found or deletion failed', 404);
       res.status(errRes.statusCode).json(errRes.body);
@@ -104,7 +104,7 @@ export class VoterController {
       acId: req.query.acId as string,
       pcId: req.query.pcId as string,
       acIds: req.user?.role !== 'super_admin' && assignedAcIds.length > 0 ? assignedAcIds : undefined,
-      tenantDbName: req.user?.tenantDbName,
+      tenantDbName: (req.tenantDbName || req.user?.tenantDbName),
     };
     const stats = await VoterService.getVoterStats(filterParams);
     const response = ApiResponse.success(stats, 'Voter statistics retrieved successfully');
@@ -117,7 +117,7 @@ export class VoterController {
     const excludeId = req.query.excludeId as string;
     const type = req.query.type as string;
 
-    const options = await VoterService.getInfluencerOptions(search, boothId, excludeId, type, req.user?.tenantDbName);
+    const options = await VoterService.getInfluencerOptions(search, boothId, excludeId, type, (req.tenantDbName || req.user?.tenantDbName));
     const transformedOptions = attachFileUrls(options, ['avatar'], req);
     const response = ApiResponse.success(transformedOptions, 'Influencer options retrieved successfully');
     res.status(response.statusCode).json(response.body);
@@ -129,7 +129,7 @@ export class VoterController {
       influencerId || null,
       influencerType,
       voterIds,
-      req.user?.tenantDbName
+      (req.tenantDbName || req.user?.tenantDbName)
     );
     const response = ApiResponse.success({ updatedCount: count }, `${count} voters successfully linked to influencer`);
     res.status(response.statusCode).json(response.body);
@@ -143,7 +143,7 @@ export class VoterController {
       acId: req.query.acId as string,
       pcId: req.query.pcId as string,
       acIds: req.user?.role !== 'super_admin' && assignedAcIds.length > 0 ? assignedAcIds : undefined,
-      tenantDbName: req.user?.tenantDbName,
+      tenantDbName: (req.tenantDbName || req.user?.tenantDbName),
       gender: req.query.gender as string,
       voterType: req.query.voterType as string,
       status: req.query.status as string,
@@ -171,7 +171,7 @@ export class VoterController {
       gender: req.query.gender as string,
       page: req.query.page ? Number(req.query.page) : 1,
       limit: req.query.limit ? Number(req.query.limit) : 10,
-      tenantDbName: req.user?.tenantDbName,
+      tenantDbName: (req.tenantDbName || req.user?.tenantDbName),
     };
 
     const result = await VoterService.getFamilyCandidates(params);
@@ -209,7 +209,7 @@ export class VoterController {
       unassignedOnly: req.query.unassignedOnly as string,
       page: req.query.page ? Number(req.query.page) : 1,
       limit: req.query.limit ? Number(req.query.limit) : 10,
-      tenantDbName: req.user?.tenantDbName,
+      tenantDbName: (req.tenantDbName || req.user?.tenantDbName),
     };
 
     const result = await VoterService.getSocialCandidates(params);

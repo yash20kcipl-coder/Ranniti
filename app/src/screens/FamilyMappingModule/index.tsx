@@ -3,18 +3,19 @@ import { RootState } from '../../store/store';
 import { useLanguage } from '../../languages';
 import { familyMappingStyles } from './styles';
 import { FamilyCard } from './components/FamilyCard';
-import { Skeleton } from '../../components/Skeleton';
+import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
 import { FamilyKpiCards } from './components/FamilyKpiCards';
 import { BoothMasterItem } from '../../store/reducers/master';
 import { FamilyGroup } from '../../store/reducers/familyMapping';
+import { FamilyFilterBar } from './components/FamilyFilterBar';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
 import { toggleVotedStatusAction } from '../../store/actions/voters';
-import { View, FlatList, TouchableOpacity, Text } from 'react-native';
+import { FamilyCardSkeleton } from './components/FamilyCardSkeleton';
+import { View, FlatList } from 'react-native';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchFilterMasterDataAction } from '../../store/actions/master';
-import { MaterialDesignIcons } from '../../components/MaterialDesignIcons';
 import { fetchFamilyHeadsAction } from '../../store/actions/familyMapping';
 import { SearchHeaderWithFilter } from '../../components/SearchHeaderWithFilter';
 import { BoothSelectorModal } from '../TeamModule/components/BoothSelectorModal';
@@ -22,7 +23,8 @@ import { BoothSelectorModal } from '../TeamModule/components/BoothSelectorModal'
 export const FamilyMappingScreen: React.FC = () => {
   const { t } = useLanguage();
   const dispatch = useDispatch<any>();
-  const { theme, styles } = useAppTheme<ReturnType<typeof familyMappingStyles>>(familyMappingStyles);
+  const navigation = useNavigation<any>();
+  const { styles } = useAppTheme<ReturnType<typeof familyMappingStyles>>(familyMappingStyles);
 
   // Redux state
   const user = useSelector((state: RootState) => state.auth?.user);
@@ -89,14 +91,26 @@ export const FamilyMappingScreen: React.FC = () => {
     return `${selectedBoothIds.length} Booths`;
   }, [selectedBoothIds, masterBooths]);
 
+  const canGoBack = Boolean(navigation?.canGoBack && navigation.canGoBack());
+  const handleBackPress = () => {
+    if (canGoBack) {
+      navigation.goBack();
+    } else if (navigation?.openDrawer) {
+      navigation.openDrawer();
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header with Search & Booth Filter Button */}
       <SearchHeaderWithFilter
         showBackButton
+        onBackPress={handleBackPress}
         value={search}
         loadingCount={loading}
         onChangeText={setSearch}
+        showFilter
+        onFilterPress={() => setIsBoothModalOpen(true)}
         currentCount={totalFamilies || families.length}
         isFiltered={selectedBoothIds.length > 0}
         countLabel={t('familyMapping') || 'Family Mapping'}
@@ -107,6 +121,7 @@ export const FamilyMappingScreen: React.FC = () => {
         data={families}
         keyExtractor={(item) => String(item.familyId)}
         contentContainerStyle={styles.listPadding}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.headerContainer}>
             {/* KPI Summary Cards */}
@@ -116,37 +131,14 @@ export const FamilyMappingScreen: React.FC = () => {
               votedMembers={votedMembers}
             />
 
-            {/* Subheader & Booth Selector Pill */}
-            <View style={styles.filterBarRow}>
-              <View style={styles.titleWrapper}>
-                <MaterialDesignIcons name="home-account" size={16} color={theme.colors.primary} />
-                <Text style={styles.titleText}>{t('familyMapping') || 'Family Mapping'}</Text>
-              </View>
-
-              <TouchableOpacity
-                style={[styles.boothPill, Boolean(selectedBoothName) && styles.boothPillActive]}
-                onPress={() => setIsBoothModalOpen(true)}
-                activeOpacity={0.8}
-              >
-                <MaterialDesignIcons
-                  name="map-marker-multiple"
-                  size={14}
-                  color={selectedBoothName ? theme.colors.primary : theme.colors.textSecondary}
-                />
-                <Text
-                  style={[styles.boothPillText, Boolean(selectedBoothName) && styles.boothPillTextActive]}
-                  numberOfLines={1}
-                >
-                  {selectedBoothName ||
-                    (isVolunteer ? (t('assignedBooths') || 'Assigned Booths') : (t('filterBooth') || 'Filter Booth'))}
-                </Text>
-                <MaterialDesignIcons
-                  name="chevron-down"
-                  size={14}
-                  color={selectedBoothName ? theme.colors.primary : theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
+            {/* Subheader & Booth Selector Bar */}
+            <FamilyFilterBar
+              selectedBoothName={selectedBoothName}
+              onOpenBoothModal={() => setIsBoothModalOpen(true)}
+              onClearBoothFilter={() => setSelectedBoothIds([])}
+              isVolunteer={isVolunteer}
+              totalFamilies={totalFamilies || families.length}
+            />
           </View>
         }
         renderItem={({ item }: { item: FamilyGroup }) => (
@@ -161,9 +153,9 @@ export const FamilyMappingScreen: React.FC = () => {
         ListEmptyComponent={
           loading ? (
             <View style={styles.loadingShimmerBox}>
-              <Skeleton height={120} borderRadius={16} style={styles.shimmerMargin} />
-              <Skeleton height={120} borderRadius={16} style={styles.shimmerMargin} />
-              <Skeleton height={120} borderRadius={16} style={styles.shimmerMargin} />
+              <FamilyCardSkeleton />
+              <FamilyCardSkeleton />
+              <FamilyCardSkeleton />
             </View>
           ) : (
             <NoData

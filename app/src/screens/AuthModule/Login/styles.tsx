@@ -140,7 +140,7 @@ export const loginStyles = (theme: Theme, insets: any) =>
       backgroundColor: theme.colors.surface || '#FFFFFF',
     },
     welcomeTitle: {
-      fontSize: rfValue(32),
+      fontSize: rfValue(28),
       letterSpacing: -0.5,
       fontFamily: FontFamily.black,
       color: theme.colors.text || '#1E293B',

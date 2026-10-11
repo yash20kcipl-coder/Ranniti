@@ -97,9 +97,19 @@ export const PcsPage: React.FC = () => {
 
   // Columns Definition
   const columns: Column<any>[] = [
-    { key: 'name', header: 'Constituency Name', sortable: true },
-    { key: 'pcNumber', header: 'PC No.', sortable: true },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => row.stateName || '-' },
+    {
+      key: 'pcNumber',
+      header: 'PC No.',
+      sortable: true,
+      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.pcNumber || '-'}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Constituency Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -196,11 +206,16 @@ export const PcsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Parliamentary Constituencies (PC)"
         icon={<Globe className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage Lok Sabha parliamentary constituencies."
+        badge={
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
+            {filteredPcs.length} {filteredPcs.length === 1 ? 'Record' : 'Records'}
+          </span>
+        }
         onAddClick={handleOpenAdd}
         addLabel="Add PC"
         onImportClick={() => setIsImportModalOpen(true)}
@@ -217,20 +232,18 @@ export const PcsPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={filteredPcs}
-          loading={loading}
-          showHeader={false}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEdit(row)}
-              onDelete={() => handleOpenDelete(row)}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredPcs}
+        loading={loading}
+        showHeader={false}
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEdit(row)}
+            onDelete={() => handleOpenDelete(row)}
+          />
+        )}
+      />
 
       <PcFormModal
         isOpen={isModalOpen}

@@ -111,7 +111,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         )}
 
         {/* Dynamic Title & Breadcrumbs */}
-        <div className="text-left hidden sm:flex flex-col min-w-0">
+        <div key={title} className="text-left hidden sm:flex flex-col min-w-0 animate-tab-fade">
           {breadcrumbs.length > 0 && (
             <nav className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 mb-0.5 tracking-wide">
               {breadcrumbs.map((b, i) => (

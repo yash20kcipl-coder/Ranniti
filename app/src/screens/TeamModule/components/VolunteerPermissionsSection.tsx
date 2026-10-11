@@ -16,7 +16,6 @@ interface VolunteerPermissionsSectionProps {
 const SCREEN_NAME_MAP: Record<string, { label: string; icon: string }> = {
   voter_search: { label: 'Voters Directory', icon: 'account-search-outline' },
   family_tree: { label: 'Family Mapping', icon: 'account-group-outline' },
-  survey: { label: 'Field Survey', icon: 'clipboard-text-outline' },
   booth_analytics: { label: 'Booth Analytics', icon: 'chart-bar' },
   gate_meetings: { label: 'Influencer Mapping', icon: 'star-outline' },
   team_management: { label: 'Cadre Management', icon: 'shield-account-outline' },

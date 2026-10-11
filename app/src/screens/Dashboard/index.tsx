@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { AppHeader, SafeView, ScrollView } from '../../components';
 import { fetchProfileAndRoleAccessAction } from '../../store/actions/auth';
 import { fetchDashboardMetricsAction } from '../../store/actions/dashboard';
+import { checkAndSyncDatasetsAction } from '../../store/actions/syncActions';
 
 export const Dashboard: React.FC = () => {
   const dispatch = useDispatch<any>();
@@ -28,6 +29,7 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     dispatch(fetchDashboardMetricsAction());
+    dispatch(checkAndSyncDatasetsAction());
   }, [dispatch]);
 
   const user = auth.user;

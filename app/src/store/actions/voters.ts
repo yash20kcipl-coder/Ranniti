@@ -61,9 +61,11 @@ export const mapApiVoterToVoter = (item: any): Voter => {
     boothNo: item.boothName || (item.boothNumber ? `Booth #${item.boothNumber}` : (item.boothNo || '')),
     boothName: item.boothName || '',
     boothNumber: item.boothNumber,
-    boothId: item.boothId || '',
-    acId: item.acId || '',
-    pcId: item.pcId || '',
+    boothId: item.boothId ? String(item.boothId) : (item.booth_id ? String(item.booth_id) : ''),
+    acId: item.acId ? String(item.acId) : (item.ac_id ? String(item.ac_id) : ''),
+    pcId: item.pcId ? String(item.pcId) : (item.pc_id ? String(item.pc_id) : ''),
+    stateId: item.stateId ? String(item.stateId) : (item.state_id ? String(item.state_id) : ''),
+    districtId: item.districtId ? String(item.districtId) : (item.district_id ? String(item.district_id) : ''),
     serialNo: Number(item.serialNo) || 0,
     sectionNo: item.sectionNo || '',
     houseNo: item.houseNo || '',
@@ -78,6 +80,8 @@ export const mapApiVoterToVoter = (item: any): Voter => {
     stateName: item.stateName || '',
 
     // Socio-demographics
+    religionId: item.religionId ? String(item.religionId) : (item.religion_id ? String(item.religion_id) : ''),
+    casteId: item.casteId ? String(item.casteId) : (item.caste_id ? String(item.caste_id) : ''),
     casteName: item.casteName || '',
     subcasteName: item.subcasteName || '',
     religionName: item.religionName || '',
@@ -87,6 +91,7 @@ export const mapApiVoterToVoter = (item: any): Voter => {
 
     // Political & Status
     voterType: item.voterType || '',
+    partyId: item.partyId ? String(item.partyId) : (item.party_id ? String(item.party_id) : ''),
     supportingParty: item.partyName || item.partyAbbreviation || item.supportingParty || item.voterType || 'Undecided',
     partyName: item.partyName || '',
     partyAbbreviation: item.partyAbbreviation || '',
@@ -258,7 +263,6 @@ export const updateVoterPartyAction = (
     try {
       await apiClient.put(`/mobile/voters/${voterId}`, {
         partyId: partyId || null,
-        voterType: partyName,
       });
       dispatch({
         type: UPDATE_VOTER_PARTY,
@@ -433,7 +437,18 @@ export const fetchVoterByIdAction = (voterId: string) => {
       if (rawVoter) {
         const mapped = mapApiVoterToVoter(rawVoter);
         dispatch({ type: UPDATE_VOTER_DETAILS, payload: mapped });
-        return mapped;
+        return {
+          ...rawVoter,
+          ...mapped,
+          boothId: rawVoter.boothId || mapped.boothId || '',
+          acId: rawVoter.acId || mapped.acId || '',
+          pcId: rawVoter.pcId || mapped.pcId || '',
+          stateId: rawVoter.stateId || mapped.stateId || '',
+          districtId: rawVoter.districtId || mapped.districtId || '',
+          partyId: rawVoter.partyId || mapped.partyId || '',
+          religionId: rawVoter.religionId || mapped.religionId || '',
+          casteId: rawVoter.casteId || mapped.casteId || '',
+        };
       }
     } catch (e: any) {
       console.error('Fetch voter by id error:', e);
@@ -441,4 +456,64 @@ export const fetchVoterByIdAction = (voterId: string) => {
     return null;
   };
 };
+
+export const fetchFamilyCandidatesAction = (params: Record<string, any>) => {
+  return async () => {
+    try {
+      const res = await apiClient.get('/mobile/voters/family-candidates', { params });
+      return res?.data?.data || res?.data;
+    } catch (err: any) {
+      console.error('Fetch family candidates error:', err);
+      throw err;
+    }
+  };
+};
+
+export const fetchSocialCandidatesAction = (params: Record<string, any>) => {
+  return async () => {
+    try {
+      const res = await apiClient.get('/mobile/voters/social-candidates', { params });
+      return res?.data?.data || res?.data;
+    } catch (err: any) {
+      console.error('Fetch social candidates error:', err);
+      throw err;
+    }
+  };
+};
+
+export const bulkAssignInfluencerAction = (payload: {
+  influencerId: string | null;
+  influencerType: 'family' | 'social';
+  voterIds: string[];
+}) => {
+  return async () => {
+    try {
+      const res = await apiClient.post('/mobile/voters/bulk-assign-influencer', payload);
+      return res?.data?.data || res?.data;
+    } catch (err: any) {
+      console.error('Bulk assign influencer error:', err);
+      throw err;
+    }
+  };
+};
+
+export interface LogInteractionPayload {
+  voterId?: string;
+  boothId?: string;
+  activityType: 'call' | 'whatsapp' | 'sms';
+  metadata?: Record<string, any>;
+}
+
+export const logVolunteerInteractionAction = (payload: LogInteractionPayload) => {
+  return async () => {
+    try {
+      const res = await apiClient.post('/mobile/voters/interactions/log', payload);
+      return res?.data?.data || res?.data;
+    } catch (err: any) {
+      console.warn('Volunteer interaction log telemetry error:', err?.message || err);
+      return null;
+    }
+  };
+};
+
 

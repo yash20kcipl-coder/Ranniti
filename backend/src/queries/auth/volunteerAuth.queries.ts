@@ -1,5 +1,5 @@
 import { query as masterQuery } from '../dbPool';
-import { TenantPoolManager } from '../../utils/tenantPoolManager';
+import { TenantPoolManager } from '../../services/pool/tenantPoolManager';
 
 export interface VolunteerUserRecord {
   id: string;

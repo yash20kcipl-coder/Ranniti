@@ -1,8 +1,11 @@
-import { query as mainQuery } from '../../queries/dbPool';
-import { TenantPoolManager } from '../../utils/tenantPoolManager';
-import { CacheService } from '../cache.service';
+import { TenantAcService } from './ac.service';
 import { ApiError } from '../../utils/apiError';
-import { logger } from '../../utils/logger';
+import { CacheService } from '../cache.service';
+import { TenantWardService } from './ward.service';
+import { TenantBoothService } from './booth.service';
+import { query as mainQuery } from '../../queries/dbPool';
+import { TenantPoolManager } from '../pool/tenantPoolManager';
+import { MasterAutoSyncService } from '../sync/masterAutoSync.service';
 
 async function executeTenantQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
   if (tenantDbName && tenantDbName.trim()) {
@@ -180,15 +183,25 @@ export class TenantApiService {
       throw ApiError.badRequest('pcId, acNumber, and name are required');
     }
 
-    const insertRes = await executeTenantQuery(
-      `INSERT INTO assembly_constituencies (pc_id, district_id, ac_number, name)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, pc_id AS "pcId", district_id AS "districtId", ac_number AS "acNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [pcId, districtId || null, acNumber, name],
-      tenantDbName
-    );
-
-    const newAc = insertRes.rows[0];
+    let newAc;
+    if (tenantDbName) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      newAc = await TenantAcService.createTenantAc(tenantPool, {
+        acNo: acNumber,
+        acName: name,
+        districtId,
+        pcId,
+      });
+    } else {
+      const insertRes = await executeTenantQuery(
+        `INSERT INTO assembly_constituencies (pc_id, district_id, ac_number, name)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, pc_id AS "pcId", district_id AS "districtId", ac_number AS "acNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+        [pcId, districtId || null, acNumber, name],
+        tenantDbName
+      );
+      newAc = insertRes.rows[0];
+    }
 
     // Link newly created AC to tenants.ac_ids for this tenant in Master DB
     await mainQuery(
@@ -217,6 +230,10 @@ export class TenantApiService {
       tenantDbName
     );
     if (res.rows.length === 0) throw ApiError.notFound('Assembly constituency not found');
+    if (tenantDbName) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'ac', id, 'UPDATE', res.rows[0]).catch(() => { });
+    }
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:acs*`);
     return res.rows[0];
   }
@@ -228,7 +245,10 @@ export class TenantApiService {
       tenantDbName
     );
     if (res.rows.length === 0) throw ApiError.notFound('Assembly constituency not found');
-    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:acs*`);
+    if (tenantDbName) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'ac', id, 'DELETE', { id }).catch(() => { });
+    }
   }
 
   // --- WARDS ---
@@ -352,15 +372,26 @@ export class TenantApiService {
       throw ApiError.badRequest('acId, wardNumber, and name are required');
     }
 
-    const res = await executeTenantQuery(
-      `INSERT INTO wards (ac_id, ward_number, name)
-       VALUES ($1, $2, $3)
-       RETURNING id, ac_id AS "acId", ward_number AS "wardNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [acId, wardNumber, name],
-      tenantDbName
-    );
+    let newWard;
+    if (tenantDbName) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      newWard = await TenantWardService.createTenantWard(tenantPool, {
+        acId,
+        wardNo: wardNumber,
+        wardName: name,
+      });
+    } else {
+      const res = await executeTenantQuery(
+        `INSERT INTO wards (ac_id, ward_number, name)
+         VALUES ($1, $2, $3)
+         RETURNING id, ac_id AS "acId", ward_number AS "wardNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+        [acId, wardNumber, name],
+        tenantDbName
+      );
+      newWard = res.rows[0];
+    }
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:wards*`);
-    return res.rows[0];
+    return newWard;
   }
 
   async updateTenantWard(id: string, input: Partial<CreateWardInput>, tenantDbName?: string | null) {
@@ -377,6 +408,10 @@ export class TenantApiService {
       tenantDbName
     );
     if (res.rows.length === 0) throw ApiError.notFound('Ward not found');
+    if (tenantDbName) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'ward', id, 'UPDATE', res.rows[0]).catch(() => { });
+    }
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:wards*`);
     return res.rows[0];
   }
@@ -388,6 +423,10 @@ export class TenantApiService {
       tenantDbName
     );
     if (res.rows.length === 0) throw ApiError.notFound('Ward not found');
+    if (tenantDbName) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'ward', id, 'DELETE', { id }).catch(() => { });
+    }
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:wards*`);
   }
 
@@ -639,22 +678,33 @@ export class TenantApiService {
       throw ApiError.badRequest('acId, boothNumber, and name are required');
     }
 
-    const insertRes = await executeTenantQuery(
-      `INSERT INTO booths (ac_id, ward_id, village_id, booth_number, name, location_building)
+    let newBooth;
+    if (tenantDbName) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      newBooth = await TenantBoothService.createTenantBooth(tenantPool, {
+        acId,
+        wardId: wardId || undefined,
+        boothNo: boothNumber,
+        boothName: name,
+      });
+    } else {
+      const insertRes = await executeTenantQuery(
+        `INSERT INTO booths (ac_id, ward_id, village_id, booth_number, name, location_building)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, ac_id AS "acId", ward_id AS "wardId", village_id AS "villageId", booth_number AS "boothNumber", name, location_building AS "locationBuilding", total_voters AS "totalVoters", created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [acId, wardId || null, villageId || null, boothNumber, name, locationBuilding || null],
-      tenantDbName
-    );
+        [acId, wardId || null, villageId || null, boothNumber, name, locationBuilding || null],
+        tenantDbName
+      );
+      newBooth = insertRes.rows[0];
+    }
 
-    const newBooth = insertRes.rows[0];
-
-    // Assign new booth to current tenant user in Master DB
-    await mainQuery(
+    // Assign new booth to current tenant user in Tenant DB
+    await executeTenantQuery(
       `INSERT INTO user_booth_assignments (user_id, booth_id)
        VALUES ($1, $2)
        ON CONFLICT (user_id, booth_id) DO NOTHING`,
-      [userId, newBooth.id]
+      [userId, newBooth.id],
+      tenantDbName
     );
 
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:booth*`);
@@ -681,6 +731,10 @@ export class TenantApiService {
       tenantDbName
     );
     if (res.rows.length === 0) throw ApiError.notFound('Booth not found');
+    if (tenantDbName) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'booth', id, 'UPDATE', res.rows[0]).catch(() => { });
+    }
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:booth*`);
     return res.rows[0];
   }
@@ -692,6 +746,10 @@ export class TenantApiService {
       tenantDbName
     );
     if (res.rows.length === 0) throw ApiError.notFound('Booth not found');
+    if (tenantDbName) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'booth', id, 'DELETE', { id }).catch(() => { });
+    }
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:booth*`);
   }
 

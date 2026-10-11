@@ -1,91 +1,155 @@
-import React from 'react';
-import {
-  Shield as LucideShield,
-  Phone as LucidePhone,
-  MapPin as LucideMapPin,
-  LogOut as LucideLogOut,
-  Globe as LucideGlobe,
-} from 'lucide-react-native';
-import { profileStyles } from './styles';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ScrollView, RefreshControl } from 'react-native';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import { RootState } from '../../store/store';
 import { useLanguage } from '../../languages';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { useSelector, useDispatch } from 'react-redux';
-import { SafeImage } from '../../components/SafeImage';
-import { logoutAction } from '../../store/actions/auth';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { profileStyles } from './styles';
+import { logoutAction, fetchProfileAndRoleAccessAction } from '../../store/actions/auth';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { AppHeader } from '../../components/AppHeader';
+import { SafeView } from '../../components/SafeView';
 
-const Shield = LucideShield as any;
-const Phone = LucidePhone as any;
-const MapPin = LucideMapPin as any;
-const LogOut = LucideLogOut as any;
-const Globe = LucideGlobe as any;
+import { ProfileHeaderCard } from './components/ProfileHeaderCard';
+import { ProfileContactSection } from './components/ProfileContactSection';
+import { ProfileJurisdictionSection } from './components/ProfileJurisdictionSection';
+import { ProfileSettingsSection } from './components/ProfileSettingsSection';
+import { ProfileLogoutSection } from './components/ProfileLogoutSection';
+import { ProfileSkeleton } from './components/ProfileSkeleton';
 
 export const ProfileScreen: React.FC = () => {
   const dispatch = useDispatch<any>();
+  const navigation = useNavigation<any>();
   const { t, language, setLanguage } = useLanguage();
   const user = useSelector((state: RootState) => state.auth.user);
   const { theme, styles } = useAppTheme<ReturnType<typeof profileStyles>>(profileStyles);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(!user);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const canGoBack = Boolean(navigation?.canGoBack && navigation.canGoBack());
+
+  // Hydrate user profile on initial screen mount
+  useEffect(() => {
+    let mounted = true;
+    dispatch(fetchProfileAndRoleAccessAction())
+      .finally(() => {
+        if (mounted) {
+          setInitialLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [dispatch]);
+
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    dispatch(fetchProfileAndRoleAccessAction())
+      .finally(() => {
+        setRefreshing(false);
+      });
+  }, [dispatch]);
+
+  // Logout confirmation action
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await dispatch(logoutAction());
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutModal(false);
+    }
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentPadding}>
-      <View style={styles.profileHeaderCard}>
-        <SafeImage
-          src={user?.avatar}
-          name={user?.name}
-          style={styles.avatar}
-          placeholderType="avatar"
-          alt={user?.name || 'User'}
-        />
-        <Text style={styles.userName}>{user?.name || 'Campaign Leader'}</Text>
-        <View style={styles.roleBadge}>
-          <Shield size={12} color="#1E40AF" />
-          <Text style={styles.roleText}>{user?.roleName || t('pcLeader')}</Text>
-        </View>
-      </View>
+    <SafeView>
+      {/* Universal Screen Header (with Back/Menu & Language Switch) */}
+      <AppHeader
+        title={t('profileTitle') || 'My Profile'}
+        subtitle={user?.roleName || user?.role || t('profileSubtitle')}
+        showMenu={!canGoBack}
+        showBack={canGoBack}
+        showLanguageToggle={true}
+        statusBar="hidden"
+      />
 
-      <View style={styles.infoCard}>
-        <View style={styles.infoRow}>
-          <Phone size={16} color="#64748B" />
-          <Text style={styles.infoText}>{user?.phone || '9876543210'}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <MapPin size={16} color="#64748B" />
-          <Text style={styles.infoText}>{user?.assignedPc || 'Jaipur Constituency'}</Text>
-        </View>
-      </View>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentPadding}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
+      >
+        {initialLoading && !user ? (
+          <ProfileSkeleton theme={theme} />
+        ) : (
+          <>
+            {/* 1. Hero Identity & Role Header Card */}
+            <ProfileHeaderCard
+              user={user}
+              t={t}
+              theme={theme}
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
+            />
 
-      {/* Language Toggle Card */}
-      <View style={styles.infoCard}>
-        <View style={styles.cardTitleRow}>
-          <Globe size={18} color="#1E40AF" />
-          <Text style={styles.cardTitle}>{t('selectLanguage')}</Text>
-        </View>
-        <View style={styles.langRow}>
-          <TouchableOpacity
-            style={[styles.langBtn, language === 'en' && styles.langBtnActive]}
-            onPress={() => setLanguage('en')}
-          >
-            <Text style={[styles.langText, language === 'en' && styles.langTextActive]}>
-              {t('english')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.langBtn, language === 'hi' && styles.langBtnActive]}
-            onPress={() => setLanguage('hi')}
-          >
-            <Text style={[styles.langText, language === 'hi' && styles.langTextActive]}>
-              {t('hindi')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            {/* 2. Contact Information & Identity Card */}
+            <ProfileContactSection
+              user={user}
+              t={t}
+              theme={theme}
+            />
 
-      <TouchableOpacity style={styles.logoutBtn} onPress={() => dispatch(logoutAction())}>
-        <LogOut size={18} color="#EF4444" />
-        <Text style={styles.logoutText}>{t('logout')}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+            {/* 3. Assigned Political & Electoral Jurisdiction Card */}
+            <ProfileJurisdictionSection
+              user={user}
+              t={t}
+              theme={theme}
+            />
+
+            {/* 4. Language & App Configuration Card */}
+            <ProfileSettingsSection
+              language={language}
+              setLanguage={setLanguage}
+              t={t}
+              theme={theme}
+            />
+
+            {/* 5. Safe Logout Trigger */}
+            <ProfileLogoutSection
+              onPressLogout={() => setShowLogoutModal(true)}
+              t={t}
+              theme={theme}
+            />
+          </>
+        )}
+      </ScrollView>
+
+      {/* Confirmation Modal for Logout (Rule 24) */}
+      <ConfirmModal
+        visible={showLogoutModal}
+        variant="danger"
+        title={t('confirmLogout')}
+        message={t('logoutConfirmMessage')}
+        confirmText={t('logout')}
+        cancelText={t('cancel')}
+        icon="logout"
+        loading={isLoggingOut}
+        onConfirm={handleConfirmLogout}
+        onClose={() => setShowLogoutModal(false)}
+      />
+    </SafeView>
   );
 };
 

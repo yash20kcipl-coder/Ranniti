@@ -25,7 +25,7 @@ For the complete multi-tenant database placement and deletion architecture, see 
 | **`tenant_users`**                 | [`tenant_users.md`](./tables/tenant_users.md)                                 | Campaign volunteer cadre, field leaders, credentials, and constituency assignments         |
 | `user_booth_assignments`           | [`user_booth_assignments.md`](./tables/user_booth_assignments.md)             | Junction table mapping leaders, sub-leaders, and supporters to polling booths              |
 | `user_synced_contacts`             | [`user_synced_contacts.md`](./tables/user_synced_contacts.md)                 | Junction table tracking mobile device contacts synced to matched voters                    |
-| **`campaign_settings`**            | [`campaign_settings.md`](./tables/campaign_settings.md)                       | Campaign settings, FCM/APNs push triggers, Meta WhatsApp API config                        |
+| **`campaign_settings`**            | [`campaign_settings.md`](./tables/campaign_settings.md)                       | Campaign settings, FCM/APNs push credentials, Meta WhatsApp API config                    |
 | **`whatsapp_templates`**           | [`whatsapp_templates.md`](./tables/whatsapp_templates.md)                     | Multi-lingual WhatsApp templates, dynamic variables, and Meta status                       |
 | **`tenants`**                      | [`tenants.md`](./tables/tenants.md)                                           | Dedicated standalone tenant organizations, admin credentials, assigned PC/AC geography     |
 | **`tenant_roles`**                 | [`tenant_roles.md`](./tables/tenant_roles.md)                                 | Tier 1 Super Admin Tenant feature access packages & tab ceilings                           |
@@ -35,6 +35,8 @@ For the complete multi-tenant database placement and deletion architecture, see 
 | **`audit_logs`**                   | [`audit_logs.md`](./tables/audit_logs.md)                                     | Security audit trail, administrative action tracking, and event logging                   |
 | **`bulk_upload_demos`**            | [`bulk_upload_demos.md`](./tables/bulk_upload_demos.md)                       | Dedicated sandbox and benchmark testing table for Super Admin bulk imports                 |
 | **`app_versions`**                 | [`app_versions.md`](./tables/app_versions.md)                                 | Mobile app version thresholds, store URLs, force update rules, and maintenance status      |
+| **`tenant_dashboard_stats`**       | [`tenant_dashboard_stats.md`](./tables/tenant_dashboard_stats.md)             | Pre-aggregated rollup cache for instant (<5ms) tenant campaign dashboard metric loading    |
+| **`volunteer_activity_logs`**      | [`volunteer_activity_logs.md`](./tables/volunteer_activity_logs.md)           | Telemetry tracking volunteer outreach actions (calls, WhatsApp messages, SMS) for voters |
 
 
 

@@ -154,7 +154,7 @@ export const TemplateBuilderModal: React.FC<TemplateBuilderModalProps> = ({
     >
       <div className="space-y-4">
         {error && (
-          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+          <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
@@ -193,7 +193,7 @@ export const TemplateBuilderModal: React.FC<TemplateBuilderModalProps> = ({
         </div>
 
         {/* Header Configuration */}
-        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+        <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
               Message Header (Optional)
@@ -252,7 +252,7 @@ export const TemplateBuilderModal: React.FC<TemplateBuilderModalProps> = ({
         />
 
         {/* Interactive Buttons */}
-        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+        <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <MessageSquare className="w-4 h-4 text-indigo-500" />

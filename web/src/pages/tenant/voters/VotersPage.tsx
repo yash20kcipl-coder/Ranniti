@@ -261,7 +261,7 @@ export const VotersPage: React.FC = () => {
 
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Voter Directory"
         icon={<Vote className="w-6 h-6" />}
@@ -274,7 +274,21 @@ export const VotersPage: React.FC = () => {
         addLabel="Add Voter"
       />
 
-      <VoterStatsCards stats={stats} />
+      <VoterStatsCards
+        stats={stats}
+        activeGender={filterParams.gender}
+        activeVoterType={filterParams.voterType}
+        onToggleGender={(g) =>
+          setFilter('gender', filterParams.gender?.toLowerCase() === g.toLowerCase() ? '' : g)
+        }
+        onToggleVoterType={(vt) =>
+          setFilter('voterType', filterParams.voterType === vt ? '' : vt)
+        }
+        onResetQuickFilters={() => {
+          setFilter('gender', '');
+          setFilter('voterType', '');
+        }}
+      />
 
       <FilterBar
         searchPlaceholder="Search Name, EPIC No, Mobile, House..."
@@ -285,12 +299,13 @@ export const VotersPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl dark:bg-slate-900/60 dark:border dark:border-slate-800 dark:p-1">
+      <div className="rounded-lg">
         <DataTable
           columns={columns}
           data={voters}
           loading={loading}
           showHeader={false}
+          selectable={false}
           serverPagination={{
             page: pagination?.page || page,
             limit: pagination?.limit || limit,

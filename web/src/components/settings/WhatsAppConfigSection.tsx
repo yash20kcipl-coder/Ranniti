@@ -14,13 +14,71 @@ interface WhatsAppConfigSectionProps {
   settings: CampaignSettings;
   onChange: (updated: Partial<CampaignSettings>) => void;
   onOpenTestSend: () => void;
+  loading?: boolean;
 }
 
 export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
   settings,
   onChange,
   onOpenTestSend,
+  loading = false,
 }) => {
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Top Banner Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-800 shrink-0" />
+            <div className="space-y-2">
+              <div className="h-4 w-60 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-3 w-80 bg-slate-200 dark:bg-slate-800 rounded" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-24 bg-slate-200 dark:bg-slate-800 rounded-full" />
+            <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          </div>
+        </div>
+
+        {/* 3 Stat Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3"
+            >
+              <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-800 shrink-0" />
+              <div className="space-y-2 flex-1">
+                <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Credentials Form Box Skeleton */}
+        <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="h-4 w-44 bg-slate-200 dark:bg-slate-800 rounded pb-3 border-b border-slate-100 dark:border-slate-800" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="space-y-2">
+              <div className="h-3.5 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded-lg" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-3.5 w-44 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded-lg" />
+            </div>
+            <div className="sm:col-span-2 space-y-2">
+              <div className="h-3.5 w-52 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded-lg" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const safeSettings = settings || ({} as CampaignSettings);
   const isConfigured = Boolean(
     safeSettings.whatsappWabaId && safeSettings.whatsappPhoneNumberId && safeSettings.whatsappAccessToken
@@ -29,9 +87,9 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
@@ -59,7 +117,7 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
           <button
             type="button"
             onClick={onOpenTestSend}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer"
           >
             <Send className="w-3.5 h-3.5" />
             <span>Send Test Message</span>
@@ -69,8 +127,8 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
 
       {/* Health & Tier Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600">
+        <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600">
             <Zap className="w-5 h-5" />
           </div>
           <div>
@@ -81,8 +139,8 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600">
+        <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600">
             <Layers className="w-5 h-5" />
           </div>
           <div>
@@ -93,8 +151,8 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600">
+        <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600">
             <Globe className="w-5 h-5" />
           </div>
           <div>
@@ -105,7 +163,7 @@ export const WhatsAppConfigSection: React.FC<WhatsAppConfigSectionProps> = ({
       </div>
 
       {/* Credentials Form Box */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-4">
+      <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-4">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
           Meta Business Credentials
         </h3>

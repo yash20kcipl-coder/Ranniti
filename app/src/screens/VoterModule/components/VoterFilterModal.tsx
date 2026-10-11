@@ -16,6 +16,10 @@ import { useAppTheme } from '../../../hooks/useAppTheme';
 import { fetchMasterBoothsAction } from '../../../store/actions/master';
 import { AppDropdown, DropdownOption } from '../../../components/AppDropdown';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
+import {
+  getAgeGroupOptions,
+  getVoterTypeOptions,
+} from '../../../constants/dropdownOptions';
 
 export interface VoterFilterParams {
   acId?: string;
@@ -70,29 +74,8 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
     [t]
   );
 
-  const ageGroupOptions = React.useMemo(
-    () => [
-      { id: '', label: t('allAges') || 'All Ages' },
-      { id: '18-25', label: '18 - 25' },
-      { id: '26-35', label: '26 - 35' },
-      { id: '36-50', label: '36 - 50' },
-      { id: '51-65', label: '51 - 65' },
-      { id: '65-200', label: '65+' },
-    ],
-    [t]
-  );
-
-  const voterTypeTiles = React.useMemo(
-    () => [
-      { id: '', label: t('allTypes') || 'All Types', icon: 'account-multiple-outline' },
-      { id: 'Voter', label: t('standard') || 'Standard', icon: 'account-check-outline' },
-      { id: 'Neutral Voter', label: t('voterTypeNeutral') || 'Neutral', icon: 'scale-balance' },
-      { id: 'Student', label: t('voterTypeStudent') || 'Student', icon: 'school-outline' },
-      { id: 'Senior', label: t('senior') || 'Senior', icon: 'human-cane' },
-      { id: 'VIP', label: t('vipKey') || 'VIP / Key', icon: 'star-outline' },
-    ],
-    [t]
-  );
+  const ageGroupOptions = React.useMemo(() => getAgeGroupOptions(t), [t]);
+  const voterTypeTiles = React.useMemo(() => getVoterTypeOptions(t, true), [t]);
 
   const influencerCards = React.useMemo(
     () => [

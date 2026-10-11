@@ -147,7 +147,7 @@ const getStyles = (theme: Theme) =>
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: theme.colors.surfaceVariant,
+      backgroundColor: theme.colors.subtleSurface || theme.colors.inputBackground,
       justifyContent: 'center',
       alignItems: 'center',
     },

@@ -119,9 +119,14 @@ export const TalukasPage: React.FC = () => {
 
   // Columns Definition
   const columns: Column<any>[] = [
-    { key: 'name', header: 'Taluka Name', sortable: true },
-    { key: 'districtName', header: 'District', sortable: true, render: (row) => row.districtName || '-' },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => row.stateName || '-' },
+    {
+      key: 'name',
+      header: 'Taluka Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.districtName || '-'}</span> },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -219,11 +224,16 @@ export const TalukasPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Talukas (Tehsils)"
         icon={<Map className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage administrative taluka / tehsil divisions within districts."
+        badge={
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
+            {filteredTalukas.length} {filteredTalukas.length === 1 ? 'Record' : 'Records'}
+          </span>
+        }
         onAddClick={handleOpenAdd}
         addLabel="Add Taluka"
         onImportClick={() => setIsImportModalOpen(true)}
@@ -240,20 +250,18 @@ export const TalukasPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={filteredTalukas}
-          loading={loading}
-          showHeader={false}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEdit(row)}
-              onDelete={() => handleOpenDelete(row)}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredTalukas}
+        loading={loading}
+        showHeader={false}
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEdit(row)}
+            onDelete={() => handleOpenDelete(row)}
+          />
+        )}
+      />
 
       <TalukaFormModal
         isOpen={isModalOpen}

@@ -4,7 +4,7 @@ import apiClient from '../api/apiClient';
 import Storage, { STORAGE_KEYS } from '../utils/storage';
 import { useState, useEffect, useCallback } from 'react';
 import { SET_APP_VERSION } from '../store/reducers/appVersion';
-import appVersion, { isVersionLessThan } from '../utils/version';
+import appVersion, { getAppVersion, isVersionLessThan } from '../utils/version';
 
 export interface VersionStatus {
   status: 'loading' | 'allowed' | 'force-update' | 'recommended-update' | 'maintenance';
@@ -38,7 +38,7 @@ export const useVersionCheck = () => {
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
 
   // Current installed version from version.ts (the source of truth for this build)
-  const currentVersion: string = appVersion[platform] ?? '1.0.0';
+  const currentVersion: string = getAppVersion();
 
   const [versionStatus, setVersionStatus] = useState<VersionStatus>({
     status: 'loading',

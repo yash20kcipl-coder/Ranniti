@@ -12,6 +12,8 @@ import {
   CLEAR_LAST_CREATED_CREDENTIALS,
   SET_VOLUNTEER_BOOTHS,
   SET_VOLUNTEER_BOOTHS_LOADING,
+  SET_VOLUNTEER_ANALYTICS,
+  SET_VOLUNTEER_ANALYTICS_LOADING,
   type VolunteerRecord,
 } from '../reducers/volunteer';
 
@@ -180,3 +182,30 @@ export const fetchVolunteerBooths = (filters: {
     }
   };
 };
+
+export const setVolunteerAnalyticsLoading = (loading: boolean) => ({
+  type: SET_VOLUNTEER_ANALYTICS_LOADING,
+  payload: loading,
+});
+
+export const fetchVolunteerAnalytics = (filters: {
+  timeRange?: '7d' | '30d' | 'all';
+  role?: string;
+  boothId?: string;
+} = {}) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setVolunteerAnalyticsLoading(true));
+    try {
+      const res = await api.get('/tenant/analytics/volunteers', { params: filters });
+      const data = res.data?.data || null;
+      dispatch({ type: SET_VOLUNTEER_ANALYTICS, payload: data });
+      return data;
+    } catch (err: any) {
+      dispatch({ type: SET_VOLUNTEER_ANALYTICS, payload: null });
+      throw err;
+    } finally {
+      dispatch(setVolunteerAnalyticsLoading(false));
+    }
+  };
+};
+

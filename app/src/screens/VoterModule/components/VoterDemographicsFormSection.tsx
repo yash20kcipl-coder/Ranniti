@@ -7,6 +7,7 @@ import { AppTextInput } from '../../../components/AppTextInput';
 import { AppDropdown, DropdownOption } from '../../../components/AppDropdown';
 import { AppAutocompleteInput } from '../../../components/AppAutocompleteInput';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
+import { getRelationOptions } from '../../../constants/dropdownOptions';
 
 export interface VoterDemographicsFormSectionProps {
   formData: any;
@@ -21,6 +22,8 @@ export interface VoterDemographicsFormSectionProps {
   subcasteSuggestions?: string[];
   religionSuggestions?: string[];
   casteSuggestions?: string[];
+  rawCastes?: any[];
+  rawReligions?: any[];
 }
 
 export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSectionProps> = ({
@@ -36,31 +39,11 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
   subcasteSuggestions = [],
   religionSuggestions = [],
   casteSuggestions = [],
+  rawCastes = [],
+  rawReligions = [],
 }) => {
-  const relationOptions: DropdownOption[] = React.useMemo(
-    () => [
-      { id: 'Father', label: t('relationFather') || 'Father' },
-      { id: 'Husband', label: t('relationHusband') || 'Husband' },
-      { id: 'Mother', label: t('relationMother') || 'Mother' },
-      { id: 'Other', label: t('relationOther') || 'Other' },
-    ],
-    [t]
-  );
+  const relationOptions = React.useMemo(() => getRelationOptions(t), [t]);
 
-  const professionTypeOptions: DropdownOption[] = React.useMemo(
-    () => [
-      { id: 'Farmer', label: t('professionFarmer') || 'Farmer / Agriculture' },
-      { id: 'Business', label: t('professionBusiness') || 'Business / Self-Employed' },
-      { id: 'Govt Service', label: t('professionGovtService') || 'Government Service' },
-      { id: 'Private Service', label: t('professionPrivateService') || 'Private Sector Employee' },
-      { id: 'Homemaker', label: t('professionHomemaker') || 'Homemaker' },
-      { id: 'Student', label: t('professionStudent') || 'Student' },
-      { id: 'Retired', label: t('professionRetired') || 'Retired' },
-      { id: 'Daily Wage', label: t('professionDailyWage') || 'Daily Wage Worker' },
-      { id: 'Other', label: t('professionOther') || 'Other' },
-    ],
-    [t]
-  );
 
   // Cascading caste options filtered by selected religionId if religion is set
   const filteredCasteOptions = React.useMemo(() => {
@@ -109,7 +92,7 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
 
       {/* Relative / Guardian Info */}
       <View style={styles.row}>
-        <View style={styles.flex2}>
+        <View style={styles.flex1}>
           <AppTextInput
             label={t('relativeName') || 'Relative / Guardian Name'}
             placeholder={t('relativeNamePlaceholder') || 'e.g. Ramesh Chandra Sharma'}
@@ -121,7 +104,6 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
                 relativeName: text,
               }));
             }}
-            icon="account-outline"
             editable={canEditDemographics}
           />
         </View>
@@ -131,7 +113,6 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
             placeholder={t('relationType') || 'Relation'}
             value={formData.relation || ''}
             options={relationOptions}
-            icon="users"
             disabled={!canEditDemographics}
             onSelect={(val) => {
               setFormData((prev: any) => ({ ...prev, relation: val }));
@@ -139,76 +120,61 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
           />
         </View>
       </View>
+      <AppTextInput
+        label={t('enterMobileNumber') || 'Mobile Number'}
+        placeholder={t('mobilePlaceholder') || '10-digit mobile number'}
+        value={formData.mobileNo || formData.mobile || ''}
+        onChangeText={(text) => {
+          setFormData((prev: any) => ({
+            ...prev,
+            mobileNo: text,
+            mobile: text,
+          }));
+        }}
+        keyboardType="phone-pad"
+        maxLength={10}
+        error={errors.mobileNo}
+        editable={canEditContact}
+      />
+      <AppTextInput
+        label={t('emailAddress') || 'Email Address'}
+        placeholder={t('emailPlaceholder') || 'voter@example.com'}
+        value={formData.email || ''}
+        onChangeText={(text) => {
+          setFormData((prev: any) => ({ ...prev, email: text }));
+        }}
+        icon="mail"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        error={errors.email}
+        editable={canEditContact}
+      />
 
-      {/* Contact Details (Mobile & Email) */}
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <AppTextInput
-            label={t('enterMobileNumber') || 'Mobile Number'}
-            placeholder={t('mobilePlaceholder') || '10-digit mobile number'}
-            value={formData.mobileNo || formData.mobile || ''}
-            onChangeText={(text) => {
-              setFormData((prev: any) => ({
-                ...prev,
-                mobileNo: text,
-                mobile: text,
-              }));
-            }}
-            icon="phone"
-            keyboardType="phone-pad"
-            maxLength={10}
-            error={errors.mobileNo}
-            editable={canEditContact}
-          />
-        </View>
-        <View style={styles.flex1}>
-          <AppTextInput
-            label={t('emailAddress') || 'Email Address'}
-            placeholder={t('emailPlaceholder') || 'voter@example.com'}
-            value={formData.email || ''}
-            onChangeText={(text) => {
-              setFormData((prev: any) => ({ ...prev, email: text }));
-            }}
-            icon="mail"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={errors.email}
-            editable={canEditContact}
-          />
-        </View>
-      </View>
+      <AppTextInput
+        label={t('aadhaarNo') || 'Aadhaar Card No'}
+        placeholder={t('aadhaarPlaceholder') || '12-digit Aadhaar'}
+        value={formData.aadhaarNo || ''}
+        onChangeText={(text) => {
+          setFormData((prev: any) => ({ ...prev, aadhaarNo: text }));
+        }}
+        icon="id-card"
+        keyboardType="numeric"
+        maxLength={12}
+        editable={canEditDemographics}
+      />
 
-      {/* Identification Documents (Aadhaar & PAN) */}
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <AppTextInput
-            label={t('aadhaarNo') || 'Aadhaar Card No'}
-            placeholder={t('aadhaarPlaceholder') || '12-digit Aadhaar'}
-            value={formData.aadhaarNo || ''}
-            onChangeText={(text) => {
-              setFormData((prev: any) => ({ ...prev, aadhaarNo: text }));
-            }}
-            icon="id-card"
-            keyboardType="numeric"
-            maxLength={12}
-            editable={canEditDemographics}
-          />
-        </View>
-        <View style={styles.flex1}>
-          <AppTextInput
-            label={t('panNo') || 'PAN Card No'}
-            placeholder={t('panPlaceholder') || '10-character PAN'}
-            value={formData.panNo || ''}
-            onChangeText={(text) => {
-              setFormData((prev: any) => ({ ...prev, panNo: text.toUpperCase() }));
-            }}
-            icon="credit-card"
-            autoCapitalize="characters"
-            maxLength={10}
-            editable={canEditDemographics}
-          />
-        </View>
-      </View>
+      <AppTextInput
+        label={t('panNo') || 'PAN Card No'}
+        placeholder={t('panPlaceholder') || '10-character PAN'}
+        value={formData.panNo || ''}
+        onChangeText={(text) => {
+          setFormData((prev: any) => ({ ...prev, panNo: text.toUpperCase() }));
+        }}
+        icon="credit-card"
+        autoCapitalize="characters"
+        maxLength={10}
+        editable={canEditDemographics}
+      />
 
       {/* Socio-Cultural: Religion, Caste, Subcaste */}
       <View style={styles.row}>
@@ -219,7 +185,6 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
             value={religionDisplayValue}
             suggestions={resolvedReligionSuggestions}
             disabled={!canEditDemographics}
-            icon="church"
             onChangeText={(text) => {
               const matched = religionOptions.find(
                 (r) => r.label.toLowerCase() === text.toLowerCase().trim()
@@ -254,81 +219,124 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
             value={casteDisplayValue}
             suggestions={resolvedCasteSuggestions}
             disabled={!canEditDemographics}
-            icon="account-group"
             onChangeText={(text) => {
               const matched = filteredCasteOptions.find(
                 (c) => c.label.toLowerCase() === text.toLowerCase().trim()
               );
-              setFormData((prev: any) => ({
-                ...prev,
-                casteId: matched ? matched.id : '',
-                casteName: text,
-              }));
+              const rawC = (rawCastes || []).find((c: any) => String(c.id) === String(matched?.id));
+              setFormData((prev: any) => {
+                const updated = {
+                  ...prev,
+                  casteId: matched ? matched.id : '',
+                  casteName: text,
+                };
+                if (rawC?.religionId && !prev.religionId) {
+                  const rel = (rawReligions || []).find((r: any) => String(r.id) === String(rawC.religionId));
+                  if (rel) {
+                    updated.religionId = String(rel.id);
+                    updated.religionName = rel.name || rel.religionName;
+                  }
+                }
+                return updated;
+              });
             }}
             onSelectSuggestion={(item) => {
               const name = typeof item === 'string' ? item : item.name;
               const matched = filteredCasteOptions.find(
                 (c) => c.label.toLowerCase() === name.toLowerCase().trim()
               );
-              setFormData((prev: any) => ({
-                ...prev,
-                casteId: matched ? matched.id : '',
-                casteName: name,
-              }));
+              const rawC = (rawCastes || []).find((c: any) => String(c.id) === String(matched?.id));
+              setFormData((prev: any) => {
+                const updated = {
+                  ...prev,
+                  casteId: matched ? matched.id : '',
+                  casteName: name,
+                };
+                if (rawC?.religionId && !prev.religionId) {
+                  const rel = (rawReligions || []).find((r: any) => String(r.id) === String(rawC.religionId));
+                  if (rel) {
+                    updated.religionId = String(rel.id);
+                    updated.religionName = rel.name || rel.religionName;
+                  }
+                }
+                return updated;
+              });
             }}
           />
         </View>
       </View>
 
       <AppAutocompleteInput
+        disabled={!canEditDemographics}
+        suggestions={subcasteSuggestions}
+        value={formData.subcasteName || ''}
         label={t('subCaste') || 'Sub-Caste'}
         placeholder={t('subCastePlaceholder') || 'e.g. Gaur, Khandelwal, Meena'}
-        value={formData.subcasteName || ''}
-        suggestions={subcasteSuggestions}
         onChangeText={(text) => {
-          setFormData((prev: any) => ({ ...prev, subcasteName: text }));
+          const matchingSub = (rawCastes || []).find(
+            (c: any) => c.parentCasteId && (c.name || c.casteName || '').toLowerCase().trim() === text.toLowerCase().trim()
+          );
+          setFormData((prev: any) => {
+            const updated = { ...prev, subcasteName: text };
+            if (matchingSub && matchingSub.parentCasteId && !prev.casteId) {
+              const parentC = (rawCastes || []).find((c: any) => String(c.id) === String(matchingSub.parentCasteId));
+              if (parentC) {
+                updated.casteId = String(parentC.id);
+                updated.casteName = parentC.name || parentC.casteName;
+              }
+            }
+            return updated;
+          });
         }}
-        disabled={!canEditDemographics}
-        icon="account-outline"
+        onSelectSuggestion={(item) => {
+          const text = typeof item === 'string' ? item : item.name;
+          const matchingSub = (rawCastes || []).find(
+            (c: any) => c.parentCasteId && (c.name || c.casteName || '').toLowerCase().trim() === text.toLowerCase().trim()
+          );
+          setFormData((prev: any) => {
+            const updated = { ...prev, subcasteName: text };
+            if (matchingSub && matchingSub.parentCasteId && !prev.casteId) {
+              const parentC = (rawCastes || []).find((c: any) => String(c.id) === String(matchingSub.parentCasteId));
+              if (parentC) {
+                updated.casteId = String(parentC.id);
+                updated.casteName = parentC.name || parentC.casteName;
+              }
+            }
+            return updated;
+          });
+        }}
       />
 
-      {/* Profession */}
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <AppDropdown
-            icon="briefcase"
-            label={t('professionType') || 'Profession Category'}
-            placeholder={t('selectProfessionType') || 'Select Profession Type'}
-            value={formData.professionType || ''}
-            options={professionTypeOptions}
-            disabled={!canEditDemographics}
-            searchable={true}
-            onSelect={(val) => {
-              setFormData((prev: any) => ({ ...prev, professionType: val }));
-            }}
-          />
-        </View>
-        <View style={styles.flex1}>
-          <AppAutocompleteInput
-            label={t('profession') || 'Specific Occupation'}
-            placeholder={t('professionPlaceholder') || 'e.g. Civil Engineer, Teacher'}
-            value={formData.profession || ''}
-            suggestions={commonProfessionSuggestions}
-            onChangeText={(text) => {
-              setFormData((prev: any) => ({ ...prev, profession: text }));
-            }}
-            disabled={!canEditDemographics}
-            icon="briefcase-outline"
-          />
-        </View>
-      </View>
+      <AppTextInput
+        icon="briefcase-outline"
+        label={t('professionType') || 'Profession Category'}
+        placeholder={t('professionTypePlaceholder') || 'e.g. Government, Business, Student, Retired'}
+        value={formData.professionType || ''}
+        editable={canEditDemographics}
+        onChangeText={(text) => {
+          setFormData((prev: any) => ({ ...prev, professionType: text }));
+        }}
+      />
+      <AppAutocompleteInput
+        value={formData.profession || ''}
+        suggestions={commonProfessionSuggestions}
+        label={t('profession') || 'Specific Occupation'}
+        placeholder={t('professionPlaceholder') || 'e.g. Civil Engineer, Teacher'}
+        onChangeText={(text) => {
+          setFormData((prev: any) => ({ ...prev, profession: text }));
+        }}
+        disabled={!canEditDemographics}
+        icon="briefcase-outline"
+      />
 
-      {!canEditDemographics && (
-        <Text style={[styles.permissionHint, { color: theme.colors.textSecondary }]}>
-          {t('permissionDemographicsRequired') || 'Permission required to edit voter demographic details'}
-        </Text>
-      )}
-    </View>
+      {
+        !canEditDemographics && (
+          <Text style={[styles.permissionHint, { color: theme.colors.textSecondary }]}>
+            {t('permissionDemographicsRequired') || 'Permission required to edit voter demographic details'}
+          </Text>
+        )
+      }
+    </View >
   );
 };
 

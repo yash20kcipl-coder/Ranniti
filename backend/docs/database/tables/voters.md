@@ -40,7 +40,6 @@ Primary database entity for storing voter information across electoral constitue
 | `religion_id`          | `UUID`         | Yes      | `NULL`              | Foreign Key -> `religions(id)`                                          |
 | `caste_id`             | `UUID`         | Yes      | `NULL`              | Foreign Key -> `castes(id)`                                             |
 | `subcaste_name`        | `VARCHAR(150)` | Yes      | `NULL`              | Sub-caste name                                                          |
-| `voter_type`           | `VARCHAR(50)`  | Yes      | `'Voter'`           | Voter category (`Voter`, `Neutral Voter`, `Non Voter`)                  |
 | `status`               | `VARCHAR(30)`  | Yes      | `'ACTIVE'`          | Voter status (`ACTIVE`, `INACTIVE`, `SHIFTED`, `UNVERIFIED`, `PENDING`) |
 | `is_dead`              | `BOOLEAN`      | Yes      | `FALSE`             | Deceased status flag                                                    |
 | `blood_group`          | `VARCHAR(10)`  | Yes      | `NULL`              | Blood group (`A+`, `A-`, `B+`, `B-`, `AB+`, `AB-`, `O+`, `O-`)          |
@@ -49,7 +48,7 @@ Primary database entity for storing voter information across electoral constitue
 | `village`              | `VARCHAR(100)` | Yes      | `NULL`              | Village / Locality name                                                 |
 | `full_address`         | `TEXT`         | Yes      | `NULL`              | Full permanent address                                                  |
 | `voter_address`        | `TEXT`         | Yes      | `NULL`              | Full electoral roll voting address                                      |
-| `party_id`             | `UUID`         | Yes      | `NULL`              | Foreign Key -> `political_parties(id)`                                  |
+| `party_id`             | `UUID`         | Yes      | `NULL`              | Foreign Key -> `political_parties(id)` (Voter's political party view)   |
 | `family_influencer_id` | `UUID`         | Yes      | `NULL`              | Foreign Key -> `voters(id)` (Family Influencer / Head link)              |
 | `social_influencer_id` | `UUID`         | Yes      | `NULL`              | Foreign Key -> `voters(id)` (Social Influencer link)                    |
 | `is_family_influencer` | `BOOLEAN`      | Yes      | `FALSE`             | Explicit Family Influencer / Head of House role flag                    |
@@ -79,7 +78,6 @@ Primary database entity for storing voter information across electoral constitue
 | `idx_voters_district_id` | `B-Tree` | `district_id` | Covering foreign key index for district filtering |
 | `idx_voters_pc_id` | `B-Tree` | `pc_id` | Covering foreign key index for parliamentary constituency filtering |
 | `idx_voters_gender` | `B-Tree` | `gender` | Fast demographic filtering and stats aggregation |
-| `idx_voters_voter_type` | `B-Tree` | `voter_type` | Fast voter type filtering and grouping |
 | `idx_voters_age` | `B-Tree` | `age` | Fast age range range-scan filtering |
 | `idx_voters_section_no` | `B-Tree` | `section_no` | Candidate modal and section-level roll navigation |
 | `idx_voters_created_at` | `B-Tree` | `created_at DESC` | Accelerated default roll sorting order |

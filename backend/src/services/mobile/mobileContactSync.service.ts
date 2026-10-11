@@ -1,6 +1,6 @@
 import { query } from '../../queries/dbPool';
 import { UserRecord } from '../../queries/auth.queries';
-import { TenantPoolManager } from '../../utils/tenantPoolManager';
+import { TenantPoolManager } from '../pool/tenantPoolManager';
 import { sanitizeIndianContacts, SanitizedContact } from '../../utils/indianPhoneSanitizer';
 
 export interface MatchedVoterItem {
@@ -108,7 +108,7 @@ export class MobileContactSyncService {
         b.booth_number::text AS "boothNo",
         v.house_no AS "houseNo",
         v.village AS "village",
-        v.voter_type AS "voterType",
+        NULL::text AS "voterType",
         v.status AS "status",
         v.avatar AS "avatar"
       FROM submitted_contacts sc
@@ -200,11 +200,6 @@ export class MobileContactSyncService {
       paramIndex++;
     }
 
-    if (options.voterType && options.voterType.trim()) {
-      conditions.push(`v.voter_type = $${paramIndex}`);
-      values.push(options.voterType.trim());
-      paramIndex++;
-    }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
@@ -235,7 +230,7 @@ export class MobileContactSyncService {
         b.booth_number::text AS "boothNo",
         v.house_no AS "houseNo",
         v.village AS "village",
-        v.voter_type AS "voterType",
+        NULL::text AS "voterType",
         v.status AS "status",
         v.avatar AS "avatar"
       FROM user_synced_contacts usc

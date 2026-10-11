@@ -53,12 +53,13 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
 
   return (
     <SectionContainer
+      id="geography"
       icon={<MapPin size={18} />}
       iconBg="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
       title="Electoral Geography & Full Addresses"
       subtitle="Booth station, Taluka, Village, and voting addresses"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         <FormInput
           label="State"
           type="select"
@@ -87,7 +88,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         <FormInput
           label="Assembly Constituency (AC)"
           type="select"
@@ -117,7 +118,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <FormInput
           label="Voter Serial Number"
           type="number"

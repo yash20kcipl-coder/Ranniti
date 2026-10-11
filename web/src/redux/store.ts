@@ -9,6 +9,7 @@ import volunteerReducer from './reducers/volunteer';
 import dashboardreducers from './reducers/dashboard';
 import importJobsReducer from './reducers/importJobs';
 import familyMappingReducer from './reducers/familyMapping';
+import tenantDashboardReducer from './reducers/tenantDashboard';
 import { combineReducers, configureStore, type UnknownAction } from '@reduxjs/toolkit';
 
 const appReducer = combineReducers({
@@ -21,6 +22,7 @@ const appReducer = combineReducers({
   settings: settingsReducer,
   volunteer: volunteerReducer,
   dashboard: dashboardreducers,
+  tenantDashboard: tenantDashboardReducer,
   importJobs: importJobsReducer,
   familyMapping: familyMappingReducer,
 });

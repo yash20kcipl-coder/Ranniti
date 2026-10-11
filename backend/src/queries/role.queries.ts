@@ -1,6 +1,6 @@
 import { query } from './dbPool';
 import { CacheService } from '../services/cache.service';
-import { TenantPoolManager } from '../utils/tenantPoolManager';
+import { TenantPoolManager } from '../services/pool/tenantPoolManager';
 import type { TenantRole, TenantUserRole } from '../models/role.model';
 
 async function executeRoleQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
@@ -65,7 +65,7 @@ export class RoleQueries {
        LIMIT 1`
     );
     if (fallbackRes.rows[0]) {
-      await query(`UPDATE tenant_roles SET is_default = true WHERE id = $1`, [fallbackRes.rows[0].id]).catch(() => {});
+      await query(`UPDATE tenant_roles SET is_default = true WHERE id = $1`, [fallbackRes.rows[0].id]).catch(() => { });
       return { ...fallbackRes.rows[0], isDefault: true };
     }
 

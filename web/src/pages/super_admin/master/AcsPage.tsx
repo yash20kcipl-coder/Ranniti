@@ -139,11 +139,21 @@ export const AcsPage: React.FC = () => {
 
   // Columns Definition
   const columns: Column<any>[] = [
-    { key: 'acNumber', header: 'AC No.', sortable: true },
-    { key: 'name', header: 'Assembly Name', sortable: true },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => row.stateName || '-' },
-    { key: 'districtName', header: 'District', sortable: true, render: (row) => row.districtName || '-' },
-    { key: 'pcName', header: 'PC', sortable: true, render: (row) => row.pcName || '-' },
+    {
+      key: 'acNumber',
+      header: 'AC No.',
+      sortable: true,
+      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.acNumber || '-'}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Assembly Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
+    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.districtName || '-'}</span> },
+    { key: 'pcName', header: 'PC', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.pcName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -242,11 +252,16 @@ export const AcsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Assembly Constituencies (AC)"
         icon={<Landmark className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage Vidhan Sabha assembly constituencies."
+        badge={
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
+            {filteredAcs.length} {filteredAcs.length === 1 ? 'Record' : 'Records'}
+          </span>
+        }
         onAddClick={handleOpenAdd}
         addLabel="Add AC"
         onImportClick={() => setIsImportModalOpen(true)}
@@ -263,20 +278,18 @@ export const AcsPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={filteredAcs}
-          loading={loading}
-          showHeader={false}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEdit(row)}
-              onDelete={() => handleOpenDelete(row)}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredAcs}
+        loading={loading}
+        showHeader={false}
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEdit(row)}
+            onDelete={() => handleOpenDelete(row)}
+          />
+        )}
+      />
 
       <AcFormModal
         isOpen={isModalOpen}

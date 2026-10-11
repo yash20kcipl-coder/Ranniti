@@ -1,9 +1,9 @@
-import { VoterQueries } from '../queries/voter.queries';
-import { dbPool, query, closeDbPool } from '../queries/dbPool';
-import { TenantPoolManager } from '../utils/tenantPoolManager';
-import { VoterFilterParams } from '../models/voter.model';
 import * as fs from 'fs';
 import * as path from 'path';
+import { query, closeDbPool } from '../queries/dbPool';
+import { VoterQueries } from '../queries/voter.queries';
+import { VoterFilterParams } from '../models/voter.model';
+import { TenantPoolManager } from '../services/pool/tenantPoolManager';
 
 export interface TestFailureDetail {
   testId: number;
@@ -99,7 +99,7 @@ const KNOWN_SNAKE_CASE_KEYS = [
   'epic_no', 'state_id', 'district_id', 'pc_id', 'ac_id', 'booth_id', 'serial_no',
   'section_no', 'house_no', 'first_name', 'eng_first_name', 'middle_name', 'eng_middle_name',
   'eng_surname', 'mobile_no', 'aadhaar_no', 'pan_no', 'profession_type',
-  'religion_id', 'caste_id', 'subcaste_name', 'voter_type', 'is_dead', 'blood_group',
+  'religion_id', 'caste_id', 'subcaste_name', 'is_dead', 'blood_group',
   'full_address', 'voter_address', 'party_id', 'family_influencer_id', 'social_influencer_id',
   'is_family_influencer', 'is_social_influencer', 'family_id', 'created_at', 'updated_at'
 ];
@@ -126,7 +126,7 @@ async function runVoterFilterTests() {
 
   const masterDbSampleQuery = `
     SELECT 
-      v.id, v.epic_no, v.gender, v.voter_type, v.status, v.is_dead, v.age,
+      v.id, v.epic_no, v.gender, v.status, v.is_dead, v.age,
       v.state_id, v.district_id, v.pc_id, v.ac_id, v.booth_id,
       v.religion_id, v.caste_id, v.party_id,
       v.family_influencer_id, v.social_influencer_id,
@@ -153,7 +153,7 @@ async function runVoterFilterTests() {
   const distinctAcs = Array.from(new Set(sampleRows.map(r => r.ac_id).filter(Boolean)));
   const distinctBooths = Array.from(new Set(sampleRows.map(r => r.booth_id).filter(Boolean)));
   const distinctGenders = Array.from(new Set(sampleRows.map(r => r.gender).filter(Boolean)));
-  const distinctVoterTypes = Array.from(new Set(sampleRows.map(r => r.voter_type).filter(Boolean)));
+  const distinctVoterTypes: any[] = [];
   const distinctStatuses = Array.from(new Set(sampleRows.map(r => r.status).filter(Boolean)));
   const distinctReligions = Array.from(new Set(sampleRows.map(r => r.religion_id).filter(Boolean)));
   const distinctCastes = Array.from(new Set(sampleRows.map(r => r.caste_id).filter(Boolean)));
@@ -395,11 +395,6 @@ async function runVoterFilterTests() {
       idx++;
     }
 
-    if (params.voterType) {
-      conditions.push(`v.voter_type = $${idx}`);
-      values.push(params.voterType);
-      idx++;
-    }
 
     if (params.status) {
       conditions.push(`v.status = $${idx}`);

@@ -131,9 +131,19 @@ export const TenantWardsPage: React.FC = () => {
   };
 
   const columns: Column<any>[] = [
-    { key: 'wardNumber', header: 'Ward No.', sortable: true },
-    { key: 'name', header: 'Ward / Prabhag Name', sortable: true },
-    { key: 'acName', header: 'Assembly Constituency (AC)', sortable: true, render: (row) => row.acName || '-' },
+    {
+      key: 'wardNumber',
+      header: 'Ward No.',
+      sortable: true,
+      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.wardNumber || '-'}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Ward / Prabhag Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'acName', header: 'Assembly Constituency (AC)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.acName || '-'}</span> },
   ];
 
   const filterFields: FilterField[] = [
@@ -167,7 +177,7 @@ export const TenantWardsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Wards (Prabhags)"
         subtitle="Manage electoral wards and prabhags under Assembly Constituencies."
@@ -196,37 +206,35 @@ export const TenantWardsPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl dark:bg-slate-900/60 dark:border dark:border-slate-800 dark:p-1">
-        <DataTable
-          columns={columns}
-          data={wardsData}
-          loading={loading}
-          showHeader={false}
-          serverPagination={{
-            page: paginationMeta?.page || page,
-            limit: paginationMeta?.limit || limit,
-            total: paginationMeta?.total || wardsData.length,
-            totalPages: paginationMeta?.totalPages || 1,
-            onPageChange: (newPage) => setPage(newPage),
-            onLimitChange: (newLimit) => {
-              setLimit(newLimit);
-              setPage(1);
-            },
-          }}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => {
-                setEditingItem(row);
-                setIsModalOpen(true);
-              }}
-              onDelete={() => {
-                setItemToDelete(row);
-                setDeleteModalOpen(true);
-              }}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={wardsData}
+        loading={loading}
+        showHeader={false}
+        serverPagination={{
+          page: paginationMeta?.page || page,
+          limit: paginationMeta?.limit || limit,
+          total: paginationMeta?.total || wardsData.length,
+          totalPages: paginationMeta?.totalPages || 1,
+          onPageChange: (newPage) => setPage(newPage),
+          onLimitChange: (newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          },
+        }}
+        actions={(row) => (
+          <TableActions
+            onEdit={() => {
+              setEditingItem(row);
+              setIsModalOpen(true);
+            }}
+            onDelete={() => {
+              setItemToDelete(row);
+              setDeleteModalOpen(true);
+            }}
+          />
+        )}
+      />
 
       <WardFormModal
         isOpen={isModalOpen}

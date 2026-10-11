@@ -1,15 +1,26 @@
-import { Linking } from 'react-native';
 import toast from './toast';
+import { Linking } from 'react-native';
+
+export interface InteractionTrackingOptions {
+  onTrack?: () => void;
+}
 
 /**
  * Common Phone Dialer Utility
  * Opens the native dialer with sanitized phone digits.
  */
-export const openPhoneDialer = (phoneNumber?: string | null) => {
+export const openPhoneDialer = (
+  phoneNumber?: string | null,
+  options?: InteractionTrackingOptions
+) => {
   if (!phoneNumber) {
     toast.error('Phone number not available');
     return;
   }
+
+  // Trigger optional tracking callback
+  options?.onTrack?.();
+
   const cleanNumber = phoneNumber.replace(/[^0-9+]/g, '');
   const url = `tel:${cleanNumber}`;
   Linking.canOpenURL(url)
@@ -25,14 +36,21 @@ export const openPhoneDialer = (phoneNumber?: string | null) => {
 
 /**
  * Common WhatsApp Messaging Utility
- * Attempts to launch native WhatsApp with optional pre-filled message,
- * falling back gracefully to the WhatsApp Web API (wa.me).
+ * Attempts to launch native WhatsApp with optional pre-filled message.
  */
-export const openWhatsAppChat = (phoneNumber?: string | null, message: string = '') => {
+export const openWhatsAppChat = (
+  phoneNumber?: string | null,
+  message: string = '',
+  options?: InteractionTrackingOptions
+) => {
   if (!phoneNumber) {
     toast.error('Phone number not available');
     return;
   }
+
+  // Trigger optional tracking callback
+  options?.onTrack?.();
+
   const cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
   const encodedMsg = encodeURIComponent(message);
   const url = `whatsapp://send?phone=${cleanNumber}&text=${encodedMsg}`;

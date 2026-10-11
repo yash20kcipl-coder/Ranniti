@@ -37,10 +37,26 @@ import { addVoterAction, updateVoterAction, fetchVoterByIdAction } from '../../s
 
 import { VoterGeographyFormSection } from './components/VoterGeographyFormSection';
 import { VoterInfluencerFormSection } from './components/VoterInfluencerFormSection';
+import { InfluencerMemberAssignModal } from './components/InfluencerMemberAssignModal';
 import { VoterDemographicsFormSection } from './components/VoterDemographicsFormSection';
 import { VoterIdentificationFormSection } from './components/VoterIdentificationFormSection';
 
 type FormSectionTab = 'all' | 'identification' | 'electoral' | 'political' | 'demographics';
+
+const calculateAge = (dobString?: string | null): number | null => {
+  if (!dobString) return null;
+  const parts = dobString.split('-');
+  if (parts.length < 3) return null;
+  const birthDate = new Date(dobString);
+  if (isNaN(birthDate.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return Math.max(0, age);
+};
 
 export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
   const { t } = useLanguage();
@@ -64,13 +80,15 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
   // Master data from Redux store
   const { states, districts, pcs, acs, booths, parties, religions, castes, talukas, villages } = useSelector((state: RootState) => state.master);
 
+  const initialAc = existingVoter?.acId && acs?.length ? acs.find((a: any) => String(a.id) === String(existingVoter.acId)) : undefined;
+
   // Form State with all 44 canonical fields matching Web
   const [formData, setFormData] = useState<any>({
     epicNo: existingVoter?.epicNo || '',
     boothId: existingVoter?.boothId ? String(existingVoter.boothId) : '',
-    stateId: existingVoter?.stateId ? String(existingVoter.stateId) : '',
-    districtId: existingVoter?.districtId ? String(existingVoter.districtId) : '',
-    pcId: existingVoter?.pcId ? String(existingVoter.pcId) : '',
+    stateId: existingVoter?.stateId ? String(existingVoter.stateId) : (initialAc?.stateId ? String(initialAc.stateId) : ''),
+    districtId: existingVoter?.districtId ? String(existingVoter.districtId) : (initialAc?.districtId ? String(initialAc.districtId) : ''),
+    pcId: existingVoter?.pcId ? String(existingVoter.pcId) : (initialAc?.pcId ? String(initialAc.pcId) : ''),
     acId: existingVoter?.acId ? String(existingVoter.acId) : '',
     serialNo: existingVoter?.serialNo ? String(existingVoter.serialNo) : '',
     sectionNo: existingVoter?.sectionNo ? String(existingVoter.sectionNo) : '',
@@ -86,7 +104,11 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
     relation: existingVoter?.relation || '',
     gender: existingVoter?.gender || 'Male',
     dob: typeof existingVoter?.dob === 'string' ? existingVoter.dob.split('T')[0] : '',
-    age: existingVoter?.age ? String(existingVoter.age) : '',
+    age: existingVoter?.age
+      ? String(existingVoter.age)
+      : (typeof existingVoter?.dob === 'string'
+        ? calculateAge(existingVoter.dob.split('T')[0])?.toString() || ''
+        : ''),
     mobileNo: existingVoter?.mobileNo || existingVoter?.mobile || '',
     mobile: existingVoter?.mobileNo || existingVoter?.mobile || '',
     email: existingVoter?.email || '',
@@ -127,6 +149,8 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
   const [familyInfluencers, setFamilyInfluencers] = useState<any[]>([]);
   const [socialInfluencers, setSocialInfluencers] = useState<any[]>([]);
   const [voterMeta, setVoterMeta] = useState<any>(existingVoter || null);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignModalType, setAssignModalType] = useState<'family' | 'social'>('family');
 
   // 1. Initial Master Data Hydration on Screen Mount
   useEffect(() => {
@@ -146,21 +170,43 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
         .then((freshVoter: any) => {
           if (freshVoter) {
             setVoterMeta(freshVoter);
+            const loadedBoothId = freshVoter.boothId ? String(freshVoter.boothId) : '';
+            let resolvedAcId = freshVoter.acId ? String(freshVoter.acId) : '';
+            let resolvedPcId = freshVoter.pcId ? String(freshVoter.pcId) : '';
+            let resolvedDistrictId = freshVoter.districtId ? String(freshVoter.districtId) : '';
+            let resolvedStateId = freshVoter.stateId ? String(freshVoter.stateId) : '';
+
+            if (resolvedAcId && acs?.length) {
+              const a = acs.find((ac: any) => String(ac.id) === resolvedAcId);
+              if (a) {
+                if (!resolvedPcId && a.pcId) resolvedPcId = String(a.pcId);
+                if (!resolvedDistrictId && a.districtId) resolvedDistrictId = String(a.districtId);
+                if (!resolvedStateId && a.stateId) resolvedStateId = String(a.stateId);
+              }
+            }
+
             setFormData((prev: any) => ({
               ...prev,
               ...freshVoter,
-              boothId: freshVoter.boothId ? String(freshVoter.boothId) : prev.boothId,
-              stateId: freshVoter.stateId ? String(freshVoter.stateId) : prev.stateId,
-              districtId: freshVoter.districtId ? String(freshVoter.districtId) : prev.districtId,
-              pcId: freshVoter.pcId ? String(freshVoter.pcId) : prev.pcId,
-              acId: freshVoter.acId ? String(freshVoter.acId) : prev.acId,
+              boothId: loadedBoothId || prev.boothId,
+              stateId: resolvedStateId || prev.stateId,
+              districtId: resolvedDistrictId || prev.districtId,
+              pcId: resolvedPcId || prev.pcId,
+              acId: resolvedAcId || prev.acId,
               partyId: freshVoter.partyId ? String(freshVoter.partyId) : prev.partyId,
               religionId: freshVoter.religionId ? String(freshVoter.religionId) : prev.religionId,
               casteId: freshVoter.casteId ? String(freshVoter.casteId) : prev.casteId,
               familyInfluencerId: freshVoter.familyInfluencerId ? String(freshVoter.familyInfluencerId) : '',
               socialInfluencerId: freshVoter.socialInfluencerId ? String(freshVoter.socialInfluencerId) : '',
+              guardianName: freshVoter.guardianName || freshVoter.relativeName || prev.guardianName,
+              relativeName: freshVoter.relativeName || freshVoter.guardianName || prev.relativeName,
+              relation: freshVoter.relation || prev.relation,
               dob: typeof freshVoter.dob === 'string' ? freshVoter.dob.split('T')[0] : prev.dob,
-              age: freshVoter.age ? String(freshVoter.age) : prev.age,
+              age: freshVoter.age
+                ? String(freshVoter.age)
+                : (typeof freshVoter.dob === 'string'
+                  ? calculateAge(freshVoter.dob.split('T')[0])?.toString() || prev.age
+                  : prev.age),
             }));
             if (freshVoter.fullAddress && freshVoter.fullAddress === freshVoter.voterAddress) {
               setSameAddress(true);
@@ -182,14 +228,52 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
     }
   }, [dispatch, isEditing, existingVoter?.id]);
 
-  // 2. Fetch Booth Options when acId changes
+  // 2. Auto-resolve missing State, District, and PC from AC when AC master data is loaded or acId changes
+  useEffect(() => {
+    if (formData.acId && acs && acs.length > 0) {
+      const matchedAc = acs.find((a: any) => String(a.id) === String(formData.acId));
+      if (matchedAc) {
+        setFormData((prev: any) => {
+          let updatedStateId = prev.stateId;
+          let updatedDistrictId = prev.districtId;
+          let updatedPcId = prev.pcId;
+          let changed = false;
+
+          if (!updatedStateId && matchedAc.stateId) {
+            updatedStateId = String(matchedAc.stateId);
+            changed = true;
+          }
+          if (!updatedDistrictId && matchedAc.districtId) {
+            updatedDistrictId = String(matchedAc.districtId);
+            changed = true;
+          }
+          if (!updatedPcId && matchedAc.pcId) {
+            updatedPcId = String(matchedAc.pcId);
+            changed = true;
+          }
+
+          if (changed) {
+            return {
+              ...prev,
+              stateId: updatedStateId,
+              districtId: updatedDistrictId,
+              pcId: updatedPcId,
+            };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [acs, formData.acId]);
+
+  // 3. Fetch Booth Options when acId changes
   useEffect(() => {
     if (formData.acId) {
       dispatch(fetchMasterBoothsAction(formData.acId));
     }
   }, [dispatch, formData.acId]);
 
-  // 3. Fetch Influencer Options when boothId changes
+  // 4. Fetch Influencer Options when boothId changes
   useEffect(() => {
     if (!formData.boothId) {
       setFamilyInfluencers([]);
@@ -229,32 +313,61 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
 
   // Cascading Dropdown Options
   const stateOptions: DropdownOption[] = useMemo(() => {
-    return (states || []).map((s) => ({
+    const list = (states || []).map((s) => ({
       id: String(s.id),
       label: s.name,
     }));
-  }, [states]);
+    if (formData.stateId && !list.some((o) => String(o.id) === String(formData.stateId))) {
+      const name = existingVoter?.stateName || voterMeta?.stateName;
+      if (name) {
+        list.unshift({ id: String(formData.stateId), label: name });
+      }
+    }
+    return list;
+  }, [states, formData.stateId, existingVoter, voterMeta]);
 
   const districtOptions: DropdownOption[] = useMemo(() => {
-    return (districts || [])
-      .filter((d) => !formData.stateId || String(d.stateId) === String(formData.stateId))
+    const list = (districts || [])
+      .filter((d) => {
+        if (formData.districtId && String(d.id) === String(formData.districtId)) return true;
+        return !formData.stateId || String(d.stateId) === String(formData.stateId);
+      })
       .map((d) => ({
         id: String(d.id),
         label: d.name,
       }));
-  }, [districts, formData.stateId]);
+
+    if (formData.districtId && !list.some((o) => String(o.id) === String(formData.districtId))) {
+      const name = existingVoter?.districtName || voterMeta?.districtName;
+      if (name) {
+        list.unshift({ id: String(formData.districtId), label: name });
+      }
+    }
+    return list;
+  }, [districts, formData.stateId, formData.districtId, existingVoter, voterMeta]);
 
   const pcOptions: DropdownOption[] = useMemo(() => {
-    return (pcs || [])
-      .filter((p) => !formData.stateId || String(p.stateId) === String(formData.stateId))
+    const list = (pcs || [])
+      .filter((p) => {
+        if (formData.pcId && String(p.id) === String(formData.pcId)) return true;
+        return !formData.stateId || String(p.stateId) === String(formData.stateId);
+      })
       .map((p) => ({
         id: String(p.id),
         label: `${p.pcNumber ? `[PC-${p.pcNumber}] ` : ''}${p.name}`,
       }));
-  }, [pcs, formData.stateId]);
+
+    if (formData.pcId && !list.some((o) => String(o.id) === String(formData.pcId))) {
+      const name = existingVoter?.pcName || voterMeta?.pcName;
+      if (name) {
+        list.unshift({ id: String(formData.pcId), label: name });
+      }
+    }
+    return list;
+  }, [pcs, formData.stateId, formData.pcId, existingVoter, voterMeta]);
 
   const acOptions: DropdownOption[] = useMemo(() => {
-    return (acs || [])
+    const list = (acs || [])
       .filter((a) => {
         if (formData.acId && String(a.id) === String(formData.acId)) return true;
         if (formData.pcId && a.pcId && String(a.pcId) !== String(formData.pcId)) return false;
@@ -266,14 +379,38 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
         id: String(a.id),
         label: `${a.acNumber ? `[AC-${a.acNumber}] ` : ''}${a.name}`,
       }));
-  }, [acs, formData.acId, formData.pcId, formData.districtId, formData.stateId]);
+
+    if (formData.acId && !list.some((o) => String(o.id) === String(formData.acId))) {
+      const name = existingVoter?.acName || voterMeta?.acName;
+      if (name) {
+        list.unshift({ id: String(formData.acId), label: name });
+      }
+    }
+    return list;
+  }, [acs, formData.acId, formData.pcId, formData.districtId, formData.stateId, existingVoter, voterMeta]);
 
   const boothOptions: DropdownOption[] = useMemo(() => {
-    return (booths || []).map((b) => ({
-      id: String(b.id),
-      label: `Booth #${b.boothNumber ?? b.id} - ${b.name}`,
-    }));
-  }, [booths]);
+    const list: DropdownOption[] = (booths || [])
+      .filter((b) => !formData.acId || !b.acId || String(b.acId) === String(formData.acId))
+      .map((b) => ({
+        id: String(b.id),
+        label: `Booth #${b.boothNumber ?? b.id} - ${b.name}`,
+      }));
+
+    if (formData.boothId && !list.some((o) => String(o.id) === String(formData.boothId))) {
+      const bName = existingVoter?.boothName || voterMeta?.boothName;
+      const bNum = existingVoter?.boothNumber ?? voterMeta?.boothNumber;
+      const fallbackLabel = bName
+        ? (bNum !== undefined && bNum !== null ? `Booth #${bNum} - ${bName}` : bName)
+        : (bNum !== undefined && bNum !== null ? `Booth #${bNum}` : `Booth #${formData.boothId}`);
+      list.unshift({
+        id: String(formData.boothId),
+        label: fallbackLabel,
+      });
+    }
+
+    return list;
+  }, [booths, formData.acId, formData.boothId, existingVoter, voterMeta]);
 
   const partyOptions: DropdownOption[] = useMemo(() => {
     const list: DropdownOption[] = [
@@ -285,23 +422,47 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
         label: `${p.abbreviation ? `${p.abbreviation} - ` : ''}${p.name}`,
       });
     });
+    if (formData.partyId && !list.some((o) => String(o.id) === String(formData.partyId))) {
+      const name = existingVoter?.partyName || voterMeta?.partyName;
+      if (name) {
+        list.push({ id: String(formData.partyId), label: name });
+      }
+    }
     return list;
-  }, [parties, t]);
+  }, [parties, formData.partyId, t, existingVoter, voterMeta]);
 
   const religionOptions: DropdownOption[] = useMemo(() => {
-    return (religions || []).map((r) => ({
+    const list = (religions || []).map((r) => ({
       id: String(r.id),
       label: r.name,
     }));
-  }, [religions]);
+    if (formData.religionId && !list.some((o) => String(o.id) === String(formData.religionId))) {
+      const name = existingVoter?.religionName || voterMeta?.religionName;
+      if (name) {
+        list.push({ id: String(formData.religionId), label: name });
+      }
+    }
+    return list;
+  }, [religions, formData.religionId, existingVoter, voterMeta]);
 
-  const casteOptions: DropdownOption[] = useMemo(() => {
-    return (castes || []).map((c) => ({
+  const casteOptions: (DropdownOption & { religionId?: string })[] = useMemo(() => {
+    const list: (DropdownOption & { religionId?: string })[] = (castes || []).map((c) => ({
       id: String(c.id),
       label: c.name,
-      religionId: c.religionId,
+      religionId: c.religionId ? String(c.religionId) : undefined,
     }));
-  }, [castes]);
+    if (formData.casteId && !list.some((o) => String(o.id) === String(formData.casteId))) {
+      const name = existingVoter?.casteName || voterMeta?.casteName;
+      if (name) {
+        list.push({
+          id: String(formData.casteId),
+          label: name,
+          religionId: formData.religionId ? String(formData.religionId) : undefined,
+        });
+      }
+    }
+    return list;
+  }, [castes, formData.casteId, formData.religionId, existingVoter, voterMeta]);
 
   // Autocomplete suggestion lists matching web pattern
   const talukaSuggestions = useMemo(() => {
@@ -346,7 +507,7 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
   }, [castes, formData.casteId, formData.casteName]);
 
   const familyInfluencerOptions: DropdownOption[] = useMemo(() => {
-    return (familyInfluencers || []).map((inf: any) => {
+    const list = (familyInfluencers || []).map((inf: any) => {
       const name =
         [inf.engFirstName, inf.engMiddleName, inf.engSurname].filter(Boolean).join(' ') ||
         inf.engName ||
@@ -357,10 +518,22 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
         label: `${name} (${inf.epicNo})${inf.houseNo ? ` - H.No: ${inf.houseNo}` : ''}`,
       };
     });
-  }, [familyInfluencers]);
+    if (
+      formData.familyInfluencerId &&
+      !list.some((item) => String(item.id) === String(formData.familyInfluencerId))
+    ) {
+      const fallbackName =
+        voterMeta?.familyInfluencerName || `Family Head #${formData.familyInfluencerId}`;
+      list.unshift({
+        id: String(formData.familyInfluencerId),
+        label: fallbackName,
+      });
+    }
+    return list;
+  }, [familyInfluencers, formData.familyInfluencerId, voterMeta?.familyInfluencerName]);
 
   const socialInfluencerOptions: DropdownOption[] = useMemo(() => {
-    return (socialInfluencers || []).map((inf: any) => {
+    const list = (socialInfluencers || []).map((inf: any) => {
       const name =
         [inf.engFirstName, inf.engMiddleName, inf.engSurname].filter(Boolean).join(' ') ||
         inf.engName ||
@@ -371,7 +544,19 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
         label: `${name} (${inf.epicNo})${inf.houseNo ? ` - H.No: ${inf.houseNo}` : ''}`,
       };
     });
-  }, [socialInfluencers]);
+    if (
+      formData.socialInfluencerId &&
+      !list.some((item) => String(item.id) === String(formData.socialInfluencerId))
+    ) {
+      const fallbackName =
+        voterMeta?.socialInfluencerName || `Social Leader #${formData.socialInfluencerId}`;
+      list.unshift({
+        id: String(formData.socialInfluencerId),
+        label: fallbackName,
+      });
+    }
+    return list;
+  }, [socialInfluencers, formData.socialInfluencerId, voterMeta?.socialInfluencerName]);
 
   // Section Error Indicators for Quick Section Navigation
   const sectionErrors = useMemo(
@@ -629,6 +814,7 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
             formData={formData}
             pcOptions={pcOptions}
             acOptions={acOptions}
+            rawAcs={acs}
             setFormData={setFormData}
             sameAddress={sameAddress}
             stateOptions={stateOptions}
@@ -656,22 +842,28 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
             loadingInfluencers={loadingInfluencers}
             familyInfluencerOptions={familyInfluencerOptions}
             socialInfluencerOptions={socialInfluencerOptions}
+            onOpenAssignModal={(type) => {
+              setAssignModalType(type);
+              setAssignModalOpen(true);
+            }}
           />
         )}
 
         {/* Section 4: Contact & Demographics */}
         {(activeTab === 'all' || activeTab === 'demographics') && (
           <VoterDemographicsFormSection
-            formData={formData}
-            errors={errors}
-            setFormData={setFormData}
             t={t}
             theme={theme}
+            errors={errors}
+            formData={formData}
+            setFormData={setFormData}
             casteOptions={casteOptions}
             canEditContact={canEditContact}
             religionOptions={religionOptions}
             canEditDemographics={canEditDemographics}
             subcasteSuggestions={subcasteSuggestions}
+            rawCastes={castes}
+            rawReligions={religions}
           />
         )}
 
@@ -734,6 +926,42 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
           </View>
         )}
       </ScrollView>
+
+      {/* Dedicated Influencer Member Assignment Modal */}
+      {isEditing && voterMeta && assignModalOpen && (
+        <InfluencerMemberAssignModal
+          visible={assignModalOpen}
+          onClose={() => setAssignModalOpen(false)}
+          type={assignModalType}
+          influencer={{
+            id: voterMeta.id,
+            name:
+              [voterMeta.engFirstName, voterMeta.engMiddleName, voterMeta.engSurname].filter(Boolean).join(' ') ||
+              voterMeta.engName ||
+              voterMeta.name ||
+              voterMeta.epicNo ||
+              'Influencer',
+            epicNo: voterMeta.epicNo,
+            boothId: voterMeta.boothId || formData.boothId,
+            boothName: voterMeta.boothName,
+            houseNo: voterMeta.houseNo || formData.houseNo,
+            avatar: voterMeta.avatar,
+            memberCount:
+              assignModalType === 'family'
+                ? voterMeta.familyInfluencedCount
+                : voterMeta.socialInfluencedCount,
+          }}
+          onSuccess={() => {
+            if (existingVoter?.id) {
+              dispatch(fetchVoterByIdAction(existingVoter.id)).then((data: any) => {
+                if (data) {
+                  setVoterMeta(data);
+                }
+              });
+            }
+          }}
+        />
+      )}
     </View>
   );
 };

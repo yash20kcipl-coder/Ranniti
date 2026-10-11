@@ -55,7 +55,7 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
       label: 'Role Packages',
       description: 'Assign role permissions & tiers',
       icon: Shield,
-      onClick: () => navigate('/dashboard/roles'),
+      onClick: () => navigate('/dashboard/settings?tab=tenant-roles'),
       variant: 'secondary',
     },
     {
@@ -68,23 +68,23 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
   ];
 
   return (
-    <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div className="p-5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
+          <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
             <Sparkles className="w-4 h-4" />
           </div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">
             Platform Operations Hub
           </h3>
         </div>
         <button
           onClick={onRefresh}
           disabled={refreshing}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer disabled:opacity-50"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-blue-500' : ''}`} />
-          {refreshing ? 'Syncing...' : 'Refresh Metrics'}
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-500' : ''}`} />
+          <span>{refreshing ? 'Syncing...' : 'Refresh Metrics'}</span>
         </button>
       </div>
 
@@ -96,29 +96,33 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
             <button
               key={act.label}
               onClick={act.onClick}
-              className={`p-3.5 rounded-xl text-left transition-all border group flex flex-col justify-between ${isPrimary
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-sm shadow-blue-500/20'
-                  : 'bg-slate-50/70 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200'
-                }`}
+              className={`p-3.5 rounded-lg text-left transition-all border group flex flex-col justify-between cursor-pointer ${
+                isPrimary
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-600/25'
+                  : 'bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/80 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-2xs'
+              }`}
             >
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 transition-transform group-hover:scale-105 ${isPrimary
+                className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 transition-transform group-hover:scale-110 ${
+                  isPrimary
                     ? 'bg-white/20 text-white'
-                    : 'bg-white dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                  }`}
+                    : 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40'
+                }`}
               >
                 <Icon className="w-4 h-4" />
               </div>
               <div>
                 <p
-                  className={`text-xs font-bold leading-tight ${isPrimary ? 'text-white' : 'text-slate-900 dark:text-white'
-                    }`}
+                  className={`text-xs font-bold leading-tight ${
+                    isPrimary ? 'text-white' : 'text-slate-900 dark:text-white'
+                  }`}
                 >
                   {act.label}
                 </p>
                 <p
-                  className={`text-[11px] mt-0.5 line-clamp-1 ${isPrimary ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'
-                    }`}
+                  className={`text-[11px] mt-0.5 line-clamp-1 ${
+                    isPrimary ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'
+                  }`}
                 >
                   {act.description}
                 </p>

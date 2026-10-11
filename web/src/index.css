@@ -3,10 +3,48 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --font-slab: 'Roboto Slab', 'Noto Sans Gujarati', 'Noto Sans Devanagari', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@utility font-slab {
+  font-family: 'Roboto Slab', 'Noto Sans Gujarati', 'Noto Sans Devanagari', Georgia, serif;
+}
+
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-indigo-500 selection:text-white min-h-screen transition-colors duration-200;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply bg-[#eef4fa] text-slate-900 dark:bg-[#0a0f1d] dark:text-slate-100 antialiased selection:bg-indigo-500 selection:text-white min-h-screen transition-colors duration-200;
+    font-family: 'Roboto Slab', 'Noto Sans Gujarati', 'Noto Sans Devanagari', Georgia, serif;
+  }
+
+  input,
+  select,
+  textarea {
+    font-family: 'Roboto Slab', 'Noto Sans Gujarati', 'Noto Sans Devanagari', Georgia, serif;
+  }
+
+  /* Date input styling to position native calendar picker indicator on the far right */
+  input[type="date"] {
+    position: relative;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.65;
+    transition: opacity 0.2s ease;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
   }
 
   /* Custom sleek scrollbar for webkit */
@@ -72,4 +110,83 @@
   width: 0;
   height: 0;
 }
+
+/* Tab change fluid transition animation */
+@keyframes tabFade {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-tab-fade {
+  animation: tabFade 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-tab-fade {
+  animation: tabFade 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Modal & Backdrop Fade-in */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@utility animate-fadeIn {
+  animation: fadeIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Drawer / Popup Slide from Right */
+@keyframes slideLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-slideLeft {
+  animation: slideLeft 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slideLeft {
+  animation: slideLeft 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Modal Popup Scale & Translate */
+@keyframes modalIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@utility animate-modalIn {
+  animation: modalIn 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-modalIn {
+  animation: modalIn 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 

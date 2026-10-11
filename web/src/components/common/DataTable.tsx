@@ -131,18 +131,18 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   return (
-    <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200/90 dark:border-slate-800 overflow-hidden">
       {/* Table Header Controls */}
       {showHeader && (
-        <div className="p-4 md:p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50/90 dark:bg-slate-900">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-100/70 dark:bg-slate-900">
           <div className="flex items-center gap-3">
-            <span className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-500/20 shadow-xs flex-shrink-0">
-              <Database size={18} />
+            <span className="p-2 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-500/20 shadow-2xs flex-shrink-0">
+              <Database size={16} />
             </span>
             <div>
               <div className="flex items-center gap-2.5">
-                {title && <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-white tracking-tight">{title}</h2>}
-                <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-semibold text-[11px] whitespace-nowrap">
+                {title && <h2 className="font-slab text-base font-bold text-slate-900 dark:text-white tracking-tight">{title}</h2>}
+                <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-semibold text-[11px] whitespace-nowrap tabular-nums">
                   {(serverPagination ? serverPagination.total : data.length).toLocaleString()}{' '}
                   {(serverPagination ? serverPagination.total : data.length) === 1 ? 'record' : 'records'}
                 </span>
@@ -152,7 +152,7 @@ export function DataTable<T extends Record<string, any>>({
           </div>
 
           {/* Right Controls Bar: Filters, Search, Header Action, Add Button */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             {filterSlot}
 
             {/* Search Input */}
@@ -166,7 +166,7 @@ export function DataTable<T extends Record<string, any>>({
                   setCurrentPage(1);
                 }}
                 placeholder={searchPlaceholder}
-                className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
               />
             </div>
 
@@ -176,9 +176,9 @@ export function DataTable<T extends Record<string, any>>({
             {onAddClick && (
               <button
                 onClick={onAddClick}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs hover:shadow-sm transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer whitespace-nowrap flex-shrink-0 active:scale-[0.98]"
               >
-                <Plus size={15} />
+                <Plus size={14} />
                 <span>{addLabel}</span>
               </button>
             )}
@@ -190,14 +190,14 @@ export function DataTable<T extends Record<string, any>>({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-100/90 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-white uppercase tracking-wider text-[11px] font-bold">
+            <tr className="bg-[#1e293b] dark:bg-[#0f172a] border-b-2 border-slate-700/90 text-slate-200 dark:text-slate-200 uppercase tracking-wider text-[11px] font-bold font-slab shadow-2xs">
               {selectable && (
-                <th className="p-4 w-10 text-center">
+                <th className="p-3.5 w-10 text-center">
                   <input
                     type="checkbox"
                     checked={selectedIds.size > 0 && selectedIds.size === paginatedData.length}
                     onChange={toggleSelectAll}
-                    className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 accent-indigo-600 dark:accent-indigo-500 text-indigo-600 focus:ring-0 cursor-pointer"
+                    className="rounded-xs bg-slate-800 border-slate-600 accent-indigo-500 text-indigo-500 focus:ring-0 cursor-pointer"
                   />
                 </th>
               )}
@@ -205,36 +205,36 @@ export function DataTable<T extends Record<string, any>>({
                 <th
                   key={col.key}
                   style={{ width: col.width }}
-                  className={`px-5 py-3.5 font-bold ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}`}
+                  className={`px-4 py-3.5 font-bold tracking-wider ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}`}
                 >
                   {col.sortable ? (
                     <button
                       onClick={() => handleSort(col.key)}
-                      className="inline-flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer group"
+                      className="inline-flex items-center gap-1.5 hover:text-white dark:hover:text-white transition-colors cursor-pointer group"
                     >
-                      <span>{col.header}</span>
-                      <ArrowUpDown size={12} className="text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
+                      <span className="text-slate-200 group-hover:text-white">{col.header}</span>
+                      <ArrowUpDown size={12} className="text-slate-400 group-hover:text-white transition-colors" />
                     </button>
                   ) : (
-                    <span>{col.header}</span>
+                    <span className="text-slate-200">{col.header}</span>
                   )}
                 </th>
               ))}
-              {actions && <th className="px-5 py-3.5 text-right font-bold">Actions</th>}
+              {actions && <th className="px-4 py-3.5 text-right font-bold text-slate-200">Actions</th>}
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
               Array.from({ length: serverPagination ? Math.min(serverPagination.limit, 10) : pageSize }).map((_, i) => (
-                <tr key={i} className={`animate-pulse border-b border-slate-100 dark:border-slate-800 ${i % 2 === 0 ? 'bg-white dark:bg-slate-900/60' : 'bg-slate-50 dark:bg-slate-800/30'}`}>
+                <tr key={i} className={`animate-pulse border-b border-slate-200/70 dark:border-slate-800 ${i % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/70 dark:bg-slate-800/30'}`}>
                   {selectable && <td className="p-4"><div className="w-4 h-4 bg-slate-200 dark:bg-slate-700 rounded mx-auto" /></td>}
                   {columns.map((c) => (
-                    <td key={c.key} className="px-5 py-4">
+                    <td key={c.key} className="px-4 py-3.5">
                       <div className="h-4 bg-slate-200 dark:bg-slate-700/70 rounded w-3/4" />
                     </td>
                   ))}
-                  {actions && <td className="px-5 py-4 text-right"><div className="h-4 bg-slate-200 dark:bg-slate-700/70 rounded w-12 ml-auto" /></td>}
+                  {actions && <td className="px-4 py-3.5 text-right"><div className="h-4 bg-slate-200 dark:bg-slate-700/70 rounded w-12 ml-auto" /></td>}
                 </tr>
               ))
             ) : paginatedData.length === 0 ? (
@@ -253,16 +253,15 @@ export function DataTable<T extends Record<string, any>>({
                 return (
                   <tr
                     key={rowId}
-                    className={`border-b border-slate-100 dark:border-slate-800/60 transition-colors group ${
-                      isSelected
-                        ? 'bg-indigo-50/90 dark:bg-indigo-600/10'
-                        : isEven
-                        ? 'bg-white dark:bg-slate-900/50 hover:bg-indigo-50/50 dark:hover:bg-slate-700/30'
-                        : 'bg-slate-50/70 dark:bg-slate-800/25 hover:bg-indigo-50/50 dark:hover:bg-slate-700/30'
-                    }`}
+                    className={`border-b border-slate-200/90 dark:border-slate-800/80 transition-colors group ${isSelected
+                      ? 'bg-indigo-50 dark:bg-indigo-950/40'
+                      : isEven
+                        ? 'bg-white dark:bg-slate-900 hover:bg-indigo-50/50 dark:hover:bg-slate-800/50'
+                        : 'bg-slate-50/70 dark:bg-slate-800/25 hover:bg-indigo-50/50 dark:hover:bg-slate-800/50'
+                      }`}
                   >
                     {selectable && (
-                      <td className="px-5 py-4 text-center">
+                      <td className="px-4 py-3.5 text-center">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -274,9 +273,8 @@ export function DataTable<T extends Record<string, any>>({
                     {columns.map((col) => (
                       <td
                         key={col.key}
-                        className={`px-5 py-4 text-slate-800 dark:text-slate-200 font-semibold text-xs sm:text-sm ${
-                          col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
-                        }`}
+                        className={`px-4 py-3.5 text-slate-900 dark:text-slate-100 font-medium text-xs sm:text-sm ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
+                          }`}
                       >
                         {col.render ? col.render(row, idx) : row[col.key] ?? '—'}
                       </td>
@@ -297,9 +295,9 @@ export function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Pagination Footer */}
-      <div className="px-5 py-3.5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs bg-slate-50/90 dark:bg-slate-800/60">
+      <div className="px-4 py-2.5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-slate-50/90 dark:bg-slate-800/60">
         <div className="flex items-center gap-2">
-          <span className="text-slate-600 dark:text-slate-400 font-medium">Show</span>
+          <span className="text-slate-500 dark:text-slate-400 text-[11px] font-medium">Show</span>
           <select
             value={serverPagination ? serverPagination.limit : pageSize}
             onChange={(e) => {
@@ -311,7 +309,7 @@ export function DataTable<T extends Record<string, any>>({
                 setCurrentPage(1);
               }
             }}
-            className="px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-300 font-semibold text-xs shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors cursor-pointer"
+            className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md text-slate-700 dark:text-slate-300 font-semibold text-[11px] shadow-2xs focus:outline-none focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors cursor-pointer"
           >
             {[10, 25, 50, 100].map((size) => (
               <option key={size} value={size}>
@@ -319,15 +317,15 @@ export function DataTable<T extends Record<string, any>>({
               </option>
             ))}
           </select>
-          <span className="text-slate-600 dark:text-slate-400 font-medium">
+          <span className="text-slate-500 dark:text-slate-400 text-[11px]">
             entries ({(serverPagination ? serverPagination.total : sortedData.length).toLocaleString()} total)
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="mr-2 text-slate-600 dark:text-slate-400 font-medium">
-            Page <strong className="text-slate-900 dark:text-white font-bold">{serverPagination ? serverPagination.page : currentPage}</strong> of{' '}
-            <strong className="text-slate-900 dark:text-white font-bold">
+          <span className="mr-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
+            Page <strong className="text-slate-800 dark:text-slate-200 font-bold text-[11px]">{serverPagination ? serverPagination.page : currentPage}</strong> of{' '}
+            <strong className="text-slate-800 dark:text-slate-200 font-bold text-[11px]">
               {serverPagination ? serverPagination.totalPages || 1 : totalPages}
             </strong>
           </span>
@@ -340,9 +338,9 @@ export function DataTable<T extends Record<string, any>>({
               }
             }}
             disabled={serverPagination ? serverPagination.page <= 1 : currentPage === 1}
-            className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-400 hover:text-slate-900 disabled:opacity-35 disabled:cursor-not-allowed shadow-xs transition-colors cursor-pointer"
+            className="w-7 h-7 flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 disabled:opacity-35 disabled:cursor-not-allowed shadow-2xs transition-colors cursor-pointer"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={14} />
           </button>
           <button
             onClick={() => {
@@ -357,9 +355,9 @@ export function DataTable<T extends Record<string, any>>({
                 ? serverPagination.page >= (serverPagination.totalPages || 1)
                 : currentPage === totalPages
             }
-            className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-400 hover:text-slate-900 disabled:opacity-35 disabled:cursor-not-allowed shadow-xs transition-colors cursor-pointer"
+            className="w-7 h-7 flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 disabled:opacity-35 disabled:cursor-not-allowed shadow-2xs transition-colors cursor-pointer"
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>

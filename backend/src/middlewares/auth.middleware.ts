@@ -59,13 +59,3 @@ export const requireSuperAdmin = requireRole('super_admin');
  */
 export const requireAdmin = requireRole('super_admin', 'tenant_admin');
 
-/**
- * Shortcut middleware requiring Leader or higher role
- */
-export const requireLeader = requireRole('super_admin', 'tenant_admin', 'pc_leader', 'ac_leader', 'leader');
-
-/**
- * Shortcut middleware requiring Sub-Leader or higher role
- */
-export const requireSubLeader = requireRole('super_admin', 'tenant_admin', 'pc_leader', 'ac_leader', 'leader', 'sub_leader');
-

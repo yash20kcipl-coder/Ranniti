@@ -24,6 +24,7 @@ interface VoterGeographyFormSectionProps {
   canEditContact: boolean;
   talukaSuggestions?: string[];
   villageSuggestions?: string[];
+  rawAcs?: any[];
 }
 
 export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps> = ({
@@ -42,6 +43,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
   canEditContact,
   talukaSuggestions = [],
   villageSuggestions = [],
+  rawAcs = [],
 }) => {
   const handleSameAddressChange = (enabled: boolean) => {
     setSameAddress(enabled);
@@ -72,205 +74,204 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
         </Text>
       </View>
 
-      {/* Cascading Electoral Dropdowns */}
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <AppDropdown
-            label={t('selectState')}
-            placeholder={t('selectState')}
-            icon="map-outline"
-            value={formData.stateId}
-            options={stateOptions}
-            searchable={true}
-            onSelect={(val) => {
-              setFormData((prev: any) => ({
-                ...prev,
-                stateId: val,
-                districtId: '',
-                pcId: '',
-                acId: '',
-                boothId: '',
-              }));
-            }}
-          />
-        </View>
-        <View style={styles.flex1}>
-          <AppDropdown
-            label={t('selectDistrict')}
-            placeholder={t('selectDistrict')}
-            icon="city-variant-outline"
-            value={formData.districtId}
-            options={districtOptions}
-            searchable={true}
-            onSelect={(val) => {
-              setFormData((prev: any) => ({
-                ...prev,
-                districtId: val,
-                boothId: '',
-              }));
-            }}
-          />
-        </View>
-      </View>
+      <View>
 
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <AppDropdown
-            label={t('selectPc')}
-            placeholder={t('selectPc')}
-            icon="sign-direction"
-            value={formData.pcId}
-            options={pcOptions}
-            searchable={true}
-            onSelect={(val) => {
-              setFormData((prev: any) => ({
-                ...prev,
-                pcId: val,
-                acId: '',
-                boothId: '',
-              }));
-            }}
-          />
-        </View>
-        <View style={styles.flex1}>
-          <AppDropdown
-            label={t('selectAc')}
-            placeholder={t('selectAc')}
-            icon="crosshairs-gps"
-            value={formData.acId}
-            options={acOptions}
-            searchable={true}
-            onSelect={(val) => {
-              setFormData((prev: any) => ({
-                ...prev,
-                acId: val,
-                boothId: '',
-              }));
-            }}
-          />
-        </View>
-      </View>
 
-      {/* Polling Booth Dropdown (Mandatory) */}
-      <AppDropdown
-        label={`${t('selectBooth')} *`}
-        placeholder={t('selectBooth')}
-        icon="office-building"
-        value={formData.boothId}
-        options={boothOptions}
-        searchable={true}
-        searchPlaceholder={t('searchBoothPlaceholder') || 'Search booth number or name...'}
-        onSelect={(val) => {
-          setFormData((prev: any) => ({
-            ...prev,
-            boothId: val,
-            familyInfluencerId: '',
-            socialInfluencerId: '',
-          }));
-        }}
-      />
-      {Boolean(errors.boothId) && (
-        <Text style={[styles.errorText, { color: theme.colors.error || '#EF4444' }]}>
-          {errors.boothId}
-        </Text>
-      )}
-
-      {/* Serial, Section & House Numbers */}
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <AppTextInput
-            label={t('serialNumber')}
-            placeholder="e.g. 142"
-            keyboardType="numeric"
-            value={formData.serialNo ? String(formData.serialNo) : ''}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, serialNo: val }))}
-            icon="numeric"
-          />
+        {/* Cascading Electoral Dropdowns */}
+        <View style={styles.row}>
+          <View style={styles.flex1}>
+            <AppDropdown
+              label={t('selectState')}
+              placeholder={t('selectState')}
+              value={formData.stateId}
+              options={stateOptions}
+              searchable={true}
+              onSelect={(val) => {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  stateId: val,
+                  districtId: '',
+                  pcId: '',
+                  acId: '',
+                  boothId: '',
+                }));
+              }}
+            />
+          </View>
+          <View style={styles.flex1}>
+            <AppDropdown
+              label={t('selectDistrict')}
+              placeholder={t('selectDistrict')}
+              value={formData.districtId}
+              options={districtOptions}
+              searchable={true}
+              onSelect={(val) => {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  districtId: val,
+                  boothId: '',
+                }));
+              }}
+            />
+          </View>
         </View>
-        <View style={styles.flex1}>
-          <AppTextInput
-            label={t('sectionNo')}
-            placeholder="e.g. 2"
-            keyboardType="numeric"
-            value={formData.sectionNo ? String(formData.sectionNo) : ''}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, sectionNo: val }))}
-            icon="format-list-numbered"
-          />
+
+        <View style={styles.row}>
+          <View style={styles.flex1}>
+            <AppDropdown
+              label={t('selectPc')}
+              placeholder={t('selectPc')}
+              value={formData.pcId}
+              options={pcOptions}
+              searchable={true}
+              onSelect={(val) => {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  pcId: val,
+                  acId: '',
+                  boothId: '',
+                }));
+              }}
+            />
+          </View>
+          <View style={styles.flex1}>
+            <AppDropdown
+              label={t('selectAc')}
+              placeholder={t('selectAc')}
+              value={formData.acId}
+              options={acOptions}
+              searchable={true}
+              onSelect={(val) => {
+                const matchedAc = (rawAcs || []).find((a: any) => String(a.id) === String(val));
+                setFormData((prev: any) => ({
+                  ...prev,
+                  acId: val,
+                  boothId: '',
+                  stateId: matchedAc?.stateId ? String(matchedAc.stateId) : prev.stateId,
+                  pcId: matchedAc?.pcId ? String(matchedAc.pcId) : prev.pcId,
+                  districtId: matchedAc?.districtId ? String(matchedAc.districtId) : prev.districtId,
+                }));
+              }}
+            />
+          </View>
         </View>
-      </View>
 
-      <View style={styles.row}>
-        <View style={styles.flex1}>
-          <AppTextInput
-            label={t('houseNo')}
-            placeholder="e.g. 45-B"
-            value={formData.houseNo}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, houseNo: val }))}
-            icon="home-outline"
-          />
+        {/* Polling Booth Dropdown (Mandatory) */}
+        <AppDropdown
+          label={`${t('selectBooth')} *`}
+          placeholder={t('selectBooth')}
+          icon="office-building"
+          value={formData.boothId}
+          options={boothOptions}
+          searchable={true}
+          searchPlaceholder={t('searchBoothPlaceholder') || 'Search booth number or name...'}
+          onSelect={(val) => {
+            setFormData((prev: any) => ({
+              ...prev,
+              boothId: val,
+              familyInfluencerId: '',
+              socialInfluencerId: '',
+            }));
+          }}
+        />
+        {Boolean(errors.boothId) && (
+          <Text style={[styles.errorText, { color: theme.colors.error || '#EF4444' }]}>
+            {errors.boothId}
+          </Text>
+        )}
+
+        {/* Serial, Section & House Numbers */}
+        <View style={styles.row}>
+          <View style={styles.flex1}>
+            <AppTextInput
+              label={t('serialNumber')}
+              placeholder="e.g. 142"
+              keyboardType="numeric"
+              value={formData.serialNo ? String(formData.serialNo) : ''}
+              onChangeText={(val) => setFormData((prev: any) => ({ ...prev, serialNo: val }))}
+            />
+          </View>
+          <View style={styles.flex1}>
+            <AppTextInput
+              label={t('sectionNo')}
+              placeholder="e.g. 2"
+              keyboardType="numeric"
+              value={formData.sectionNo ? String(formData.sectionNo) : ''}
+              onChangeText={(val) => setFormData((prev: any) => ({ ...prev, sectionNo: val }))}
+            />
+          </View>
         </View>
-        <View style={styles.flex1}>
-          <AppAutocompleteInput
-            icon="city"
-            label={t('village')}
-            disabled={!canEditContact}
-            value={formData.village || ''}
-            suggestions={villageSuggestions}
-            placeholder={t('villagePlaceholder') || 'Village / Town'}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, village: val }))}
-          />
+
+        <View style={styles.row}>
+          <View style={styles.flex1}>
+            <AppTextInput
+              label={t('houseNo')}
+              placeholder="e.g. 45-B"
+              value={formData.houseNo}
+              onChangeText={(val) => setFormData((prev: any) => ({ ...prev, houseNo: val }))}
+              icon="home-outline"
+            />
+          </View>
+          <View style={styles.flex1}>
+            <AppAutocompleteInput
+              label={t('village')}
+              disabled={!canEditContact}
+              value={formData.village || ''}
+              suggestions={villageSuggestions}
+              placeholder={t('villagePlaceholder') || 'Village / Town'}
+              onChangeText={(val) => setFormData((prev: any) => ({ ...prev, village: val }))}
+            />
+          </View>
         </View>
-      </View>
 
-      <AppAutocompleteInput
-        label={t('taluka')}
-        icon="map-marker-outline"
-        disabled={!canEditContact}
-        value={formData.taluka || ''}
-        suggestions={talukaSuggestions}
-        placeholder={t('talukaPlaceholder') || 'Taluka / Tehsil'}
-        onChangeText={(val) => setFormData((prev: any) => ({ ...prev, taluka: val }))}
-      />
-
-      {/* Current Residence Address */}
-      <AppTextInput
-        label={t('currentAddress')}
-        placeholder={t('currentAddressPlaceholder') || 'Enter current residential address...'}
-        value={formData.fullAddress}
-        multiline={true}
-        numberOfLines={2}
-        editable={canEditContact}
-        onChangeText={handleFullAddressChange}
-        icon="home-map-marker"
-      />
-
-      {/* Same Address Switch */}
-      <View style={styles.sameAddressRow}>
-        <Text style={[styles.sameAddressLabel, { color: theme.colors.text }]}>
-          {t('sameAsCurrentAddress')}
-        </Text>
-        <Switch
-          value={sameAddress}
+        <AppAutocompleteInput
+          label={t('taluka')}
           disabled={!canEditContact}
-          onValueChange={handleSameAddressChange}
-          thumbColor={sameAddress ? theme.colors.primary : '#F1F5F9'}
-          trackColor={{ false: '#E2E8F0', true: theme.colors.primary + '55' }}
+          value={formData.taluka || ''}
+          suggestions={talukaSuggestions}
+          placeholder={t('talukaPlaceholder') || 'Taluka / Tehsil'}
+          onChangeText={(val) => setFormData((prev: any) => ({ ...prev, taluka: val }))}
         />
-      </View>
 
-      {/* Permanent / Voter Electoral Address */}
-      {!sameAddress && (
+        {/* Current Residence Address */}
         <AppTextInput
-          label={t('permanentAddress')}
-          placeholder={t('permanentAddressPlaceholder') || 'Enter permanent electoral address...'}
-          value={formData.voterAddress}
           multiline={true}
-          numberOfLines={2}
+          numberOfLines={3}
           editable={canEditContact}
-          onChangeText={(val) => setFormData((prev: any) => ({ ...prev, voterAddress: val }))}
-          icon="card-text-outline"
+          label={t('currentAddress')}
+          value={formData.fullAddress}
+          onChangeText={handleFullAddressChange}
+          placeholder={t('currentAddressPlaceholder') || 'Enter current residential address...'}
         />
-      )}
+
+        {/* Same Address Switch */}
+        <View style={styles.sameAddressRow}>
+          <Text style={[styles.sameAddressLabel, { color: theme.colors.text }]}>
+            {t('sameAsCurrentAddress')}
+          </Text>
+          <Switch
+            value={sameAddress}
+            disabled={!canEditContact}
+            onValueChange={handleSameAddressChange}
+            thumbColor={sameAddress ? theme.colors.primary : '#F1F5F9'}
+            trackColor={{ false: '#E2E8F0', true: theme.colors.primary + '55' }}
+          />
+        </View>
+
+        {/* Permanent / Voter Electoral Address */}
+        {!sameAddress && (
+          <AppTextInput
+            label={t('permanentAddress')}
+            placeholder={t('permanentAddressPlaceholder') || 'Enter permanent electoral address...'}
+            value={formData.voterAddress}
+            multiline={true}
+            numberOfLines={2}
+            editable={canEditContact}
+            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, voterAddress: val }))}
+            icon="card-text-outline"
+          />
+        )}
+      </View>
     </View>
   );
 };

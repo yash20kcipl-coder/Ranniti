@@ -1,36 +1,31 @@
-# `whatsapp_templates` Table Specification
+# `whatsapp_templates` Table Specification (Master DB Only)
 
-Template repository for WhatsApp Business API messages including voter slips, manifesto broadcasts, meeting notices, and karyakarta mobilization messages with dynamic variables and Meta status tracking.
+> [!NOTE]
+> Centralized WhatsApp templates managed by Super Admin on the Master DB. Tenant DBs do not store local templates.
 
----
+## Columns
 
-## 📊 Table Structure & Columns
-
-| Column Name | Data Type | Nullable | Default | Description / Constraints |
-| :--- | :--- | :--- | :--- | :--- |
+| Column | Data Type | Nullable | Default | Description |
+|---|---|---|---|---|
 | `id` | `UUID` | No | `gen_random_uuid()` | Primary Key |
-| `meta_template_id` | `VARCHAR(100)` | Yes | `NULL` | Meta assigned Template ID |
-| `name` | `VARCHAR(100)` | No | *None* | Template unique slug name (e.g. `voter_parchi_slip`) |
-| `category` | `VARCHAR(30)` | No | `'UTILITY'` | Category check: `UTILITY`, `MARKETING`, `AUTHENTICATION` |
-| `language` | `VARCHAR(20)` | No | `'hi'` | Language code (e.g. `en`, `hi`, `mr`, `gu`) |
-| `header_type` | `VARCHAR(20)` | No | `'NONE'` | Header format: `NONE`, `TEXT`, `IMAGE`, `DOCUMENT`, `VIDEO` |
+| `meta_template_id` | `VARCHAR(100)` | Yes | `NULL` | WhatsApp Meta Cloud API template identifier |
+| `name` | `VARCHAR(100)` | No | | Template unique slug/name |
+| `category` | `VARCHAR(30)` | No | `'UTILITY'` | Template category (`UTILITY`, `MARKETING`, `AUTHENTICATION`) |
+| `language` | `VARCHAR(20)` | No | `'hi'` | Template language code (e.g. `hi`, `en`) |
+| `header_type` | `VARCHAR(20)` | No | `'NONE'` | Header type (`NONE`, `TEXT`, `IMAGE`, `DOCUMENT`, `VIDEO`) |
 | `header_content` | `TEXT` | Yes | `NULL` | Header text or media URL |
-| `body_text` | `TEXT` | No | *None* | Main message body text with dynamic tokens (`{{1}}`, `{{voter_name}}`) |
-| `footer_text` | `TEXT` | Yes | `NULL` | Optional footer disclaimer (e.g. 'Reply STOP to opt out') |
-| `buttons` | `JSONB` | No | `'[]'::jsonb` | Interactive buttons (Quick replies, CTA URL, Phone number) |
-| `variables` | `JSONB` | No | `'[]'::jsonb` | Extracted dynamic variable token names |
-| `meta_status` | `VARCHAR(30)` | No | `'APPROVED'` | Status check: `APPROVED`, `PENDING`, `REJECTED`, `PAUSED`, `DRAFT` |
-| `meta_rejection_reason` | `TEXT` | Yes | `NULL` | Reason text provided by Meta review if rejected |
+| `body_text` | `TEXT` | No | | Main template body text with `{{var}}` placeholders |
+| `footer_text` | `TEXT` | Yes | `NULL` | Optional template footer text |
+| `buttons` | `JSONB` | No | `'[]'::jsonb` | Interactive buttons configuration |
+| `variables` | `JSONB` | No | `'[]'::jsonb` | Extracted dynamic variable list |
+| `meta_status` | `VARCHAR(30)` | No | `'APPROVED'` | Approval status (`APPROVED`, `PENDING`, `REJECTED`, `PAUSED`, `DRAFT`) |
+| `meta_rejection_reason` | `TEXT` | Yes | `NULL` | Reason if rejected by Meta |
 | `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Record creation timestamp |
 | `updated_at` | `TIMESTAMPTZ` | No | `NOW()` | Record update timestamp |
 
----
+## Constraints & Indexes
 
-## ⚡ Index & Constraint Specifications
+- `uq_whatsapp_templates_name_lang`: `UNIQUE (name, language)`
+- `idx_whatsapp_templates_status`: `INDEX (meta_status)`
+- `idx_whatsapp_templates_category`: `INDEX (category)`
 
-| Index / Constraint Name | Type | Columns | Purpose |
-| :--- | :--- | :--- | :--- |
-| `whatsapp_templates_pkey` | `Primary Key` | `id` | Unique identifier |
-| `uq_whatsapp_templates_name_lang` | `Unique Constraint` | `name, language` | Enforce unique template per language |
-| `idx_whatsapp_templates_status` | `B-Tree` | `meta_status` | Fast filtering by approval status |
-| `idx_whatsapp_templates_category` | `B-Tree` | `category` | Fast filtering by message category |

@@ -3,6 +3,7 @@ import { Phone } from 'lucide-react';
 import SectionContainer from '../SectionContainer';
 import FormInput from '@/components/common/FormInput';
 import type { Option } from '@/components/common/FormInput';
+import { FORM_RELATION_OPTIONS } from '@/constants/dropdownOptions';
 
 export interface VoterDemographicsFormSectionProps {
   formData: any;
@@ -11,6 +12,7 @@ export interface VoterDemographicsFormSectionProps {
   subcasteSuggestions?: string[];
   casteOptions?: Option[];
   religionOptions?: Option[];
+  relationOptions?: Option[];
   errors: Record<string, string>;
   handleChange: (e: any) => void;
 }
@@ -24,6 +26,7 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
   subcasteSuggestions = [],
   religionOptions = [],
   casteOptions = [],
+  relationOptions = FORM_RELATION_OPTIONS,
 }) => {
   // Resolve unique autocomplete suggestion lists
   const resolvedReligionSuggestions = React.useMemo(() => {
@@ -63,12 +66,33 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
 
   return (
     <SectionContainer
+      id="demographics"
       icon={<Phone size={18} />}
       iconBg="p-2 rounded-lg bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-purple-600 dark:text-purple-400"
       title="Contact & Socio-Cultural Background"
-      subtitle="Mobile, Email, Religion, Caste, and Profession"
+      subtitle="Relative, Mobile, Email, Religion, Caste, and Profession"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Relative / Guardian Information */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <FormInput
+          label="Relative / Guardian Name"
+          name="guardianName"
+          value={formData.guardianName || ''}
+          onChange={handleChange}
+          placeholder="e.g. Ramesh Chandra Sharma"
+        />
+
+        <FormInput
+          label="Relation Type"
+          type="select"
+          name="relation"
+          value={formData.relation || ''}
+          onChange={handleChange}
+          options={relationOptions}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         <FormInput
           label="Mobile Phone Number"
           type="tel"
@@ -90,7 +114,7 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
         <FormInput
           label="Religion"
           type="autocomplete"
@@ -125,7 +149,7 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         <FormInput
           label="Profession Category"
           name="professionType"

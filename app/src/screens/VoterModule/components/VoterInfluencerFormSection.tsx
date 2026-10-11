@@ -19,6 +19,7 @@ export interface VoterInfluencerFormSectionProps {
   canEditInclination: boolean;
   isEditMode: boolean;
   voterMeta?: any;
+  onOpenAssignModal?: (type: 'family' | 'social') => void;
 }
 
 export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProps> = ({
@@ -34,6 +35,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
   canEditInclination,
   isEditMode,
   voterMeta,
+  onOpenAssignModal,
 }) => {
   const handleFamilyInfluencerToggle = (value: boolean) => {
     setFormData((prev: any) => ({
@@ -76,245 +78,291 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
           {t('influencerStatus') || 'Party Affiliation & Influencer Networks'}
         </Text>
       </View>
+      <View>
 
-      {/* Political Party Selection */}
-      <View style={styles.inputContainer}>
-        <AppDropdown
-          label={t('selectParty') || 'Political Party Affiliation'}
-          placeholder={t('selectParty') || 'Select Supporting Party'}
-          icon="flag-outline"
-          value={formData.partyId}
-          options={partyOptions}
-          disabled={!canEditInclination}
-          searchable={true}
-          onSelect={(val) => {
-            setFormData((prev: any) => ({ ...prev, partyId: val }));
-          }}
-        />
-        {!canEditInclination && (
+        {/* Political Party Selection */}
+        <View style={styles.inputContainer}>
+          <AppDropdown
+            label={t('selectParty') || 'Political Party Affiliation'}
+            placeholder={t('selectParty') || 'Select Supporting Party'}
+            icon="flag-outline"
+            value={formData.partyId}
+            options={partyOptions}
+            disabled={!canEditInclination}
+            searchable={true}
+            onSelect={(val) => {
+              setFormData((prev: any) => ({ ...prev, partyId: val }));
+            }}
+          />
+          {!canEditInclination && (
+            <Text style={[styles.permissionHint, { color: theme.colors.textSecondary }]}>
+              {t('permissionPartyRequired') || 'Permission required to edit party affiliation'}
+            </Text>
+          )}
+        </View>
+
+        {/* Family Network & Household Influencer Card */}
+        <View
+          style={[
+            styles.subCard,
+            {
+              backgroundColor: formData.isFamilyInfluencer
+                ? theme.colors.primary + '0A'
+                : theme.colors.background,
+              borderColor: formData.isFamilyInfluencer
+                ? theme.colors.primary + '30'
+                : theme.colors.border,
+            },
+          ]}
+        >
+          <View style={styles.subCardHeader}>
+            <View style={styles.subCardTitleRow}>
+              <MaterialDesignIcons
+                name="crown-outline"
+                size={18}
+                color={formData.isFamilyInfluencer ? theme.colors.primary : theme.colors.textSecondary}
+              />
+              <View style={styles.subCardTitleTexts}>
+                <Text style={[styles.subCardTitle, { color: theme.colors.text }]}>
+                  {t('familyInfluencer') || 'Family Network'}
+                </Text>
+                <Text style={[styles.subCardSubtitle, { color: theme.colors.textSecondary }]}>
+                  {t('influencesHousehold') || 'Household mapping & leadership'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Toggle Switch */}
+            <Switch
+              value={Boolean(formData.isFamilyInfluencer)}
+              onValueChange={handleFamilyInfluencerToggle}
+              disabled={!canManageFamily}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary + '80' }}
+              thumbColor={formData.isFamilyInfluencer ? theme.colors.primary : '#f4f3f4'}
+            />
+          </View>
+
+          {/* State 1: Marked as Family Influencer */}
+          {formData.isFamilyInfluencer ? (
+            <View style={styles.stateContainer}>
+              <View
+                style={[
+                  styles.infoBadgeBox,
+                  { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary + '30' },
+                ]}
+              >
+                <View style={styles.infoBadgeTop}>
+                  <Text style={[styles.badgeLabel, { color: theme.colors.primary }]}>
+                    {t('designatedFamilyHead') || 'Designated Head of Household'}
+                  </Text>
+                  {isEditMode && voterMeta?.familyInfluencedCount !== undefined && (
+                    <View style={[styles.countBadge, { backgroundColor: theme.colors.primary }]}>
+                      <Text style={styles.countBadgeText}>
+                        {voterMeta.familyInfluencedCount} {t('votersCount') || 'voters'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.badgeDescription, { color: theme.colors.text }]}>
+                  {isEditMode && Number(voterMeta?.familyInfluencedCount) > 0
+                    ? `${t('influencesVoters') || 'Influences'} ${voterMeta.familyInfluencedCount} ${t('votersCount') || 'voters'} in this household.`
+                    : t('familyHeadDescription') || 'Head of household. Family members can be linked under this voter.'}
+                </Text>
+              </View>
+
+              {/* Action to Manage Members */}
+              {isEditMode ? (
+                <TouchableOpacity
+                  style={[styles.manageMembersBtn, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => onOpenAssignModal?.('family')}
+                  disabled={!canManageFamily}
+                  activeOpacity={0.8}
+                >
+                  <MaterialDesignIcons name="account-plus-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.manageMembersBtnText}>
+                    {t('manageFamilyMembers') || 'Manage Family Members'} ({voterMeta?.familyInfluencedCount || 0})
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={[styles.saveFirstNotice, { color: theme.colors.primary }]}>
+                  {t('saveVoterFirstToLink') ||
+                    'Save this voter first to start linking family members via the candidate assignment modal.'}
+                </Text>
+              )}
+            </View>
+          ) : (
+            /* State 2: Can link under existing Family Head */
+            <View style={styles.linkContainer}>
+              <View style={styles.dropdownWithAction}>
+                <View style={styles.flex1}>
+                  <AppDropdown
+                    label={t('linkFamilyHead') || 'Link Under Family Head'}
+                    placeholder={
+                      loadingInfluencers
+                        ? t('loadingInfluencers') || 'Loading influencers...'
+                        : familyInfluencerOptions.length > 0
+                          ? t('linkFamilyHead')
+                          : t('noInfluencersAvailable')
+                    }
+                    icon="account-tie-outline"
+                    value={formData.familyInfluencerId}
+                    options={familyInfluencerOptions}
+                    disabled={!canManageFamily || familyInfluencerOptions.length === 0}
+                    searchable={true}
+                    onSelect={(val) => {
+                      setFormData((prev: any) => ({ ...prev, familyInfluencerId: val }));
+                    }}
+                  />
+                </View>
+                {Boolean(formData.familyInfluencerId) && canManageFamily && (
+                  <TouchableOpacity
+                    style={[styles.unlinkButton, { borderColor: theme.colors.error || '#EF4444' }]}
+                    onPress={handleUnlinkFamily}
+                  >
+                    <MaterialDesignIcons name="link-off" size={16} color={theme.colors.error || '#EF4444'} />
+                    <Text style={[styles.unlinkText, { color: theme.colors.error || '#EF4444' }]}>
+                      {t('unlink') || 'Unlink'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Community & Social Leader Card */}
+        <View
+          style={[
+            styles.subCard,
+            {
+              backgroundColor: formData.isSocialInfluencer
+                ? theme.colors.primary + '0A'
+                : theme.colors.background,
+              borderColor: formData.isSocialInfluencer
+                ? theme.colors.primary + '30'
+                : theme.colors.border,
+            },
+          ]}
+        >
+          <View style={styles.subCardHeader}>
+            <View style={styles.subCardTitleRow}>
+              <MaterialDesignIcons
+                name="star-circle-outline"
+                size={18}
+                color={formData.isSocialInfluencer ? theme.colors.primary : theme.colors.textSecondary}
+              />
+              <View style={styles.subCardTitleTexts}>
+                <Text style={[styles.subCardTitle, { color: theme.colors.text }]}>
+                  {t('designatedSocialLeader') || 'Community / Social Influencer'}
+                </Text>
+                <Text style={[styles.subCardSubtitle, { color: theme.colors.textSecondary }]}>
+                  {t('isSocialLeaderToggle') || 'Mark community leaders and influencers'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Toggle Switch */}
+            <Switch
+              value={Boolean(formData.isSocialInfluencer)}
+              onValueChange={handleSocialInfluencerToggle}
+              disabled={!canManageFamily}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary + '80' }}
+              thumbColor={formData.isSocialInfluencer ? theme.colors.primary : '#f4f3f4'}
+            />
+          </View>
+
+          {formData.isSocialInfluencer ? (
+            <View style={styles.stateContainer}>
+              <View
+                style={[
+                  styles.infoBadgeBox,
+                  { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary + '30' },
+                ]}
+              >
+                <View style={styles.infoBadgeTop}>
+                  <Text style={[styles.badgeLabel, { color: theme.colors.primary }]}>
+                    {t('designatedSocialLeader') || 'Community / Social Leader'}
+                  </Text>
+                  {isEditMode && voterMeta?.socialInfluencedCount !== undefined && (
+                    <View style={[styles.countBadge, { backgroundColor: theme.colors.primary }]}>
+                      <Text style={styles.countBadgeText}>
+                        {voterMeta.socialInfluencedCount} {t('votersCount') || 'voters'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.badgeDescription, { color: theme.colors.text }]}>
+                  {isEditMode && Number(voterMeta?.socialInfluencedCount) > 0
+                    ? `${t('influencesVoters') || 'Influences'} ${voterMeta.socialInfluencedCount} ${t('votersCount') || 'voters'} across this community.`
+                    : t('socialLeaderDescription') || 'Community leader. Other voters can be mapped under this influencer.'}
+                </Text>
+              </View>
+
+              {/* Action to Manage Followers */}
+              {isEditMode ? (
+                <TouchableOpacity
+                  style={[styles.manageMembersBtn, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => onOpenAssignModal?.('social')}
+                  disabled={!canManageFamily}
+                  activeOpacity={0.8}
+                >
+                  <MaterialDesignIcons name="account-multiple-plus-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.manageMembersBtnText}>
+                    {t('manageSocialFollowers') || 'Manage Community Network'} ({voterMeta?.socialInfluencedCount || 0})
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={[styles.saveFirstNotice, { color: theme.colors.primary }]}>
+                  {t('saveVoterFirstToLinkSocial') ||
+                    'Save this voter first to start linking followers via the candidate assignment modal.'}
+                </Text>
+              )}
+            </View>
+          ) : (
+            <View style={styles.linkContainer}>
+              <View style={styles.dropdownWithAction}>
+                <View style={styles.flex1}>
+                  <AppDropdown
+                    label={t('linkSocialLeader') || 'Link Under Social Leader'}
+                    placeholder={
+                      loadingInfluencers
+                        ? t('loadingLeaders') || 'Loading leaders...'
+                        : socialInfluencerOptions.length > 0
+                          ? t('linkSocialLeader')
+                          : t('noInfluencersAvailable')
+                    }
+                    icon="account-star-outline"
+                    value={formData.socialInfluencerId}
+                    options={socialInfluencerOptions}
+                    disabled={!canManageFamily || socialInfluencerOptions.length === 0}
+                    searchable={true}
+                    onSelect={(val) => {
+                      setFormData((prev: any) => ({ ...prev, socialInfluencerId: val }));
+                    }}
+                  />
+                </View>
+                {Boolean(formData.socialInfluencerId) && canManageFamily && (
+                  <TouchableOpacity
+                    style={[styles.unlinkButton, { borderColor: theme.colors.error || '#EF4444' }]}
+                    onPress={handleUnlinkSocial}
+                  >
+                    <MaterialDesignIcons name="link-off" size={16} color={theme.colors.error || '#EF4444'} />
+                    <Text style={[styles.unlinkText, { color: theme.colors.error || '#EF4444' }]}>
+                      {t('unlink') || 'Unlink'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {!canManageFamily && (
           <Text style={[styles.permissionHint, { color: theme.colors.textSecondary }]}>
-            {t('permissionPartyRequired') || 'Permission required to edit party affiliation'}
+            {t('permissionInfluencersRequired') || 'Permission required to manage family and social influencer links'}
           </Text>
         )}
       </View>
-
-      {/* Family Network & Household Influencer Card */}
-      <View
-        style={[
-          styles.subCard,
-          {
-            backgroundColor: formData.isFamilyInfluencer
-              ? theme.colors.primary + '0A'
-              : theme.colors.background,
-            borderColor: formData.isFamilyInfluencer
-              ? theme.colors.primary + '30'
-              : theme.colors.border,
-          },
-        ]}
-      >
-        <View style={styles.subCardHeader}>
-          <View style={styles.subCardTitleRow}>
-            <MaterialDesignIcons
-              name="crown-outline"
-              size={18}
-              color={formData.isFamilyInfluencer ? theme.colors.primary : theme.colors.textSecondary}
-            />
-            <View style={styles.subCardTitleTexts}>
-              <Text style={[styles.subCardTitle, { color: theme.colors.text }]}>
-                {t('familyInfluencer') || 'Family Network'}
-              </Text>
-              <Text style={[styles.subCardSubtitle, { color: theme.colors.textSecondary }]}>
-                {t('influencesHousehold') || 'Household mapping & leadership'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Toggle Switch */}
-          <Switch
-            value={Boolean(formData.isFamilyInfluencer)}
-            onValueChange={handleFamilyInfluencerToggle}
-            disabled={!canManageFamily}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary + '80' }}
-            thumbColor={formData.isFamilyInfluencer ? theme.colors.primary : '#f4f3f4'}
-          />
-        </View>
-
-        {/* State 1: Marked as Family Influencer */}
-        {formData.isFamilyInfluencer ? (
-          <View
-            style={[
-              styles.infoBadgeBox,
-              { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary + '30' },
-            ]}
-          >
-            <View style={styles.infoBadgeTop}>
-              <Text style={[styles.badgeLabel, { color: theme.colors.primary }]}>
-                {t('designatedFamilyHead') || 'Designated Head of Household'}
-              </Text>
-              {isEditMode && voterMeta?.familyInfluencedCount !== undefined && (
-                <View style={[styles.countBadge, { backgroundColor: theme.colors.primary }]}>
-                  <Text style={styles.countBadgeText}>
-                    {voterMeta.familyInfluencedCount} {t('votersCount') || 'voters'}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <Text style={[styles.badgeDescription, { color: theme.colors.text }]}>
-              {isEditMode && Number(voterMeta?.familyInfluencedCount) > 0
-                ? `${t('influencesVoters') || 'Influences'} ${voterMeta.familyInfluencedCount} ${t('votersCount') || 'voters'} in this household.`
-                : t('familyHeadDescription') || 'Head of household. Family members can be linked under this voter.'}
-            </Text>
-          </View>
-        ) : (
-          /* State 2: Can link under existing Family Head */
-          <View style={styles.linkContainer}>
-            <View style={styles.dropdownWithAction}>
-              <View style={styles.flex1}>
-                <AppDropdown
-                  label={t('linkFamilyHead') || 'Link Under Family Head'}
-                  placeholder={
-                    loadingInfluencers
-                      ? t('loadingInfluencers') || 'Loading influencers...'
-                      : familyInfluencerOptions.length > 0
-                      ? t('linkFamilyHead')
-                      : t('noInfluencersAvailable')
-                  }
-                  icon="account-tie-outline"
-                  value={formData.familyInfluencerId}
-                  options={familyInfluencerOptions}
-                  disabled={!canManageFamily || familyInfluencerOptions.length === 0}
-                  searchable={true}
-                  onSelect={(val) => {
-                    setFormData((prev: any) => ({ ...prev, familyInfluencerId: val }));
-                  }}
-                />
-              </View>
-              {Boolean(formData.familyInfluencerId) && canManageFamily && (
-                <TouchableOpacity
-                  style={[styles.unlinkButton, { borderColor: theme.colors.error || '#EF4444' }]}
-                  onPress={handleUnlinkFamily}
-                >
-                  <MaterialDesignIcons name="link-off" size={16} color={theme.colors.error || '#EF4444'} />
-                  <Text style={[styles.unlinkText, { color: theme.colors.error || '#EF4444' }]}>
-                    {t('unlink') || 'Unlink'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
-      </View>
-
-      {/* Community & Social Leader Card */}
-      <View
-        style={[
-          styles.subCard,
-          {
-            backgroundColor: formData.isSocialInfluencer
-              ? theme.colors.primary + '0A'
-              : theme.colors.background,
-            borderColor: formData.isSocialInfluencer
-              ? theme.colors.primary + '30'
-              : theme.colors.border,
-          },
-        ]}
-      >
-        <View style={styles.subCardHeader}>
-          <View style={styles.subCardTitleRow}>
-            <MaterialDesignIcons
-              name="star-circle-outline"
-              size={18}
-              color={formData.isSocialInfluencer ? theme.colors.primary : theme.colors.textSecondary}
-            />
-            <View style={styles.subCardTitleTexts}>
-              <Text style={[styles.subCardTitle, { color: theme.colors.text }]}>
-                {t('designatedSocialLeader') || 'Community / Social Influencer'}
-              </Text>
-              <Text style={[styles.subCardSubtitle, { color: theme.colors.textSecondary }]}>
-                {t('isSocialLeaderToggle') || 'Mark community leaders and influencers'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Toggle Switch */}
-          <Switch
-            value={Boolean(formData.isSocialInfluencer)}
-            onValueChange={handleSocialInfluencerToggle}
-            disabled={!canManageFamily}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary + '80' }}
-            thumbColor={formData.isSocialInfluencer ? theme.colors.primary : '#f4f3f4'}
-          />
-        </View>
-
-        {formData.isSocialInfluencer ? (
-          <View
-            style={[
-              styles.infoBadgeBox,
-              { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary + '30' },
-            ]}
-          >
-            <View style={styles.infoBadgeTop}>
-              <Text style={[styles.badgeLabel, { color: theme.colors.primary }]}>
-                {t('designatedSocialLeader') || 'Community / Social Leader'}
-              </Text>
-              {isEditMode && voterMeta?.socialInfluencedCount !== undefined && (
-                <View style={[styles.countBadge, { backgroundColor: theme.colors.primary }]}>
-                  <Text style={styles.countBadgeText}>
-                    {voterMeta.socialInfluencedCount} {t('votersCount') || 'voters'}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <Text style={[styles.badgeDescription, { color: theme.colors.text }]}>
-              {isEditMode && Number(voterMeta?.socialInfluencedCount) > 0
-                ? `${t('influencesVoters') || 'Influences'} ${voterMeta.socialInfluencedCount} ${t('votersCount') || 'voters'} across this community.`
-                : t('socialLeaderDescription') || 'Community leader. Other voters can be mapped under this influencer.'}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.linkContainer}>
-            <View style={styles.dropdownWithAction}>
-              <View style={styles.flex1}>
-                <AppDropdown
-                  label={t('linkSocialLeader') || 'Link Under Social Leader'}
-                  placeholder={
-                    loadingInfluencers
-                      ? t('loadingLeaders') || 'Loading leaders...'
-                      : socialInfluencerOptions.length > 0
-                      ? t('linkSocialLeader')
-                      : t('noInfluencersAvailable')
-                  }
-                  icon="account-star-outline"
-                  value={formData.socialInfluencerId}
-                  options={socialInfluencerOptions}
-                  disabled={!canManageFamily || socialInfluencerOptions.length === 0}
-                  searchable={true}
-                  onSelect={(val) => {
-                    setFormData((prev: any) => ({ ...prev, socialInfluencerId: val }));
-                  }}
-                />
-              </View>
-              {Boolean(formData.socialInfluencerId) && canManageFamily && (
-                <TouchableOpacity
-                  style={[styles.unlinkButton, { borderColor: theme.colors.error || '#EF4444' }]}
-                  onPress={handleUnlinkSocial}
-                >
-                  <MaterialDesignIcons name="link-off" size={16} color={theme.colors.error || '#EF4444'} />
-                  <Text style={[styles.unlinkText, { color: theme.colors.error || '#EF4444' }]}>
-                    {t('unlink') || 'Unlink'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
-      </View>
-
-      {!canManageFamily && (
-        <Text style={[styles.permissionHint, { color: theme.colors.textSecondary }]}>
-          {t('permissionInfluencersRequired') || 'Permission required to manage family and social influencer links'}
-        </Text>
-      )}
     </View>
   );
 };
@@ -344,7 +392,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bodyBold,
   },
   inputContainer: {
-    marginBottom: 16,
   },
   permissionHint: {
     fontSize: rfValue(11),
@@ -438,5 +485,31 @@ const styles = StyleSheet.create({
   unlinkText: {
     fontSize: rfValue(12),
     fontFamily: FontFamily.medium,
+  },
+  stateContainer: {
+    marginTop: 4,
+  },
+  manageMembersBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginTop: 10,
+    gap: 8,
+  },
+  manageMembersBtnText: {
+    color: '#FFFFFF',
+    fontSize: rfValue(12),
+    fontFamily: FontFamily.bodyBold,
+  },
+  saveFirstNotice: {
+    fontSize: rfValue(11),
+    fontFamily: FontFamily.body,
+    fontStyle: 'italic',
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 8,
   },
 });

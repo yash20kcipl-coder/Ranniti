@@ -10,6 +10,10 @@ import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 import { View, StyleSheet, Modal, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 
+declare const VideoCompressor: any;
+declare const ImageCompressor: any;
+declare const createThumbnail: any;
+
 interface AttachmentPickerModalProps {
   visible: boolean;
   onClose: () => void;

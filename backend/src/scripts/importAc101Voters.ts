@@ -168,7 +168,6 @@ export const importAc101Voters = async (): Promise<void> => {
         age: r['Age'] ? Number(r['Age']) : null,
         dob: r['DOB'] || null,
         mobile_no: truncateStr(r['Mobile No'], 15),
-        voter_type: truncateStr(r['Voter Type'], 50) || 'Voter',
         status: truncateStr(r['Status'], 20) || 'ACTIVE',
         is_dead: String(r['Is Dead'] || '').trim().toUpperCase() === 'YES',
         taluka: truncateStr(r['Taluka'], 150) || 'Gariadhar',
@@ -190,7 +189,7 @@ export const importAc101Voters = async (): Promise<void> => {
           'epic_no', 'state_id', 'district_id', 'pc_id', 'ac_id', 'ward_id', 'booth_id',
           'serial_no', 'section_no', 'house_no', 'first_name', 'middle_name',
           'surname', 'relation', 'guardian_name', 'gender', 'age', 'dob', 'mobile_no',
-          'voter_type', 'status', 'is_dead', 'taluka', 'village', 'full_address',
+          'status', 'is_dead', 'taluka', 'village', 'full_address',
           'voter_address', 'is_family_influencer', 'is_social_influencer',
         ],
         {

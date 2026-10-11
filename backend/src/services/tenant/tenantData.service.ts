@@ -2,7 +2,7 @@ import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/apiError';
 import { CacheService } from '../cache.service';
 import { query as mainQuery } from '../../queries/dbPool';
-import { getTenantDbPool } from '../../utils/tenantDbProvisioner';
+import { TenantPoolManager } from '../pool/tenantPoolManager';
 
 export interface TenantProfile {
   userId: string;
@@ -21,7 +21,20 @@ export interface TenantStats {
   totalVoters: number;
   totalBooths: number;
   totalVolunteers: number;
+  assignedBoothsCount: number;
+  genderBreakdown: { male: number; female: number; other: number };
+  partyBreakdown: Array<{ partyId: string | null; partyName: string; count: number; color?: string }>;
   acBreakdown: Array<{ acId: string; acName: string; voterCount: number }>;
+  recentVoters: Array<{
+    id: string;
+    epicNo: string;
+    name: string;
+    gender: string;
+    age: number;
+    partyId?: string;
+    partyName?: string;
+    createdAt: string;
+  }>;
 }
 
 export class TenantDataService {
@@ -65,31 +78,78 @@ export class TenantDataService {
       throw ApiError.badRequest('No tenant database is assigned to this user account');
     }
 
-    return CacheService.getOrSet(`ranniti:tenant:stats:${tenantDbName}`, 600, async () => {
-      const tenantPool = getTenantDbPool(tenantDbName);
+    return CacheService.getOrSet(`ranniti:tenant:stats:${tenantDbName}`, 300, async () => {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
 
       try {
         // 1. Total voters in tenant DB
         const votersCountRes = await tenantPool.query(`SELECT COUNT(*)::int as total FROM voters`);
         const totalVoters = votersCountRes.rows[0]?.total || 0;
 
-        // 2. Total polling booths in tenant DB
+        // 2. Total polling booths & assigned booths in tenant DB
         let totalBooths = 0;
+        let assignedBoothsCount = 0;
         try {
           const boothsCountRes = await tenantPool.query(`SELECT COUNT(*)::int as total FROM booths`);
           totalBooths = boothsCountRes.rows[0]?.total || 0;
+          const assignedRes = await tenantPool.query(`SELECT COUNT(DISTINCT booth_id)::int as total FROM voters WHERE booth_id IS NOT NULL`);
+          assignedBoothsCount = assignedRes.rows[0]?.total || 0;
         } catch {
           const distBoothRes = await tenantPool.query(`SELECT COUNT(DISTINCT booth_id)::int as total FROM voters WHERE booth_id IS NOT NULL`);
           totalBooths = distBoothRes.rows[0]?.total || 0;
+          assignedBoothsCount = totalBooths;
         }
 
         // 3. Total active volunteers assigned to this tenant
-        const volunteersCountRes = await tenantPool.query(
-          `SELECT COUNT(*)::int as total FROM tenant_users WHERE role IN ('pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter')`
-        );
-        const totalVolunteers = volunteersCountRes.rows[0]?.total || 0;
+        let totalVolunteers = 0;
+        try {
+          const volunteersCountRes = await tenantPool.query(
+            `SELECT COUNT(*)::int as total FROM tenant_users WHERE role IN ('pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter')`
+          );
+          totalVolunteers = volunteersCountRes.rows[0]?.total || 0;
+        } catch {
+          totalVolunteers = 0;
+        }
 
-        // 4. AC-wise breakdown in tenant DB
+        // 4. Gender breakdown
+        const genderBreakdown = { male: 0, female: 0, other: 0 };
+        try {
+          const genderRes = await tenantPool.query(
+            `SELECT LOWER(COALESCE(gender, 'other')) as gender, COUNT(*)::int as count FROM voters GROUP BY LOWER(COALESCE(gender, 'other'))`
+          );
+          genderRes.rows.forEach((r: any) => {
+            const g = r.gender?.trim();
+            if (g === 'm' || g === 'male') genderBreakdown.male += parseInt(r.count, 10);
+            else if (g === 'f' || g === 'female') genderBreakdown.female += parseInt(r.count, 10);
+            else genderBreakdown.other += parseInt(r.count, 10);
+          });
+        } catch {
+          // Fallback if column missing
+        }
+
+        // 5. Political party view breakdown
+        const partyBreakdown: Array<{ partyId: string | null; partyName: string; count: number; color?: string }> = [];
+        try {
+          const partyRes = await tenantPool.query(
+            `SELECT v.party_id as "partyId", COALESCE(p.name, 'Uncommitted') as "partyName", COALESCE(p.color, '#94A3B8') as "color", COUNT(*)::int as "count"
+             FROM voters v
+             LEFT JOIN parties p ON p.id = v.party_id
+             GROUP BY v.party_id, p.name, p.color
+             ORDER BY "count" DESC`
+          );
+          partyRes.rows.forEach((r: any) => {
+            partyBreakdown.push({
+              partyId: r.partyId || null,
+              partyName: r.partyName || 'Uncommitted',
+              count: parseInt(r.count, 10),
+              color: r.color,
+            });
+          });
+        } catch {
+          // Fallback
+        }
+
+        // 6. AC-wise breakdown in tenant DB
         let acBreakdown: Array<{ acId: string; acName: string; voterCount: number }> = [];
         try {
           const acRes = await tenantPool.query(
@@ -100,12 +160,49 @@ export class TenantDataService {
              ORDER BY "voterCount" DESC`
           );
           acBreakdown = acRes.rows.map((r: any) => ({
-            acId: String(r.acId),
-            acName: r.acName,
+            acId: String(r.acId || ''),
+            acName: r.acName || 'Unassigned AC',
             voterCount: parseInt(r.voterCount, 10),
           }));
         } catch {
           // Fallback if assembly_constituencies table is not populated inside tenant DB
+        }
+
+        // 7. Recent voter registrations (Latest 5)
+        let recentVoters: Array<{
+          id: string;
+          epicNo: string;
+          name: string;
+          gender: string;
+          age: number;
+          partyId?: string;
+          partyName?: string;
+          createdAt: string;
+        }> = [];
+        try {
+          const rvRes = await tenantPool.query(
+            `SELECT v.id, v.epic_no as "epicNo",
+                    TRIM(CONCAT(COALESCE(v.eng_first_name, v.first_name, ''), ' ', COALESCE(v.eng_surname, v.surname, ''))) as name,
+                    COALESCE(v.gender, 'M') as gender, COALESCE(v.age, 0) as age,
+                    v.party_id as "partyId", p.name as "partyName",
+                    v.created_at as "createdAt"
+             FROM voters v
+             LEFT JOIN parties p ON p.id = v.party_id
+             ORDER BY v.created_at DESC
+             LIMIT 5`
+          );
+          recentVoters = rvRes.rows.map((r: any) => ({
+            id: String(r.id),
+            epicNo: r.epicNo || '',
+            name: r.name?.trim() || 'Voter Record',
+            gender: r.gender || 'M',
+            age: parseInt(r.age, 10) || 0,
+            partyId: r.partyId || undefined,
+            partyName: r.partyName || undefined,
+            createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+          }));
+        } catch {
+          // Fallback
         }
 
         return {
@@ -113,13 +210,15 @@ export class TenantDataService {
           totalVoters,
           totalBooths,
           totalVolunteers,
+          assignedBoothsCount,
+          genderBreakdown,
+          partyBreakdown,
           acBreakdown,
+          recentVoters,
         };
       } catch (err: any) {
         logger.error(`[TenantDataService] Failed to fetch stats for DB '${tenantDbName}':`, err);
         throw ApiError.internal(`Failed to access tenant database '${tenantDbName}'`);
-      } finally {
-        await tenantPool.end();
       }
     });
   }
@@ -127,16 +226,24 @@ export class TenantDataService {
   /**
    * Retrieves assigned constituencies (PCs and ACs) for the tenant
    */
-  async getTenantConstituencies(userId: string): Promise<any> {
+  async getTenantConstituencies(userId: string, tenantDbName?: string | null): Promise<any> {
     const profile = await this.getTenantProfile(userId);
+    const targetDbName = tenantDbName || profile.tenantDbName;
     const pcIds = profile.assignedPcIds || [];
     const acIds = profile.assignedAcIds || [];
 
     let pcs: any[] = [];
     let acs: any[] = [];
 
+    const executeQuery = async (sql: string, params: any[]) => {
+      if (targetDbName) {
+        return TenantPoolManager.query(targetDbName, sql, params);
+      }
+      return mainQuery(sql, params);
+    };
+
     if (pcIds.length > 0) {
-      const pcsRes = await mainQuery(
+      const pcsRes = await executeQuery(
         `SELECT p.id, p.name, p.pc_number as "pcNumber", p.state_id as "stateId", s.name as "stateName",
                 p.created_at as "createdAt", p.updated_at as "updatedAt"
          FROM parliamentary_constituencies p
@@ -149,7 +256,7 @@ export class TenantDataService {
     }
 
     if (acIds.length > 0) {
-      const acsRes = await mainQuery(
+      const acsRes = await executeQuery(
         `SELECT a.id, a.name, a.ac_number as "acNumber", a.pc_id as "pcId", pc.name as "pcName",
                 a.district_id as "districtId", d.name as "districtName",
                 COALESCE(sp.id, sd.id) as "stateId", COALESCE(sp.name, sd.name) as "stateName",
@@ -180,7 +287,7 @@ export class TenantDataService {
       throw ApiError.badRequest('No tenant database is assigned to this user account');
     }
 
-    const tenantPool = getTenantDbPool(tenantDbName);
+    const tenantPool = TenantPoolManager.getPool(tenantDbName);
 
     try {
       const res = await tenantPool.query(
@@ -195,8 +302,6 @@ export class TenantDataService {
     } catch (err: any) {
       logger.error(`[TenantDataService] Failed to fetch booths for DB '${tenantDbName}':`, err);
       return [];
-    } finally {
-      await tenantPool.end();
     }
   }
 }

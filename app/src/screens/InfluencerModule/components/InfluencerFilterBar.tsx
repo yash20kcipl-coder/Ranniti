@@ -10,45 +10,80 @@ import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 interface InfluencerFilterBarProps {
   selectedBoothName?: string;
   onOpenBoothModal: () => void;
+  onClearBoothFilter?: () => void;
   isVolunteer?: boolean;
+  totalCount?: number;
 }
 
 export const InfluencerFilterBar: React.FC<InfluencerFilterBarProps> = ({
   selectedBoothName,
   onOpenBoothModal,
+  onClearBoothFilter,
   isVolunteer = false,
+  totalCount,
 }) => {
   const { t } = useLanguage();
   const { theme, styles } = useAppTheme(createStyles);
+  const isFiltered = Boolean(selectedBoothName);
 
   return (
     <View style={styles.container}>
-      {/* Title / Description */}
+      {/* Title / Description with Count Chip */}
       <View style={styles.titleWrapper}>
-        <MaterialDesignIcons name="account-star-outline" size={16} color={theme.colors.primary} />
-        <Text style={styles.titleText}>{t('socialInfluencers') || 'Social Influencers'}</Text>
+        <View style={[styles.titleIconBox, { backgroundColor: `${theme.colors.primary}15` }]}>
+          <MaterialDesignIcons name="account-star" size={15} color={theme.colors.primary} />
+        </View>
+        <Text style={[styles.titleText, { color: theme.colors.text }]}>
+          {t('socialInfluencers') || 'Social Influencers'}
+        </Text>
+        {totalCount !== undefined && (
+          <View style={[styles.countChip, { backgroundColor: theme.colors.inputBackground }]}>
+            <Text style={[styles.countChipText, { color: theme.colors.textSecondary }]}>
+              {totalCount}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Territory / Booth Filter Button */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={onOpenBoothModal}
-        style={[styles.boothPill, Boolean(selectedBoothName) && styles.boothPillActive]}
-      >
-        <MaterialDesignIcons
-          size={14}
-          name="map-marker-multiple"
-          color={selectedBoothName ? theme.colors.primary : theme.colors.textSecondary}
-        />
-        <Text style={[styles.boothPillText, Boolean(selectedBoothName) && styles.boothPillTextActive]} numberOfLines={1}>
-          {selectedBoothName || (isVolunteer ? (t('assignedBooths') || 'Assigned Booths') : (t('filterBooth') || 'Filter Booth'))}
-        </Text>
-        <MaterialDesignIcons
-          size={14}
-          name="chevron-down"
-          color={selectedBoothName ? theme.colors.primary : theme.colors.textSecondary}
-        />
-      </TouchableOpacity>
+      <View style={styles.filterActionsRow}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onOpenBoothModal}
+          style={[styles.boothPill, isFiltered && styles.boothPillActive]}
+        >
+          <MaterialDesignIcons
+            size={13}
+            name="map-marker-multiple"
+            color={isFiltered ? theme.colors.primary : theme.colors.textSecondary}
+          />
+          <Text
+            style={[styles.boothPillText, isFiltered && styles.boothPillTextActive]}
+            numberOfLines={1}
+          >
+            {selectedBoothName ||
+              (isVolunteer
+                ? t('assignedBooths') || 'Assigned Booths'
+                : t('filterBooth') || 'Filter Booth')}
+          </Text>
+          <MaterialDesignIcons
+            size={13}
+            name="chevron-down"
+            color={isFiltered ? theme.colors.primary : theme.colors.textSecondary}
+          />
+        </TouchableOpacity>
+
+        {/* Clear Filter Icon Button */}
+        {isFiltered && onClearBoothFilter && (
+          <TouchableOpacity
+            style={[styles.clearBtn, { backgroundColor: theme.colors.inputBackground }]}
+            onPress={onClearBoothFilter}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <MaterialDesignIcons name="close" size={13} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 };
@@ -65,24 +100,45 @@ const createStyles = (theme: Theme) =>
     titleWrapper: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 7,
+      flex: 1,
+    },
+    titleIconBox: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     titleText: {
       fontFamily: FontFamily.bold,
-      fontSize: rfValue(13),
-      color: theme.colors.text || '#0F172A',
+      fontSize: rfValue(13.5),
+    },
+    countChip: {
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    countChipText: {
+      fontFamily: FontFamily.medium,
+      fontSize: rfValue(10.5),
+    },
+    filterActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
     },
     boothPill: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
+      paddingHorizontal: 11,
+      paddingVertical: 6,
       borderRadius: 12,
-      backgroundColor: theme.colors.subtleSurface || '#F8FAFC',
+      backgroundColor: theme.colors.surface || '#FFFFFF',
       borderWidth: 1,
       borderColor: theme.colors.border || '#E2E8F0',
-      maxWidth: 170,
+      maxWidth: 160,
     },
     boothPillActive: {
       backgroundColor: `${theme.colors.primary}12`,
@@ -92,10 +148,17 @@ const createStyles = (theme: Theme) =>
       fontFamily: FontFamily.medium,
       fontSize: rfValue(11),
       color: theme.colors.textSecondary || '#64748B',
-      flex: 1,
+      flexShrink: 1,
     },
     boothPillTextActive: {
       fontFamily: FontFamily.bold,
       color: theme.colors.primary || '#1E40AF',
+    },
+    clearBtn: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
   });

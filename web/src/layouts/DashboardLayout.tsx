@@ -1,10 +1,14 @@
+import { useAppDispatch } from '@/redux/hooks';
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { resolveBreadcrumbs } from './utils/breadcrumbs';
 import { Sidebar, Topbar, CommandPalette } from './components';
+import { checkAndSyncTenantDatasets } from '@/redux/actions/syncActions';
 import { BackgroundImportWidget } from '@/components/common/BackgroundImportWidget';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 
 export const DashboardLayout: React.FC = () => {
+  const dispatch = useAppDispatch();
   const location = useLocation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -15,6 +19,11 @@ export const DashboardLayout: React.FC = () => {
       return false;
     }
   });
+
+  // Sync manifest check on layout mount
+  useDebouncedEffect(() => {
+    dispatch(checkAndSyncTenantDatasets());
+  }, 200, [dispatch]);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -56,7 +65,7 @@ export const DashboardLayout: React.FC = () => {
   const { title, breadcrumbs } = resolveBreadcrumbs(location.pathname);
 
   return (
-    <div className="h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex overflow-hidden antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-200">
+    <div className="h-screen w-full bg-[#eef4fa] dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 flex overflow-hidden antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-200 font-slab">
       {/* Accessibility Skip Link */}
       <a
         href="#main-content"
@@ -90,9 +99,9 @@ export const DashboardLayout: React.FC = () => {
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 outline-none"
+          className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 outline-none bg-[#F4F6F9] dark:bg-[#0a0f1d]"
         >
-          <div className="mx-auto w-full">
+          <div key={location.pathname} className="mx-auto w-full animate-tab-fade">
             <Outlet />
           </div>
         </main>

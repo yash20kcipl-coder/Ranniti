@@ -211,12 +211,27 @@ export const BoothsPage: React.FC = () => {
 
   // Columns Definition
   const columns: Column<any>[] = [
-    { key: 'boothNumber', header: 'Booth No.', sortable: true },
-    { key: 'name', header: 'Polling Station Name', sortable: true },
-    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => row.locationBuilding || '-' },
-    { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => row.acName || '-' },
-    { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => row.wardName || '-' },
-    { key: 'totalVoters', header: 'Total Voters', sortable: true, render: (row) => row.totalVoters ?? 0 },
+    {
+      key: 'boothNumber',
+      header: 'Booth No.',
+      sortable: true,
+      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.boothNumber || '-'}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Polling Station Name',
+      sortable: true,
+      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+    },
+    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.locationBuilding || '-'}</span> },
+    { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.acName || '-'}</span> },
+    { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.wardName || '-'}</span> },
+    {
+      key: 'totalVoters',
+      header: 'Total Voters',
+      sortable: true,
+      render: (row) => <span className="font-mono font-semibold text-xs text-slate-700 dark:text-slate-300">{(row.totalVoters ?? 0).toLocaleString()}</span>,
+    },
   ];
 
   const handleOpenAdd = () => {
@@ -317,17 +332,22 @@ export const BoothsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
-        addLabel="Add Booth"
-        icon={<Vote className="w-6 h-6 text-indigo-500" />}
-        isSyncing={isSyncing}
         title="Polling Booths"
+        icon={<Vote className="w-6 h-6 text-indigo-500" />}
+        subtitle="Manage individual polling booth locations under Wards and Assembly Constituencies."
+        badge={
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
+            {boothsPagination?.total ?? boothsData.length} {(boothsPagination?.total ?? boothsData.length) === 1 ? 'Record' : 'Records'}
+          </span>
+        }
+        addLabel="Add Booth"
+        isSyncing={isSyncing}
         onSyncClick={handleSync}
         onAddClick={handleOpenAdd}
         onExportClick={handleExport}
         onImportClick={() => setIsImportModalOpen(true)}
-        subtitle="Manage individual polling booth locations under Wards and Assembly Constituencies."
       />
 
       <FilterBar
@@ -338,35 +358,33 @@ export const BoothsPage: React.FC = () => {
         onReset={handleResetFilters}
       />
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:p-1 shadow-sm overflow-hidden">
-        <DataTable
-          columns={columns}
-          loading={loading}
-          data={boothsData}
-          showHeader={false}
-          serverPagination={
-            boothsPagination
-              ? {
-                page: boothsPagination.page,
-                limit: boothsPagination.limit,
-                total: boothsPagination.total,
-                totalPages: boothsPagination.totalPages,
-                onPageChange: (newPage) => setPage(newPage),
-                onLimitChange: (newLimit) => {
-                  setLimit(newLimit);
-                  setPage(1);
-                },
-              }
-              : undefined
-          }
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEdit(row)}
-              onDelete={() => handleOpenDelete(row)}
-            />
-          )}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        loading={loading}
+        data={boothsData}
+        showHeader={false}
+        serverPagination={
+          boothsPagination
+            ? {
+              page: boothsPagination.page,
+              limit: boothsPagination.limit,
+              total: boothsPagination.total,
+              totalPages: boothsPagination.totalPages,
+              onPageChange: (newPage) => setPage(newPage),
+              onLimitChange: (newLimit) => {
+                setLimit(newLimit);
+                setPage(1);
+              },
+            }
+            : undefined
+        }
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEdit(row)}
+            onDelete={() => handleOpenDelete(row)}
+          />
+        )}
+      />
 
       <BoothFormModal
         isOpen={isModalOpen}

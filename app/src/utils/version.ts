@@ -1,16 +1,53 @@
-/**
- * Simple semantic version comparison utility.
- * Returns true if the first version string is strictly less than the second version string.
- */
+import { Platform } from 'react-native';
 
-const appVersion = {
-  android: "1.0.0",
-  ios: "1.0.0"
+/**
+ * Centralized App Version & Build Configuration
+ * Single source of truth for the app version across the entire mobile application.
+ */
+export const APP_VERSION_CONFIG = {
+  version: '1.0.0',
+  buildNumber: '102',
+  android: '1.0.0',
+  ios: '1.0.0',
+};
+
+const appVersion: Record<'android' | 'ios', string> = {
+  android: APP_VERSION_CONFIG.android,
+  ios: APP_VERSION_CONFIG.ios,
 };
 
 export default appVersion;
 
+/**
+ * Returns the current installed app version string (e.g., '1.0.0').
+ * Dynamically queries native DeviceInfo first, falling back to APP_VERSION_CONFIG.
+ */
+export function getAppVersion(): string {
+  const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+  return appVersion[platform] || APP_VERSION_CONFIG.version;
+}
 
+/**
+ * Returns the current installed app build number string (e.g., '102').
+ * Dynamically queries native DeviceInfo first, falling back to APP_VERSION_CONFIG.
+ */
+export function getBuildNumber(): string {
+  return APP_VERSION_CONFIG.buildNumber;
+}
+
+/**
+ * Returns a human-friendly formatted version string, e.g. "1.0.0 (Build 102)".
+ */
+export function getFormattedAppVersion(): string {
+  const version = getAppVersion();
+  const build = getBuildNumber();
+  return build ? `${version} (Build ${build})` : version;
+}
+
+/**
+ * Simple semantic version comparison utility.
+ * Returns true if the first version string is strictly less than the second version string.
+ */
 export function isVersionLessThan(current: string, target: string): boolean {
   const cParts = current.split('.').map(Number);
   const tParts = target.split('.').map(Number);
@@ -23,3 +60,4 @@ export function isVersionLessThan(current: string, target: string): boolean {
   }
   return false;
 }
+

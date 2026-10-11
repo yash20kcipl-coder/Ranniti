@@ -14,10 +14,10 @@
  */
 
 import { logger } from '../../utils/logger';
-import { query as masterQuery, closeDbPool } from '../../queries/dbPool';
-import { TenantPoolManager } from '../../utils/tenantPoolManager';
-import { generateVolunteerDefaultPassword } from '../../utils/volunteerPassword';
 import { hashPassword } from '../../utils/password';
+import { query as masterQuery, closeDbPool } from '../../queries/dbPool';
+import { TenantPoolManager } from '../../services/pool/tenantPoolManager';
+import { generateVolunteerDefaultPassword } from '../../utils/volunteerPassword';
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -137,7 +137,7 @@ export const seedVolunteers = async (): Promise<void> => {
       }
 
       const allAcs = acsRes.rows;
-      const firstPcId  = allAcs[0].pc_id;
+      const firstPcId = allAcs[0].pc_id;
       const firstPcName = allAcs[0].pc_name;
       const pcsAcs = allAcs.filter((a: any) => a.pc_id === firstPcId);
 
@@ -164,164 +164,164 @@ export const seedVolunteers = async (): Promise<void> => {
       // ── 1. PC LEADER (Assigned ALL booths in the PC) ──────────────────────
       logger.info(`  ── PC: ${firstPcName}`);
       const pcLeaderId = await upsertVolunteer({
-        name:           `Suresh ${firstPcName}`,
-        email:          `pc.leader.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}01`,
-        role:           'pc_leader',
-        roleName:       `${firstPcName} PC Leader`,
-        tenantDbName:   dbName,
+        name: `Suresh ${firstPcName}`,
+        email: `pc.leader.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}01`,
+        role: 'pc_leader',
+        roleName: `${firstPcName} PC Leader`,
+        tenantDbName: dbName,
         parentLeaderId: null,
-        assignedAcId:   null,
-        boothIds:       allPcBooths,
+        assignedAcId: null,
+        boothIds: allPcBooths,
       });
 
       // ── 2. AC LEADERS (Assigned ALL booths in their respective AC) ────────
       logger.info(`  ── AC 1: ${ac1.ac_name}`);
       const acLeader1Id = await upsertVolunteer({
-        name:           `Rajesh ${ac1.ac_name.replace(/\s+/g, '')}`,
-        email:          `ac1.leader.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}02`,
-        role:           'ac_leader',
-        roleName:       `${ac1.ac_name} Assembly Leader`,
-        tenantDbName:   dbName,
+        name: `Rajesh ${ac1.ac_name.replace(/\s+/g, '')}`,
+        email: `ac1.leader.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}02`,
+        role: 'ac_leader',
+        roleName: `${ac1.ac_name} Assembly Leader`,
+        tenantDbName: dbName,
         parentLeaderId: pcLeaderId,
-        assignedAcId:   ac1.ac_id,
-        boothIds:       booths1,
+        assignedAcId: ac1.ac_id,
+        boothIds: booths1,
       });
 
       logger.info(`  ── AC 2: ${ac2.ac_name}`);
       const acLeader2Id = await upsertVolunteer({
-        name:           `Priya ${ac2.ac_name.replace(/\s+/g, '')}`,
-        email:          `ac2.leader.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}03`,
-        role:           'ac_leader',
-        roleName:       `${ac2.ac_name} Assembly Leader`,
-        tenantDbName:   dbName,
+        name: `Priya ${ac2.ac_name.replace(/\s+/g, '')}`,
+        email: `ac2.leader.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}03`,
+        role: 'ac_leader',
+        roleName: `${ac2.ac_name} Assembly Leader`,
+        tenantDbName: dbName,
         parentLeaderId: pcLeaderId,
-        assignedAcId:   ac2.ac_id,
-        boothIds:       booths2,
+        assignedAcId: ac2.ac_id,
+        boothIds: booths2,
       });
 
       // ── 3. SUB-LEADERS (Assigned specific booths within their AC) ─────────
       const subLeader1Id = await upsertVolunteer({
-        name:           `Anil WardA ${ac1.ac_name.replace(/\s+/g, '')}`,
-        email:          `sub1.leader.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}04`,
-        role:           'sub_leader',
-        roleName:       `${ac1.ac_name} Ward-A Coordinator`,
-        tenantDbName:   dbName,
+        name: `Anil WardA ${ac1.ac_name.replace(/\s+/g, '')}`,
+        email: `sub1.leader.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}04`,
+        role: 'sub_leader',
+        roleName: `${ac1.ac_name} Ward-A Coordinator`,
+        tenantDbName: dbName,
         parentLeaderId: acLeader1Id,
-        assignedAcId:   ac1.ac_id,
-        boothIds:       booths1.slice(0, 1),  // booth 1
+        assignedAcId: ac1.ac_id,
+        boothIds: booths1.slice(0, 1),  // booth 1
       });
 
       const subLeader2Id = await upsertVolunteer({
-        name:           `Balu WardB ${ac1.ac_name.replace(/\s+/g, '')}`,
-        email:          `sub2.leader.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}05`,
-        role:           'sub_leader',
-        roleName:       `${ac1.ac_name} Ward-B Coordinator`,
-        tenantDbName:   dbName,
+        name: `Balu WardB ${ac1.ac_name.replace(/\s+/g, '')}`,
+        email: `sub2.leader.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}05`,
+        role: 'sub_leader',
+        roleName: `${ac1.ac_name} Ward-B Coordinator`,
+        tenantDbName: dbName,
         parentLeaderId: acLeader1Id,
-        assignedAcId:   ac1.ac_id,
-        boothIds:       booths1.slice(1, 2),  // booth 2
+        assignedAcId: ac1.ac_id,
+        boothIds: booths1.slice(1, 2),  // booth 2
       });
 
       const subLeader3Id = await upsertVolunteer({
-        name:           `Kiran WardC ${ac2.ac_name.replace(/\s+/g, '')}`,
-        email:          `sub3.leader.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}06`,
-        role:           'sub_leader',
-        roleName:       `${ac2.ac_name} Ward-C Coordinator`,
-        tenantDbName:   dbName,
+        name: `Kiran WardC ${ac2.ac_name.replace(/\s+/g, '')}`,
+        email: `sub3.leader.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}06`,
+        role: 'sub_leader',
+        roleName: `${ac2.ac_name} Ward-C Coordinator`,
+        tenantDbName: dbName,
         parentLeaderId: acLeader2Id,
-        assignedAcId:   ac2.ac_id,
-        boothIds:       booths2.slice(0, 1),  // booth 1
+        assignedAcId: ac2.ac_id,
+        boothIds: booths2.slice(0, 1),  // booth 1
       });
 
       const subLeader4Id = await upsertVolunteer({
-        name:           `Deepa WardD ${ac2.ac_name.replace(/\s+/g, '')}`,
-        email:          `sub4.leader.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}07`,
-        role:           'sub_leader',
-        roleName:       `${ac2.ac_name} Ward-D Coordinator`,
-        tenantDbName:   dbName,
+        name: `Deepa WardD ${ac2.ac_name.replace(/\s+/g, '')}`,
+        email: `sub4.leader.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}07`,
+        role: 'sub_leader',
+        roleName: `${ac2.ac_name} Ward-D Coordinator`,
+        tenantDbName: dbName,
         parentLeaderId: acLeader2Id,
-        assignedAcId:   ac2.ac_id,
-        boothIds:       booths2.slice(1, 2),  // booth 2
+        assignedAcId: ac2.ac_id,
+        boothIds: booths2.slice(1, 2),  // booth 2
       });
 
       // ── 4. SUPPORTERS (1 booth matching their parent sub-leader) ──────────
       await upsertVolunteer({
-        name:           `Ramesh Voter AC1`,
-        email:          `supporter1.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}08`,
-        role:           'supporter',
-        roleName:       'Booth Campaign Supporter',
-        tenantDbName:   dbName,
+        name: `Ramesh Voter AC1`,
+        email: `supporter1.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}08`,
+        role: 'supporter',
+        roleName: 'Booth Campaign Supporter',
+        tenantDbName: dbName,
         parentLeaderId: subLeader1Id,
-        assignedAcId:   ac1.ac_id,
-        boothIds:       booths1.slice(0, 1),  // booth 1 under SubLeader1
+        assignedAcId: ac1.ac_id,
+        boothIds: booths1.slice(0, 1),  // booth 1 under SubLeader1
       });
 
       await upsertVolunteer({
-        name:           `Kavita Ground AC1`,
-        email:          `supporter2.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}09`,
-        role:           'supporter',
-        roleName:       'Booth Campaign Supporter',
-        tenantDbName:   dbName,
+        name: `Kavita Ground AC1`,
+        email: `supporter2.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}09`,
+        role: 'supporter',
+        roleName: 'Booth Campaign Supporter',
+        tenantDbName: dbName,
         parentLeaderId: subLeader2Id,
-        assignedAcId:   ac1.ac_id,
-        boothIds:       booths1.slice(1, 2),  // booth 2 under SubLeader2
+        assignedAcId: ac1.ac_id,
+        boothIds: booths1.slice(1, 2),  // booth 2 under SubLeader2
       });
 
       await upsertVolunteer({
-        name:           `Manoj Field AC1`,
-        email:          `supporter3.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}10`,
-        role:           'supporter',
-        roleName:       'Booth Campaign Supporter',
-        tenantDbName:   dbName,
+        name: `Manoj Field AC1`,
+        email: `supporter3.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}10`,
+        role: 'supporter',
+        roleName: 'Booth Campaign Supporter',
+        tenantDbName: dbName,
         parentLeaderId: subLeader1Id,
-        assignedAcId:   ac1.ac_id,
-        boothIds:       booths1.slice(0, 1),  // booth 1 under SubLeader1
+        assignedAcId: ac1.ac_id,
+        boothIds: booths1.slice(0, 1),  // booth 1 under SubLeader1
       });
 
       await upsertVolunteer({
-        name:           `Sunita Booth AC2`,
-        email:          `supporter4.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}11`,
-        role:           'supporter',
-        roleName:       'Booth Campaign Supporter',
-        tenantDbName:   dbName,
+        name: `Sunita Booth AC2`,
+        email: `supporter4.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}11`,
+        role: 'supporter',
+        roleName: 'Booth Campaign Supporter',
+        tenantDbName: dbName,
         parentLeaderId: subLeader3Id,
-        assignedAcId:   ac2.ac_id,
-        boothIds:       booths2.slice(0, 1),  // booth 1 under SubLeader3
+        assignedAcId: ac2.ac_id,
+        boothIds: booths2.slice(0, 1),  // booth 1 under SubLeader3
       });
 
       await upsertVolunteer({
-        name:           `Raju Campaign AC2`,
-        email:          `supporter5.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}12`,
-        role:           'supporter',
-        roleName:       'Booth Campaign Supporter',
-        tenantDbName:   dbName,
+        name: `Raju Campaign AC2`,
+        email: `supporter5.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}12`,
+        role: 'supporter',
+        roleName: 'Booth Campaign Supporter',
+        tenantDbName: dbName,
         parentLeaderId: subLeader4Id,
-        assignedAcId:   ac2.ac_id,
-        boothIds:       booths2.slice(1, 2),  // booth 2 under SubLeader4
+        assignedAcId: ac2.ac_id,
+        boothIds: booths2.slice(1, 2),  // booth 2 under SubLeader4
       });
 
       await upsertVolunteer({
-        name:           `Anita Voter AC2`,
-        email:          `supporter6.${shortDb}@ranniti.field`,
-        mobile:         `91${mobileBase}13`,
-        role:           'supporter',
-        roleName:       'Booth Campaign Supporter',
-        tenantDbName:   dbName,
+        name: `Anita Voter AC2`,
+        email: `supporter6.${shortDb}@ranniti.field`,
+        mobile: `91${mobileBase}13`,
+        role: 'supporter',
+        roleName: 'Booth Campaign Supporter',
+        tenantDbName: dbName,
         parentLeaderId: subLeader4Id,
-        assignedAcId:   ac2.ac_id,
-        boothIds:       booths2.slice(1, 2),  // booth 2 under SubLeader4
+        assignedAcId: ac2.ac_id,
+        boothIds: booths2.slice(1, 2),  // booth 2 under SubLeader4
       });
 
       logger.info(`  ✅ Seeded 13 volunteers for ${tenantName} (1 PC + 2 AC + 4 Sub + 6 Supporters)`);

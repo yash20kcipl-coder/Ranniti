@@ -47,14 +47,15 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
 }) => {
   return (
     <SectionContainer
+      id="influencer"
       icon={<Users size={18} />}
       iconBg="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400"
       title="Party Affiliation & Influencer Networks"
       subtitle="Political party alignment, household leadership & community influencer mapping"
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Political Party Card */}
-        <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl shadow-xs space-y-3">
+        <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 md:p-5 shadow-xs space-y-3">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               <Flag className="w-4 h-4" />
@@ -74,10 +75,10 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
         </div>
 
         {/* Two-Column Grid: Family Network & Community Influence */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* CARD 1: Household & Family Network */}
           <div
-            className={`p-5 rounded-2xl border shadow-xs transition-all space-y-4 ${formData.isFamilyInfluencer
+            className={`p-4 md:p-5 rounded-xl border shadow-xs transition-all space-y-4 ${formData.isFamilyInfluencer
               ? 'bg-purple-50/60 dark:bg-purple-950/20 border-purple-200 dark:border-purple-500/30'
               : formData.familyInfluencerId
                 ? 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800'
@@ -314,7 +315,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
 
           {/* CARD 2: Community & Social Influence */}
           <div
-            className={`p-5 rounded-2xl border shadow-xs transition-all space-y-4 ${formData.isSocialInfluencer
+            className={`p-4 md:p-5 rounded-xl border shadow-xs transition-all space-y-4 ${formData.isSocialInfluencer
               ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-500/30'
               : formData.socialInfluencerId
                 ? 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800'

@@ -17,7 +17,7 @@ export class FamilyMappingController {
       return;
     }
 
-    const tenantDbName = (req.user as any)?.tenantDbName || (req as any).tenantDbName;
+    const tenantDbName = req.tenantDbName || req.user?.tenantDbName;
 
     const result = await FamilyMappingService.autoMapBoothFamilies(tenantDbName, {
       boothId,
@@ -43,7 +43,7 @@ export class FamilyMappingController {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
     const minMembers = req.query.minMembers ? parseInt(req.query.minMembers as string, 10) : undefined;
 
-    const tenantDbName = (req.user as any)?.tenantDbName || (req as any).tenantDbName;
+    const tenantDbName = req.tenantDbName || req.user?.tenantDbName || undefined;
 
     const result = await FamilyMappingService.getFamiliesList({
       tenantDbName,
@@ -78,7 +78,7 @@ export class FamilyMappingController {
   static getFamilyMembers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const headId = req.params.headId as string;
 
-    const tenantDbName = (req.user as any)?.tenantDbName || (req as any).tenantDbName;
+    const tenantDbName = req.tenantDbName || req.user?.tenantDbName;
 
     const result = await FamilyMappingService.getFamilyMembers(tenantDbName, headId);
 
@@ -109,7 +109,7 @@ export class FamilyMappingController {
       return;
     }
 
-    const tenantDbName = (req.user as any)?.tenantDbName || (req as any).tenantDbName;
+    const tenantDbName = req.tenantDbName || req.user?.tenantDbName;
 
     await FamilyMappingService.setNewFamilyHead(tenantDbName, currentHeadId, newHeadId);
     const response = ApiResponse.success(null, 'Family head role successfully reassigned');
