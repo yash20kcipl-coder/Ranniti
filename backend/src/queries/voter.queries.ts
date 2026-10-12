@@ -1,6 +1,7 @@
 import { query, dbPool } from './dbPool';
 import { logger } from '../utils/logger';
 import { getTenantDbPool } from '../utils/tenantDbProvisioner';
+import { normalizeRelation } from '../utils/relationNormalizer';
 import { TenantPoolManager } from '../services/pool/tenantPoolManager';
 import { MasterAutoSyncService } from '../services/sync/masterAutoSync.service';
 import { Voter, VoterFilterParams, VoterStats, InfluencerOption, FamilyCandidateParams, SocialCandidateParams } from '../models/voter.model';
@@ -477,21 +478,21 @@ export class VoterQueries {
         toNullableUuid(data.pcId),
         toNullableUuid(data.acId),
         toNullableUuid(data.boothId),
-        toNullableInt(data.serialNo),
-        toNullableInt(data.sectionNo),
-        toNullableString(data.houseNo),
-        toNullableString(data.firstName),
-        toNullableString(data.engFirstName),
+        toNullableInt(data.serialNo ?? (data as any).serialNumber),
+        toNullableInt(data.sectionNo ?? (data as any).sectionNumber),
+        toNullableString(data.houseNo || (data as any).houseNumber),
+        toNullableString(data.firstName || (data as any).fullName),
+        toNullableString(data.engFirstName || (data as any).nameEn),
         toNullableString(data.middleName),
         toNullableString(data.engMiddleName),
         toNullableString(data.surname),
         toNullableString(data.engSurname),
-        toNullableString(data.relation),
-        toNullableString(data.guardianName),
+        toNullableString(data.relation ? normalizeRelation(data.relation) : ((data as any).relativeType ? normalizeRelation((data as any).relativeType) : null)),
+        toNullableString(data.guardianName || (data as any).relativeName),
         toNullableString(data.gender),
         toNullableDate(data.dob),
         toNullableInt(data.age),
-        toNullableString(data.mobileNo),
+        toNullableString(data.mobileNo || (data as any).mobileNumber),
         toNullableString(data.email),
         toNullableString(data.aadhaarNo),
         toNullableString(data.panNo),
@@ -565,7 +566,7 @@ export class VoterQueries {
       let pIndex = 1;
 
       for (const data of chunk) {
-        const tuplePlaceholders = Array.from({ length: 44 }, (_, idx) => `$${pIndex + idx}`).join(', ');
+        const tuplePlaceholders = Array.from({ length: 43 }, (_, idx) => `$${pIndex + idx}`).join(', ');
         valueTuples.push(`(${tuplePlaceholders})`);
 
         valuesParams.push(
@@ -575,21 +576,21 @@ export class VoterQueries {
           data.pcId || null,
           data.acId || null,
           data.boothId || null,
-          data.serialNo || null,
-          data.sectionNo || null,
-          data.houseNo || null,
-          data.firstName || null,
-          data.engFirstName || null,
+          data.serialNo ?? (data as any).serialNumber ?? null,
+          data.sectionNo ?? (data as any).sectionNumber ?? null,
+          data.houseNo || (data as any).houseNumber || null,
+          data.firstName || (data as any).fullName || null,
+          data.engFirstName || (data as any).nameEn || null,
           data.middleName || null,
           data.engMiddleName || null,
           data.surname || null,
           data.engSurname || null,
-          data.relation || null,
-          data.guardianName || null,
+          data.relation ? normalizeRelation(data.relation) : ((data as any).relativeType ? normalizeRelation((data as any).relativeType) : null),
+          data.guardianName || (data as any).relativeName || null,
           data.gender || null,
           data.dob || null,
           data.age || null,
-          data.mobileNo || null,
+          data.mobileNo || (data as any).mobileNumber || null,
           data.email || null,
           data.aadhaarNo || null,
           data.panNo || null,
@@ -798,7 +799,7 @@ export class VoterQueries {
         toNullableString(data.village),
         toNullableString(data.fullAddress),
         toNullableString(data.voterAddress),
-        toNullableString(data.relation),
+        toNullableString(data.relation ? normalizeRelation(data.relation) : null),
         toNullableString(data.guardianName),
         toNullableUuid(data.partyId),
         toNullableUuid(data.familyInfluencerId),

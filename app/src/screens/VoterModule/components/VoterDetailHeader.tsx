@@ -86,20 +86,20 @@ export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, 
               style={[
                 styles.badge,
                 {
-                  backgroundColor: voter.isVoted ? '#DCFCE7' : '#FEE2E2',
-                  borderColor: voter.isVoted ? '#BBF7D0' : '#FECACA',
+                  backgroundColor: voter.isVoted ? '#DCFCE7' : theme.colors.secondaryLight,
+                  borderColor: voter.isVoted ? '#BBF7D0' : theme.colors.secondaryBorder,
                 },
               ]}
             >
               <MaterialDesignIcons
                 name={voter.isVoted ? 'check-circle' : 'close-circle'}
                 size={13}
-                color={voter.isVoted ? '#15803D' : '#B91C1C'}
+                color={voter.isVoted ? '#15803D' : theme.colors.secondary}
               />
               <Text
                 style={[
                   styles.badgeText,
-                  { color: voter.isVoted ? '#15803D' : '#B91C1C' },
+                  { color: voter.isVoted ? '#15803D' : theme.colors.secondary },
                 ]}
               >
                 {voter.isVoted ? t('voted') : t('notVoted')}

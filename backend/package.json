@@ -9,6 +9,8 @@
     "start": "node dist/server.js",
     "seed": "tsx src/seeds/index.ts",
     "dev": "tsx watch src/server.ts",
+    "migrate": "tsx src/scripts/migrateMaster.ts && tsx src/scripts/migrateTenants.ts",
+    "migrate:master": "tsx src/scripts/migrateMaster.ts",
     "migrate:tenants": "tsx src/scripts/migrateTenants.ts",
     "test:voter-filters": "tsx src/scripts/testVoterFilters.ts",
     "seed:volunteers": "tsx src/seeds/seeders/volunteer.seeder.ts",
@@ -23,7 +25,10 @@
     "create_religions_and_castes_tables": "tsx src/scripts/createReligionsAndCastesTables.ts",
     "create_voters_table": "tsx src/scripts/createVotersTable.ts",
     "clean:table": "tsx src/scripts/cleanTable.ts",
+    "clean:test-voters": "tsx src/scripts/cleanTestVoters.ts",
     "convert:101": "tsx src/scripts/convert101ExcelToRannitiFormat.ts",
+    "generate:test-100k": "tsx src/scripts/generate100kTestVoters.ts",
+    "generate:test-10k-other": "tsx src/scripts/generate10kOtherPcAcVoters.ts",
     "import:101": "tsx src/scripts/importAc101Voters.ts"
   },
   "keywords": [

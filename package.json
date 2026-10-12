@@ -12,7 +12,13 @@
     "dev:web": "npm run dev --prefix web",
     "build": "npm run build --prefix backend && npm run build --prefix web",
     "install:all": "npm install --prefix backend && npm install --prefix web",
+    "migrate": "npm run migrate --prefix backend",
+    "migrate:master": "npm run migrate:master --prefix backend",
+    "migrate:tenants": "npm run migrate:tenants --prefix backend",
     "create_religions_and_castes_tables": "npm run create_religions_and_castes_tables --prefix backend",
+    "clean:test-voters": "npm run clean:test-voters --prefix backend",
+    "generate:test-100k": "npm run generate:test-100k --prefix backend",
+    "generate:test-10k-other": "npm run generate:test-10k-other --prefix backend",
     "translations:check": "node scripts/manage-translations.js check",
     "translations:add": "node scripts/manage-translations.js add"
   },

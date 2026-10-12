@@ -10,6 +10,7 @@ interface FilterOption {
   label: string;
   count?: number;
   color?: string;
+  variant?: 'primary' | 'secondary';
   activeBg?: string;
   activeText?: string;
   inactiveBg?: string;
@@ -33,6 +34,9 @@ const FilterPills: React.FC<FilterPillsProps> = ({ options, activeId, onSelect, 
       <View style={[styles.segmentTrack, { backgroundColor: theme.colors.inputBackground }]}>
         {options.map((option) => {
           const isActive = activeId === option.id;
+          const activeBg =
+            option.activeBg ||
+            (option.variant === 'secondary' ? theme.colors.secondary : theme.colors.primary);
 
           return (
             <TouchableOpacity
@@ -41,7 +45,7 @@ const FilterPills: React.FC<FilterPillsProps> = ({ options, activeId, onSelect, 
               onPress={() => onSelect(option.id)}
               style={[
                 styles.segmentItem,
-                isActive && [styles.activeSegment, { backgroundColor: theme.colors.primary }],
+                isActive && [styles.activeSegment, { backgroundColor: activeBg }],
               ]}
             >
               <Text

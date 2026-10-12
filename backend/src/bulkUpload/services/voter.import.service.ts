@@ -4,6 +4,7 @@ import { BulkImporter } from '../../utils/bulkImporter';
 import { VoterQueries } from '../../queries/voter.queries';
 import { CacheService } from '../../services/cache.service';
 import { LookupResolverService } from '../lookupResolver.service';
+import { normalizeRelation } from '../../utils/relationNormalizer';
 import { calculateAge, formatDateForDb } from '../../utils/dateUtils';
 import { FamilyMappingService } from '../../services/tenant/familyMapping.service';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
@@ -201,28 +202,86 @@ export class VoterImportService {
           const voterCategory = row['Category'] || row['category'] || row['Voter Category'] || 'normal';
 
           // Names, phone numbers & identifiers
-          const fullName = LookupResolverService.extractValue(row, ['Full Name', 'Name', 'fullName', 'name', 'Voter Name']) || 'Unknown Voter';
-          const nameEn = LookupResolverService.extractValue(row, ['Name (English)', 'nameEn', 'Name_EN', 'name_en']) || fullName;
+          const fullName = LookupResolverService.extractValue(row, ['Full Name', 'Name', 'fullName', 'name', 'Voter Name']) || '';
+          const nameEn = LookupResolverService.extractValue(row, ['Name (English)', 'nameEn', 'Name_EN', 'name_en']) || '';
           const nameHi = LookupResolverService.extractValue(row, ['Name (Hindi)', 'nameHi', 'Name_HI', 'name_hi']) || null;
-          const relativeName = LookupResolverService.extractValue(row, ['Relative Name', 'Father/Husband Name', 'relativeName', 'Guardian Name']) || null;
-          const relativeType = LookupResolverService.extractValue(row, ['Relative Type', 'Relation', 'relativeType']) || 'Father';
-          const mobileNumber = LookupResolverService.extractValue(row, ['Mobile', 'Phone', 'mobileNumber', 'mobile', 'Contact No']) || null;
-          const address = LookupResolverService.extractValue(row, ['Address', 'Full Address', 'address', 'House No']) || null;
+
+          let firstName = LookupResolverService.extractValue(row, ['First Name (Local)', 'First Name', 'firstName', 'first_name']);
+          let middleName = LookupResolverService.extractValue(row, ['Middle Name (Local)', 'Middle Name', 'middleName', 'middle_name']);
+          let surname = LookupResolverService.extractValue(row, ['Surname (Local)', 'Surname', 'surname', 'last_name', 'LastName']);
+
+          let engFirstName = LookupResolverService.extractValue(row, ['First Name (Eng)', 'First Name (English)', 'engFirstName', 'eng_first_name']);
+          let engMiddleName = LookupResolverService.extractValue(row, ['Middle Name (Eng)', 'Middle Name (English)', 'engMiddleName', 'eng_middle_name']);
+          let engSurname = LookupResolverService.extractValue(row, ['Surname (Eng)', 'Surname (English)', 'engSurname', 'eng_surname']);
+
+          // If discrete local names not found, split from full name
+          if (!firstName && fullName) {
+            const parts = fullName.trim().split(/\s+/).filter(Boolean);
+            if (parts.length >= 3) {
+              firstName = parts[0];
+              middleName = parts[1];
+              surname = parts.slice(2).join(' ');
+            } else if (parts.length === 2) {
+              firstName = parts[0];
+              surname = parts[1];
+            } else if (parts.length === 1) {
+              firstName = parts[0];
+            }
+          }
+
+          // If discrete English names not found, split from English name
+          if (!engFirstName && nameEn) {
+            const parts = nameEn.trim().split(/\s+/).filter(Boolean);
+            if (parts.length >= 3) {
+              engFirstName = parts[0];
+              engMiddleName = parts[1];
+              engSurname = parts.slice(2).join(' ');
+            } else if (parts.length === 2) {
+              engFirstName = parts[0];
+              engSurname = parts[1];
+            } else if (parts.length === 1) {
+              engFirstName = parts[0];
+            }
+          }
+
+          const relativeName = LookupResolverService.extractValue(row, ['Guardian Name', 'Relative Name', 'Father/Husband Name', 'relativeName', 'guardianName']) || null;
+          const relativeType = normalizeRelation(LookupResolverService.extractValue(row, ['Relation', 'Relative Type', 'relativeType', 'relation']));
+          const mobileNumber = LookupResolverService.extractValue(row, ['Mobile No', 'Mobile', 'Phone', 'mobileNumber', 'mobile', 'Contact No']) || null;
+          const houseNumber = LookupResolverService.extractValue(row, ['House No', 'House Number', 'houseNumber', 'house_no']) || null;
+          const sectionNumRaw = LookupResolverService.extractValue(row, ['Section No', 'Section Number', 'sectionNumber', 'section_no']);
+          const sectionNo = sectionNumRaw !== undefined && sectionNumRaw !== null && !isNaN(Number(sectionNumRaw)) ? Number(sectionNumRaw) : null;
+          const serialNumRaw = row['Serial No'] || row['SL No'] || row['serialNo'] || row['serialNumber'] || row['sl_no'];
+          const serialNo = serialNumRaw !== undefined && serialNumRaw !== null && !isNaN(Number(serialNumRaw)) ? Number(serialNumRaw) : null;
+
+          const address = LookupResolverService.extractValue(row, ['Address', 'Full Address', 'address']) || null;
           const voterAddress = LookupResolverService.extractValue(row, ['Voter Address', 'voterAddress', 'voter_address']) || null;
           const fullAddress = address || voterAddress || null;
 
           votersToInsert.push({
             epicNo,
-            fullName,
-            nameEn,
+            firstName: firstName || null,
+            middleName: middleName || null,
+            surname: surname || null,
+            engFirstName: engFirstName || null,
+            engMiddleName: engMiddleName || null,
+            engSurname: engSurname || null,
+            guardianName: relativeName,
+            relation: relativeType,
+            mobileNo: mobileNumber,
+            houseNo: houseNumber,
+            sectionNo,
+            serialNo,
+            fullName: fullName || [firstName, middleName, surname].filter(Boolean).join(' ') || 'Unknown Voter',
+            nameEn: nameEn || [engFirstName, engMiddleName, engSurname].filter(Boolean).join(' ') || null,
             nameHi,
             relativeName,
             relativeType,
             age: computedAge,
             dob: dobFormatted,
             gender,
-            mobileNumber,
             address: fullAddress,
+            fullAddress,
+            voterAddress,
             status: voterStatus,
             voterCategory,
             boothId,
@@ -237,12 +296,6 @@ export class VoterImportService {
             isShifted: parseBool(row['Is Shifted'] || row['isShifted'] || row['is_shifted']),
             isDuplicate: parseBool(row['Is Duplicate'] || row['isDuplicate'] || row['is_duplicate']),
             isStarred: parseBool(row['Is Starred'] || row['isStarred'] || row['is_starred']),
-            houseNumber: LookupResolverService.extractValue(row, ['House No', 'House Number', 'houseNumber', 'house_no']) || null,
-            sectionNumber: LookupResolverService.extractValue(row, ['Section No', 'Section Number', 'sectionNumber', 'section_no']) || null,
-            sectionName: LookupResolverService.extractValue(row, ['Section Name', 'sectionName', 'section_name']) || null,
-            serialNumber: row['SL No'] || row['Serial No'] || row['serialNumber'] || row['sl_no'] || null,
-            fullAddress,
-            voterAddress,
           });
         }
 
@@ -251,16 +304,6 @@ export class VoterImportService {
         }
 
         const batchRes = await VoterQueries.createVotersBatch(votersToInsert);
-
-        // Auto-trigger family mapping for all affected booths post-batch
-        const uniqueBoothIds = Array.from(new Set(votersToInsert.map((v) => v.boothId).filter(Boolean))) as string[];
-        for (const bId of uniqueBoothIds) {
-          try {
-            await FamilyMappingService.autoMapBoothFamilies(null, { boothId: bId });
-          } catch (mapErr: any) {
-            logger.warn(`[VoterImportService] Post-import auto family mapping for booth ${bId} encountered error: ${mapErr.message}`);
-          }
-        }
 
         return {
           inserted: batchRes.inserted,
@@ -293,6 +336,21 @@ export class VoterImportService {
         logger.info(`[VoterImportService] Successfully updated total_voters count for affected booths.`);
       } catch (err: any) {
         logger.error(`[VoterImportService] Failed to update total_voters count on affected booths:`, err);
+      }
+
+      // Auto-trigger family mapping once per affected booth after entire import finishes
+      try {
+        const boothIdList = Array.from(allAffectedBoothIds);
+        logger.info(`[VoterImportService] Auto-mapping families for ${boothIdList.length} affected booths post-import...`);
+        for (const bId of boothIdList) {
+          try {
+            await FamilyMappingService.autoMapBoothFamilies(null, { boothId: bId });
+          } catch (mapErr: any) {
+            logger.warn(`[VoterImportService] Post-import family mapping for booth ${bId} encountered error: ${mapErr.message}`);
+          }
+        }
+      } catch (familyErr: any) {
+        logger.error(`[VoterImportService] Post-import family mapping error:`, familyErr);
       }
     }
 

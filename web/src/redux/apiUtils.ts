@@ -42,11 +42,12 @@ export const errorHandler = (error: any, params?: any) => {
     const data = error?.response?.data || error?.data || {};
     const status = error?.response?.status || error?.status;
 
+    const config = error?.config || error?.response?.config;
+    const fullUrl = (config?.baseURL && config?.url && !config?.url?.startsWith('http'))
+      ? `${config.baseURL.replace(/\/$/, '')}/${config.url.replace(/^\//, '')}`
+      : (config?.url || error?.request?.responseURL || error?.request?._url || '');
+
     try {
-      const config = error?.config || error?.response?.config;
-      const fullUrl = (config?.baseURL && config?.url && !config?.url?.startsWith('http'))
-        ? `${config.baseURL.replace(/\/$/, '')}/${config.url.replace(/^\//, '')}`
-        : (config?.url || error?.request?.responseURL || error?.request?._url || '');
 
       let requestData = config?.data;
       if (typeof requestData === 'string') {
@@ -95,13 +96,24 @@ export const errorHandler = (error: any, params?: any) => {
     }
 
     if (status === 401) {
+      const isLoginRequest =
+        Boolean(config?.url && (config.url.includes('/login') || config.url.includes('/auth/login'))) ||
+        Boolean(fullUrl && fullUrl.includes('/login')) ||
+        (typeof window !== 'undefined' && window.location.pathname === '/login');
+
+      if (isLoginRequest) {
+        const message = extractErrorMessage(data, 'Invalid email or password. Please try again.');
+        toast.error(message);
+        return;
+      }
+
       toast.error('Session expired. Please sign in to continue.');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       if (dispatch) {
         dispatch({ type: Log_Out, data: true });
       }
-      if (window.location.pathname !== '/login') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
       return;

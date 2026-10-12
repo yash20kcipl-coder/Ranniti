@@ -8,8 +8,17 @@ export const api = axios.create({
   },
 });
 
-// Interceptor to attach Authorization Bearer token & handle FormData boundary
+// Interceptor to attach Authorization Bearer token, prevent double /api/v1 & handle FormData boundary
 api.interceptors.request.use((config) => {
+  // Strip duplicate /api/v1 if a caller specifies it since baseURL already includes /api/v1
+  if (config.url) {
+    if (config.url.startsWith('/api/v1/')) {
+      config.url = config.url.replace(/^\/api\/v1/, '');
+    } else if (config.url.startsWith('api/v1/')) {
+      config.url = config.url.replace(/^api\/v1/, '');
+    }
+  }
+
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

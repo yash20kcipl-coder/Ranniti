@@ -4,6 +4,9 @@ export type ThemeColors = {
   text: string;
   textSecondary: string;
   primary: string;
+  secondary: string;
+  secondaryLight: string;
+  secondaryBorder: string;
   border: string;
   error: string;
   warning: string;
@@ -24,6 +27,7 @@ export type ThemeColors = {
 
 export type ThemeGradients = {
   primary: string[];
+  secondary: string[];
   glass: string[];
   surface: string[];
 };
@@ -50,6 +54,9 @@ export const lightColors: ThemeColors = {
   text: '#0F172A',
   textSecondary: '#64748B',
   primary: '#1E40AF', // Ranniti Royal Blue
+  secondary: '#b22220', // Ranniti Crimson / Secondary
+  secondaryLight: 'rgba(178, 34, 32, 0.08)',
+  secondaryBorder: 'rgba(178, 34, 32, 0.25)',
   border: '#E2E8F0',
   error: '#EF4444',
   warning: '#F59E0B',
@@ -74,6 +81,9 @@ export const darkColors: ThemeColors = {
   text: '#F8FAFC',
   textSecondary: '#94A3B8',
   primary: '#3B82F6',
+  secondary: '#E05250',
+  secondaryLight: 'rgba(224, 82, 80, 0.15)',
+  secondaryBorder: 'rgba(224, 82, 80, 0.35)',
   border: '#334155',
   error: '#F87171',
   warning: '#FBBF24',
@@ -97,6 +107,7 @@ export const AppTheme = {
     colors: lightColors,
     gradients: {
       primary: ['#1E40AF', '#3B82F6'],
+      secondary: ['#b22220', '#DC2626'],
       glass: ['rgba(255, 255, 255, 0.85)', 'rgba(255, 255, 255, 0.5)'],
       surface: ['#FFFFFF', '#F8FAFC'],
     },
@@ -106,6 +117,7 @@ export const AppTheme = {
     colors: darkColors,
     gradients: {
       primary: ['#1E40AF', '#3B82F6'],
+      secondary: ['#E05250', '#EF4444'],
       glass: ['rgba(30, 41, 59, 0.85)', 'rgba(30, 41, 59, 0.5)'],
       surface: ['#1E293B', '#0F172A'],
     },

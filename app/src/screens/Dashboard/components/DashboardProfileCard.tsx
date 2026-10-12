@@ -48,7 +48,7 @@ export const DashboardProfileCard: React.FC<DashboardProfileCardProps> = ({
     <TouchableOpacity
       activeOpacity={0.88}
       onPress={onPressProfile}
-      style={[styles.card, { borderTopColor: theme.colors.primary, borderTopWidth: 4 }]}
+      style={[styles.card, { borderTopColor: theme.colors.secondary, borderTopWidth: 4 }]}
     >
       <View style={styles.contentRow}>
         <View style={styles.avatarWrapper}>

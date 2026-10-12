@@ -14,10 +14,10 @@ import {
 } from 'lucide-react';
 import { logout } from '@/redux/actions/auth';
 import { Link, useNavigate } from 'react-router-dom';
-import React, { useState, useEffect, useRef } from 'react';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { ThemeToggle } from '@/components/common/ThemeToggle';
 import type { BreadcrumbItem } from '../utils/breadcrumbs';
+import React, { useState, useEffect, useRef } from 'react';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 
 export interface TopbarProps {
   title?: string;
@@ -125,11 +125,10 @@ export const Topbar: React.FC<TopbarProps> = ({
                     </Link>
                   ) : (
                     <span
-                      className={`truncate max-w-xs ${
-                        i === breadcrumbs.length - 1
+                      className={`truncate max-w-xs ${i === breadcrumbs.length - 1
                           ? 'text-slate-700 dark:text-slate-300 font-semibold'
                           : ''
-                      }`}
+                        }`}
                     >
                       {b.label}
                     </span>
@@ -286,9 +285,8 @@ export const Topbar: React.FC<TopbarProps> = ({
             </div>
             <ChevronDown
               size={13}
-              className={`text-slate-400 transition-transform duration-150 hidden sm:block ${
-                showProfileMenu ? 'rotate-180 text-slate-700 dark:text-white' : ''
-              }`}
+              className={`text-slate-400 transition-transform duration-150 hidden sm:block ${showProfileMenu ? 'rotate-180 text-slate-700 dark:text-white' : ''
+                }`}
             />
           </button>
 

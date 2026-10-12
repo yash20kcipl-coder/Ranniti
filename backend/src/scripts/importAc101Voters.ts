@@ -1,10 +1,11 @@
 import path from 'path';
 import ExcelJS from 'exceljs';
-import { query, closeDbPool } from '../queries/dbPool';
 import { logger } from '../utils/logger';
 import { BulkImporter } from '../utils/bulkImporter';
-import { BatchInsertQuery } from '../queries/batchInsert.query';
+import { query, closeDbPool } from '../queries/dbPool';
 import { CacheService } from '../services/cache.service';
+import { BatchInsertQuery } from '../queries/batchInsert.query';
+import { normalizeRelation } from '../utils/relationNormalizer';
 
 const sourceFile = path.resolve(__dirname, '../../../xlsx/voters_ac_101_formatted.xlsx');
 
@@ -145,7 +146,7 @@ export const importAc101Voters = async (): Promise<void> => {
     const dbRows = rows.map((r) => {
       const boothNo = Number(r['Booth No'] || r['BoothNo'] || 1);
       const boothId = existingBoothMap.get(boothNo) || null;
-      const relation = truncateStr(r['Relation'], 100);
+      const relation = normalizeRelation(r['Relation'] || r['relation']);
       const guardianName = truncateStr(r['Guardian Name'], 255);
 
       return {

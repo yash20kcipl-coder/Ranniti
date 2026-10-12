@@ -195,22 +195,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="h-16 border-b border-slate-200/80 dark:border-slate-800/80 px-4 flex items-center justify-between shrink-0">
             {/* Expanded State (or Mobile Drawer) */}
             <div className={`items-center gap-3 overflow-hidden ${isSidebarCollapsed ? 'hidden lg:hidden' : 'flex'}`}>
-              <Link to="/dashboard" className="flex items-center gap-2.5 group">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 p-1.5 flex items-center justify-center shadow-xs shadow-indigo-600/30 group-hover:scale-105 transition-transform shrink-0">
+              <Link to="/dashboard" className="flex items-center gap-3 group">
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center transition-transform shrink-0">
                   <img
-                    src="/favicon.svg"
                     alt="Ranniti"
-                    className="w-full h-full object-contain"
+                    src="/logo.png"
+                    className="w-full h-full object-contain "
                   />
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight flex items-center gap-1.5">
                     Ranniti
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/30 rounded-md">
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/30 rounded-md">
                       HQ
                     </span>
                   </span>
-                  <span className="text-[10.5px] font-medium text-slate-400 dark:text-slate-500 tracking-wide">
+                  <span className="text-[8px] font-medium text-slate-400 dark:text-slate-500 tracking-wide">
                     Electoral Operations
                   </span>
                 </div>
@@ -224,7 +224,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   type="button"
                   onClick={onToggleSidebarCollapse}
                   title="Expand Sidebar (⌘B)"
-                  className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 p-2 flex items-center justify-center shadow-xs shadow-indigo-600/30 hover:scale-105 transition-all cursor-pointer group"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center transition-all cursor-pointer group"
                 >
                   <img
                     src="/favicon.svg"

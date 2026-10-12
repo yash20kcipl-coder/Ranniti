@@ -690,8 +690,8 @@ export function buildVoterTableColumns(): Column<any>[] {
       key: 'name',
       header: 'Voter & Details',
       render: (row: any) => {
-        const engName = [row.engFirstName, row.engMiddleName, row.engSurname].filter(Boolean).join(' ');
-        const locName = [row.firstName, row.middleName, row.surname].filter(Boolean).join(' ');
+        const engName = [row.engFirstName, row.engMiddleName, row.engSurname].filter(Boolean).join(' ') || row.nameEn || '';
+        const locName = [row.firstName, row.middleName, row.surname].filter(Boolean).join(' ') || row.fullName || row.name || '';
         const guardian = row.guardianName || row.relativeName;
         const relation = row.relation;
         const g = (row.gender || '').toLowerCase();
@@ -703,7 +703,7 @@ export function buildVoterTableColumns(): Column<any>[] {
           <div className="flex items-center gap-3">
             <SafeImage
               src={row.avatar}
-              alt={engName}
+              alt={engName || locName}
               fallbackText={engName || locName}
               className="w-8 h-8 rounded-md object-cover border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shrink-0 shadow-2xs"
             />

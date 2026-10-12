@@ -5,7 +5,8 @@ import type { ImportJob } from '@/redux/actions/importJobs';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { TENANT_MASTER_ENDPOINTS } from '@/hooks/useTenantMasterData';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { fetchVotersData, fetchVoterStats } from '@/redux/actions/voter';
+import { fetchTenantVotersData, fetchTenantVoterStats } from '@/redux/actions/voterTenant';
+import { fetchSuperAdminVotersData, fetchSuperAdminVoterStats } from '@/redux/actions/voterSuperAdmin';
 import { fetchTenantMasterCategoryData } from '@/redux/actions/masterTenant';
 import { fetchSuperAdminMasterCategoryData } from '@/redux/actions/masterSuperAdmin';
 import { fetchJobStatus, dismissJob, executeJobCallback } from '@/redux/actions/importJobs';
@@ -14,16 +15,20 @@ import { Loader2, CheckCircle2, AlertCircle, X, ChevronDown, ChevronUp, Database
 export const BackgroundImportWidget: React.FC = () => {
   const dispatch = useAppDispatch();
   const [isMinimized, setIsMinimized] = useState(false);
-  const [selectedFailedJob, setSelectedFailedJob] = useState<ImportJob | null>(null);
   const refreshedJobsRef = useRef<Set<string>>(new Set());
   const autoDismissJobsRef = useRef<Set<string>>(new Set());
   const voterFilters = useAppSelector((state) => state.voter.filters);
   const { jobs, activeJobIds } = useAppSelector((state) => state.importJobs);
-  const currentUser = useAppSelector((state: any) => state.user?.user || state.user?.myprofile);
+  const [selectedFailedJob, setSelectedFailedJob] = useState<ImportJob | null>(null);
   const [visualProgressMap, setVisualProgressMap] = useState<Record<string, number>>({});
+  const currentUser = useAppSelector((state: any) => state.user?.user || state.user?.myprofile);
 
   const activeJobsList = activeJobIds.map((id) => jobs[id]).filter(Boolean);
-  const isTenant = currentUser?.role !== 'SUPER_ADMIN' && currentUser?.role !== 'SUPERADMIN';
+  const roleStr = String(currentUser?.role || '').toLowerCase();
+  const isSuperAdmin =
+    roleStr === 'super_admin' ||
+    roleStr === 'superadmin' ||
+    (typeof window !== 'undefined' && window.location.pathname.startsWith('/super-admin'));
 
   // Helper to refresh table data for the imported category upon job completion
   const refreshCategoryData = useCallback((category?: string) => {
@@ -31,22 +36,27 @@ export const BackgroundImportWidget: React.FC = () => {
     if (!cleanCat) return;
 
     if (cleanCat === 'voters') {
-      dispatch(fetchVotersData(voterFilters || {}, false)).catch(() => { });
-      dispatch(fetchVoterStats(voterFilters || {})).catch(() => { });
+      if (isSuperAdmin) {
+        dispatch(fetchSuperAdminVotersData(voterFilters || {}, false)).catch(() => { });
+        dispatch(fetchSuperAdminVoterStats(voterFilters || {})).catch(() => { });
+      } else {
+        dispatch(fetchTenantVotersData(voterFilters || {}, false)).catch(() => { });
+        dispatch(fetchTenantVoterStats(voterFilters || {})).catch(() => { });
+      }
       return;
     }
 
     const isPaginated = ['villages', 'village', 'booths', 'booth', 'wards', 'ward'].includes(cleanCat);
-    const fetchAction = isTenant ? fetchTenantMasterCategoryData : fetchSuperAdminMasterCategoryData;
-    const endpoint = isTenant
-      ? (TENANT_MASTER_ENDPOINTS as any)[cleanCat]
-      : (masterConfig[cleanCat]?.apiEndpoint || `/masters/${cleanCat}`);
+    const fetchAction = isSuperAdmin ? fetchSuperAdminMasterCategoryData : fetchTenantMasterCategoryData;
+    const endpoint = isSuperAdmin
+      ? (masterConfig[cleanCat]?.apiEndpoint || `/masters/${cleanCat}`)
+      : ((TENANT_MASTER_ENDPOINTS as any)[cleanCat]);
 
     if (endpoint) {
       const params = isPaginated ? { page: 1, limit: 25 } : undefined;
       dispatch(fetchAction(cleanCat, endpoint, false, params)).catch(() => { });
     }
-  }, [dispatch, voterFilters, isTenant]);
+  }, [dispatch, voterFilters, isSuperAdmin]);
 
   // Poll backend for job status updates every 1.5s while active
   useEffect(() => {
@@ -77,7 +87,7 @@ export const BackgroundImportWidget: React.FC = () => {
         let hasChanges = false;
 
         activeJobsList.forEach((job) => {
-          const currentVisual = prevMap[job.jobId] || 0;
+          const currentVisual = prevMap[job.jobId] ?? 0;
 
           if (job.status === 'completed') {
             if (currentVisual !== 100) {
@@ -87,10 +97,21 @@ export const BackgroundImportWidget: React.FC = () => {
           } else if (job.status === 'failed') {
             // Keep at current visual
           } else {
-            const backendPercent = job.progressPercent || 0;
-            const nextVal = Math.min(99, Math.max(backendPercent, currentVisual + 3));
-            if (nextVal !== currentVisual) {
-              nextMap[job.jobId] = nextVal;
+            // Calculate actual progress percentage from records processed vs total
+            const realPercent = job.totalRecords && job.totalRecords > 0
+              ? Math.min(99, Math.floor(((job.processedRecords || 0) / job.totalRecords) * 100))
+              : Math.min(99, job.progressPercent || 0);
+
+            // Smoothly animate towards realPercent without exceeding actual progress
+            if (currentVisual < realPercent) {
+              const step = Math.max(1, Math.ceil((realPercent - currentVisual) / 3));
+              const nextVal = Math.min(realPercent, currentVisual + step);
+              if (nextVal !== currentVisual) {
+                nextMap[job.jobId] = nextVal;
+                hasChanges = true;
+              }
+            } else if (currentVisual > realPercent) {
+              nextMap[job.jobId] = realPercent;
               hasChanges = true;
             }
           }
@@ -98,7 +119,7 @@ export const BackgroundImportWidget: React.FC = () => {
 
         return hasChanges ? nextMap : prevMap;
       });
-    }, 150);
+    }, 100);
 
     return () => clearInterval(ticker);
   }, [activeJobsList]);
@@ -207,7 +228,10 @@ export const BackgroundImportWidget: React.FC = () => {
               if (!job || !job.jobId) return null;
               const isFinished = job.status === 'completed';
               const isFailed = job.status === 'failed';
-              const visualPercent = isFinished ? 100 : (visualProgressMap[job.jobId] ?? 0);
+              const realTarget = job.totalRecords && job.totalRecords > 0
+                ? Math.min(99, Math.floor(((job.processedRecords || 0) / job.totalRecords) * 100))
+                : (job.progressPercent || 0);
+              const visualPercent = isFinished ? 100 : Math.min(99, visualProgressMap[job.jobId] ?? realTarget);
               const categoryLabel = (job.category || 'records').replace(/_/g, ' ');
               const hasJobErrors = Boolean((job.failedCount && job.failedCount > 0) || isFailed || (job.errors && job.errors.length > 0));
 

@@ -178,7 +178,7 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
       fontFamily: FontFamily.bold,
     },
     badgeContainer: {
-      backgroundColor: theme.colors.primary,
+      backgroundColor: theme.colors.secondary,
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: 10,

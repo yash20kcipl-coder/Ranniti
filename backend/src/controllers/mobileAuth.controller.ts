@@ -26,7 +26,7 @@ export class MobileAuthController {
   sendOtp = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { mobile, isDemoMode } = req.body;
     const { OtpService } = await import('../services/otp.service');
-    const result = await OtpService.sendOtp(mobile, isDemoMode !== undefined ? Boolean(isDemoMode) : true);
+    const result = await OtpService.sendOtp(mobile, isDemoMode !== undefined ? Boolean(isDemoMode) : false);
     const response = ApiResponse.success(result, result.message);
     res.status(response.statusCode).json(response.body);
   });

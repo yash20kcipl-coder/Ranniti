@@ -18,7 +18,7 @@ interface CustomButtonProps {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
@@ -36,6 +36,11 @@ export const Button: React.FC<CustomButtonProps> = ({
 }) => {
   const { theme, styles } = useAppTheme((t) => getStyles(t, variant, disabled));
 
+  const indicatorColor =
+    variant === 'primary' || variant === 'secondary'
+      ? '#FFF'
+      : theme.colors.primary;
+
   return (
     <TouchableOpacity
       activeOpacity={0.8}
@@ -44,7 +49,7 @@ export const Button: React.FC<CustomButtonProps> = ({
       style={[styles.button, style]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#FFF' : theme.colors.primary} />
+        <ActivityIndicator color={indicatorColor} />
       ) : (
         <>
           {icon ? icon : null}
@@ -68,7 +73,11 @@ const getStyles = (theme: Theme, variant: string, disabled: boolean) => StyleShe
         ? disabled
           ? theme.colors.border
           : theme.colors.primary
-        : 'transparent',
+        : variant === 'secondary'
+          ? disabled
+            ? theme.colors.border
+            : theme.colors.secondary
+          : 'transparent',
     borderWidth: variant === 'outline' ? 1 : 0,
     borderColor: variant === 'outline' ? theme.colors.border : theme.colors.primary,
     paddingHorizontal: theme.space.lg,
@@ -81,7 +90,9 @@ const getStyles = (theme: Theme, variant: string, disabled: boolean) => StyleShe
         ? theme.colors.textSecondary + '80'
         : variant === 'primary'
           ? isDarkColor(theme.colors.primary) ? '#FFF' : theme.colors.text
-          : theme.colors.textSecondary,
+          : variant === 'secondary'
+            ? isDarkColor(theme.colors.secondary) ? '#FFF' : theme.colors.text
+            : theme.colors.textSecondary,
   },
 });
 

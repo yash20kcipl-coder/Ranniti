@@ -140,16 +140,11 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
           candidate_photo_url,
           polling_date,
           election_type,
-          whatsapp_quality_rating,
-          whatsapp_daily_limit,
-          whatsapp_waba_id,
-          whatsapp_phone_number_id,
-          whatsapp_webhook_verify_token,
           fcm_project_id,
           push_triggers,
           field_rules
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14::jsonb
+          $1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb
         )
       `, [
         'Rajesh Patil',
@@ -158,11 +153,6 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
         '/uploads/avatars/leader.png',
         '2026-11-20',
         'Assembly',
-        'GREEN',
-        '10K',
-        'WABA_1092837465',
-        'PHONE_919820011223',
-        'ranniti_wh_secret_2026',
         'ranniti-campaign-2026',
         JSON.stringify({
           dailyBriefing: true,
@@ -228,7 +218,6 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
       }
       logger.info(`✅ Seeded ${DEFAULT_WHATSAPP_TEMPLATES.length} WhatsApp Templates for Master DB.`);
     }
-    logger.info(`✅ Seeded ${DEFAULT_WHATSAPP_TEMPLATES.length} WhatsApp Templates for ${dbLabel}.`);
   } catch (err: any) {
     logger.error(`❌ Failed to seed settings for ${dbLabel}:`, err);
     throw err;

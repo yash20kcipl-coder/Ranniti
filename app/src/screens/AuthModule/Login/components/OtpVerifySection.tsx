@@ -1,10 +1,12 @@
+import { OtpInput } from 'react-native-otp-entry';
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../../../languages';
 import { Button } from '../../../../components/Button';
 import { AUTH_CONFIG } from '../../../../constants/authConfig';
-import { OtpInput } from 'react-native-otp-entry';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { MaterialDesignIcons } from '../../../../components/MaterialDesignIcons';
+
+const { width } = Dimensions.get("window");
 
 interface OtpVerifySectionProps {
   mobile: string;
@@ -26,7 +28,7 @@ export const OtpVerifySection: React.FC<OtpVerifySectionProps> = ({
   theme,
 }) => {
   const { t } = useLanguage();
-  const [otp, setOtp] = useState(AUTH_CONFIG.IS_OTP_DEMO_MODE ? "1234" : "");
+  const [otp, setOtp] = useState(AUTH_CONFIG.IS_OTP_DEMO_MODE ? "123456" : "");
   const [timer, setTimer] = useState<number>(AUTH_CONFIG.OTP_RESEND_TIMEOUT_SEC);
 
   useEffect(() => {
@@ -54,8 +56,8 @@ export const OtpVerifySection: React.FC<OtpVerifySectionProps> = ({
         onPress={onBack}
         style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 4 }}
       >
-        <MaterialDesignIcons name="arrow-left" size={20} color={theme.colors.primary} />
-        <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>
+        <MaterialDesignIcons name="arrow-left" size={20} color={theme.colors.secondary} />
+        <Text style={{ fontSize: 14, color: theme.colors.secondary, fontWeight: '600' }}>
           Change Phone Number ({mobile})
         </Text>
       </TouchableOpacity>
@@ -68,7 +70,7 @@ export const OtpVerifySection: React.FC<OtpVerifySectionProps> = ({
       {/* Modern OTP Input Field with react-native-otp-entry */}
       <View style={{ marginBottom: 10 }}>
         <OtpInput
-          numberOfDigits={4}
+          numberOfDigits={6}
           focusColor={theme.colors.primary}
           focusStickBlinkingDuration={500}
           onTextChange={(code) => setOtp(code)}
@@ -76,19 +78,20 @@ export const OtpVerifySection: React.FC<OtpVerifySectionProps> = ({
           theme={{
             containerStyle: { marginVertical: 12 },
             pinCodeContainerStyle: {
-              width: 58,
-              height: 58,
-              borderRadius: 12,
-              backgroundColor: theme.colors.card,
+              borderWidth: 1,
+              borderRadius: 10,
+              width: width / 8,
+              height: width / 8,
               borderColor: '#D1D5DB',
-              borderWidth: 1.5,
+              backgroundColor: theme.colors.card,
             },
             pinCodeTextStyle: {
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: '700',
               color: theme.colors.text,
             },
             focusStickStyle: {
+              height: width / 18,
               backgroundColor: theme.colors.primary,
             },
             focusedPinCodeContainerStyle: {
@@ -113,17 +116,19 @@ export const OtpVerifySection: React.FC<OtpVerifySectionProps> = ({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: theme.colors.primary + '12',
+              backgroundColor: theme.colors.secondaryLight,
+              borderWidth: 1,
+              borderColor: theme.colors.secondaryBorder,
               paddingHorizontal: 14,
               paddingVertical: 8,
               borderRadius: 20,
               gap: 6,
             }}
           >
-            <MaterialDesignIcons name="clock-outline" size={16} color={theme.colors.primary} />
+            <MaterialDesignIcons name="clock-outline" size={16} color={theme.colors.secondary} />
             <Text style={{ fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500' }}>
               {t('resendOtpIn')}{' '}
-              <Text style={{ fontWeight: '700', color: theme.colors.primary }}>
+              <Text style={{ fontWeight: '700', color: theme.colors.secondary }}>
                 {timer < 10 ? `0${timer}` : timer}s
               </Text>
             </Text>
@@ -135,15 +140,17 @@ export const OtpVerifySection: React.FC<OtpVerifySectionProps> = ({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: theme.colors.primary + '15',
+              backgroundColor: theme.colors.secondaryLight,
+              borderWidth: 1,
+              borderColor: theme.colors.secondaryBorder,
               paddingHorizontal: 16,
               paddingVertical: 9,
               borderRadius: 20,
               gap: 6,
             }}
           >
-            <MaterialDesignIcons name="refresh" size={18} color={theme.colors.primary} />
-            <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '700' }}>
+            <MaterialDesignIcons name="refresh" size={18} color={theme.colors.secondary} />
+            <Text style={{ fontSize: 14, color: theme.colors.secondary, fontWeight: '700' }}>
               {t('resendOtp')}
             </Text>
           </TouchableOpacity>

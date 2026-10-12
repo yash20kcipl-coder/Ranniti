@@ -105,6 +105,10 @@ export const appHeaderStyles = (theme: Theme) =>
       backgroundColor: 'rgba(255, 255, 255, 0.2)',
       borderColor: 'rgba(255, 255, 255, 0.3)',
     },
+    badgeContainerSecondary: {
+      backgroundColor: theme.colors.secondaryLight,
+      borderColor: theme.colors.secondaryBorder,
+    },
     badgeText: {
       fontFamily: FontFamily.bodyBold,
       fontSize: rfValue(10),
@@ -112,6 +116,9 @@ export const appHeaderStyles = (theme: Theme) =>
     },
     badgeTextPrimary: {
       color: '#FFFFFF',
+    },
+    badgeTextSecondary: {
+      color: theme.colors.secondary,
     },
     rightSection: {
       flexDirection: 'row',

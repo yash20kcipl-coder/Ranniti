@@ -14,6 +14,7 @@ export interface AppHeaderProps {
   title?: string;
   subtitle?: string;
   badge?: string | number;
+  badgeVariant?: 'primary' | 'secondary';
   showLogo?: boolean;
   showBack?: boolean;
   showMenu?: boolean;
@@ -31,6 +32,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   title,
   subtitle,
   badge,
+  badgeVariant = 'primary',
   showLogo = !title,
   showBack = false,
   showMenu = false,
@@ -129,8 +131,26 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   {title}
                 </Text>
                 {badge !== undefined && (
-                  <View style={[styles.badgeContainer, isPrimary && styles.badgeContainerPrimary]}>
-                    <Text style={[styles.badgeText, isPrimary && styles.badgeTextPrimary]}>
+                  <View
+                    style={[
+                      styles.badgeContainer,
+                      isPrimary
+                        ? styles.badgeContainerPrimary
+                        : badgeVariant === 'secondary'
+                          ? styles.badgeContainerSecondary
+                          : null,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.badgeText,
+                        isPrimary
+                          ? styles.badgeTextPrimary
+                          : badgeVariant === 'secondary'
+                            ? styles.badgeTextSecondary
+                            : null,
+                      ]}
+                    >
                       {badge}
                     </Text>
                   </View>

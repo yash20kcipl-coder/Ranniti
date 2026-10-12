@@ -24,9 +24,9 @@ const RouteLoadingSpinner = () => (
       {/* Centered Logo Box */}
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 rounded-2xl bg-indigo-500/30 animate-ping opacity-25" />
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 p-3 shadow-lg shadow-indigo-600/30 flex items-center justify-center relative z-10">
+        <div className="w-16 h-16 rounded-xl overflow-hidden shadow-lg shadow-indigo-600/30 flex items-center justify-center relative z-10">
           <img
-            src="/favicon.svg"
+            src="/logo.png"
             alt="Ranniti Logo"
             className="w-full h-full object-contain"
             onError={(e) => {

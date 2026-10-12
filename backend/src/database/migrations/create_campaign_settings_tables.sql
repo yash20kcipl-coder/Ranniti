@@ -20,13 +20,6 @@ CREATE TABLE IF NOT EXISTS campaign_settings (
         "quietHoursStart": "22:00",
         "quietHoursEnd": "06:30"
     }'::jsonb,
-    -- WhatsApp Meta Cloud API Configuration
-    whatsapp_waba_id VARCHAR(100),
-    whatsapp_phone_number_id VARCHAR(100),
-    whatsapp_access_token TEXT,
-    whatsapp_webhook_verify_token VARCHAR(100),
-    whatsapp_quality_rating VARCHAR(30) DEFAULT 'GREEN',
-    whatsapp_daily_limit VARCHAR(30) DEFAULT '10K',
     -- Campaign & Candidate Profile
     candidate_name VARCHAR(200),
     party_name VARCHAR(100),

@@ -9,14 +9,14 @@ export interface SyncApiMetadata {
 }
 
 export const REGISTERED_SYNC_APIS: Record<string, SyncApiMetadata> = {
-  religions: { endpoint: '/api/v1/tenant/religions', reduxAction: 'fetchMasterReligions' },
-  castes: { endpoint: '/api/v1/tenant/castes', reduxAction: 'fetchMasterCastes' },
-  states: { endpoint: '/api/v1/tenant/states', reduxAction: 'fetchMasterStates' },
-  districts: { endpoint: '/api/v1/tenant/districts', reduxAction: 'fetchMasterDistricts' },
-  acs: { endpoint: '/api/v1/tenant/acs', reduxAction: 'fetchMasterAcs' },
-  pcs: { endpoint: '/api/v1/tenant/pcs', reduxAction: 'fetchMasterPcs' },
-  tenantSettings: { endpoint: '/api/v1/tenant/settings', reduxAction: 'fetchTenantSettings' },
-  userRoles: { endpoint: '/api/v1/tenant/user-roles', reduxAction: 'fetchUserRoles' },
+  religions: { endpoint: '/tenant/religions', reduxAction: 'fetchMasterReligions' },
+  castes: { endpoint: '/tenant/castes', reduxAction: 'fetchMasterCastes' },
+  states: { endpoint: '/tenant/states', reduxAction: 'fetchMasterStates' },
+  districts: { endpoint: '/tenant/districts', reduxAction: 'fetchMasterDistricts' },
+  acs: { endpoint: '/tenant/acs', reduxAction: 'fetchMasterAcs' },
+  pcs: { endpoint: '/tenant/pcs', reduxAction: 'fetchMasterPcs' },
+  tenantSettings: { endpoint: '/tenant/settings', reduxAction: 'fetchTenantSettings' },
+  userRoles: { endpoint: '/tenant/user-roles', reduxAction: 'fetchUserRoles' },
 };
 
 export class SyncManifestController {

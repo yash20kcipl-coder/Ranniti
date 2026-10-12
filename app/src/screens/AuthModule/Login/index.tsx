@@ -148,7 +148,9 @@ const Login = () => {
           <View style={styles.logoCardInner}>
             <Image source={RANNITI_LOGO} style={styles.logoImage} resizeMode="contain" />
           </View>
-          <Text style={styles.brandSubtitle}>{t('politicalCampaignPlatform') || 'Political Campaign Platform'}</Text>
+          <View style={styles.brandSubtitleBadge}>
+            <Text style={styles.brandSubtitle}>{t('politicalCampaignPlatform') || 'Political Campaign Platform'}</Text>
+          </View>
         </View>
 
         {/* Bottom Section */}
@@ -159,12 +161,12 @@ const Login = () => {
               <View
                 style={{
                   flexDirection: 'row',
-                  backgroundColor: theme.colors.background,
-                  borderRadius: 10,
+                  backgroundColor: theme.colors.inputBackground,
+                  borderRadius: 12,
                   padding: 4,
-                  marginBottom: 10,
+                  marginBottom: 14,
                   borderWidth: 1,
-                  borderColor: '#E5E7EB',
+                  borderColor: theme.colors.border,
                 }}
               >
                 <TouchableOpacity
@@ -173,14 +175,14 @@ const Login = () => {
                   style={{
                     flex: 1,
                     paddingVertical: 10,
-                    borderRadius: 8,
+                    borderRadius: 9,
                     alignItems: 'center',
                     backgroundColor: loginMode === 'otp' ? theme.colors.primary : 'transparent',
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: 14,
+                      fontSize: 13.5,
                       fontWeight: '700',
                       color: loginMode === 'otp' ? '#FFFFFF' : theme.colors.textSecondary,
                     }}
@@ -195,14 +197,14 @@ const Login = () => {
                   style={{
                     flex: 1,
                     paddingVertical: 10,
-                    borderRadius: 8,
+                    borderRadius: 9,
                     alignItems: 'center',
                     backgroundColor: loginMode === 'mpin' ? theme.colors.primary : 'transparent',
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: 14,
+                      fontSize: 13.5,
                       fontWeight: '700',
                       color: loginMode === 'mpin' ? '#FFFFFF' : theme.colors.textSecondary,
                     }}
@@ -246,6 +248,7 @@ const Login = () => {
 
               {loginMode === 'otp' ? (
                 <Button
+                  variant="secondary"
                   title={t('getOtp')}
                   loading={loading}
                   onPress={handleSendOtp}
@@ -254,10 +257,11 @@ const Login = () => {
                 />
               ) : (
                 <Button
+                  variant="secondary"
                   title={t('login')}
                   loading={loading}
-                  onPress={handleMpinServerLogin}
                   style={styles.loginBtn}
+                  onPress={handleMpinServerLogin}
                   disabled={!identifier || identifier.length < 10 || mpinInput.length !== 4 || loading}
                 />
               )}

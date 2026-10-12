@@ -1,6 +1,8 @@
 import api from '@/services/api';
 import type { AppDispatch } from '../store';
 import { fetchTenantMasterCategoryData } from './masterTenant';
+import { fetchTenantSettings } from './settings';
+import { fetchTenantUserRoles } from './role';
 import { TENANT_MASTER_ENDPOINTS } from '@/hooks/useTenantMasterData';
 import { getLocalVersions, saveLocalVersion } from '@/utils/syncManager';
 
@@ -23,7 +25,27 @@ export const checkAndSyncTenantDatasets = () => {
       // Dispatch thunks for stale datasets and update localStorage atomically
       for (const item of staleApis) {
         const catKey = item.key;
-        const endpoint = TENANT_MASTER_ENDPOINTS[catKey as keyof typeof TENANT_MASTER_ENDPOINTS] || item.endpoint;
+
+        if (catKey === 'tenantSettings') {
+          await dispatch(fetchTenantSettings(false));
+          if (item.serverVersion) {
+            saveLocalVersion(catKey, item.serverVersion);
+            syncedCount++;
+          }
+          continue;
+        }
+
+        if (catKey === 'userRoles') {
+          await dispatch(fetchTenantUserRoles());
+          if (item.serverVersion) {
+            saveLocalVersion(catKey, item.serverVersion);
+            syncedCount++;
+          }
+          continue;
+        }
+
+        const rawEndpoint = TENANT_MASTER_ENDPOINTS[catKey as keyof typeof TENANT_MASTER_ENDPOINTS] || item.endpoint;
+        const endpoint = rawEndpoint ? rawEndpoint.replace(/^\/?api\/v1/, '') : rawEndpoint;
 
         if (endpoint) {
           await dispatch(fetchTenantMasterCategoryData(catKey, endpoint, false));

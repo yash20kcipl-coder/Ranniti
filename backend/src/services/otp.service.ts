@@ -50,21 +50,38 @@ export class OtpService {
     }
 
     // 3. Generate OTP Code
-    // In Demo Mode: Always use '1234'
-    // In Prod Mode: Generate random 6-digit cryptographic PIN
-    const otpCode = isDemoMode ? '1234' : Math.floor(100000 + Math.random() * 900000).toString();
-
-    // 4. Save to Database Table (otp_verifications)
-    await OtpQueries.saveOtp(cleanMobile, otpCode, 5);
+    // In Demo Mode: Always use '1234' or '123456'
+    // In Real Mode: Generate random digits (configured by SMS_OTP_LENGTH, default 6)
+    const otpLength = parseInt(process.env.SMS_OTP_LENGTH || '6', 10);
+    const minVal = Math.pow(10, otpLength - 1);
+    const maxVal = Math.pow(10, otpLength) - 1;
+    const otpCode = isDemoMode
+      ? (otpLength === 4 ? '1234' : '123456')
+      : Math.floor(minVal + Math.random() * (maxVal - minVal + 1)).toString();
 
     if (isDemoMode) {
+      await OtpQueries.saveOtp(cleanMobile, otpCode, 5);
       return {
         message: 'Demo OTP sent successfully',
-        demoOtp: '1234',
+        demoOtp: otpCode,
       };
     }
 
-    // In Production: Dispatch SMS gateway API call here
+    // 4. Save to Database Table (otp_verifications)
+    const savedOtp = await OtpQueries.saveOtp(cleanMobile, otpCode, 5);
+
+    // 5. Dispatch SMS gateway API call
+    const { SmsService } = await import('./sms.service');
+    const smsResult = await SmsService.sendOtpSms(cleanMobile, otpCode);
+
+    if (!smsResult.success) {
+      // Invalidate the saved OTP so user is not locked out by cooldown/limits
+      if (savedOtp?.id) {
+        await OtpQueries.invalidateOtp(savedOtp.id);
+      }
+      throw ApiError.badGateway(smsResult.error || 'Failed to dispatch OTP SMS. Please try again.');
+    }
+
     return {
       message: 'OTP sent successfully to your mobile number',
     };

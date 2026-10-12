@@ -119,8 +119,8 @@ export const MpinScreen: React.FC<MpinScreenProps> = ({
                 height: 20,
                 borderRadius: 10,
                 borderWidth: 2,
-                borderColor: isFilled ? theme.colors.primary : '#D1D5DB',
-                backgroundColor: isFilled ? theme.colors.primary : 'transparent',
+                borderColor: isFilled ? theme.colors.secondary : '#D1D5DB',
+                backgroundColor: isFilled ? theme.colors.secondary : 'transparent',
               }}
             />
           );
@@ -130,7 +130,7 @@ export const MpinScreen: React.FC<MpinScreenProps> = ({
       {/* Activity Indicator / Loader when verifying or setting up */}
       {loading && (
         <View style={{ marginVertical: 8, alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={theme.colors.secondary} />
         </View>
       )}
 
@@ -197,7 +197,7 @@ export const MpinScreen: React.FC<MpinScreenProps> = ({
           activeOpacity={0.7}
           style={{ alignSelf: 'center', marginTop: 12 }}
         >
-          <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>
+          <Text style={{ fontSize: 14, color: theme.colors.secondary, fontWeight: '600' }}>
             {t('forgotMpin')}
           </Text>
         </TouchableOpacity>

@@ -29,12 +29,12 @@ export interface CampaignSettingsRecord {
     quietHoursStart: string;
     quietHoursEnd: string;
   };
-  whatsappWabaId: string | null;
-  whatsappPhoneNumberId: string | null;
-  whatsappAccessToken: string | null;
-  whatsappWebhookVerifyToken: string | null;
-  whatsappQualityRating: string;
-  whatsappDailyLimit: string;
+  whatsappWabaId?: string | null;
+  whatsappPhoneNumberId?: string | null;
+  whatsappAccessToken?: string | null;
+  whatsappWebhookVerifyToken?: string | null;
+  whatsappQualityRating?: string;
+  whatsappDailyLimit?: string;
   candidateName: string | null;
   partyName: string | null;
   partySymbolUrl: string | null;
@@ -146,10 +146,8 @@ export const settingsQueries = {
       // Auto-initialize default settings row if none exists
       const initSql = `
         INSERT INTO campaign_settings (
-          whatsapp_quality_rating,
-          whatsapp_daily_limit,
           election_type
-        ) VALUES ('GREEN', '10K', 'Assembly')
+        ) VALUES ('Assembly')
         RETURNING *
       `;
       const initRes = await executeSettingsQuery(initSql, [], tenantDbName);
@@ -176,13 +174,6 @@ export const settingsQueries = {
     const apnsAuthKey = data.apnsAuthKey !== undefined ? data.apnsAuthKey : current.apnsAuthKey;
     const pushTriggers = JSON.stringify(data.pushTriggers !== undefined ? data.pushTriggers : current.pushTriggers);
 
-    const whatsappWabaId = data.whatsappWabaId !== undefined ? data.whatsappWabaId : current.whatsappWabaId;
-    const whatsappPhoneNumberId = data.whatsappPhoneNumberId !== undefined ? data.whatsappPhoneNumberId : current.whatsappPhoneNumberId;
-    const whatsappAccessToken = data.whatsappAccessToken !== undefined ? data.whatsappAccessToken : current.whatsappAccessToken;
-    const whatsappWebhookVerifyToken = data.whatsappWebhookVerifyToken !== undefined ? data.whatsappWebhookVerifyToken : current.whatsappWebhookVerifyToken;
-    const whatsappQualityRating = data.whatsappQualityRating !== undefined ? data.whatsappQualityRating : current.whatsappQualityRating;
-    const whatsappDailyLimit = data.whatsappDailyLimit !== undefined ? data.whatsappDailyLimit : current.whatsappDailyLimit;
-
     const candidateName = data.candidateName !== undefined ? data.candidateName : current.candidateName;
     const partyName = data.partyName !== undefined ? data.partyName : current.partyName;
     const partySymbolUrl = data.partySymbolUrl !== undefined ? data.partySymbolUrl : current.partySymbolUrl;
@@ -202,21 +193,15 @@ export const settingsQueries = {
         apns_bundle_id = $7,
         apns_auth_key = $8,
         push_triggers = $9::jsonb,
-        whatsapp_waba_id = $10,
-        whatsapp_phone_number_id = $11,
-        whatsapp_access_token = $12,
-        whatsapp_webhook_verify_token = $13,
-        whatsapp_quality_rating = $14,
-        whatsapp_daily_limit = $15,
-        candidate_name = $16,
-        party_name = $17,
-        party_symbol_url = $18,
-        candidate_photo_url = $19,
-        polling_date = $20,
-        election_type = $21,
-        field_rules = $22::jsonb,
+        candidate_name = $10,
+        party_name = $11,
+        party_symbol_url = $12,
+        candidate_photo_url = $13,
+        polling_date = $14,
+        election_type = $15,
+        field_rules = $16::jsonb,
         updated_at = NOW()
-      WHERE id = $23
+      WHERE id = $17
       RETURNING *
     `;
 
@@ -230,12 +215,6 @@ export const settingsQueries = {
       apnsBundleId,
       apnsAuthKey,
       pushTriggers,
-      whatsappWabaId,
-      whatsappPhoneNumberId,
-      whatsappAccessToken,
-      whatsappWebhookVerifyToken,
-      whatsappQualityRating,
-      whatsappDailyLimit,
       candidateName,
       partyName,
       partySymbolUrl,

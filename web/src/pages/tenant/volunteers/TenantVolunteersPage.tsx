@@ -313,8 +313,8 @@ export const TenantVolunteersPage: React.FC = () => {
               className="w-9 h-9 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
             />
             <div>
-              <div className="font-bold text-slate-900 dark:text-white">{vol.name}</div>
-              <div className="text-[11px] text-slate-400">{vol.email}</div>
+              <div className="text-[11px] font-bold text-slate-900 dark:text-white">{vol.name}</div>
+              <div className="text-[9px] text-slate-400">{vol.email}</div>
             </div>
           </div>
         ),

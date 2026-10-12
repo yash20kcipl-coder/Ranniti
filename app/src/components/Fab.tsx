@@ -12,6 +12,7 @@ interface FabProps {
   color?: string;
   iconColor?: string;
   size?: number;
+  variant?: 'primary' | 'secondary';
 }
 
 export const Fab: React.FC<FabProps> = ({
@@ -21,8 +22,9 @@ export const Fab: React.FC<FabProps> = ({
   color,
   iconColor = '#FFFFFF',
   size = 25,
+  variant = 'primary',
 }) => {
-  const { styles } = useAppTheme((t) => getStyles(t, color));
+  const { styles } = useAppTheme((t) => getStyles(t, color, variant));
 
   return (
     <TouchableOpacity
@@ -35,21 +37,23 @@ export const Fab: React.FC<FabProps> = ({
   );
 };
 
-const getStyles = (theme: Theme, color?: string) =>
-  StyleSheet.create({
+const getStyles = (theme: Theme, color?: string, variant: 'primary' | 'secondary' = 'primary') => {
+  const bgColor = color || (variant === 'secondary' ? theme.colors.secondary : theme.colors.primary);
+  return StyleSheet.create({
     fab: {
       right: 20,
       bottom: 30,
       position: 'absolute',
       padding: 12,
       borderRadius: 28,
-      backgroundColor: color || theme.colors.primary,
+      backgroundColor: bgColor,
       alignItems: 'center',
       justifyContent: 'center',
-      ...getShadow(5, color || theme.colors.primary, 0.4),
+      ...getShadow(5, bgColor, 0.4),
       zIndex: 10,
       elevation: 8,
     },
   });
+};
 
 export default Fab;

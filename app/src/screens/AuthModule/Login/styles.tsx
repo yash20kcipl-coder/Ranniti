@@ -54,10 +54,10 @@ export const loginStyles = (theme: Theme, insets: any) =>
     },
     bgCircle2: {
       position: 'absolute',
-      width: 160,
-      height: 160,
-      borderRadius: 80,
-      backgroundColor: 'rgba(255, 255, 255, 0.04)',
+      width: 170,
+      height: 170,
+      borderRadius: 85,
+      backgroundColor: 'rgba(178, 34, 32, 0.20)', // Secondary crimson glow
       bottom: 10,
       left: -40,
     },
@@ -103,7 +103,7 @@ export const loginStyles = (theme: Theme, insets: any) =>
     },
     logoCardInner: {
       width: 250,
-      height: 75,
+      height: 80,
       padding: 12,
       borderRadius: 45,
       alignItems: 'center',
@@ -122,11 +122,22 @@ export const loginStyles = (theme: Theme, insets: any) =>
       letterSpacing: 2,
       textAlign: 'center',
     },
+    brandSubtitleBadge: {
+      // backgroundColor: 'rgba(178, 34, 32, 0.28)',
+      // paddingHorizontal: 14,
+      // paddingVertical: 4,
+      // borderRadius: 16,
+      // borderWidth: 1,
+      // borderColor: 'rgba(178, 34, 32, 0.45)',
+      // marginTop: 8,
+    },
     brandSubtitle: {
       textAlign: 'center',
-      fontSize: rfValue(20),
-      fontFamily: FontFamily.medium,
-      color: 'rgba(255, 255, 255, 1)',
+      fontSize: rfValue(15),
+      fontFamily: FontFamily.bodyBold,
+      color: '#FFFFFF',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
     },
 
     // Bottom Section
@@ -169,7 +180,7 @@ export const loginStyles = (theme: Theme, insets: any) =>
       height: 52,
       marginTop: 8,
       borderRadius: 14,
-      ...getShadow(6, theme.colors.primary, 0.3),
+      ...getShadow(6, theme.colors.secondary, 0.3),
     },
     footer: {
       flexDirection: 'row',
@@ -186,7 +197,7 @@ export const loginStyles = (theme: Theme, insets: any) =>
     footerLink: {
       fontFamily: FontFamily.bodyBold,
       fontSize: rfValue(13.5),
-      color: theme.colors.primary,
+      color: theme.colors.secondary,
     },
   });
 

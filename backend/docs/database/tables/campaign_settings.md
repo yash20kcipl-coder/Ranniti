@@ -17,6 +17,7 @@ Configuration entity storing organization/campaign settings including Push Notif
 | `apns_key_id` | `VARCHAR(50)` | Yes | `NULL` | Apple APNs Key ID |
 | `apns_bundle_id` | `VARCHAR(100)` | Yes | `NULL` | iOS App Bundle ID |
 | `apns_auth_key` | `TEXT` | Yes | `NULL` | Apple APNs Auth Key (.p8 contents) |
+| `push_triggers` | `JSONB` | No | `{"dailyBriefing": true, ...}` | Notification schedule and trigger toggles |
 | `candidate_name` | `VARCHAR(200)` | Yes | `NULL` | Candidate full name |
 | `party_name` | `VARCHAR(100)` | Yes | `NULL` | Campaign political party name |
 | `party_symbol_url` | `TEXT` | Yes | `NULL` | Political party symbol logo path |

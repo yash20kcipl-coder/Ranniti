@@ -41,15 +41,13 @@ export const LoginPage: React.FC = () => {
 
         {/* Brand Header with Theme Toggle */}
         <div className="flex items-center justify-between gap-3">
-          {/* Logo: branded gradient pill in light mode so white logo stays visible */}
+          {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 dark:bg-none dark:from-transparent dark:to-transparent dark:bg-transparent border border-indigo-500/40 dark:border-transparent shadow-lg shadow-indigo-500/20 dark:shadow-none transition-all duration-200">
-              <img
-                src="/ranniti-logo.png"
-                alt="Ranniti"
-                className="h-7 sm:h-8 md:h-9 w-auto object-contain"
-              />
-            </div>
+            <img
+              src="/ranniti-logo.png"
+              alt="Ranniti"
+              className="h-8 sm:h-9 md:h-10 w-auto object-contain filter drop-shadow-sm transition-all duration-200"
+            />
           </div>
 
           <ThemeToggle size="sm" showLabel />
@@ -105,7 +103,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-6 rounded-md bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-[12px] shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
+              className="w-full py-2.5 px-6 rounded-md bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-[12px] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
             >
               {loading ? (
                 <>
@@ -119,7 +117,7 @@ export const LoginPage: React.FC = () => {
           </form>
 
           {/* Quick Demo Credentials */}
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
+          {/* <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
             <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Quick Demo Login</p>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -145,7 +143,7 @@ export const LoginPage: React.FC = () => {
                 <p className="text-[10px] text-slate-500 truncate">superadmin@ranniti.com</p>
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer */}

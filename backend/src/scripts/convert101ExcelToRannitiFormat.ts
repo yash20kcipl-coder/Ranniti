@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
+import { normalizeRelation } from '../utils/relationNormalizer';
 
 const sourceFile = path.resolve(__dirname, '../../../101finalomb.xlsx');
 const targetFile = path.resolve(__dirname, '../../../xlsx/voters_ac_101_formatted.xlsx');
@@ -171,7 +172,7 @@ export const convert101Excel = async (): Promise<void> => {
   const fullSheet = fullWorkbook.addWorksheet('Voters');
   fullSheet.addRow(headers).commit();
 
-  const sampleRows: (string | number)[][] = [headers];
+  const sampleRows: (string | number | null)[][] = [headers];
 
   let convertedCount = 0;
 
@@ -181,7 +182,7 @@ export const convert101Excel = async (): Promise<void> => {
     if (!epicNo) continue;
 
     const { firstName, middleName, surname } = parseName(r.Name, r['Father Name']);
-    const relation = cleanText(r.Relation || r.relation || '');
+    const relation = normalizeRelation(r.Relation || r.relation) || '';
     const guardianName = cleanText(r['Father Name'] || r.Father_Name || r.Guardian_Name || r['Guardian Name'] || '');
     const gender = parseGender(r.sex, r.Name);
     const age = parseAge(r.age);
