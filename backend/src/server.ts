@@ -1,6 +1,7 @@
 import { createApp } from './app';
 import { config } from './config';
 import { logger } from './utils/logger';
+import { closeRedis } from './config/redis';
 import { closeDbPool } from './queries/dbPool';
 import { TenantPoolManager } from './services/pool/tenantPoolManager';
 import { SyncOutboxRetryService } from './services/sync/syncOutboxRetry.service';
@@ -10,7 +11,7 @@ const app = createApp();
 const server = app.listen(config.port, () => {
   logger.info(`Server running in ${config.env} mode on http://localhost:${config.port}`);
   logger.info(`Health check available at http://localhost:${config.port}/api/v1/health`);
-  
+
   // Start background outbox retry worker
   SyncOutboxRetryService.startBackgroundWorker(60000);
 });
@@ -23,6 +24,7 @@ const gracefulShutdown = (signal: string) => {
     logger.info('HTTP server closed.');
     await TenantPoolManager.closeAll();
     await closeDbPool();
+    await closeRedis();
     process.exit(0);
   });
 
@@ -30,6 +32,7 @@ const gracefulShutdown = (signal: string) => {
     logger.error('Could not close connections in time, forcefully shutting down');
     await TenantPoolManager.closeAll();
     await closeDbPool();
+    await closeRedis();
     process.exit(1);
   }, 10000);
 };

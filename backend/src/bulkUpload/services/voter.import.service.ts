@@ -31,8 +31,8 @@ export class VoterImportService {
     const allAffectedBoothIds = new Set<string>();
 
     const result = await BulkImporter.processArray(records, {
-      batchSize: 500,
-      concurrency: 2,
+      batchSize: 2500,
+      concurrency: 4,
       onProgress: progressCallback,
       onBatchInsert: async (batch) => {
         const votersToInsert: any[] = [];
@@ -303,7 +303,7 @@ export class VoterImportService {
           return { inserted: 0, failed: batchFailed, errors: batchErrors };
         }
 
-        const batchRes = await VoterQueries.createVotersBatch(votersToInsert);
+        const batchRes = await VoterQueries.createVotersBatch(votersToInsert, context?.tenantDbName);
 
         return {
           inserted: batchRes.inserted,
@@ -330,7 +330,12 @@ export class VoterImportService {
           ) sub
           WHERE b.id = sub.booth_id;
         `;
-        await query(updateCountSql, [boothIdList]);
+        if (context?.tenantDbName) {
+          const { TenantPoolManager } = await import('../../services/pool/tenantPoolManager');
+          await TenantPoolManager.query(context.tenantDbName, updateCountSql, [boothIdList]);
+        } else {
+          await query(updateCountSql, [boothIdList]);
+        }
         await CacheService.invalidatePattern('ranniti:masters:booths*');
         await CacheService.invalidatePattern('ranniti:tenant:stats*');
         logger.info(`[VoterImportService] Successfully updated total_voters count for affected booths.`);
@@ -344,7 +349,7 @@ export class VoterImportService {
         logger.info(`[VoterImportService] Auto-mapping families for ${boothIdList.length} affected booths post-import...`);
         for (const bId of boothIdList) {
           try {
-            await FamilyMappingService.autoMapBoothFamilies(null, { boothId: bId });
+            await FamilyMappingService.autoMapBoothFamilies(context?.tenantDbName || null, { boothId: bId });
           } catch (mapErr: any) {
             logger.warn(`[VoterImportService] Post-import family mapping for booth ${bId} encountered error: ${mapErr.message}`);
           }

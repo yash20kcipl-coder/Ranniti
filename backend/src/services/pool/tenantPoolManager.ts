@@ -59,19 +59,6 @@ export class TenantPoolManager {
 
     const pool = getTenantDbPool(trimmed);
 
-    // Instrument pool.query and pool.connect for transparent Tenant DB tracking
-    const origQuery = pool.query.bind(pool);
-    pool.query = (async (...args: any[]) => {
-      DataSourceTracker.record(`Tenant DB (${trimmed})`);
-      return (origQuery as any)(...args);
-    }) as any;
-
-    const origConnect = pool.connect.bind(pool);
-    pool.connect = (async (...args: any[]) => {
-      DataSourceTracker.record(`Tenant DB (${trimmed})`);
-      return (origConnect as any)(...args);
-    }) as any;
-
     pool.on('error', (err) => {
       logger.error(`[TenantPoolManager] Unexpected error on idle pool for tenant DB '${trimmed}':`, err);
     });

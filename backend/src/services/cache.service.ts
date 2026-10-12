@@ -12,6 +12,14 @@ export class CacheService {
     return Math.floor(baseTtlSeconds * factor);
   }
 
+  private static readonly RELEASE_LOCK_LUA = `
+    if redis.call("get", KEYS[1]) == ARGV[1] then
+      return redis.call("del", KEYS[1])
+    else
+      return 0
+    end
+  `;
+
   /**
    * Helper: Acquire a Cache Lease (Lock) to prevent duplicate DB queries during cache miss
    */
@@ -48,14 +56,16 @@ export class CacheService {
         }
       }, (leaseSeconds * 1000) / 2);
 
+      // Do not prevent Node.js process exit on idle
+      if (typeof heartbeatInterval.unref === 'function') {
+        heartbeatInterval.unref();
+      }
+
       const release = async () => {
         clearInterval(heartbeatInterval);
         try {
           if (redisClient && redisClient.status === 'ready') {
-            const currentOwner = await redisClient.get(lockKey);
-            if (currentOwner === leaseId) {
-              await redisClient.del(lockKey);
-            }
+            await redisClient.eval(CacheService.RELEASE_LOCK_LUA, 1, lockKey, leaseId);
           }
         } catch { }
       };
@@ -93,15 +103,17 @@ export class CacheService {
     const { acquired, release } = await this.acquireLease(lockKey, leaseSeconds);
 
     if (!acquired && redisClient && redisClient.status === 'ready') {
-      // Lease held by another worker -> Wait ~60ms and retry reading cached value
-      await new Promise((resolve) => setTimeout(resolve, 60));
-      try {
-        const retryCached = await redisClient.get(key);
-        if (retryCached) {
-          DataSourceTracker.record('Redis');
-          return JSON.parse(retryCached) as T;
-        }
-      } catch { }
+      // Lease held by another worker -> Poll up to 4 times (50ms interval) for cached computation
+      for (let attempt = 0; attempt < 4; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        try {
+          const retryCached = await redisClient.get(key);
+          if (retryCached) {
+            DataSourceTracker.record('Redis');
+            return JSON.parse(retryCached) as T;
+          }
+        } catch { }
+      }
     }
 
     try {
@@ -138,15 +150,37 @@ export class CacheService {
 
   /**
    * Delete specific key or wildcard pattern (e.g. 'ranniti:masters:acs*')
+   * Uses non-blocking SCAN stream instead of blocking KEYS command to prevent Redis event-loop freezing.
    */
   static async invalidatePattern(pattern: string): Promise<void> {
     if (!redisClient || redisClient.status !== 'ready') return;
 
     try {
-      const keys = await redisClient.keys(pattern);
-      if (keys.length > 0) {
-        await redisClient.del(...keys);
-        logger.info(`[CacheService] Invalidated ${keys.length} keys matching '${pattern}'`);
+      const stream = redisClient.scanStream({
+        match: pattern,
+        count: 100,
+      });
+
+      const keysToDelete: string[] = [];
+
+      stream.on('data', (resultKeys: string[]) => {
+        if (resultKeys && resultKeys.length > 0) {
+          keysToDelete.push(...resultKeys);
+        }
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        stream.on('end', () => resolve());
+        stream.on('error', (err) => reject(err));
+      });
+
+      if (keysToDelete.length > 0) {
+        // Chunk deletions into batches of 100 to prevent Redis command payload bottleneck
+        for (let i = 0; i < keysToDelete.length; i += 100) {
+          const chunk = keysToDelete.slice(i, i + 100);
+          await redisClient.del(...chunk);
+        }
+        logger.info(`[CacheService] Non-blocking scan invalidated ${keysToDelete.length} keys matching '${pattern}'`);
       }
     } catch (err: any) {
       logger.warn(`[CacheService] Invalidation error for pattern '${pattern}': ${err.message}`);

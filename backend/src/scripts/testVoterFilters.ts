@@ -320,7 +320,8 @@ async function runVoterFilterTests() {
   }
 
   // C. Tenant Database Specific Filter Tests
-  const tenantDbs = ['ranniti_tenant_admin_5667'];
+  const activeTenantsRes = await query(`SELECT tenant_db_name FROM tenants WHERE status = 'active' LIMIT 3`);
+  const tenantDbs = activeTenantsRes.rows.map((r: any) => r.tenant_db_name);
   for (const tenantDbName of tenantDbs) {
     for (const gender of genderList) {
       testCases.push({

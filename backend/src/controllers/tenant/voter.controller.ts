@@ -33,6 +33,7 @@ export class VoterController {
       isSocialInfluencer: req.query.isSocialInfluencer as string,
       influencerStatus: req.query.influencerStatus as string,
       influencerRole: req.query.influencerRole as string,
+      cachedTotal: req.query.cachedTotal ? parseInt(req.query.cachedTotal as string, 10) : undefined,
     };
 
     const result = await VoterService.getVoters(filterParams);

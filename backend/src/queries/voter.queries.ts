@@ -51,6 +51,56 @@ function toNullableBool(val: any): boolean | null {
   return Boolean(val);
 }
 
+export function buildVoterSearchCondition(
+  rawSearch: string,
+  tableAlias: string = '',
+  paramIndex: number,
+  options: { includeMiddleNames?: boolean; includeSerialNo?: boolean } = {}
+): { clause: string; value: any } {
+  const trimmed = rawSearch.trim();
+  const prefix = tableAlias ? `${tableAlias}.` : '';
+
+  // 1. Check for 10-digit mobile number (e.g. "9876543210", "+919876543210", "919876543210")
+  const cleanDigits = trimmed.replace(/\D/g, '');
+  const tenDigitMatch = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : null;
+  if (tenDigitMatch && /^[6-9]\d{9}$/.test(tenDigitMatch) && cleanDigits.length <= 12) {
+    // Matches the functional index idx_voters_clean_mobile_10:
+    // (RIGHT(REGEXP_REPLACE(mobile_no, '\D', '', 'g'), 10)) WHERE mobile_no IS NOT NULL AND LENGTH(REGEXP_REPLACE(mobile_no, '\D', '', 'g')) >= 10
+    return {
+      clause: `(${prefix}mobile_no IS NOT NULL AND LENGTH(REGEXP_REPLACE(${prefix}mobile_no, '\\D', '', 'g')) >= 10 AND RIGHT(REGEXP_REPLACE(${prefix}mobile_no, '\\D', '', 'g'), 10) = $${paramIndex})`,
+      value: tenDigitMatch,
+    };
+  }
+
+  // 2. Check for EPIC identifier pattern (e.g. ABC1234567, GJ011234, TEST_XYZ99)
+  const isEpicPattern = /^(TEST_[A-Za-z0-9_]+|[A-Za-z]{2,5}\d{3,10})$/i.test(trimmed);
+  if (isEpicPattern) {
+    return {
+      clause: `(${prefix}epic_no ILIKE $${paramIndex})`,
+      value: `%${trimmed}%`,
+    };
+  }
+
+  // 3. Check for purely numeric input (e.g. house number, serial number, partial phone)
+  if (/^\d+$/.test(trimmed)) {
+    const serialClause = options.includeSerialNo ? ` OR ${prefix}serial_no::text ILIKE $${paramIndex}` : '';
+    return {
+      clause: `(${prefix}house_no ILIKE $${paramIndex} OR ${prefix}mobile_no ILIKE $${paramIndex} OR ${prefix}epic_no ILIKE $${paramIndex}${serialClause})`,
+      value: `%${trimmed}%`,
+    };
+  }
+
+  // 4. General textual search (trigram-backed first name, surname, epic, house)
+  const middleNamesClause = options.includeMiddleNames
+    ? ` OR ${prefix}eng_middle_name ILIKE $${paramIndex} OR ${prefix}middle_name ILIKE $${paramIndex}`
+    : '';
+
+  return {
+    clause: `(${prefix}epic_no ILIKE $${paramIndex} OR ${prefix}eng_first_name ILIKE $${paramIndex}${middleNamesClause} OR ${prefix}eng_surname ILIKE $${paramIndex} OR ${prefix}first_name ILIKE $${paramIndex} OR ${prefix}surname ILIKE $${paramIndex} OR ${prefix}house_no ILIKE $${paramIndex})`,
+    value: `%${trimmed}%`,
+  };
+}
+
 export class VoterQueries {
   static async getVoters(params: VoterFilterParams): Promise<{
     data: Voter[];
@@ -68,11 +118,9 @@ export class VoterQueries {
     let paramIndex = 1;
 
     if (params.search && params.search.trim()) {
-      const searchPattern = `%${params.search.trim()}%`;
-      conditions.push(
-        `(v.epic_no ILIKE $${paramIndex} OR v.eng_first_name ILIKE $${paramIndex} OR v.eng_surname ILIKE $${paramIndex} OR v.first_name ILIKE $${paramIndex} OR v.surname ILIKE $${paramIndex} OR v.mobile_no ILIKE $${paramIndex} OR v.house_no ILIKE $${paramIndex})`
-      );
-      values.push(searchPattern);
+      const { clause, value } = buildVoterSearchCondition(params.search, 'v', paramIndex);
+      conditions.push(clause);
+      values.push(value);
       paramIndex++;
     }
 
@@ -231,7 +279,6 @@ export class VoterQueries {
       WITH paged_voters AS (
         SELECT v.id
         FROM voters v
-        ${params.boothId ? '' : 'LEFT JOIN booths b ON v.booth_id = b.id'}
         ${whereClause}
         ORDER BY ${sortClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -555,7 +602,7 @@ export class VoterQueries {
       return { inserted: 0, errors: 0 };
     }
 
-    const CHUNK_SIZE = 300;
+    const CHUNK_SIZE = 500;
     let totalInserted = 0;
     let totalErrors = 0;
 
@@ -1034,11 +1081,9 @@ export class VoterQueries {
     let paramIndex = 1;
 
     if (params.search && params.search.trim()) {
-      const searchPattern = `%${params.search.trim()}%`;
-      conditions.push(
-        `(epic_no ILIKE $${paramIndex} OR eng_first_name ILIKE $${paramIndex} OR eng_surname ILIKE $${paramIndex} OR first_name ILIKE $${paramIndex} OR surname ILIKE $${paramIndex} OR mobile_no ILIKE $${paramIndex} OR house_no ILIKE $${paramIndex})`
-      );
-      values.push(searchPattern);
+      const { clause, value } = buildVoterSearchCondition(params.search, '', paramIndex);
+      conditions.push(clause);
+      values.push(value);
       paramIndex++;
     }
 
@@ -1221,11 +1266,9 @@ export class VoterQueries {
     let paramIndex = 1;
 
     if (params.search && params.search.trim()) {
-      const searchPattern = `%${params.search.trim()}%`;
-      conditions.push(
-        `(v.epic_no ILIKE $${paramIndex} OR v.eng_first_name ILIKE $${paramIndex} OR v.eng_surname ILIKE $${paramIndex} OR v.first_name ILIKE $${paramIndex} OR v.surname ILIKE $${paramIndex} OR v.mobile_no ILIKE $${paramIndex} OR v.house_no ILIKE $${paramIndex})`
-      );
-      values.push(searchPattern);
+      const { clause, value } = buildVoterSearchCondition(params.search, 'v', paramIndex);
+      conditions.push(clause);
+      values.push(value);
       paramIndex++;
     }
 
@@ -1392,11 +1435,9 @@ export class VoterQueries {
     }
 
     if (params.search && params.search.trim()) {
-      const searchPattern = `%${params.search.trim()}%`;
-      conditions.push(
-        `(v.epic_no ILIKE $${paramIndex} OR v.eng_first_name ILIKE $${paramIndex} OR v.eng_middle_name ILIKE $${paramIndex} OR v.eng_surname ILIKE $${paramIndex} OR v.first_name ILIKE $${paramIndex} OR v.middle_name ILIKE $${paramIndex} OR v.surname ILIKE $${paramIndex} OR v.mobile_no ILIKE $${paramIndex} OR v.house_no ILIKE $${paramIndex} OR v.serial_no::text ILIKE $${paramIndex})`
-      );
-      values.push(searchPattern);
+      const { clause, value } = buildVoterSearchCondition(params.search, 'v', paramIndex, { includeMiddleNames: true, includeSerialNo: true });
+      conditions.push(clause);
+      values.push(value);
       paramIndex++;
     }
 
@@ -1564,11 +1605,9 @@ export class VoterQueries {
     }
 
     if (params.search && params.search.trim()) {
-      const searchPattern = `%${params.search.trim()}%`;
-      conditions.push(
-        `(v.epic_no ILIKE $${paramIndex} OR v.eng_first_name ILIKE $${paramIndex} OR v.eng_middle_name ILIKE $${paramIndex} OR v.eng_surname ILIKE $${paramIndex} OR v.first_name ILIKE $${paramIndex} OR v.middle_name ILIKE $${paramIndex} OR v.surname ILIKE $${paramIndex} OR v.mobile_no ILIKE $${paramIndex} OR v.house_no ILIKE $${paramIndex} OR v.serial_no::text ILIKE $${paramIndex})`
-      );
-      values.push(searchPattern);
+      const { clause, value } = buildVoterSearchCondition(params.search, 'v', paramIndex, { includeMiddleNames: true, includeSerialNo: true });
+      conditions.push(clause);
+      values.push(value);
       paramIndex++;
     }
 

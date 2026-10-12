@@ -129,6 +129,7 @@ export const voterQuerySchema = z.object({
     influencerStatus: z.string().optional(),
     influencerRole: z.string().optional(),
     type: z.string().optional(),
+    cachedTotal: z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
   }),
 });
 
