@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Vote, UserPlus, UserCheck, Building2, RefreshCw, Sparkles } from 'lucide-react';
+import { Vote, UserPlus, UserCheck, Building2, RefreshCw, Sparkles, BarChart3 } from 'lucide-react';
 
 export interface DashboardQuickActionsProps {
   onRefresh: () => void;
@@ -40,6 +40,15 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
       textColor: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200/80 dark:border-blue-900/60',
       onClick: () => navigate('/dashboard/volunteers'),
+    },
+    {
+      label: 'Campaign Analytics',
+      subtext: 'Outreach & Leaderboard',
+      icon: BarChart3,
+      color: 'from-amber-500 to-orange-600',
+      textColor: 'text-amber-600 dark:text-amber-400',
+      bgColor: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200/80 dark:border-amber-900/60',
+      onClick: () => navigate('/dashboard/analytics'),
     },
     {
       label: 'Master Setup',
@@ -83,7 +92,7 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {actions.map((act) => {
           const Icon = act.icon;
           return (

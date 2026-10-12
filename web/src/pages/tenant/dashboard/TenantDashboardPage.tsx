@@ -12,7 +12,6 @@ import { RecentVotersCard } from './components/RecentVotersCard';
 import { BoothCoverageCard } from './components/BoothCoverageCard';
 import { TenantKpiStatsGrid } from './components/TenantKpiStatsGrid';
 import { VoterSentimentCard } from './components/VoterSentimentCard';
-import { VolunteerOutreachCard } from './components/VolunteerOutreachCard';
 import { DashboardQuickActions } from './components/DashboardQuickActions';
 import { VoterDemographicsCard } from './components/VoterDemographicsCard';
 import { RegistrationVelocityCard } from './components/RegistrationVelocityCard';
@@ -76,9 +75,6 @@ export const TenantDashboardPage: React.FC = () => {
         {/* Card 4: Electoral Infrastructure & Booths */}
         <BoothCoverageCard data={data} loading={loading} />
       </div>
-
-      {/* Volunteer Performance, Phone Contact Sync & Cadre Outreach Analytics */}
-      <VolunteerOutreachCard />
 
       {/* Recent Voter Registrations Table */}
       <RecentVotersCard recentVoters={data?.recentVoters || []} loading={loading} />

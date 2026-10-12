@@ -17,6 +17,9 @@ import { TenantMasterPage } from '@/pages/tenant/master';
 // Tenant Volunteers Page
 import { TenantVolunteersPage } from '@/pages/tenant/volunteers/TenantVolunteersPage';
 
+// Tenant Campaign Analytics Page
+import { TenantAnalyticsPage } from '@/pages/tenant/analytics';
+
 // Tenant Settings & User Role Manager Pages
 import { TenantUserRoleManager } from '@/pages/tenant/roles';
 import { TenantSettingsPage } from '@/pages/tenant/settings';
@@ -42,6 +45,9 @@ export const TenantRoutes: React.FC = () => {
 
       {/* Tenant Volunteers & Cadre */}
       <Route path="volunteers" element={<TenantVolunteersPage />} />
+
+      {/* Tenant Campaign & Outreach Analytics */}
+      <Route path="analytics" element={<TenantAnalyticsPage />} />
 
       {/* Tenant Settings & User Roles */}
       <Route path="settings" element={<TenantSettingsPage />} />

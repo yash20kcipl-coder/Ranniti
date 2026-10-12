@@ -1,5 +1,5 @@
-export const FILE_BASE_URL = 'http://192.168.1.3:10001';
-export const API_BASE_URL = 'http://192.168.1.3:10001/api/v1';
+export const FILE_BASE_URL = 'http://192.168.1.5:10001';
+export const API_BASE_URL = 'http://192.168.1.5:10001/api/v1';
 
 /**
  * Returns full URL for uploaded file paths

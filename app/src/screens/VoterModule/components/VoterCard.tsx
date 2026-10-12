@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { useDispatch } from 'react-redux';
 import { voterListStyles } from '../styles';
 import { Voter } from '../../../store/reducers/voters';
 import { SCREENS } from '../../../navigation/constants';
@@ -7,13 +8,14 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { SafeImage } from '../../../components/SafeImage';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { logVolunteerInteractionAction } from '../../../store/actions/voters';
 import { openPhoneDialer, openWhatsAppChat } from '../../../utils/linkingUtils';
 import { Phone, MessageCircle, CheckCircle, XCircle, ChevronDown } from 'lucide-react-native';
 
 interface VoterCardProps {
   voter: Voter;
-  t: (key: TranslationKeys) => string;
   canEditParty?: boolean;
+  t: (key: TranslationKeys) => string;
   onSelectParty: (voterId: string) => void;
   onToggleVoted: (voterId: string) => void;
 }
@@ -25,11 +27,26 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
   onToggleVoted,
   t,
 }) => {
+  const dispatch = useDispatch();
   const navigation = useNavigation<any>();
   const { styles } = useAppTheme<ReturnType<typeof voterListStyles>>(voterListStyles);
 
   const hindiName = voter.hindiName || voter.name;
   const englishName = voter.englishName || '';
+
+  const handleCall = () => {
+    if (voter?.id) {
+      dispatch(logVolunteerInteractionAction({ voterId: voter.id, boothId: voter.boothId, activityType: 'call' }) as any);
+    }
+    openPhoneDialer(voter.mobile);
+  };
+
+  const handleWhatsApp = () => {
+    if (voter?.id) {
+      dispatch(logVolunteerInteractionAction({ voterId: voter.id, boothId: voter.boothId, activityType: 'whatsapp' }) as any);
+    }
+    openWhatsAppChat(voter.mobile, `Namaste ${englishName || hindiName}, greetings from Ranniti team.`);
+  };
 
   const handleCardPress = () => {
     navigation.navigate(SCREENS.VOTER_DETAIL, { voter });
@@ -105,7 +122,7 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
             <>
               <TouchableOpacity
                 style={styles.actionBtn}
-                onPress={() => openPhoneDialer(voter.mobile)}
+                onPress={handleCall}
                 activeOpacity={0.7}
               >
                 <Phone {...({ size: 12, color: "#2563EB" } as any)} />
@@ -114,7 +131,7 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
 
               <TouchableOpacity
                 style={styles.actionBtn}
-                onPress={() => openWhatsAppChat(voter.mobile, `Namaste ${englishName || hindiName}, greetings from Ranniti team.`)}
+                onPress={handleWhatsApp}
                 activeOpacity={0.7}
               >
                 <MessageCircle {...({ size: 12, color: "#16A34A" } as any)} />

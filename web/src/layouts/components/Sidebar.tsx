@@ -17,6 +17,7 @@ import {
   X,
   PanelLeftClose,
   FlaskConical,
+  BarChart3,
 } from 'lucide-react';
 import { NavPill } from './NavPill';
 import { logout } from '@/redux/actions/auth';
@@ -36,6 +37,7 @@ export const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'operations' },
   { path: '/dashboard/voters', label: 'Voter Directory', icon: Vote, section: 'operations' },
   { path: '/dashboard/volunteers', label: 'Volunteers', icon: UserCheck, section: 'operations' },
+  { path: '/dashboard/analytics', label: 'Analytics', icon: BarChart3, section: 'operations' },
   { path: '/dashboard/tenants', label: 'Tenant Accounts', icon: Users, section: 'operations' },
   { path: '/dashboard/settings', label: 'Settings', icon: Settings, section: 'system' },
 ];
@@ -270,6 +272,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   if (item.section !== 'operations') return false;
                   if (item.path === '/dashboard/tenants') return isSuperAdmin;
                   if (item.path === '/dashboard/volunteers') return !isSuperAdmin;
+                  if (item.path === '/dashboard/analytics') return !isSuperAdmin;
                   return true;
                 })
                 .map((item) => {

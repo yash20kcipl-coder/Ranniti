@@ -1,8 +1,8 @@
 import { Platform } from 'react-native';
 
 const getLocalHost = () => {
-  // Machine Wi-Fi IP: 192.168.1.3 | Active Backend Port: 10001
-  const LOCAL_IP = '192.168.1.3';
+  // Machine Wi-Fi IP: 192.168.1.5 | Active Backend Port: 10001
+  const LOCAL_IP = '192.168.1.5';
   const PORT = '10001';
 
   if (Platform.OS === 'android') {

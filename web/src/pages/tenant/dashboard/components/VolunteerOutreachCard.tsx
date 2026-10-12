@@ -14,12 +14,11 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import { useAppSelector } from '@/redux/hooks';
 import { CountUp } from '@/components/common/CountUp';
 import { SafeImage } from '@/components/common/SafeImage';
 import { FormInput } from '@/components/common/FormInput';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { fetchVolunteerAnalytics } from '@/redux/actions/volunteer';
 import type { VolunteerLeaderboardItem } from '@/redux/reducers/volunteer';
 
 const ROLE_BADGES: Record<string, { label: string; color: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
@@ -29,8 +28,11 @@ const ROLE_BADGES: Record<string, { label: string; color: string; icon: React.Co
   supporter: { label: 'Volunteer', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', icon: UserCheck },
 };
 
-export const VolunteerOutreachCard: React.FC = () => {
-  const dispatch = useAppDispatch();
+export interface VolunteerOutreachCardProps {
+  volunteerAnalytics?: (filters?: { timeRange?: '7d' | '30d' | 'all'; role?: string }) => void;
+}
+
+export const VolunteerOutreachCard: React.FC<VolunteerOutreachCardProps> = ({ volunteerAnalytics }) => {
   const { analytics, analyticsLoading } = useAppSelector((state) => state.volunteer);
 
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('30d');
@@ -40,11 +42,15 @@ export const VolunteerOutreachCard: React.FC = () => {
 
   // Debounced fetch on filter changes per Rule 13
   useDebouncedEffect(() => {
-    dispatch(fetchVolunteerAnalytics({ timeRange, role: roleFilter === 'all' ? undefined : roleFilter }));
-  }, 200, [dispatch, timeRange, roleFilter]);
+    if (volunteerAnalytics) {
+      volunteerAnalytics({ timeRange, role: roleFilter === 'all' ? undefined : roleFilter });
+    }
+  }, 200, [volunteerAnalytics, timeRange, roleFilter]);
 
   const handleRefresh = () => {
-    dispatch(fetchVolunteerAnalytics({ timeRange, role: roleFilter === 'all' ? undefined : roleFilter }));
+    if (volunteerAnalytics) {
+      volunteerAnalytics({ timeRange, role: roleFilter === 'all' ? undefined : roleFilter });
+    }
   };
 
   const kpis = analytics?.kpis || {
@@ -79,7 +85,7 @@ export const VolunteerOutreachCard: React.FC = () => {
     });
 
   return (
-    <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs p-5 space-y-6">
+    <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs p-5 space-y-6">
       {/* Top Header & Range Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800/60">
         <div className="flex items-center gap-3">
@@ -108,8 +114,8 @@ export const VolunteerOutreachCard: React.FC = () => {
               type="button"
               onClick={() => setTimeRange('7d')}
               className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${timeRange === '7d'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
               7 Days
@@ -118,8 +124,8 @@ export const VolunteerOutreachCard: React.FC = () => {
               type="button"
               onClick={() => setTimeRange('30d')}
               className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${timeRange === '30d'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
               30 Days
@@ -128,8 +134,8 @@ export const VolunteerOutreachCard: React.FC = () => {
               type="button"
               onClick={() => setTimeRange('all')}
               className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${timeRange === 'all'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
               All Time
@@ -165,7 +171,7 @@ export const VolunteerOutreachCard: React.FC = () => {
               <CountUp to={kpis.totalContactsSynced} duration={1} />
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1 font-medium">
-              <span>Phonebook $\rightarrow$ Voter Roll</span>
+              <span>Phonebook → Voter Roll</span>
             </p>
           </div>
         </div>

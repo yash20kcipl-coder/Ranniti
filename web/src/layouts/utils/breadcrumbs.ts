@@ -86,6 +86,18 @@ export function resolveBreadcrumbs(pathname: string): { title: string; breadcrum
     };
   }
 
+  // ── 3b. Campaign Analytics ──────────────────────────────────────────────────
+  if (path === '/dashboard/analytics') {
+    return {
+      title: 'Campaign Analytics',
+      breadcrumbs: [
+        { label: 'Platform', href: '/dashboard' },
+        { label: 'Campaign Intelligence', href: '/dashboard/analytics' },
+        { label: 'Outreach & Analytics' },
+      ],
+    };
+  }
+
   // ── 4. Multi-Tenant Accounts ────────────────────────────────────────────────
   if (path === '/dashboard/tenants') {
     return {
