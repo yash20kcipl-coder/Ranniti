@@ -19,8 +19,6 @@ export const hasScreenAccess = (accessConfig: any, screenName: string): boolean 
   if (
     screenName === SCREENS.SPLASH ||
     screenName === SCREENS.LOGIN ||
-    screenName === SCREENS.FORGOT_PASSWORD ||
-    screenName === SCREENS.CONTACT_SUPPORT ||
     screenName === SCREENS.PROFILE ||
     screenName === SCREENS.SETTINGS
   ) {

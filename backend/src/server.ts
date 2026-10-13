@@ -17,7 +17,12 @@ const server = app.listen(config.port, () => {
 });
 
 // Graceful shutdown handling
+let isShuttingDown = false;
+
 const gracefulShutdown = (signal: string) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
   logger.warn(`Received ${signal}. Shutting down gracefully...`);
   SyncOutboxRetryService.stopBackgroundWorker();
   server.close(async () => {
@@ -34,7 +39,7 @@ const gracefulShutdown = (signal: string) => {
     await closeDbPool();
     await closeRedis();
     process.exit(1);
-  }, 10000);
+  }, 10000).unref();
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

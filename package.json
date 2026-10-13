@@ -5,7 +5,6 @@
   "description": "Ranniti root runner for backend and web",
   "scripts": {
     "update-ip": "node scripts/update-ip.js",
-    "predev": "node scripts/update-ip.js",
     "dev": "concurrently -k -n \"backend,web\" -c \"cyan.bold,green.bold\" \"npm run dev --prefix backend\" \"npm run dev --prefix web\"",
     "start": "npm run dev",
     "dev:backend": "npm run dev --prefix backend",

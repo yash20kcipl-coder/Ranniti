@@ -153,18 +153,39 @@ updateFile(path.join(ROOT_DIR, 'backend', '.env.development'), (content) => {
   return updated;
 });
 
-// 3. web/src/utils/baseUrl.ts
+// 3. web/.env
+updateFile(path.join(ROOT_DIR, 'web', '.env'), (content) => {
+  let updated = content;
+
+  if (/^VITE_API_BASE_URL=.*$/m.test(updated)) {
+    updated = updated.replace(
+      /^VITE_API_BASE_URL=.*$/m,
+      `VITE_API_BASE_URL=http://${ip}:${BACKEND_PORT}/api/v1`
+    );
+  }
+
+  if (/^VITE_FILE_BASE_URL=.*$/m.test(updated)) {
+    updated = updated.replace(
+      /^VITE_FILE_BASE_URL=.*$/m,
+      `VITE_FILE_BASE_URL=http://${ip}:${BACKEND_PORT}`
+    );
+  }
+
+  return updated;
+});
+
+// 4. web/src/utils/baseUrl.ts
 updateFile(path.join(ROOT_DIR, 'web', 'src', 'utils', 'baseUrl.ts'), (content) => {
   let updated = content;
 
   updated = updated.replace(
-    /export const FILE_BASE_URL = ['"`]http:\/\/[^:]+(:\d+)?['"`];/,
-    `export const FILE_BASE_URL = 'http://${ip}:${BACKEND_PORT}';`
+    /export const FILE_BASE_URL =[\s\S]*?;/m,
+    `export const FILE_BASE_URL =\n  import.meta.env.VITE_FILE_BASE_URL || 'http://${ip}:${BACKEND_PORT}';`
   );
 
   updated = updated.replace(
-    /export const API_BASE_URL = ['"`]http:\/\/[^:]+(:\d+)?\/api\/v1['"`];/,
-    `export const API_BASE_URL = 'http://${ip}:${BACKEND_PORT}/api/v1';`
+    /export const API_BASE_URL =[\s\S]*?;/m,
+    `export const API_BASE_URL =\n  import.meta.env.VITE_API_BASE_URL || \`\${FILE_BASE_URL}/api/v1\`;`
   );
 
   return updated;

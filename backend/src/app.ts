@@ -51,6 +51,15 @@ export const createApp = (): Express => {
   // File URL helper middleware & static uploads folder
   app.use(fileUrlMiddleware);
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  // Fallback for missing static uploads to prevent falling through to API 404
+  app.use('/uploads', (_req: Request, res: Response) => {
+    res.status(404).json({
+      success: false,
+      statusCode: 404,
+      message: 'Static file not found',
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   // API v1 routes
   app.use('/api/v1', apiRouter);

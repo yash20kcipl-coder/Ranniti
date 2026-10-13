@@ -5,8 +5,6 @@ const st = store as any
 export const SCREENS = {
   SPLASH: 'splash',
   LOGIN: 'login',
-  FORGOT_PASSWORD: 'forgotpassword',
-  CONTACT_SUPPORT: 'contactsupport',
   MAIN: 'main',
   DASHBOARD: 'dashboard',
   ASSIGNED_BOOTHS: 'assignedbooths',

@@ -116,8 +116,10 @@ export class TenantProvisioningService {
   ): Promise<void> {
     logger.info(`[TenantProvisioningService] Starting full provisioning for tenant '${tenantId}' [DB: ${tenantDbName}]`);
 
+    let currentRunningPhase = 'db_init';
     try {
       // Step 1 — Create DB (0–10%)
+      currentRunningPhase = 'db_init';
       await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'provisioning',
         provisioningProgress: 5,
@@ -133,6 +135,7 @@ export class TenantProvisioningService {
 
       try {
         // Step 2 — Initialize schema (10–25%)
+        currentRunningPhase = 'schema';
         await TenantQueries.updateProvisioningStatus(tenantId, {
           status: 'provisioning',
           provisioningProgress: 15,
@@ -144,9 +147,11 @@ export class TenantProvisioningService {
         await TenantDbProvisioner.initializeTenantSchemaWithPool(tenantPool, tenantDbName);
 
         // Step 3 — Sync all master lookup tables (25–50%)
+        currentRunningPhase = 'master_data';
         await syncMasterLookupTables(tenantPool, tenantId, acIds, 25, 25, true, pcIds);
 
         // Step 4 — Bulk copy voters without GIN index overhead (50–90%)
+        currentRunningPhase = 'voters';
         await TenantQueries.updateProvisioningStatus(tenantId, {
           status: 'provisioning',
           provisioningProgress: 50,
@@ -170,6 +175,7 @@ export class TenantProvisioningService {
         }
 
         // Step 5 — Build GIN Trigram Search Indexes in post-import pass (90–98%)
+        currentRunningPhase = 'indexing';
         await VoterProvisionService.buildSearchIndexes(tenantPool, tenantId, 95);
 
         // Step 6 — Mark complete (100%)
@@ -202,7 +208,7 @@ export class TenantProvisioningService {
       await TenantQueries.updateProvisioningStatus(tenantId, {
         status: 'failed',
         currentStep: 'Provisioning Failed',
-        currentPhase: 'failed',
+        currentPhase: currentRunningPhase,
         errorMessage: err.message || 'Provisioning failed unexpectedly',
       });
     }

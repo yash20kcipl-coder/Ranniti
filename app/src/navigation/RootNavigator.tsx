@@ -23,8 +23,6 @@ export const RootNavigator = () => {
           />
         ))}
         <Stack.Screen name={SCREENS.MAIN} component={DrawerNavigator} />
-        <Stack.Screen name="teachermain" component={DrawerNavigator} />
-        <Stack.Screen name="studentmain" component={DrawerNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );

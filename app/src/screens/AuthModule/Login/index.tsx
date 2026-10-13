@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../../../components/Button';
 import { GetUniqueId } from '../../../utils/device';
 import { MpinScreen } from './components/MpinScreen';
-import { SCREENS } from '../../../navigation/constants';
+import { getAppVersion } from '../../../utils/version';
 import { SafeView } from '../../../components/SafeView';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { useNavigation } from '@react-navigation/native';
@@ -19,7 +19,6 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { navigateToDashboard } from '../../../navigation/navigationUtils';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { sendOtpAction, verifyOtpAction, verifyMpinAction, fetchProfileAndRoleAccessAction } from '../../../store/actions/auth';
-import { getAppVersion } from '../../../utils/version';
 
 const RANNITI_LOGO = require('../../../assets/images/ranniti-logo.png');
 
@@ -293,12 +292,7 @@ const Login = () => {
           {/* Footer Contact Support */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t('appName')} {t('appVersion')}</Text>
-            {/* <TouchableOpacity
-              onPress={() => navigation.navigate(SCREENS.CONTACT_SUPPORT as never)}
-              activeOpacity={0.7}
-            > */}
             <Text style={styles.footerLink}>{getAppVersion()}</Text>
-            {/* </TouchableOpacity> */}
           </View>
         </View>
       </ScrollView>

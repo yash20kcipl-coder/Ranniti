@@ -22,7 +22,17 @@ const migrationFiles = [
 
 export async function runMasterMigrations(): Promise<void> {
   logger.info('🚀 Executing Master Database Migrations...');
-  const migrationsDir = path.join(__dirname, '../database/migrations');
+  const candidateDirs = [
+    path.join(__dirname, '../database/migrations'),
+    path.join(__dirname, '../../src/database/migrations'),
+    path.join(process.cwd(), 'src/database/migrations'),
+    path.join(process.cwd(), 'dist/database/migrations'),
+    path.join(process.cwd(), 'backend/src/database/migrations'),
+    path.join(process.cwd(), 'backend/dist/database/migrations'),
+  ];
+  const migrationsDir =
+    candidateDirs.find((dir) => fs.existsSync(dir) && fs.readdirSync(dir).some((f) => f.endsWith('.sql'))) ||
+    candidateDirs[0];
 
   for (const fileName of migrationFiles) {
     const filePath = path.join(migrationsDir, fileName);

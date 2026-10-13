@@ -102,10 +102,17 @@ export const query = async <T extends QueryResultRow = any>(
   }
 };
 
+let isClosingPool = false;
+
 /**
  * Gracefully close the PostgreSQL connection pool (prevents open connections/zombies)
  */
 export const closeDbPool = async (): Promise<void> => {
+  if (isClosingPool || (dbPool as any).ended) {
+    return;
+  }
+  isClosingPool = true;
+
   try {
     const { TenantPoolManager } = await import('../services/pool/tenantPoolManager');
     await TenantPoolManager.closeAll();
@@ -114,10 +121,14 @@ export const closeDbPool = async (): Promise<void> => {
   }
 
   try {
-    logger.info('Closing PostgreSQL database connection pool...');
-    await dbPool.end();
-    logger.info('PostgreSQL connection pool closed.');
-  } catch (err) {
-    logger.error('Error closing PostgreSQL connection pool:', err);
+    if (!(dbPool as any).ended) {
+      logger.info('Closing PostgreSQL database connection pool...');
+      await dbPool.end();
+      logger.info('PostgreSQL connection pool closed.');
+    }
+  } catch (err: any) {
+    if (!err.message?.includes('Called end on pool more than once')) {
+      logger.error('Error closing PostgreSQL connection pool:', err);
+    }
   }
 };

@@ -26,7 +26,11 @@ export const errorHandler: ErrorRequestHandler = (
     message = err.message;
   }
 
-  logger.error(`[${statusCode}] ${message}`, err.stack);
+  if (statusCode >= 500) {
+    logger.error(`[${statusCode}] ${message}`, err.stack);
+  } else {
+    logger.warn(`[${statusCode}] ${message}`);
+  }
 
   res.status(statusCode).json({
     success: false,

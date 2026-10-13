@@ -94,6 +94,7 @@ export class TenantDbProvisioner {
       'create_voters_table.sql',
       'remove_voter_type_column.sql',
       'create_campaign_settings_tables.sql',
+      'remove_push_triggers_column.sql',
       'remove_tenant_whatsapp_config_and_templates.sql',
       'create_tenant_user_roles_table.sql',
       'create_user_synced_contacts_table.sql',
@@ -101,7 +102,17 @@ export class TenantDbProvisioner {
       'create_volunteer_activity_logs_table.sql',
     ];
 
-    const migrationsDir = path.join(__dirname, '../database/migrations');
+    const candidateDirs = [
+      path.join(__dirname, '../database/migrations'),
+      path.join(__dirname, '../../src/database/migrations'),
+      path.join(process.cwd(), 'src/database/migrations'),
+      path.join(process.cwd(), 'dist/database/migrations'),
+      path.join(process.cwd(), 'backend/src/database/migrations'),
+      path.join(process.cwd(), 'backend/dist/database/migrations'),
+    ];
+    const migrationsDir =
+      candidateDirs.find((dir) => fs.existsSync(dir) && fs.existsSync(path.join(dir, 'create_tenant_user_roles_table.sql'))) ||
+      candidateDirs[0];
 
     for (const fileName of migrationFiles) {
       const filePath = path.join(migrationsDir, fileName);
@@ -109,6 +120,10 @@ export class TenantDbProvisioner {
         const sql = fs.readFileSync(filePath, 'utf8');
         await tenantPool.query(sql);
         logger.info(`[TenantProvisioner] Executed migration '${fileName}' on '${tenantDbName}'`);
+      } else {
+        const errMsg = `Migration file '${fileName}' not found at '${filePath}'. Ensure .sql migrations are copied during deployment build.`;
+        logger.error(`[TenantProvisioner] ${errMsg}`);
+        throw new Error(errMsg);
       }
     }
 
