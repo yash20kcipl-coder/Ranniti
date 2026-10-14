@@ -191,6 +191,10 @@ export class MasterBulkController {
         return;
       }
 
+      if (job.status === 'processing' && job.totalRecords > 0 && job.processedRecords >= job.totalRecords) {
+        importJobTracker.completeJob(job.jobId, job.insertedCount, job.failedCount, job.errors);
+      }
+
       const response = ApiResponse.success(job, 'Job status fetched successfully');
       res.status(response.statusCode).json(response.body);
     } catch (err: any) {
@@ -206,6 +210,11 @@ export class MasterBulkController {
   static async getAllImportJobs(req: Request, res: Response): Promise<void> {
     try {
       const jobs = importJobTracker.getAllJobs();
+      jobs.forEach((j) => {
+        if (j.status === 'processing' && j.totalRecords > 0 && j.processedRecords >= j.totalRecords) {
+          importJobTracker.completeJob(j.jobId, j.insertedCount, j.failedCount, j.errors);
+        }
+      });
       const response = ApiResponse.success(jobs, 'Import jobs retrieved successfully');
       res.status(response.statusCode).json(response.body);
     } catch (err: any) {

@@ -17,8 +17,16 @@ const isTransientConnectionError = (error: any): boolean => {
     msg.includes('connection timeout') ||
     msg.includes('timeout expired') ||
     msg.includes('ECONNRESET') ||
+    msg.includes('ENETUNREACH') ||
+    msg.includes('ETIMEDOUT') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('EHOSTUNREACH') ||
     msg.includes('EPIPE') ||
     code === 'ECONNRESET' ||
+    code === 'ENETUNREACH' ||
+    code === 'ETIMEDOUT' ||
+    code === 'ECONNREFUSED' ||
+    code === 'EHOSTUNREACH' ||
     code === 'EPIPE' ||
     code === '57P01' ||
     code === '57P02' ||
@@ -119,7 +127,8 @@ export class TenantPoolManager {
       return res;
     } catch (error: any) {
       if (isTransientConnectionError(error)) {
-        logger.warn(`[TenantPoolManager] Transient connection drop on query for '${tenantDbName}' (${error.message}). Retrying once...`);
+        logger.warn(`[TenantPoolManager] Transient connection drop on query for '${tenantDbName}' (${error.message}). Retrying in 500ms...`);
+        await new Promise((resolve) => setTimeout(resolve, 500));
         try {
           const retryRes = await pool.query<T>(text, params);
           return retryRes;

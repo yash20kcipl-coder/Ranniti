@@ -124,12 +124,24 @@ export class BulkImporter {
           const unaccounted = batchToInsert.length - (batchInserted + batchFailed);
           if (unaccounted > 0) {
             failedCount += unaccounted;
+            for (let u = 0; u < unaccounted && errors.length < maxErrors; u++) {
+              errors.push({
+                index: 0,
+                error: 'Duplicate or uninserted record omitted during batch processing',
+              });
+            }
           }
         } else if (typeof res === 'number') {
           insertedCount += res;
           const skipped = batchToInsert.length - res;
           if (skipped > 0) {
             failedCount += skipped;
+            for (let u = 0; u < skipped && errors.length < maxErrors; u++) {
+              errors.push({
+                index: 0,
+                error: 'Record skipped during batch insertion',
+              });
+            }
           }
         } else {
           insertedCount += batchToInsert.length;

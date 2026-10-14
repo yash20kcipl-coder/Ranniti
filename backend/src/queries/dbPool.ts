@@ -41,6 +41,10 @@ dbPool.connect = (async (...args: any[]) => {
   return (origPoolConnect as any)(...args);
 }) as any;
 
+dbPool.on('connect', (client) => {
+  client.query('SET idle_in_transaction_session_timeout = 60000;').catch(() => {});
+});
+
 dbPool.on('error', (err) => {
   logger.error('Unexpected error on idle PostgreSQL client pool', err);
 });
@@ -57,8 +61,16 @@ const isTransientConnectionError = (error: any): boolean => {
     msg.includes('connection timeout') ||
     msg.includes('timeout expired') ||
     msg.includes('ECONNRESET') ||
+    msg.includes('ENETUNREACH') ||
+    msg.includes('ETIMEDOUT') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('EHOSTUNREACH') ||
     msg.includes('EPIPE') ||
     code === 'ECONNRESET' ||
+    code === 'ENETUNREACH' ||
+    code === 'ETIMEDOUT' ||
+    code === 'ECONNREFUSED' ||
+    code === 'EHOSTUNREACH' ||
     code === 'EPIPE' ||
     code === '57P01' || // admin_shutdown
     code === '57P02' || // crash_shutdown
@@ -88,7 +100,8 @@ export const query = async <T extends QueryResultRow = any>(
     return res;
   } catch (error: any) {
     if (isTransientConnectionError(error)) {
-      logger.warn(`[dbPool] Transient connection drop on query (${error.message}). Retrying once...`);
+      logger.warn(`[dbPool] Transient connection drop on query (${error.message}). Retrying in 500ms...`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
       try {
         const retryRes = await dbPool.query<T>(text, params);
         return retryRes;

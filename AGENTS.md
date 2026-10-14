@@ -116,3 +116,12 @@
 - Never use React Native's native `Alert.alert` or unstyled browser/native dialogs for user confirmations, deletions, discards, status toggles, or destructive actions.
 - Always import and use the standardized reusable `ConfirmModal` component (`app/src/components/ConfirmModal.tsx` or `../../components`) with customizable title, message, variant (`danger`, `warning`, `info`, `success`), animated transitions, and loading states.
 - Modal titles, descriptions, and button labels must strictly use localized translation strings through `useLanguage().t` with 100% key parity in `app/src/languages/en.ts` and `app/src/languages/hi.ts`.
+
+### 25. Master-Tenant Dual Database Schema Parity & Cross-DB Impact Audit
+- Ranniti operates a multi-database architecture comprising the Master DB (`ranniti_db`) and independent dedicated Tenant DBs (`ranniti_tenant_<name>_<phone>`).
+- Whenever ANY database change (migration file, table schema, column addition/alteration/type change, constraint, or index modification) is performed on ANY database table, Antigravity MUST immediately check and verify whether it impacts the other database:
+  1. **Schema & Migration Parity**: If a table exists in both Master DB and Tenant DBs (e.g. `voters`, `states`, `districts`, `booths`, `wards`, `villages`, `talukas`, `parties`, `religions`, `castes`, `campaign_settings`, `tenant_users`), the migration must be added to the tenant migration manifest (`backend/src/utils/tenantDbProvisioner.ts` -> `migrationFiles`) and applied across all existing tenant databases (`TenantDbProvisioner.runMigrationsOnAllTenants()`).
+  2. **Data Type Compatibility**: Column data types across Master and Tenant tables must match identically (e.g. if `first_name` is changed to `TEXT` in Master DB, it must also be `TEXT` in Tenant DBs to avoid insert truncation or character length failures during bulk copying).
+  3. **High-Cost DDL & Index Separation**: Heavy index creations (such as GIN Trigram search indexes) must NEVER be included in base table creation scripts (`create_voters_table.sql`) with short statement timeouts. They must be deferred to dedicated post-ingestion phases (`VoterProvisionService.buildSearchIndexes`) with elevated `statement_timeout` (minimum 10 minutes) and `maintenance_work_mem = '128MB'`.
+  4. **Timeout Safety**: Any query or migration executing on Tenant DBs or reading from Master DB during provisioning must use an elevated statement timeout (`statement_timeout >= 300000ms` / 5 minutes) to prevent aborts over network connections.
+

@@ -32,10 +32,18 @@ export const getTenantDbPool = (tenantDbName: string): Pool => {
     max: parseInt(process.env.PG_TENANT_POOL_MAX || '15', 10),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 30000,
-    statement_timeout: 60000,
+    statement_timeout: parseInt(process.env.PG_STATEMENT_TIMEOUT || '300000', 10),
     keepAlive: true,
     keepAliveInitialDelayMillis: 10000,
   } as any);
+
+  pool.on('connect', (client) => {
+    client.query('SET idle_in_transaction_session_timeout = 60000;').catch(() => {});
+  });
+
+  pool.on('error', (err) => {
+    logger.warn(`[TenantPool:${tenantDbName}] Handled unexpected error on idle client: ${err.message}`);
+  });
 
   // Instrument pool.query and pool.connect for transparent Tenant DB tracking
   const origQuery = pool.query.bind(pool);
@@ -58,12 +66,36 @@ export const getTenantDbPool = (tenantDbName: string): Pool => {
  */
 export class TenantDbProvisioner {
   /**
+   * Terminates any existing dangling connections or zombie transactions for the target tenant DB.
+   * Prevents deadlocks when provisioning is restarted after an unexpected network drop.
+   */
+  static async terminateExistingConnections(tenantDbName: string): Promise<void> {
+    try {
+      const res = await mainQuery(
+        `SELECT pg_terminate_backend(pid)
+         FROM pg_stat_activity
+         WHERE datname = $1
+           AND pid <> pg_backend_pid()`,
+        [tenantDbName.toLowerCase()]
+      );
+      if (res.rowCount && res.rowCount > 0) {
+        logger.info(`[TenantProvisioner] Terminated ${res.rowCount} dangling zombie connection(s) on '${tenantDbName}'.`);
+      }
+    } catch (err: any) {
+      logger.warn(`[TenantProvisioner] Non-fatal error cleaning up connections for '${tenantDbName}': ${err.message}`);
+    }
+  }
+
+  /**
    * Creates the PostgreSQL database if it does not already exist.
    */
   static async createTenantDatabase(tenantDbName: string): Promise<void> {
     if (!/^ranniti_tenant_[a-z0-9_]+$/i.test(tenantDbName)) {
       throw new Error(`Invalid tenant database name '${tenantDbName}'. Must match /^ranniti_tenant_[a-z0-9_]+$/`);
     }
+
+    // Terminate any previous dangling sessions to prevent relation lock deadlocks
+    await this.terminateExistingConnections(tenantDbName);
 
     // Check if database exists
     const checkRes = await mainQuery(
@@ -83,6 +115,39 @@ export class TenantDbProvisioner {
   }
 
   /**
+   * Safely drops a dedicated PostgreSQL tenant database after evicting connection pools
+   * and terminating all active sessions.
+   */
+  static async dropTenantDatabase(tenantDbName: string): Promise<boolean> {
+    if (!/^ranniti_tenant_[a-z0-9_]+$/i.test(tenantDbName)) {
+      throw new Error(`Invalid tenant database name '${tenantDbName}'. Must match /^ranniti_tenant_[a-z0-9_]+$/`);
+    }
+
+    // 1. Close pool if active in TenantPoolManager
+    const { TenantPoolManager } = await import('../services/pool/tenantPoolManager');
+    await TenantPoolManager.closePool(tenantDbName);
+
+    // 2. Terminate any remaining external sessions to this DB
+    await this.terminateExistingConnections(tenantDbName);
+
+    // 3. Check if database exists
+    const checkRes = await mainQuery(
+      `SELECT 1 FROM pg_database WHERE datname = $1`,
+      [tenantDbName.toLowerCase()]
+    );
+
+    if (!checkRes.rowCount || checkRes.rowCount === 0) {
+      logger.info(`[TenantProvisioner] Database '${tenantDbName}' does not exist.`);
+      return false;
+    }
+
+    logger.info(`[TenantProvisioner] Dropping database '${tenantDbName}'...`);
+    await mainQuery(`DROP DATABASE IF EXISTS ${tenantDbName} WITH (FORCE);`);
+    logger.info(`[TenantProvisioner] Successfully dropped database '${tenantDbName}'.`);
+    return true;
+  }
+
+  /**
    * Runs core schema migrations on the target tenant database using an existing connection pool.
    */
   static async initializeTenantSchemaWithPool(tenantPool: Pool, tenantDbName: string): Promise<void> {
@@ -92,6 +157,7 @@ export class TenantDbProvisioner {
       'create_master_tables.sql',
       'create_tenant_users_table.sql',
       'create_voters_table.sql',
+      'alter_voter_name_columns_to_text.sql',
       'remove_voter_type_column.sql',
       'create_campaign_settings_tables.sql',
       'remove_push_triggers_column.sql',

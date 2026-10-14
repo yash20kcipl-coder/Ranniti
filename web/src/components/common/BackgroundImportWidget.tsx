@@ -1,16 +1,17 @@
 import * as XLSX from 'xlsx';
+import toast from 'react-hot-toast';
 import { masterConfig } from '@/config/masterConfig';
 import { FailedRecordsModal } from './FailedRecordsModal';
 import type { ImportJob } from '@/redux/actions/importJobs';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { TENANT_MASTER_ENDPOINTS } from '@/hooks/useTenantMasterData';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { fetchTenantVotersData, fetchTenantVoterStats } from '@/redux/actions/voterTenant';
-import { fetchSuperAdminVotersData, fetchSuperAdminVoterStats } from '@/redux/actions/voterSuperAdmin';
 import { fetchTenantMasterCategoryData } from '@/redux/actions/masterTenant';
 import { fetchSuperAdminMasterCategoryData } from '@/redux/actions/masterSuperAdmin';
-import { fetchJobStatus, dismissJob, executeJobCallback } from '@/redux/actions/importJobs';
-import { Loader2, CheckCircle2, AlertCircle, X, ChevronDown, ChevronUp, Database, Download, Eye } from 'lucide-react';
+import { fetchTenantVotersData, fetchTenantVoterStats } from '@/redux/actions/voterTenant';
+import { fetchSuperAdminVotersData, fetchSuperAdminVoterStats } from '@/redux/actions/voterSuperAdmin';
+import { fetchJobStatus, dismissJob, executeJobCallback, downloadFailedRecordsSpreadsheet, fetchActiveImportJobs } from '@/redux/actions/importJobs';
+import { Loader2, CheckCircle2, AlertCircle, AlertTriangle, X, ChevronDown, ChevronUp, Database, Download, Eye, FileSpreadsheet } from 'lucide-react';
 
 export const BackgroundImportWidget: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -57,6 +58,17 @@ export const BackgroundImportWidget: React.FC = () => {
       dispatch(fetchAction(cleanCat, endpoint, false, params)).catch(() => { });
     }
   }, [dispatch, voterFilters, isSuperAdmin]);
+
+  // Restore active and recent background import jobs on component mount & sync across tabs
+  useEffect(() => {
+    dispatch(fetchActiveImportJobs());
+
+    const syncInterval = setInterval(() => {
+      dispatch(fetchActiveImportJobs());
+    }, 10000);
+
+    return () => clearInterval(syncInterval);
+  }, [dispatch]);
 
   // Poll backend for job status updates every 1.5s while active
   useEffect(() => {
@@ -152,6 +164,32 @@ export const BackgroundImportWidget: React.FC = () => {
     });
   }, [activeJobsList, refreshCategoryData, dispatch]);
 
+  const downloadFailedRecords = async (job: any) => {
+    try {
+      await dispatch(downloadFailedRecordsSpreadsheet(job));
+      toast.success('Failed records spreadsheet downloaded');
+    } catch {
+      try {
+        const rows = (job.errors || []).map((e: any) => {
+          const rowData: Record<string, any> = {
+            'Excel Row #': (e.index ?? 0) + 1,
+            'Failure Reason': e.error || 'Failed validation or insert collision',
+            ...(e.row || {}),
+          };
+          delete rowData['__rowIndex'];
+          return rowData;
+        });
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ Message: 'No failed records available for this job' }]);
+        XLSX.utils.book_append_sheet(wb, ws, 'Failed Records');
+        XLSX.writeFile(wb, `${(job.category || 'import').toLowerCase()}_failed_records_${job.jobId.slice(0, 8)}.xlsx`);
+        toast.success('Failed records spreadsheet downloaded');
+      } catch (err: any) {
+        toast.error('Failed to download failed records');
+      }
+    }
+  };
+
   const downloadImportReport = (job: any) => {
     const summaryData = [
       { Metric: 'Import Category', Value: (job.category || 'records').replace(/_/g, ' ').toUpperCase() },
@@ -170,12 +208,22 @@ export const BackgroundImportWidget: React.FC = () => {
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Import Summary');
 
     if (job.errors && job.errors.length > 0) {
-      const errorRows = job.errors.map((e: any) => ({
-        'Record Row #': (e.index ?? 0) + 1,
-        'Error Reason': e.error || 'Validation error',
-      }));
+      const errorRows = job.errors.map((e: any) => {
+        const rowData: Record<string, any> = {
+          'Record Row #': (e.index ?? 0) + 1,
+          'Failure Reason': e.error || 'Validation or database error',
+        };
+        if (e.row && typeof e.row === 'object') {
+          for (const [k, v] of Object.entries(e.row)) {
+            if (k !== '__rowIndex') {
+              rowData[k] = v;
+            }
+          }
+        }
+        return rowData;
+      });
       const errorSheet = XLSX.utils.json_to_sheet(errorRows);
-      XLSX.utils.book_append_sheet(workbook, errorSheet, 'Error Log');
+      XLSX.utils.book_append_sheet(workbook, errorSheet, 'Failed Records');
     }
 
     const filename = `${(job.category || 'import').toLowerCase()}_import_report_${job.jobId.slice(0, 8)}.xlsx`;
@@ -184,26 +232,49 @@ export const BackgroundImportWidget: React.FC = () => {
 
   if (activeJobsList.length === 0) return null;
 
+  const hasAnyRunning = activeJobsList.some((j) => j.status === 'processing' || j.status === 'pending');
+  const hasAnyErrors = activeJobsList.some(
+    (j) => (j.failedCount && j.failedCount > 0) || j.status === 'failed' || (j.errors && j.errors.length > 0)
+  );
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-3rem)] transition-all duration-300">
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-indigo-200 dark:border-indigo-500/30 rounded-2xl shadow-2xl shadow-indigo-900/10 dark:shadow-indigo-950/40 overflow-hidden">
+    <div className="fixed bottom-6 right-6 z-50 w-[420px] sm:w-[440px] max-w-[calc(100vw-2rem)] transition-all duration-300">
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl shadow-indigo-950/15 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-50/90 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-50/95 dark:bg-slate-950/80 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+              <span
+                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${hasAnyRunning
+                  ? 'bg-indigo-400'
+                  : hasAnyErrors
+                    ? 'bg-amber-400'
+                    : 'bg-emerald-400'
+                  }`}
+              />
+              <span
+                className={`relative inline-flex rounded-full h-2.5 w-2.5 ${hasAnyRunning
+                  ? 'bg-indigo-500'
+                  : hasAnyErrors
+                    ? 'bg-amber-500'
+                    : 'bg-emerald-500'
+                  }`}
+              />
             </span>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
-              <Database className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-              <span>Background Bulk Engine ({activeJobsList.length})</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                Background Bulk Engine
+              </span>
+              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/50">
+                {activeJobsList.length}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setIsMinimized(!isMinimized)}
-              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               title={isMinimized ? 'Expand' : 'Minimize'}
             >
               {isMinimized ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -213,7 +284,7 @@ export const BackgroundImportWidget: React.FC = () => {
               onClick={() => {
                 activeJobsList.forEach((j) => dispatch(dismissJob(j.jobId)));
               }}
-              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               title="Close all notifications"
             >
               <X className="w-4 h-4" />
@@ -221,9 +292,29 @@ export const BackgroundImportWidget: React.FC = () => {
           </div>
         </div>
 
+        {/* Minimized Quick Info Bar */}
+        {isMinimized && (
+          <div className="px-4 py-2 bg-slate-100/50 dark:bg-slate-900/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span>
+              {hasAnyRunning
+                ? 'Processing background batches...'
+                : hasAnyErrors
+                  ? 'Completed with errors'
+                  : 'All import jobs finished'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsMinimized(false)}
+              className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              Show details
+            </button>
+          </div>
+        )}
+
         {/* Content */}
         {!isMinimized && (
-          <div className="p-4 space-y-3.5 max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+          <div className="p-3.5 space-y-3 max-h-96 overflow-y-auto">
             {activeJobsList.map((job) => {
               if (!job || !job.jobId) return null;
               const isFinished = job.status === 'completed';
@@ -236,59 +327,65 @@ export const BackgroundImportWidget: React.FC = () => {
               const hasJobErrors = Boolean((job.failedCount && job.failedCount > 0) || isFailed || (job.errors && job.errors.length > 0));
 
               return (
-                <div key={job.jobId} className="pt-3 first:pt-0 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 capitalize">
-                        Importing {categoryLabel}
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {isFinished
-                          ? `${job.insertedCount || 0} inserted • ${job.failedCount || 0} failed • ⏱️ ${((job.durationMs || 0) / 1000).toFixed(1)}s (${job.recordsPerSecond || 0} rec/s)`
-                          : isFailed
-                            ? `${job.errorMessage || 'Import failed'} • ⏱️ ${((job.durationMs || 0) / 1000).toFixed(1)}s`
-                            : `${job.processedRecords || 0} / ${job.totalRecords || '?'} records • ⏱️ ${((Date.now() - new Date(job.startedAt).getTime()) / 1000).toFixed(1)}s (${job.recordsPerSecond || 0} rec/s)`}
-                      </p>
+                <div
+                  key={job.jobId}
+                  className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-2.5 transition-all"
+                >
+                  {/* Top Row: Category + Status Badge + Close */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className={`p-1.5 rounded-lg shrink-0 ${isFailed
+                          ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
+                          : hasJobErrors
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
+                            : isFinished
+                              ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
+                              : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400'
+                          }`}
+                      >
+                        <Database className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 capitalize truncate">
+                          {categoryLabel} Import
+                        </h4>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                          Job #{job.jobId.slice(0, 8)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      {/* Show Report & Failed Records buttons if there are import errors or issues */}
-                      {hasJobErrors && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedFailedJob(job)}
-                            className="flex items-center gap-1 text-[11px] font-semibold text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-white bg-rose-50 hover:bg-rose-100 dark:bg-rose-600/30 dark:hover:bg-rose-600/50 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-400/30 transition-colors cursor-pointer"
-                            title="Inspect Missed and Failed Rows"
-                          >
-                            <Eye className="w-3 h-3" /> Failed ({job.failedCount || job.errors?.length || 0})
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => downloadImportReport(job)}
-                            className="flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-white bg-amber-50 hover:bg-amber-100 dark:bg-amber-600/30 dark:hover:bg-amber-600/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-400/30 transition-colors cursor-pointer"
-                            title="Download Import Summary & Error Log (.XLSX)"
-                          >
-                            <Download className="w-3 h-3" /> Report
-                          </button>
-                        </>
-                      )}
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Status Badge */}
                       {isFinished ? (
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
-                          <CheckCircle2 className="w-3 h-3" /> Done
-                        </span>
+                        hasJobErrors ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-500/20">
+                            <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" /> Warnings
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" /> Done
+                          </span>
+                        )
                       ) : isFailed ? (
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-2 py-0.5 rounded-full border border-red-200 dark:border-red-500/20">
-                          <AlertCircle className="w-3 h-3" /> Failed
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-500/20">
+                          <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" /> Failed
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-500/20">
-                          <Loader2 className="w-3 h-3 animate-spin" /> {visualPercent}%
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-500/20">
+                          <Loader2 className="w-3 h-3 animate-spin text-indigo-500 shrink-0" />{' '}
+                          {job.totalRecords && job.processedRecords && job.processedRecords >= job.totalRecords
+                            ? 'Finalizing...'
+                            : `${visualPercent}%`}
                         </span>
                       )}
+
+                      {/* Dismiss button */}
                       <button
                         type="button"
                         onClick={() => dispatch(dismissJob(job.jobId))}
-                        className="p-1 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                        className="p-1 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 rounded-md transition-colors cursor-pointer"
                         title="Dismiss notification"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -297,17 +394,95 @@ export const BackgroundImportWidget: React.FC = () => {
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="w-full bg-slate-100 dark:bg-slate-950 h-2 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-800">
+                  <div className="w-full bg-slate-200/80 dark:bg-slate-950 h-2 rounded-full overflow-hidden p-0.5 border border-slate-200/60 dark:border-slate-800">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${isFinished
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                        ? hasJobErrors
+                          ? 'bg-gradient-to-r from-amber-500 to-rose-400'
+                          : 'bg-gradient-to-r from-emerald-500 to-teal-400'
                         : isFailed
-                          ? 'bg-red-500'
+                          ? 'bg-rose-500'
                           : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-400'
                         }`}
                       style={{ width: `${Math.min(100, Math.max(2, visualPercent))}%` }}
                     />
                   </div>
+
+                  {/* Stats & Meta Row */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">
+                    {isFinished ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {Number(job.insertedCount || 0).toLocaleString()} inserted
+                          </span>
+                          {Number(job.failedCount || 0) > 0 && (
+                            <span className="font-semibold text-rose-600 dark:text-rose-400">
+                              • {Number(job.failedCount).toLocaleString()} failed
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-slate-400 dark:text-slate-500 font-medium">
+                          ⏱️ {((job.durationMs || 0) / 1000).toFixed(1)}s ({job.recordsPerSecond || 0} rec/s)
+                        </span>
+                      </>
+                    ) : isFailed ? (
+                      <>
+                        <span className="text-rose-600 dark:text-rose-400 font-medium truncate max-w-[240px]">
+                          {job.errorMessage || 'Import failed'}
+                        </span>
+                        <span className="text-slate-400 dark:text-slate-500 font-medium">
+                          ⏱️ {((job.durationMs || 0) / 1000).toFixed(1)}s
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">
+                          {Number(job.processedRecords || 0).toLocaleString()} / {job.totalRecords ? Number(job.totalRecords).toLocaleString() : '?'} records
+                        </span>
+                        <span className="text-slate-400 dark:text-slate-500 font-medium">
+                          ⏱️ {((Date.now() - new Date(job.startedAt).getTime()) / 1000).toFixed(1)}s ({job.recordsPerSecond || 0} rec/s)
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Dedicated Action Buttons Row (When Action Buttons are Visible) */}
+                  {(hasJobErrors || isFinished) && (
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
+                      {hasJobErrors && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFailedJob(job)}
+                            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-white bg-rose-50 hover:bg-rose-100/90 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 border border-rose-200/90 dark:border-rose-800/60 rounded-lg shadow-2xs transition-all cursor-pointer active:scale-[0.98]"
+                            title="Inspect Missed and Failed Rows in Viewer"
+                          >
+                            <Eye className="w-3.5 h-3.5 shrink-0" />
+                            <span>Failed ({Number(job.failedCount || job.errors?.length || 0).toLocaleString()})</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadFailedRecords(job)}
+                            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold text-rose-800 dark:text-rose-200 hover:text-white bg-rose-100/90 hover:bg-rose-600 dark:bg-rose-900/50 dark:hover:bg-rose-700 border border-rose-300/80 dark:border-rose-700 rounded-lg shadow-2xs transition-all cursor-pointer active:scale-[0.98]"
+                            title="Download Failed Records Spreadsheet (.XLSX)"
+                          >
+                            <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
+                            <span>Failed .xlsx</span>
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => downloadImportReport(job)}
+                        className={`${hasJobErrors ? 'px-3' : 'w-full'} flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg shadow-2xs transition-all cursor-pointer active:scale-[0.98]`}
+                        title="Download Summary & Complete Report (.XLSX)"
+                      >
+                        <Download className="w-3.5 h-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
+                        <span>Report</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

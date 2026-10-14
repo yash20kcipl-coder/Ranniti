@@ -5,6 +5,7 @@ export const START_IMPORT_JOB = 'START_IMPORT_JOB';
 export const DISMISS_IMPORT_JOB = 'DISMISS_IMPORT_JOB';
 export const CLEAR_COMPLETED_JOBS = 'CLEAR_COMPLETED_JOBS';
 export const UPDATE_IMPORT_JOB_STATUS = 'UPDATE_IMPORT_JOB_STATUS';
+export const SET_ACTIVE_IMPORT_JOBS = 'SET_ACTIVE_IMPORT_JOBS';
 
 export interface ImportJobError {
   error: string;
@@ -148,6 +149,32 @@ export const clearCompletedJobs = () => ({
   type: CLEAR_COMPLETED_JOBS,
 });
 
+/**
+ * Fetches all active and recent background import jobs from the backend.
+ * Restores ongoing uploads and recent jobs seamlessly across page reloads.
+ */
+export const fetchActiveImportJobs = () => {
+  return async (dispatch: AppDispatch) => {
+    try {
+      const response = await api.get('/super-admin/masters/bulk-import/jobs').catch(() => {
+        return api.get('/masters/bulk-import/jobs');
+      });
+      const rawData = response.data?.data || response.data?.body?.data || response.data || [];
+      const jobs: ImportJob[] = Array.isArray(rawData) ? rawData : [];
+
+      dispatch({
+        type: SET_ACTIVE_IMPORT_JOBS,
+        payload: jobs,
+      });
+
+      return jobs;
+    } catch (err) {
+      console.warn('[ImportJobs] Unable to fetch active jobs from server:', err);
+      return [];
+    }
+  };
+};
+
 export const downloadSampleTemplate = (categoryKey: string, params?: Record<string, any>) => {
   return async () => {
     const cleanParams = params
@@ -164,6 +191,32 @@ export const downloadSampleTemplate = (categoryKey: string, params?: Record<stri
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', `${categoryKey}_sample_template.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    return res;
+  };
+};
+
+/**
+ * Downloads the server-generated failed records .xlsx spreadsheet for a given job.
+ */
+export const downloadFailedRecordsSpreadsheet = (job: { jobId: string; category?: string }) => {
+  return async () => {
+    const res = await api.get(`/super-admin/masters/bulk-import/failed-records/${job.jobId}`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([res.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute(
+      'download',
+      `${(job.category || 'import').toLowerCase()}_failed_records_${job.jobId.slice(0, 8)}.xlsx`
+    );
     document.body.appendChild(link);
     link.click();
     link.remove();

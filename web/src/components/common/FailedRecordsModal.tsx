@@ -1,11 +1,11 @@
 import * as XLSX from 'xlsx';
 import { Modal } from './Modal';
-import api from '@/services/api';
 import toast from 'react-hot-toast';
 import { FormInput } from './FormInput';
+import { useAppDispatch } from '@/redux/hooks';
 import React, { useState, useMemo } from 'react';
-import type { ImportJob, ImportJobError } from '@/redux/actions/importJobs';
 import { Download, AlertCircle, Search, Clock, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { downloadFailedRecordsSpreadsheet, type ImportJob, type ImportJobError } from '@/redux/actions/importJobs';
 
 export interface FailedRecordsModalProps {
   isOpen: boolean;
@@ -18,6 +18,7 @@ export const FailedRecordsModal: React.FC<FailedRecordsModalProps> = ({
   onClose,
   job,
 }) => {
+  const dispatch = useAppDispatch();
   const [search, setSearch] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -40,21 +41,7 @@ export const FailedRecordsModal: React.FC<FailedRecordsModalProps> = ({
     if (!job) return;
     setIsDownloading(true);
     try {
-      // Attempt downloading server-generated rich .xlsx first
-      const res = await api.get(`/super-admin/masters/bulk-import/failed-records/${job.jobId}`, {
-        responseType: 'blob',
-      });
-      const blob = new Blob([res.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${(job.category || 'import').toLowerCase()}_failed_records_${job.jobId.slice(0, 8)}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      await dispatch(downloadFailedRecordsSpreadsheet(job));
       toast.success('Failed records spreadsheet downloaded');
     } catch {
       // Fallback: client-side XLSX generation

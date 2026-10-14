@@ -126,6 +126,10 @@ export class TenantProvisioningService {
         currentStep: 'Creating Tenant Database',
         currentPhase: 'db_init',
         activeTable: null,
+        errorMessage: null,
+        processedRecords: 0,
+        totalRecords: 0,
+        totalVotersCopied: 0,
       });
 
       await TenantDbProvisioner.createTenantDatabase(tenantDbName);

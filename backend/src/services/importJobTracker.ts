@@ -74,7 +74,7 @@ class ImportJobTrackerService {
     job.recordsPerSecond = elapsedSec > 0 ? Math.round(processedRecords / elapsedSec) : 0;
 
     if (errors.length > 0) {
-      job.errors = [...job.errors, ...errors].slice(0, 500);
+      job.errors = [...job.errors, ...errors].slice(0, 10000);
     }
   }
 
@@ -99,7 +99,7 @@ class ImportJobTrackerService {
       job.recordsPerSecond = Math.round((job.processedRecords / (job.durationMs / 1000)));
     }
     if (errors.length > 0) {
-      job.errors = errors.slice(0, 500);
+      job.errors = errors.slice(0, 10000);
     }
 
     logger.info(`[ImportJobTracker] Job completed: ${jobId} (Inserted: ${job.insertedCount}, Failed: ${job.failedCount}, Duration: ${job.durationMs}ms)`);

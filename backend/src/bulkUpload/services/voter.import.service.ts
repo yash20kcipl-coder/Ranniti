@@ -33,6 +33,7 @@ export class VoterImportService {
     const result = await BulkImporter.processArray(records, {
       batchSize: 2500,
       concurrency: 4,
+      maxRecordedErrors: 10000,
       onProgress: progressCallback,
       onBatchInsert: async (batch) => {
         const votersToInsert: any[] = [];
@@ -244,10 +245,36 @@ export class VoterImportService {
             }
           }
 
-          const relativeName = LookupResolverService.extractValue(row, ['Guardian Name', 'Relative Name', 'Father/Husband Name', 'relativeName', 'guardianName']) || null;
-          const relativeType = normalizeRelation(LookupResolverService.extractValue(row, ['Relation', 'Relative Type', 'relativeType', 'relation']));
+          let relativeName = LookupResolverService.extractValue(row, ['Guardian Name', 'Relative Name', 'Father/Husband Name', 'relativeName', 'guardianName']) || null;
+          let relativeType = normalizeRelation(LookupResolverService.extractValue(row, ['Relation', 'Relative Type', 'relativeType', 'relation']));
           const mobileNumber = LookupResolverService.extractValue(row, ['Mobile No', 'Mobile', 'Phone', 'mobileNumber', 'mobile', 'Contact No']) || null;
-          const houseNumber = LookupResolverService.extractValue(row, ['House No', 'House Number', 'houseNumber', 'house_no']) || null;
+          let houseNumber = LookupResolverService.extractValue(row, ['House No', 'House Number', 'houseNumber', 'house_no']) || null;
+
+          const gujMap: Record<string, string> = { '૦': '0', '૧': '1', '૨': '2', '૩': '3', '૪': '4', '૫': '5', '૬': '6', '૭': '7', '૮': '8', '૯': '9' };
+          const toAsciiDigits = (s: any) => String(s || '').replace(/[૦-૯]/g, (d) => gujMap[d] || d);
+          const sanitizeHouse = (s: any) => toAsciiDigits(s).replace(/[\u0ACD\u0AB0\u0A81-\u0A83\u0ABC\u0ABE-\u0AC9\u0ACD\u0AE2\u0AE3]/g, '').trim();
+          const isHouseLike = (s: any) => {
+            const h = sanitizeHouse(s);
+            return /^[0-9\s\-_\/\\#\*\.A-Za-z]+$/.test(h) && /\d/.test(h);
+          };
+
+          // Guard against house numbers mistakenly passed in guardian name column (e.g. '33્ર', '107', '152')
+          if (relativeName && (isHouseLike(relativeName) || /^ઘર|^મકાન|^house/i.test(relativeName.trim()))) {
+            if (!houseNumber) {
+              houseNumber = sanitizeHouse(relativeName);
+            }
+            relativeName = null;
+            relativeType = null;
+          }
+
+          if (houseNumber) {
+            houseNumber = sanitizeHouse(houseNumber);
+          }
+
+          // If no guardian name is present, do not persist a dangling 'Other' relation
+          if (!relativeName && relativeType === 'Other') {
+            relativeType = null;
+          }
           const sectionNumRaw = LookupResolverService.extractValue(row, ['Section No', 'Section Number', 'sectionNumber', 'section_no']);
           const sectionNo = sectionNumRaw !== undefined && sectionNumRaw !== null && !isNaN(Number(sectionNumRaw)) ? Number(sectionNumRaw) : null;
           const serialNumRaw = row['Serial No'] || row['SL No'] || row['serialNo'] || row['serialNumber'] || row['sl_no'];
@@ -296,6 +323,7 @@ export class VoterImportService {
             isShifted: parseBool(row['Is Shifted'] || row['isShifted'] || row['is_shifted']),
             isDuplicate: parseBool(row['Is Duplicate'] || row['isDuplicate'] || row['is_duplicate']),
             isStarred: parseBool(row['Is Starred'] || row['isStarred'] || row['is_starred']),
+            __rowIndex: row.__rowIndex ?? (idx + 1),
           });
         }
 
@@ -304,6 +332,10 @@ export class VoterImportService {
         }
 
         const batchRes = await VoterQueries.createVotersBatch(votersToInsert, context?.tenantDbName);
+
+        if (batchRes.failedRecords && batchRes.failedRecords.length > 0) {
+          batchErrors.push(...batchRes.failedRecords);
+        }
 
         return {
           inserted: batchRes.inserted,
@@ -343,20 +375,23 @@ export class VoterImportService {
         logger.error(`[VoterImportService] Failed to update total_voters count on affected booths:`, err);
       }
 
-      // Auto-trigger family mapping once per affected booth after entire import finishes
-      try {
-        const boothIdList = Array.from(allAffectedBoothIds);
-        logger.info(`[VoterImportService] Auto-mapping families for ${boothIdList.length} affected booths post-import...`);
-        for (const bId of boothIdList) {
-          try {
-            await FamilyMappingService.autoMapBoothFamilies(context?.tenantDbName || null, { boothId: bId });
-          } catch (mapErr: any) {
-            logger.warn(`[VoterImportService] Post-import family mapping for booth ${bId} encountered error: ${mapErr.message}`);
+      // Auto-trigger family mapping in the background post-import (non-blocking)
+      setImmediate(async () => {
+        try {
+          const boothIdList = Array.from(allAffectedBoothIds);
+          logger.info(`[VoterImportService] Background auto-mapping families for ${boothIdList.length} affected booths post-import...`);
+          for (const bId of boothIdList) {
+            try {
+              await FamilyMappingService.autoMapBoothFamilies(context?.tenantDbName || null, { boothId: bId });
+            } catch (mapErr: any) {
+              logger.warn(`[VoterImportService] Post-import family mapping for booth ${bId} encountered error: ${mapErr.message}`);
+            }
           }
+          logger.info(`[VoterImportService] Successfully completed background family mapping for ${boothIdList.length} booths.`);
+        } catch (familyErr: any) {
+          logger.error(`[VoterImportService] Post-import background family mapping error:`, familyErr);
         }
-      } catch (familyErr: any) {
-        logger.error(`[VoterImportService] Post-import family mapping error:`, familyErr);
-      }
+      });
     }
 
     return result;

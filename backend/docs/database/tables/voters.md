@@ -20,13 +20,13 @@ Primary database entity for storing voter information across electoral constitue
 | `serial_no`            | `INT`          | Yes      | `NULL`              | Electoral serial number within booth                                    |
 | `section_no`           | `INT`          | Yes      | `NULL`              | Electoral section number                                                |
 | `house_no`             | `VARCHAR(100)` | Yes      | `NULL`              | Residential house number                                                |
-| `first_name`           | `VARCHAR(150)` | Yes      | `NULL`              | Local language first name                                               |
-| `eng_first_name`       | `VARCHAR(150)` | Yes      | `NULL`              | English language first name                                             |
-| `middle_name`          | `VARCHAR(150)` | Yes      | `NULL`              | Local language middle/father/husband name                               |
-| `eng_middle_name`      | `VARCHAR(150)` | Yes      | `NULL`              | English language middle name                                            |
-| `surname`              | `VARCHAR(150)` | Yes      | `NULL`              | Local language surname/last name                                        |
-| `eng_surname`          | `VARCHAR(150)` | Yes      | `NULL`              | English language surname                                                |
-| `guardian_name`        | `VARCHAR(255)` | Yes      | `NULL`              | Local/English language father/husband/guardian name                     |
+| `first_name`           | `TEXT`         | Yes      | `NULL`              | Local language first name                                               |
+| `eng_first_name`       | `TEXT`         | Yes      | `NULL`              | English language first name                                             |
+| `middle_name`          | `TEXT`         | Yes      | `NULL`              | Local language middle/father/husband name                               |
+| `eng_middle_name`      | `TEXT`         | Yes      | `NULL`              | English language middle name                                            |
+| `surname`              | `TEXT`         | Yes      | `NULL`              | Local language surname/last name                                        |
+| `eng_surname`          | `TEXT`         | Yes      | `NULL`              | English language surname                                                |
+| `guardian_name`        | `TEXT`         | Yes      | `NULL`              | Local/English language father/husband/guardian name                     |
 | `relation`             | `VARCHAR(100)` | Yes      | `NULL`              | Guardian / family relation (e.g. Father, Husband, Mother)                |
 | `gender`               | `VARCHAR(10)`  | Yes      | `NULL`              | Gender (`Male`, `Female`, `Other`)                                      |
 | `dob`                  | `DATE`         | Yes      | `NULL`              | Date of Birth                                                           |
@@ -39,13 +39,13 @@ Primary database entity for storing voter information across electoral constitue
 | `profession`           | `VARCHAR(100)` | Yes      | `NULL`              | Detailed profession/occupation                                          |
 | `religion_id`          | `UUID`         | Yes      | `NULL`              | Foreign Key -> `religions(id)`                                          |
 | `caste_id`             | `UUID`         | Yes      | `NULL`              | Foreign Key -> `castes(id)`                                             |
-| `subcaste_name`        | `VARCHAR(150)` | Yes      | `NULL`              | Sub-caste name                                                          |
+| `subcaste_name`        | `TEXT`         | Yes      | `NULL`              | Sub-caste name                                                          |
 | `status`               | `VARCHAR(30)`  | Yes      | `'ACTIVE'`          | Voter status (`ACTIVE`, `INACTIVE`, `SHIFTED`, `UNVERIFIED`, `PENDING`) |
 | `is_dead`              | `BOOLEAN`      | Yes      | `FALSE`             | Deceased status flag                                                    |
 | `blood_group`          | `VARCHAR(10)`  | Yes      | `NULL`              | Blood group (`A+`, `A-`, `B+`, `B-`, `AB+`, `AB-`, `O+`, `O-`)          |
 | `avatar`               | `VARCHAR(255)` | Yes      | `NULL`              | Profile photo upload relative file path                                 |
-| `taluka`               | `VARCHAR(100)` | Yes      | `NULL`              | Administrative Taluka / Tehsil                                          |
-| `village`              | `VARCHAR(100)` | Yes      | `NULL`              | Village / Locality name                                                 |
+| `taluka`               | `TEXT`         | Yes      | `NULL`              | Administrative Taluka / Tehsil                                          |
+| `village`              | `TEXT`         | Yes      | `NULL`              | Village / Locality name                                                 |
 | `full_address`         | `TEXT`         | Yes      | `NULL`              | Full permanent address                                                  |
 | `voter_address`        | `TEXT`         | Yes      | `NULL`              | Full electoral roll voting address                                      |
 | `party_id`             | `UUID`         | Yes      | `NULL`              | Foreign Key -> `political_parties(id)` (Voter's political party view)   |

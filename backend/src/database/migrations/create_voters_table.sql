@@ -18,14 +18,14 @@ CREATE TABLE IF NOT EXISTS voters (
     house_no VARCHAR(100),
     
     -- Names (Dual Language: Local & English)
-    first_name VARCHAR(150),
-    eng_first_name VARCHAR(150),
-    middle_name VARCHAR(150),
-    eng_middle_name VARCHAR(150),
-    surname VARCHAR(150),
-    eng_surname VARCHAR(150),
+    first_name TEXT,
+    eng_first_name TEXT,
+    middle_name TEXT,
+    eng_middle_name TEXT,
+    surname TEXT,
+    eng_surname TEXT,
     relation VARCHAR(100),
-    guardian_name VARCHAR(255),
+    guardian_name TEXT,
     
     -- Personal & Identification
     gender VARCHAR(10),
@@ -41,15 +41,15 @@ CREATE TABLE IF NOT EXISTS voters (
     profession VARCHAR(100),
     religion_id UUID REFERENCES religions(id) ON DELETE SET NULL,
     caste_id UUID REFERENCES castes(id) ON DELETE SET NULL,
-    subcaste_name VARCHAR(150),
+    subcaste_name TEXT,
     
     -- Extended Profile & Campaign Overlays
     status VARCHAR(20) DEFAULT 'Active',
     is_dead BOOLEAN DEFAULT FALSE,
     blood_group VARCHAR(10),
     avatar VARCHAR(255),
-    taluka VARCHAR(150),
-    village VARCHAR(150),
+    taluka TEXT,
+    village TEXT,
     full_address TEXT,
     voter_address TEXT,
     party_id UUID REFERENCES parties(id) ON DELETE SET NULL,
@@ -100,12 +100,7 @@ CREATE INDEX IF NOT EXISTS idx_voters_booth_clean_mobile_10
 ON voters (booth_id, RIGHT(REGEXP_REPLACE(mobile_no, '\D', '', 'g'), 10))
 WHERE mobile_no IS NOT NULL;
 
--- GIN Trigram Search Indexes for Fast Search
-CREATE INDEX IF NOT EXISTS idx_voters_eng_fname_trgm ON voters USING gin(eng_first_name gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_voters_eng_sname_trgm ON voters USING gin(eng_surname gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_voters_epic_no_trgm ON voters USING gin(epic_no gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_voters_mobile_no_trgm ON voters USING gin(mobile_no gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_voters_house_no_trgm ON voters USING gin(house_no gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_voters_first_name_trgm ON voters USING gin(first_name gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_voters_surname_trgm ON voters USING gin(surname gin_trgm_ops);
+-- Note: Heavy GIN Trigram Search Indexes are created post-bulk-import pass
+-- via VoterProvisionService.buildSearchIndexes to prevent initial schema statement timeouts.
+
 

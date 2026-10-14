@@ -163,6 +163,9 @@ export const importAc101Voters = async (): Promise<void> => {
         first_name: truncateStr(r['First Name (Local)'], 150),
         middle_name: truncateStr(r['Middle Name (Local)'], 150),
         surname: truncateStr(r['Surname (Local)'], 150),
+        eng_first_name: truncateStr(r['First Name (Eng)'], 150),
+        eng_middle_name: truncateStr(r['Middle Name (Eng)'], 150),
+        eng_surname: truncateStr(r['Surname (Eng)'], 150),
         relation,
         guardian_name: guardianName,
         gender: r['Gender'] ? String(r['Gender']).trim() : 'Other',
@@ -188,8 +191,10 @@ export const importAc101Voters = async (): Promise<void> => {
         dbRows,
         [
           'epic_no', 'state_id', 'district_id', 'pc_id', 'ac_id', 'ward_id', 'booth_id',
-          'serial_no', 'section_no', 'house_no', 'first_name', 'middle_name',
-          'surname', 'relation', 'guardian_name', 'gender', 'age', 'dob', 'mobile_no',
+          'serial_no', 'section_no', 'house_no',
+          'first_name', 'middle_name', 'surname',
+          'eng_first_name', 'eng_middle_name', 'eng_surname',
+          'relation', 'guardian_name', 'gender', 'age', 'dob', 'mobile_no',
           'status', 'is_dead', 'taluka', 'village', 'full_address',
           'voter_address', 'is_family_influencer', 'is_social_influencer',
         ],
@@ -198,8 +203,10 @@ export const importAc101Voters = async (): Promise<void> => {
           conflictStrategy: 'DO UPDATE',
           updateColumns: [
             'ward_id', 'booth_id', 'serial_no', 'section_no', 'house_no',
-            'first_name', 'middle_name', 'surname', 'relation', 'guardian_name',
-            'gender', 'age', 'mobile_no', 'village', 'full_address', 'voter_address', 'status',
+            'first_name', 'middle_name', 'surname',
+            'eng_first_name', 'eng_middle_name', 'eng_surname',
+            'relation', 'guardian_name', 'gender', 'age', 'dob', 'mobile_no',
+            'village', 'full_address', 'voter_address', 'status', 'is_dead',
           ],
         }
       );

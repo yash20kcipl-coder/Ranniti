@@ -197,8 +197,9 @@ export const NavPill: React.FC<NavPillProps> = ({
         )}
 
         {hasSubmenu && (
-          <button
-            type="button"
+          <span
+            role="button"
+            tabIndex={0}
             aria-label="Toggle submenu"
             onClick={(e) => {
               e.preventDefault();
@@ -207,6 +208,17 @@ export const NavPill: React.FC<NavPillProps> = ({
                 onToggleSubmenu(e);
               } else {
                 onClick?.();
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onToggleSubmenu) {
+                  onToggleSubmenu(e as any);
+                } else {
+                  onClick?.();
+                }
               }
             }}
             className="p-1 -mr-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors shrink-0 cursor-pointer"
@@ -221,7 +233,7 @@ export const NavPill: React.FC<NavPillProps> = ({
                     : 'rotate-0 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'
               }`}
             />
-          </button>
+          </span>
         )}
       </div>
     </>

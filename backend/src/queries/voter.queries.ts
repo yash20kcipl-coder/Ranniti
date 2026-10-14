@@ -593,161 +593,382 @@ export class VoterQueries {
   }
 
   /**
-   * High-performance multi-row batch insert with ON CONFLICT (epic_no) DO UPDATE
-   * Chunks queries in batches of 300 (safely below PostgreSQL's 65,535 parameter limit).
-   * Falls back to single-row inserts for any failed chunk so valid records are never dropped.
+   * Upsert a single voter with ON CONFLICT (epic_no) DO UPDATE
    */
-  static async createVotersBatch(votersList: Partial<Voter>[], tenantDbName?: string | null): Promise<{ inserted: number; errors: number }> {
+  static async upsertVoter(data: Partial<Voter>, tenantDbName?: string | null): Promise<Voter> {
+    const res = await executeVoterQuery(
+      `INSERT INTO voters (
+        epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
+        first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname, relation, guardian_name,
+        gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
+        profession_type, profession, religion_id, caste_id, subcaste_name,
+        status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
+        party_id, family_influencer_id, social_influencer_id,
+        is_family_influencer, is_social_influencer, family_id
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9,
+        $10, $11, $12, $13, $14, $15, $16, $17,
+        $18, $19, $20, $21, $22, $23, $24,
+        $25, $26, $27, $28, $29,
+        $30, $31, $32, $33, $34, $35, $36, $37,
+        $38, $39, $40, $41, $42, $43
+      )
+      ON CONFLICT (epic_no) DO UPDATE SET
+        state_id = EXCLUDED.state_id,
+        district_id = EXCLUDED.district_id,
+        pc_id = EXCLUDED.pc_id,
+        ac_id = EXCLUDED.ac_id,
+        booth_id = EXCLUDED.booth_id,
+        serial_no = EXCLUDED.serial_no,
+        section_no = EXCLUDED.section_no,
+        house_no = EXCLUDED.house_no,
+        first_name = EXCLUDED.first_name,
+        eng_first_name = EXCLUDED.eng_first_name,
+        middle_name = EXCLUDED.middle_name,
+        eng_middle_name = EXCLUDED.eng_middle_name,
+        surname = EXCLUDED.surname,
+        eng_surname = EXCLUDED.eng_surname,
+        relation = EXCLUDED.relation,
+        guardian_name = EXCLUDED.guardian_name,
+        gender = EXCLUDED.gender,
+        dob = EXCLUDED.dob,
+        age = EXCLUDED.age,
+        mobile_no = EXCLUDED.mobile_no,
+        email = EXCLUDED.email,
+        aadhaar_no = EXCLUDED.aadhaar_no,
+        pan_no = EXCLUDED.pan_no,
+        profession_type = EXCLUDED.profession_type,
+        profession = EXCLUDED.profession,
+        religion_id = EXCLUDED.religion_id,
+        caste_id = EXCLUDED.caste_id,
+        subcaste_name = EXCLUDED.subcaste_name,
+        status = EXCLUDED.status,
+        is_dead = EXCLUDED.is_dead,
+        blood_group = EXCLUDED.blood_group,
+        taluka = EXCLUDED.taluka,
+        village = EXCLUDED.village,
+        full_address = EXCLUDED.full_address,
+        voter_address = EXCLUDED.voter_address,
+        party_id = EXCLUDED.party_id,
+        is_family_influencer = EXCLUDED.is_family_influencer,
+        is_social_influencer = EXCLUDED.is_social_influencer,
+        family_id = COALESCE(EXCLUDED.family_id, voters.family_id),
+        updated_at = NOW()
+      RETURNING 
+        id, epic_no AS "epicNo", serial_no AS "serialNo", section_no AS "sectionNo", house_no AS "houseNo",
+        first_name AS "firstName", eng_first_name AS "engFirstName", middle_name AS "middleName", eng_middle_name AS "engMiddleName",
+        surname, eng_surname AS "engSurname", relation, guardian_name AS "guardianName", gender, dob, age, mobile_no AS "mobileNo", email,
+        aadhaar_no AS "aadhaarNo", pan_no AS "panNo", profession_type AS "professionType", profession,
+        NULL::text AS "voterType", status, is_dead AS "isDead", blood_group AS "bloodGroup", avatar,
+        is_family_influencer AS "isFamilyInfluencer", is_social_influencer AS "isSocialInfluencer",
+        family_id AS "familyId",
+        created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [
+        data.epicNo,
+        toNullableUuid(data.stateId),
+        toNullableUuid(data.districtId),
+        toNullableUuid(data.pcId),
+        toNullableUuid(data.acId),
+        toNullableUuid(data.boothId),
+        toNullableInt(data.serialNo ?? (data as any).serialNumber),
+        toNullableInt(data.sectionNo ?? (data as any).sectionNumber),
+        toNullableString(data.houseNo || (data as any).houseNumber),
+        toNullableString(data.firstName || (data as any).fullName),
+        toNullableString(data.engFirstName || (data as any).nameEn),
+        toNullableString(data.middleName),
+        toNullableString(data.engMiddleName),
+        toNullableString(data.surname),
+        toNullableString(data.engSurname),
+        toNullableString(data.relation ? normalizeRelation(data.relation) : ((data as any).relativeType ? normalizeRelation((data as any).relativeType) : null)),
+        toNullableString(data.guardianName || (data as any).relativeName),
+        toNullableString(data.gender),
+        toNullableDate(data.dob),
+        toNullableInt(data.age),
+        toNullableString(data.mobileNo || (data as any).mobileNumber),
+        toNullableString(data.email),
+        toNullableString(data.aadhaarNo),
+        toNullableString(data.panNo),
+        toNullableString(data.professionType),
+        toNullableString(data.profession),
+        toNullableUuid(data.religionId),
+        toNullableUuid(data.casteId),
+        toNullableString(data.subcasteName),
+        toNullableString(data.status || 'ACTIVE'),
+        toNullableBool(data.isDead) || false,
+        toNullableString(data.bloodGroup),
+        toNullableString(data.avatar),
+        toNullableString(data.taluka),
+        toNullableString(data.village),
+        toNullableString(data.fullAddress),
+        toNullableString(data.voterAddress),
+        toNullableUuid(data.partyId),
+        toNullableUuid(data.familyInfluencerId),
+        toNullableUuid(data.socialInfluencerId),
+        toNullableBool(data.isFamilyInfluencer) || false,
+        toNullableBool(data.isSocialInfluencer) || false,
+        toNullableString(data.familyId),
+      ],
+      tenantDbName
+    );
+
+    const upserted = res.rows[0];
+    if (upserted && tenantDbName && tenantDbName.trim()) {
+      const tenantPool = getTenantDbPool(tenantDbName.trim());
+      MasterAutoSyncService.syncEntityToMaster(tenantPool, 'voter', upserted.id, 'CREATE', {
+        ...upserted,
+        stateId: data.stateId,
+        districtId: data.districtId,
+        pcId: data.pcId,
+        acId: data.acId,
+        boothId: data.boothId,
+        partyId: data.partyId,
+        religionId: data.religionId,
+        casteId: data.casteId,
+        subcasteName: data.subcasteName,
+        taluka: data.taluka,
+        village: data.village,
+        fullAddress: data.fullAddress,
+        voterAddress: data.voterAddress,
+      }).catch((err) => {
+        logger.error(`[VoterQueries] AutoSync error for voter upsert '${upserted.id}':`, err);
+      });
+    }
+
+    return upserted;
+  }
+
+  /**
+   * Helper to build and execute a single multi-row INSERT ... ON CONFLICT statement for a slice of voters.
+   */
+  private static async executeVoterMultiRowInsert(
+    slice: Partial<Voter>[],
+    tenantDbName?: string | null
+  ): Promise<number> {
+    if (slice.length === 0) return 0;
+
+    const valueTuples: string[] = [];
+    const valuesParams: any[] = [];
+    let pIndex = 1;
+
+    for (const data of slice) {
+      const tuplePlaceholders = Array.from({ length: 43 }, (_, idx) => `$${pIndex + idx}`).join(', ');
+      valueTuples.push(`(${tuplePlaceholders})`);
+
+      valuesParams.push(
+        data.epicNo,
+        toNullableUuid(data.stateId),
+        toNullableUuid(data.districtId),
+        toNullableUuid(data.pcId),
+        toNullableUuid(data.acId),
+        toNullableUuid(data.boothId),
+        toNullableInt(data.serialNo ?? (data as any).serialNumber),
+        toNullableInt(data.sectionNo ?? (data as any).sectionNumber),
+        toNullableString(data.houseNo || (data as any).houseNumber),
+        toNullableString(data.firstName || (data as any).fullName),
+        toNullableString(data.engFirstName || (data as any).nameEn),
+        toNullableString(data.middleName),
+        toNullableString(data.engMiddleName),
+        toNullableString(data.surname),
+        toNullableString(data.engSurname),
+        toNullableString(data.relation ? normalizeRelation(data.relation) : ((data as any).relativeType ? normalizeRelation((data as any).relativeType) : null)),
+        toNullableString(data.guardianName || (data as any).relativeName),
+        toNullableString(data.gender),
+        toNullableDate(data.dob),
+        toNullableInt(data.age),
+        toNullableString(data.mobileNo || (data as any).mobileNumber),
+        toNullableString(data.email),
+        toNullableString(data.aadhaarNo),
+        toNullableString(data.panNo),
+        toNullableString(data.professionType),
+        toNullableString(data.profession),
+        toNullableUuid(data.religionId),
+        toNullableUuid(data.casteId),
+        toNullableString(data.subcasteName),
+        toNullableString(data.status || 'ACTIVE'),
+        toNullableBool(data.isDead) || false,
+        toNullableString(data.bloodGroup),
+        toNullableString(data.avatar),
+        toNullableString(data.taluka),
+        toNullableString(data.village),
+        toNullableString(data.fullAddress),
+        toNullableString(data.voterAddress),
+        toNullableUuid(data.partyId),
+        toNullableUuid(data.familyInfluencerId),
+        toNullableUuid(data.socialInfluencerId),
+        toNullableBool(data.isFamilyInfluencer) || false,
+        toNullableBool(data.isSocialInfluencer) || false,
+        toNullableString(data.familyId)
+      );
+
+      pIndex += 43;
+    }
+
+    const sql = `
+      INSERT INTO voters (
+        epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
+        first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname, relation, guardian_name,
+        gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
+        profession_type, profession, religion_id, caste_id, subcaste_name,
+        status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
+        party_id, family_influencer_id, social_influencer_id,
+        is_family_influencer, is_social_influencer, family_id
+      ) VALUES 
+      ${valueTuples.join(',\n')}
+      ON CONFLICT (epic_no) DO UPDATE SET
+        state_id = EXCLUDED.state_id,
+        district_id = EXCLUDED.district_id,
+        pc_id = EXCLUDED.pc_id,
+        ac_id = EXCLUDED.ac_id,
+        booth_id = EXCLUDED.booth_id,
+        serial_no = EXCLUDED.serial_no,
+        section_no = EXCLUDED.section_no,
+        house_no = EXCLUDED.house_no,
+        first_name = EXCLUDED.first_name,
+        eng_first_name = EXCLUDED.eng_first_name,
+        middle_name = EXCLUDED.middle_name,
+        eng_middle_name = EXCLUDED.eng_middle_name,
+        surname = EXCLUDED.surname,
+        eng_surname = EXCLUDED.eng_surname,
+        relation = EXCLUDED.relation,
+        guardian_name = EXCLUDED.guardian_name,
+        gender = EXCLUDED.gender,
+        dob = EXCLUDED.dob,
+        age = EXCLUDED.age,
+        mobile_no = EXCLUDED.mobile_no,
+        email = EXCLUDED.email,
+        aadhaar_no = EXCLUDED.aadhaar_no,
+        pan_no = EXCLUDED.pan_no,
+        profession_type = EXCLUDED.profession_type,
+        profession = EXCLUDED.profession,
+        religion_id = EXCLUDED.religion_id,
+        caste_id = EXCLUDED.caste_id,
+        subcaste_name = EXCLUDED.subcaste_name,
+        status = EXCLUDED.status,
+        is_dead = EXCLUDED.is_dead,
+        blood_group = EXCLUDED.blood_group,
+        taluka = EXCLUDED.taluka,
+        village = EXCLUDED.village,
+        full_address = EXCLUDED.full_address,
+        voter_address = EXCLUDED.voter_address,
+        party_id = EXCLUDED.party_id,
+        is_family_influencer = EXCLUDED.is_family_influencer,
+        is_social_influencer = EXCLUDED.is_social_influencer,
+        family_id = COALESCE(EXCLUDED.family_id, voters.family_id),
+        updated_at = NOW()
+      RETURNING id
+    `;
+
+    const res = await executeVoterQuery(sql, valuesParams, tenantDbName);
+    const count = res.rowCount || res.rows.length;
+
+    // Auto-sync successfully inserted batch chunk from Tenant to Master DB in background
+    if (tenantDbName && slice.length > 0) {
+      const tenantPool = TenantPoolManager.getPool(tenantDbName);
+      MasterAutoSyncService.syncVotersBatchToMaster(tenantPool, slice)
+        .catch((syncErr) => {
+          logger.error(`[VoterQueries.createVotersBatch] Master batch sync error:`, syncErr);
+        });
+    }
+
+    return count;
+  }
+
+  /**
+   * Recursive binary splitting fallback: isolates bad row(s) while executing all valid
+   * records in high-throughput multi-row chunks instead of stalling across hundreds of round-trips.
+   */
+  private static async insertVotersWithBinarySplit(
+    subChunk: Partial<Voter>[],
+    tenantDbName: string | null | undefined,
+    failedRecords: { index: number; row: any; error: string }[]
+  ): Promise<{ inserted: number; errors: number }> {
+    if (subChunk.length === 0) return { inserted: 0, errors: 0 };
+
+    try {
+      const count = await this.executeVoterMultiRowInsert(subChunk, tenantDbName);
+      return { inserted: count, errors: 0 };
+    } catch (err: any) {
+      if (subChunk.length === 1) {
+        const singleVoter = subChunk[0];
+        failedRecords.push({
+          index: (singleVoter as any).__rowIndex ?? 0,
+          row: singleVoter,
+          error: err.message || 'Database insert error',
+        });
+        logger.warn(`[VoterQueries.createVotersBatch] Voter insert failed for EPIC '${singleVoter.epicNo}': ${err.message}`);
+        return { inserted: 0, errors: 1 };
+      }
+
+      const mid = Math.floor(subChunk.length / 2);
+      const left = subChunk.slice(0, mid);
+      const right = subChunk.slice(mid);
+
+      const leftRes = await this.insertVotersWithBinarySplit(left, tenantDbName, failedRecords);
+      const rightRes = await this.insertVotersWithBinarySplit(right, tenantDbName, failedRecords);
+
+      return {
+        inserted: leftRes.inserted + rightRes.inserted,
+        errors: leftRes.errors + rightRes.errors,
+      };
+    }
+  }
+
+  /**
+   * High-performance multi-row batch insert with ON CONFLICT (epic_no) DO UPDATE
+   * Chunks queries in batches of 500 (safely below PostgreSQL's 65,535 parameter limit).
+   * Deduplicates by epicNo per chunk to prevent PostgreSQL "cannot affect row a second time" errors.
+   * Utilizes recursive binary splitting for failure isolation so valid records are never dropped
+   * and single-record errors don't stall the system with 500 individual round trips.
+   */
+  static async createVotersBatch(
+    votersList: Partial<Voter>[],
+    tenantDbName?: string | null
+  ): Promise<{ inserted: number; errors: number; failedRecords: { index: number; row: any; error: string }[] }> {
     if (!votersList || votersList.length === 0) {
-      return { inserted: 0, errors: 0 };
+      return { inserted: 0, errors: 0, failedRecords: [] };
     }
 
     const CHUNK_SIZE = 500;
     let totalInserted = 0;
     let totalErrors = 0;
+    const failedRecords: { index: number; row: any; error: string }[] = [];
 
     for (let i = 0; i < votersList.length; i += CHUNK_SIZE) {
-      const chunk = votersList.slice(i, i + CHUNK_SIZE);
-      const valueTuples: string[] = [];
-      const valuesParams: any[] = [];
-      let pIndex = 1;
+      const rawChunk = votersList.slice(i, i + CHUNK_SIZE);
 
-      for (const data of chunk) {
-        const tuplePlaceholders = Array.from({ length: 43 }, (_, idx) => `$${pIndex + idx}`).join(', ');
-        valueTuples.push(`(${tuplePlaceholders})`);
-
-        valuesParams.push(
-          data.epicNo,
-          data.stateId || null,
-          data.districtId || null,
-          data.pcId || null,
-          data.acId || null,
-          data.boothId || null,
-          data.serialNo ?? (data as any).serialNumber ?? null,
-          data.sectionNo ?? (data as any).sectionNumber ?? null,
-          data.houseNo || (data as any).houseNumber || null,
-          data.firstName || (data as any).fullName || null,
-          data.engFirstName || (data as any).nameEn || null,
-          data.middleName || null,
-          data.engMiddleName || null,
-          data.surname || null,
-          data.engSurname || null,
-          data.relation ? normalizeRelation(data.relation) : ((data as any).relativeType ? normalizeRelation((data as any).relativeType) : null),
-          data.guardianName || (data as any).relativeName || null,
-          data.gender || null,
-          data.dob || null,
-          data.age || null,
-          data.mobileNo || (data as any).mobileNumber || null,
-          data.email || null,
-          data.aadhaarNo || null,
-          data.panNo || null,
-          data.professionType || null,
-          data.profession || null,
-          data.religionId || null,
-          data.casteId || null,
-          data.subcasteName || null,
-          data.status || 'ACTIVE',
-          data.isDead || false,
-          data.bloodGroup || null,
-          data.avatar || null,
-          data.taluka || null,
-          data.village || null,
-          data.fullAddress || null,
-          data.voterAddress || null,
-          data.partyId || null,
-          data.familyInfluencerId || null,
-          data.socialInfluencerId || null,
-          data.isFamilyInfluencer || false,
-          data.isSocialInfluencer || false,
-          data.familyId || null
-        );
-
-        pIndex += 43;
+      // In PostgreSQL: ON CONFLICT DO UPDATE cannot affect row a second time in the same statement.
+      // Deduplicate by epicNo inside chunk, keeping the latest occurrence and logging duplicates to failedRecords.
+      const chunkMap = new Map<string, Partial<Voter>>();
+      for (const item of rawChunk) {
+        if (!item.epicNo) continue;
+        const key = String(item.epicNo).trim();
+        if (chunkMap.has(key)) {
+          const prevItem = chunkMap.get(key)!;
+          totalErrors++;
+          failedRecords.push({
+            index: (prevItem as any).__rowIndex ?? 0,
+            row: prevItem,
+            error: `Duplicate EPIC '${key}' in file (overwritten by row ${(item as any).__rowIndex ?? ''})`,
+          });
+        }
+        chunkMap.set(key, item);
       }
+      const chunk = Array.from(chunkMap.values());
 
-      const sql = `
-        INSERT INTO voters (
-          epic_no, state_id, district_id, pc_id, ac_id, booth_id, serial_no, section_no, house_no,
-          first_name, eng_first_name, middle_name, eng_middle_name, surname, eng_surname, relation, guardian_name,
-          gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
-          profession_type, profession, religion_id, caste_id, subcaste_name,
-          status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
-          party_id, family_influencer_id, social_influencer_id,
-          is_family_influencer, is_social_influencer, family_id
-        ) VALUES 
-        ${valueTuples.join(',\n')}
-        ON CONFLICT (epic_no) DO UPDATE SET
-          state_id = EXCLUDED.state_id,
-          district_id = EXCLUDED.district_id,
-          pc_id = EXCLUDED.pc_id,
-          ac_id = EXCLUDED.ac_id,
-          booth_id = EXCLUDED.booth_id,
-          serial_no = EXCLUDED.serial_no,
-          section_no = EXCLUDED.section_no,
-          house_no = EXCLUDED.house_no,
-          first_name = EXCLUDED.first_name,
-          eng_first_name = EXCLUDED.eng_first_name,
-          middle_name = EXCLUDED.middle_name,
-          eng_middle_name = EXCLUDED.eng_middle_name,
-          surname = EXCLUDED.surname,
-          eng_surname = EXCLUDED.eng_surname,
-          relation = EXCLUDED.relation,
-          guardian_name = EXCLUDED.guardian_name,
-          gender = EXCLUDED.gender,
-          dob = EXCLUDED.dob,
-          age = EXCLUDED.age,
-          mobile_no = EXCLUDED.mobile_no,
-          email = EXCLUDED.email,
-          aadhaar_no = EXCLUDED.aadhaar_no,
-          pan_no = EXCLUDED.pan_no,
-          profession_type = EXCLUDED.profession_type,
-          profession = EXCLUDED.profession,
-          religion_id = EXCLUDED.religion_id,
-          caste_id = EXCLUDED.caste_id,
-          subcaste_name = EXCLUDED.subcaste_name,
-          status = EXCLUDED.status,
-          is_dead = EXCLUDED.is_dead,
-          blood_group = EXCLUDED.blood_group,
-          taluka = EXCLUDED.taluka,
-          village = EXCLUDED.village,
-          full_address = EXCLUDED.full_address,
-          voter_address = EXCLUDED.voter_address,
-          party_id = EXCLUDED.party_id,
-          is_family_influencer = EXCLUDED.is_family_influencer,
-          is_social_influencer = EXCLUDED.is_social_influencer,
-          family_id = COALESCE(EXCLUDED.family_id, voters.family_id),
-          updated_at = NOW()
-        RETURNING id
-      `;
+      if (chunk.length === 0) continue;
 
       try {
-        const res = await executeVoterQuery(sql, valuesParams, tenantDbName);
-        totalInserted += res.rowCount || res.rows.length;
-
-        // Auto-sync successfully inserted batch chunk from Tenant to Master DB
-        if (tenantDbName && chunk.length > 0) {
-          const { TenantPoolManager } = await import('../services/pool/tenantPoolManager');
-          const tenantPool = TenantPoolManager.getPool(tenantDbName);
-          MasterAutoSyncService.syncVotersBatchToMaster(tenantPool, chunk)
-            .catch((syncErr) => {
-              logger.error(`[VoterQueries.createVotersBatch] Master batch sync error:`, syncErr);
-            });
-        }
+        const count = await VoterQueries.executeVoterMultiRowInsert(chunk, tenantDbName);
+        totalInserted += count;
       } catch (chunkErr: any) {
-        logger.warn(`[VoterQueries.createVotersBatch] Chunk insert failed (${chunkErr.message}), falling back to single-row inserts...`);
-        for (const singleVoter of chunk) {
-          try {
-            await VoterQueries.createVoter(singleVoter, tenantDbName);
-            totalInserted++;
-          } catch (singleErr: any) {
-            totalErrors++;
-            logger.warn(`[VoterQueries.createVotersBatch] Single insert skipped for EPIC '${singleVoter.epicNo}': ${singleErr.message}`);
-          }
-        }
+        logger.warn(`[VoterQueries.createVotersBatch] Chunk of ${chunk.length} insert failed (${chunkErr.message}), isolating with binary split...`);
+        const splitRes = await VoterQueries.insertVotersWithBinarySplit(chunk, tenantDbName, failedRecords);
+        totalInserted += splitRes.inserted;
+        totalErrors += splitRes.errors;
       }
     }
 
-    return { inserted: totalInserted, errors: totalErrors };
+    return { inserted: totalInserted, errors: totalErrors, failedRecords };
   }
 
   static async updateVoter(id: string, data: Partial<Voter>, tenantDbName?: string | null): Promise<Voter | null> {
@@ -780,31 +1001,31 @@ export class VoterQueries {
         religion_id = COALESCE($26, religion_id),
         caste_id = COALESCE($27, caste_id),
         subcaste_name = COALESCE($28, subcaste_name),
-        status = COALESCE($30, status),
-        is_dead = COALESCE($31, is_dead),
-        blood_group = COALESCE($32, blood_group),
-        avatar = COALESCE($33, avatar),
-        taluka = COALESCE($34, taluka),
-        village = COALESCE($35, village),
-        full_address = COALESCE($36, full_address),
-        voter_address = COALESCE($37, voter_address),
-        relation = COALESCE($38, relation),
-        guardian_name = COALESCE($39, guardian_name),
-        party_id = CASE WHEN $47 = TRUE THEN $40 ELSE party_id END,
+        status = COALESCE($29, status),
+        is_dead = COALESCE($30, is_dead),
+        blood_group = COALESCE($31, blood_group),
+        avatar = COALESCE($32, avatar),
+        taluka = COALESCE($33, taluka),
+        village = COALESCE($34, village),
+        full_address = COALESCE($35, full_address),
+        voter_address = COALESCE($36, voter_address),
+        relation = COALESCE($37, relation),
+        guardian_name = COALESCE($38, guardian_name),
+        party_id = CASE WHEN $46 = TRUE THEN $39 ELSE party_id END,
         family_influencer_id = CASE 
-          WHEN COALESCE($43, is_family_influencer) = TRUE THEN NULL 
-          WHEN $45 = TRUE THEN $41 
+          WHEN COALESCE($42, is_family_influencer) = TRUE THEN NULL 
+          WHEN $44 = TRUE THEN $40 
           ELSE family_influencer_id 
         END,
         social_influencer_id = CASE 
-          WHEN $46 = TRUE THEN $42 
+          WHEN $45 = TRUE THEN $41 
           ELSE social_influencer_id 
         END,
         is_family_influencer = CASE 
-          WHEN $41 IS NOT NULL AND ($43 IS NULL OR $43 = FALSE) THEN FALSE 
-          ELSE COALESCE($43, is_family_influencer) 
+          WHEN $40 IS NOT NULL AND ($42 IS NULL OR $42 = FALSE) THEN FALSE 
+          ELSE COALESCE($42, is_family_influencer) 
         END,
-        is_social_influencer = COALESCE($44, is_social_influencer),
+        is_social_influencer = COALESCE($43, is_social_influencer),
         updated_at = NOW()
       WHERE id = $1
       RETURNING id, epic_no AS "epicNo", updated_at AS "updatedAt"`,
@@ -837,7 +1058,6 @@ export class VoterQueries {
         toNullableUuid(data.religionId),
         toNullableUuid(data.casteId),
         toNullableString(data.subcasteName),
-        toNullableString(data.voterType),
         toNullableString(data.status),
         toNullableBool(data.isDead),
         toNullableString(data.bloodGroup),

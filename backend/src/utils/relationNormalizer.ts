@@ -51,12 +51,17 @@ export const normalizeRelation = (
     return 'Mother';
   }
 
-  // Other: અન્ય, એન્ય, ઘર (head of house in Gujarati rolls)
-  if (/અન્ય|એન્ય|અૂન્યુ|ઘર/i.test(cleaned)) {
+  // House labels mistakenly OCR'd as relation (e.g. 'ઘર', 'ઘર નં') or numeric values
+  if (/^ઘર|^મકાન|^house/i.test(cleaned) || /^[0-9૦-૯\s\-_\/\\#\*\.]+$/.test(cleaned)) {
+    return fallback;
+  }
+
+  // Other: અન્ય, એન્ય, અૂન્યુ
+  if (/અન્ય|એન્ય|અૂન્યુ/i.test(cleaned)) {
     return 'Other';
   }
 
-  return 'Other';
+  return fallback;
 };
 
 /**
