@@ -533,6 +533,17 @@ export const hi: Record<TranslationKeys, string> = {
   offlineSyncStatus: 'ऑफ़लाइन सक्षम',
   syncedJustNow: 'डेटाबेस सिंक्रनाइज़्ड',
   noFamilyMembersFound: 'इस परिवार के मुखिया के अंतर्गत अभी कोई सदस्य नहीं जोड़ा गया है।',
+  familyPopupTitle: 'परिवार के सदस्य',
+  familyHouseNo: 'मकान नंबर',
+  familyTotalMembers: 'कुल सदस्य',
+  familyVotedCount: 'मतदान किया',
+  familyHead: 'परिवार का मुखिया',
+  familyMember: 'सदस्य',
+  familyYearsOld: 'वर्ष',
+  familyLoading: 'परिवार लोड हो रहा है...',
+  familyEpic: 'मतदाता पहचान',
+  familyMobile: 'मोबाइल',
+  familyNoData: 'इस मतदाता के लिए कोई परिवार सदस्य नहीं मिला।',
 };
 
 

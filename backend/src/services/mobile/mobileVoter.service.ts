@@ -53,6 +53,95 @@ export class MobileVoterService {
     return voter;
   }
 
+  async getVoterFamily(
+    user: Omit<UserRecord, 'passwordHash'>,
+    voterId: string
+  ) {
+    const voter = await this.getVoterByIdWithScopeCheck(user, voterId);
+
+    const { TenantPoolManager } = await import('../pool/tenantPoolManager');
+    const tenantDbName = user.tenantDbName || (user as any).tenant_db_name;
+
+    let members: any[] = [];
+    const familyCode = voter.familyId;
+
+    if (familyCode && familyCode.trim()) {
+      const sql = `
+        SELECT 
+          v.id, v.epic_no AS "epicNo", v.serial_no AS "serialNo", v.section_no AS "sectionNo", v.house_no AS "houseNo",
+          CONCAT_WS(' ', NULLIF(v.eng_first_name, ''), NULLIF(v.eng_middle_name, ''), NULLIF(v.eng_surname, '')) AS "engName",
+          CONCAT_WS(' ', NULLIF(v.first_name, ''), NULLIF(v.middle_name, ''), NULLIF(v.surname, '')) AS "name",
+          v.gender, v.age, v.mobile_no AS "mobileNo", v.relation, v.guardian_name AS "guardianName",
+          v.avatar, (v.status = 'voted') AS "isVoted", v.party_id AS "partyId", p.name AS "partyName",
+          p.symbol_logo AS "partySymbol",
+          v.is_family_influencer AS "isFamilyInfluencer", v.family_id AS "familyId"
+        FROM voters v
+        LEFT JOIN parties p ON v.party_id = p.id
+        WHERE v.family_id = $1 AND (v.is_dead IS NOT TRUE)
+        ORDER BY v.age DESC, v.serial_no ASC
+      `;
+      const res = await TenantPoolManager.query(tenantDbName, sql, [familyCode.trim()]);
+      members = res.rows;
+    }
+
+    // Fallback if no familyId or only 1 member found: match voters by booth and house_no
+    if (members.length <= 1 && voter.boothId && voter.houseNo && voter.houseNo !== 'N/A') {
+      const sqlFallback = `
+        SELECT 
+          v.id, v.epic_no AS "epicNo", v.serial_no AS "serialNo", v.section_no AS "sectionNo", v.house_no AS "houseNo",
+          CONCAT_WS(' ', NULLIF(v.eng_first_name, ''), NULLIF(v.eng_middle_name, ''), NULLIF(v.eng_surname, '')) AS "engName",
+          CONCAT_WS(' ', NULLIF(v.first_name, ''), NULLIF(v.middle_name, ''), NULLIF(v.surname, '')) AS "name",
+          v.gender, v.age, v.mobile_no AS "mobileNo", v.relation, v.guardian_name AS "guardianName",
+          v.avatar, (v.status = 'voted') AS "isVoted", v.party_id AS "partyId", p.name AS "partyName",
+          p.symbol_logo AS "partySymbol",
+          v.is_family_influencer AS "isFamilyInfluencer", v.family_id AS "familyId"
+        FROM voters v
+        LEFT JOIN parties p ON v.party_id = p.id
+        WHERE v.booth_id = $1 AND v.house_no = $2 AND (v.is_dead IS NOT TRUE)
+        ORDER BY v.age DESC, v.serial_no ASC
+      `;
+      const resFallback = await TenantPoolManager.query(tenantDbName, sqlFallback, [voter.boothId, voter.houseNo]);
+      if (resFallback.rows.length > 0) {
+        members = resFallback.rows;
+      }
+    }
+
+    if (members.length === 0) {
+      members = [{
+        id: voter.id,
+        epicNo: voter.epicNo,
+        serialNo: voter.serialNo,
+        sectionNo: voter.sectionNo,
+        houseNo: voter.houseNo,
+        engName: `${voter.engFirstName || ''} ${voter.engSurname || ''}`.trim(),
+        name: `${voter.firstName || ''} ${voter.surname || ''}`.trim(),
+        gender: voter.gender,
+        age: voter.age,
+        mobileNo: voter.mobileNo,
+        relation: voter.relation,
+        guardianName: voter.guardianName,
+        avatar: voter.avatar,
+        isVoted: (voter.status === 'voted'),
+        partyId: voter.partyId,
+        partyName: voter.partyName,
+        isFamilyInfluencer: voter.isFamilyInfluencer,
+        familyId: voter.familyId,
+      }];
+    }
+
+    const head = members.find((m) => m.isFamilyInfluencer) || members[0];
+    const votedCount = members.filter((m) => m.isVoted).length;
+
+    return {
+      familyId: familyCode || head.familyId || `FAM-${voter.houseNo || 'NA'}`,
+      houseNo: voter.houseNo || head.houseNo || '',
+      head,
+      members,
+      totalMembers: members.length,
+      votedMembers: votedCount,
+    };
+  }
+
   async getInfluencerOptions(
     user: Omit<UserRecord, 'passwordHash'>,
     params: { search?: string; boothId?: string; excludeId?: string; type?: string }

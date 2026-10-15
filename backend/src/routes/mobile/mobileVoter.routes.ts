@@ -19,6 +19,7 @@ router.get('/family-candidates', validate(familyCandidatesQuerySchema), mobileVo
 router.get('/social-candidates', validate(socialCandidatesQuerySchema), mobileVoterController.getSocialCandidates);
 router.post('/bulk-assign-influencer', validate(bulkAssignInfluencerSchema), mobileVoterController.bulkAssignInfluencer);
 router.put('/:id', mobileVoterController.updateVoter);
+router.get('/:id/family', mobileVoterController.getVoterFamily);
 router.get('/:id', mobileVoterController.getVoterById);
 
 export const mobileVoterRoutes = router;

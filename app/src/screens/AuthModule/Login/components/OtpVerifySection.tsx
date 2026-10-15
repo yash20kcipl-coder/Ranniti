@@ -162,7 +162,7 @@ export const OtpVerifySection: React.FC<OtpVerifySectionProps> = ({
         title={t('verifyOtp')}
         loading={loading}
         onPress={() => onVerify(otp)}
-        disabled={otp.length !== 4 || loading}
+        disabled={otp.length !== 6 || loading}
         style={styles.loginBtn}
       />
     </View>

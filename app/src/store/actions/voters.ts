@@ -516,4 +516,18 @@ export const logVolunteerInteractionAction = (payload: LogInteractionPayload) =>
   };
 };
 
+export const fetchVoterFamilyAction = (voterId: string) => {
+  return async () => {
+    try {
+      const res = await apiClient.get(`/mobile/voters/${voterId}/family`);
+      return res?.data?.data || null;
+    } catch (err: any) {
+      console.error('Fetch voter family error:', err);
+      const msg = err?.response?.data?.message || 'Failed to load family members';
+      toast.error(msg);
+      return null;
+    }
+  };
+};
+
 

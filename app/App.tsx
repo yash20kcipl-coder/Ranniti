@@ -11,6 +11,7 @@ import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import Toast from 'react-native-toast-message';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -33,6 +34,7 @@ function App() {
           </SafeAreaProvider>
         </PersistGate>
       </Provider>
+      <Toast />
     </GestureHandlerRootView>
   );
 }

@@ -531,6 +531,17 @@ export const en = {
   offlineSyncStatus: 'Offline Ready',
   syncedJustNow: 'Database Synced',
   noFamilyMembersFound: 'No members mapped under this family head yet.',
+  familyPopupTitle: 'Family Members',
+  familyHouseNo: 'House No',
+  familyTotalMembers: 'Total Members',
+  familyVotedCount: 'Voted',
+  familyHead: 'Family Head',
+  familyMember: 'Member',
+  familyYearsOld: 'yrs',
+  familyLoading: 'Loading family...',
+  familyEpic: 'EPIC',
+  familyMobile: 'Mobile',
+  familyNoData: 'No family members found for this voter.',
 };
 
 export type TranslationKeys = keyof typeof en;

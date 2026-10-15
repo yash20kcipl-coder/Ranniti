@@ -8,23 +8,21 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { SafeImage } from '../../../components/SafeImage';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { Phone, MessageCircle, ChevronDown } from 'lucide-react-native';
 import { logVolunteerInteractionAction } from '../../../store/actions/voters';
 import { openPhoneDialer, openWhatsAppChat } from '../../../utils/linkingUtils';
-import { Phone, MessageCircle, CheckCircle, XCircle, ChevronDown } from 'lucide-react-native';
 
 interface VoterCardProps {
   voter: Voter;
   canEditParty?: boolean;
   t: (key: TranslationKeys) => string;
   onSelectParty: (voterId: string) => void;
-  onToggleVoted: (voterId: string) => void;
 }
 
 export const VoterCard: React.FC<VoterCardProps> = memo(({
   voter,
   canEditParty = true,
   onSelectParty,
-  onToggleVoted,
   t,
 }) => {
   const dispatch = useDispatch();
@@ -109,14 +107,14 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
 
       {/* Bottom Row: Location on Left & Quick Actions on Right */}
       <View style={styles.bottomRow}>
-        <View style={styles.badgeRow}>
+        {/* <View style={styles.badgeRow}>
           <View style={styles.epicBadge}>
             <Text style={styles.epicText}>EPIC: {voter.epicNo}</Text>
           </View>
           <View style={styles.metaBadge}>
             <Text style={styles.metaText}>{voter.gender} • {voter.age} yrs</Text>
           </View>
-        </View>
+        </View> */}
         <View style={styles.actionsBar}>
           {!!voter.mobile && (
             <>
@@ -140,20 +138,6 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
             </>
           )}
 
-          <TouchableOpacity
-            style={[styles.votedBtn, voter.isVoted ? styles.votedActive : styles.votedInactive]}
-            onPress={() => onToggleVoted(voter.id)}
-            activeOpacity={0.7}
-          >
-            {voter.isVoted ? (
-              <CheckCircle {...({ size: 12, color: "#FFFFFF" } as any)} />
-            ) : (
-              <XCircle {...({ size: 12, color: "#64748B" } as any)} />
-            )}
-            <Text style={[styles.votedBtnText, voter.isVoted && { color: '#FFFFFF' }]}>
-              {voter.isVoted ? t('voted') : t('markVoted')}
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
     </View>

@@ -192,15 +192,34 @@ export const MpinScreen: React.FC<MpinScreenProps> = ({
       </View>
 
       {mode === 'verify' && onResetMpin && (
-        <TouchableOpacity
-          onPress={onResetMpin}
-          activeOpacity={0.7}
-          style={{ alignSelf: 'center', marginTop: 12 }}
-        >
-          <Text style={{ fontSize: 14, color: theme.colors.secondary, fontWeight: '600' }}>
-            {t('forgotMpin')}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ alignItems: 'center', marginTop: 14, gap: 12 }}>
+          <TouchableOpacity
+            onPress={onResetMpin}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 14, color: theme.colors.secondary, fontWeight: '600' }}>
+              {t('forgotMpin')}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={onResetMpin}
+            activeOpacity={0.7}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+            }}
+          >
+            <MaterialDesignIcons name="cellphone-text" size={18} color={theme.colors.textSecondary} />
+            <Text style={{ fontSize: 14, color: theme.colors.textSecondary, fontWeight: '500' }}>
+              {t('loginWithOtp')}
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );

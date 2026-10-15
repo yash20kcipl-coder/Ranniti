@@ -39,6 +39,13 @@ export const authenticateMobileUser = asyncHandler(async (req: Request, _res: Re
     return next(ApiError.forbidden('Forbidden: Web administrative accounts cannot access Mobile Application endpoints'));
   }
 
-  req.mobileUser = await mobileAuthService.getMobileProfileFast(userId, tenantDbName);
+  try {
+    req.mobileUser = await mobileAuthService.getMobileProfileFast(userId, tenantDbName);
+  } catch (error: any) {
+    if (error?.statusCode === 404 || error?.message?.toLowerCase().includes('not found')) {
+      return next(ApiError.unauthorized('Mobile user profile not found. Please log in again.'));
+    }
+    return next(error);
+  }
   next();
 });

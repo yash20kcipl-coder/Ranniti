@@ -7,7 +7,6 @@ import {
 import {
   fetchVotersAction,
   loadMoreVotersAction,
-  toggleVotedStatusAction,
   updateVoterPartyAction,
   setVoterFiltersAction,
 } from '../../store/actions/voters';
@@ -72,10 +71,6 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
     }
   }, [dispatch, loading, loadingMore, pagination, voters.length]);
 
-  const handleToggleVoted = useCallback((voterId: string) => {
-    const targetVoter = voters.find((v) => v.id === voterId);
-    dispatch(toggleVotedStatusAction(voterId, targetVoter?.isVoted));
-  }, [dispatch, voters]);
 
   const handleOpenPartyModal = useCallback((voterId: string) => {
     if (!canEditParty) {
@@ -150,9 +145,8 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
       voter={item}
       canEditParty={canEditParty}
       onSelectParty={handleOpenPartyModal}
-      onToggleVoted={handleToggleVoted}
     />
-  ), [canEditParty, handleOpenPartyModal, handleToggleVoted, t]);
+  ), [canEditParty, handleOpenPartyModal, t]);
 
   const renderVoterSkeleton = useCallback(() => <VoterSkeleton />, []);
 
@@ -168,14 +162,14 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
         isFiltered={hasActiveFilters}
         filterOptions={[
           { id: 'all', label: t('all') },
-          { id: 'voted', label: t('voted') },
-          { id: 'not_voted', label: t('notVoted') },
+          { id: 'Male', label: t('male') },
+          { id: 'Female', label: t('female') },
         ]}
-        activeFilterId={filters.isVoted || 'all'}
+        activeFilterId={filters.gender || 'all'}
         totalCount={pagination?.total ?? voters.length}
         onFilterPress={() => setIsFilterModalOpen(true)}
         onChangeText={(text: string) => dispatch(setVoterFiltersAction({ search: text }))}
-        onSelectFilterOption={(id: string) => dispatch(setVoterFiltersAction({ isVoted: id }))}
+        onSelectFilterOption={(id: string) => dispatch(setVoterFiltersAction({ gender: id }))}
       />
 
       {/* Dynamic Summary Bar & Applied Filter Chips */}

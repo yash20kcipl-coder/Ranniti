@@ -164,6 +164,25 @@ export class MobileVoterController {
     res.status(response.statusCode).json(response.body);
   });
 
+  getVoterFamily = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const voterId = req.params.id as string;
+    const user = req.mobileUser!;
+
+    const familyData = await mobileVoterService.getVoterFamily(user, voterId);
+    const formattedHead = attachFileUrls(familyData.head, ['avatar', 'partySymbol'], req);
+    const formattedMembers = attachFileUrls(familyData.members, ['avatar', 'partySymbol'], req);
+
+    const response = ApiResponse.success(
+      {
+        ...familyData,
+        head: formattedHead,
+        members: formattedMembers,
+      },
+      'Voter family details retrieved successfully'
+    );
+    res.status(response.statusCode).json(response.body);
+  });
+
   createVoter = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const user = req.mobileUser!;
 

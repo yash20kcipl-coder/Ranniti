@@ -9,13 +9,13 @@ import { MpinScreen } from './components/MpinScreen';
 import { getAppVersion } from '../../../utils/version';
 import { SafeView } from '../../../components/SafeView';
 import { useAppTheme } from '../../../hooks/useAppTheme';
-import { useNavigation } from '@react-navigation/native';
 import { createFcmToken } from '../../../utils/notification';
 import Storage, { STORAGE_KEYS } from '../../../utils/storage';
 import PermissionsPopUp from '../../../components/Permissions';
 import { AppTextInput } from '../../../components/AppTextInput';
 import { OtpVerifySection } from './components/OtpVerifySection';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { navigateToDashboard } from '../../../navigation/navigationUtils';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { sendOtpAction, verifyOtpAction, verifyMpinAction, fetchProfileAndRoleAccessAction } from '../../../store/actions/auth';
@@ -36,21 +36,30 @@ const Login = () => {
   const [loginMode, setLoginMode] = useState<LoginMode>('otp');
   const { theme, styles } = useAppTheme<ReturnType<typeof loginStyles>>(loginStyles);
 
-  useEffect(() => {
-    checkExistingMpinStatus();
-  }, []);
-
   const checkExistingMpinStatus = async () => {
     try {
       const isMpinSet = await Storage.get(STORAGE_KEYS.IS_MPIN_SET);
       const storedToken = await Storage.get(STORAGE_KEYS.TOKEN);
       if (isMpinSet && storedToken) {
+        (globalThis as any).token = storedToken;
         setStep('mpin_verify');
+      } else {
+        setStep('phone');
       }
     } catch {
-      // Default to phone
+      setStep('phone');
     }
   };
+
+  useEffect(() => {
+    checkExistingMpinStatus();
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      checkExistingMpinStatus();
+    }, [])
+  );
 
   const requestUserPermission = async () => {
     await createFcmToken();
@@ -100,7 +109,6 @@ const Login = () => {
         },
         setLoading,
         async () => {
-          await dispatch(fetchProfileAndRoleAccessAction(true));
           handleMpinSuccess();
         }
       )
@@ -113,7 +121,9 @@ const Login = () => {
     navigateToDashboard(storedRole || 'supporter');
   };
 
-  const handleResetMpin = () => {
+  const handleResetMpin = async () => {
+    await Storage.remove(STORAGE_KEYS.IS_MPIN_SET);
+    await Storage.remove(STORAGE_KEYS.USER_MPIN);
     setStep('phone');
     setLoginMode('otp');
   };

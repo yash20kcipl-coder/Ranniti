@@ -5,6 +5,7 @@ import { useLanguage } from '../../languages';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootState } from '../../store/store';
 import { toggleVotedStatusAction, fetchVoterByIdAction, updateVoterPartyAction } from '../../store/actions/voters';
+import { VoterFamilyModal } from './components/VoterFamilyModal';
 import { SCREENS } from '../../navigation/constants';
 import { hasVoterPermission } from '../../utils/permissionUtils';
 import { MaterialDesignIcons } from '../../components/MaterialDesignIcons';
@@ -37,6 +38,7 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
   const [activeTab, setActiveTab] = useState<DetailTab>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [partyModalVisible, setPartyModalVisible] = useState(false);
+  const [familyModalVisible, setFamilyModalVisible] = useState(false);
 
   const access = useSelector((state: RootState) => (state.auth as any)?.access);
   const canEditInclination = hasVoterPermission(access, 'canEditInclination');
@@ -111,11 +113,9 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
     }));
   };
 
-  const handleViewFamilyTree = voter.familyId
-    ? () => {
-        navigation.navigate(SCREENS.FAMILY_MAPPING, { familyId: voter.familyId });
-      }
-    : undefined;
+  const handleViewFamilyTree = () => {
+    setFamilyModalVisible(true);
+  };
 
   const tabs: { key: DetailTab; label: string; icon: string }[] = [
     { key: 'all', label: t('allDetails'), icon: 'format-list-bulleted' },
@@ -229,6 +229,14 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
         voterName={hindiName || voter.englishName}
         canEdit={canEditInclination}
         onSelectParty={handleSelectParty}
+      />
+
+      {/* Family Members Bottom Sheet Modal */}
+      <VoterFamilyModal
+        visible={familyModalVisible}
+        voterId={voter.id}
+        voterName={hindiName || voter.englishName}
+        onClose={() => setFamilyModalVisible(false)}
       />
     </View>
   );

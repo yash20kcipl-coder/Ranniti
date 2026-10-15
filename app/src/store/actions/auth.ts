@@ -282,9 +282,14 @@ export const fetchProfileAndRoleAccessAction = (navigate?: boolean) => {
         dispatch({ type: "SET_ACCESS_CONFIG", payload: access });
       }
       if (navigate) { navigateToDashboard(user.role || "supporter") }
-      return { user, access };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Initialization profile/role fetch error:", error);
+      const status = error?.response?.status || error?.response?.data?.status;
+      if (status === 401 || status === 404) {
+        (globalThis as any).token = null;
+        await Storage.clearAll();
+        dispatch({ type: LOG_OUT });
+      }
       throw error;
     }
   };

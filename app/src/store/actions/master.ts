@@ -30,7 +30,7 @@ import apiClient from "../../api/apiClient";
 export const fetchMasterStatesAction = () => {
   return async (dispatch: Dispatch) => {
     try {
-      const res = await apiClient.get('/tenant/geography/states');
+      const res = await apiClient.get('/mobile/masters/states');
       const raw = res?.data?.data || res?.data || [];
       const list = Array.isArray(raw) ? raw : [];
       const states: StateMasterItem[] = list.map((item: any) => ({
@@ -50,7 +50,7 @@ export const fetchMasterDistrictsAction = (stateId?: string) => {
   return async (dispatch: Dispatch) => {
     try {
       const params = stateId ? { stateId } : {};
-      const res = await apiClient.get('/tenant/geography/districts', { params });
+      const res = await apiClient.get('/mobile/masters/districts', { params });
       const raw = res?.data?.data || res?.data || [];
       const list = Array.isArray(raw) ? raw : [];
       const districts: DistrictMasterItem[] = list.map((item: any) => ({
@@ -71,7 +71,7 @@ export const fetchMasterPcsAction = (stateId?: string) => {
   return async (dispatch: Dispatch) => {
     try {
       const params = stateId ? { stateId } : {};
-      const res = await apiClient.get('/tenant/geography/pcs', { params });
+      const res = await apiClient.get('/mobile/masters/pcs', { params });
       const raw = res?.data?.data || res?.data || [];
       const list = Array.isArray(raw) ? raw : [];
       const pcs: PcMasterItem[] = list.map((item: any) => ({
@@ -92,7 +92,7 @@ export const fetchMasterPcsAction = (stateId?: string) => {
 export const fetchMasterAcsAction = () => {
   return async (dispatch: Dispatch) => {
     try {
-      const res = await apiClient.get('/tenant/acs');
+      const res = await apiClient.get('/mobile/masters/acs');
       const raw = res?.data?.data || res?.data || [];
       const list = Array.isArray(raw) ? raw : (raw.acs || []);
       const acs: AcMasterItem[] = list.map((item: any) => ({
@@ -117,7 +117,7 @@ export const fetchMasterWardsAction = (acId?: string) => {
   return async (dispatch: Dispatch) => {
     try {
       const params = acId ? { acId } : {};
-      const res = await apiClient.get('/tenant/geography/wards', { params });
+      const res = await apiClient.get('/mobile/masters/wards', { params });
       const raw = res?.data?.data || res?.data || [];
       const list = Array.isArray(raw) ? raw : (raw.wards || []);
       const wards: WardMasterItem[] = list.map((item: any) => ({
@@ -142,7 +142,7 @@ export const fetchMasterBoothsAction = (acId?: string, wardId?: string) => {
       const params: any = {};
       if (acId) params.acId = acId;
       if (wardId) params.wardId = wardId;
-      const res = await apiClient.get('/tenant/geography/booths/options', { params });
+      const res = await apiClient.get('/mobile/masters/booths/options', { params });
       const raw = res?.data?.data || res?.data || [];
       const list = Array.isArray(raw) ? raw : [];
       const booths: BoothMasterItem[] = list.map((b: any) => {
@@ -168,7 +168,7 @@ export const fetchMasterBoothsAction = (acId?: string, wardId?: string) => {
 export const fetchMasterPartiesAction = () => {
   return async (dispatch: Dispatch) => {
     try {
-      const res = await apiClient.get('/tenant/parties');
+      const res = await apiClient.get('/mobile/masters/parties');
       const raw = res?.data?.data || res?.data || [];
       const list = Array.isArray(raw) ? raw : [];
       const parties: PartyMasterItem[] = list.map((p: any) => ({
@@ -189,7 +189,7 @@ export const fetchMasterPartiesAction = () => {
 export const fetchMasterReligionsAction = () => {
   return async (dispatch: Dispatch) => {
     try {
-      const res = await apiClient.get('/tenant/religions');
+      const res = await apiClient.get('/mobile/masters/religions');
       const raw = res?.data?.data || res?.data || [];
       const religions: ReligionMasterItem[] = (Array.isArray(raw) ? raw : []).map((r: any) => ({
         id: String(r.id),
@@ -208,7 +208,7 @@ export const fetchMasterCastesAction = (religionId?: string) => {
   return async (dispatch: Dispatch) => {
     try {
       const params = religionId ? { religionId } : {};
-      const res = await apiClient.get('/tenant/castes', { params });
+      const res = await apiClient.get('/mobile/masters/castes', { params });
       const raw = res?.data?.data || res?.data || [];
       const castes: CasteMasterItem[] = (Array.isArray(raw) ? raw : []).map((c: any) => ({
         id: String(c.id),
@@ -261,7 +261,7 @@ export const fetchMasterTalukasAction = (districtId?: string) => {
   return async (dispatch: Dispatch) => {
     try {
       const params = districtId ? { districtId } : {};
-      const res = await apiClient.get('/tenant/geography/talukas', { params });
+      const res = await apiClient.get('/mobile/masters/talukas', { params });
       const raw = res?.data?.data || res?.data || [];
       const list = Array.isArray(raw) ? raw : (raw.talukas || []);
       const talukas: TalukaMasterItem[] = list.map((item: any) => ({
@@ -284,7 +284,7 @@ export const fetchMasterVillagesAction = (talukaId?: string, districtId?: string
       const params: any = {};
       if (talukaId) params.talukaId = talukaId;
       if (districtId) params.districtId = districtId;
-      const res = await apiClient.get('/tenant/geography/villages', { params });
+      const res = await apiClient.get('/mobile/masters/villages', { params });
       const raw = res?.data?.data || res?.data || [];
       const list = Array.isArray(raw) ? raw : (raw.villages || []);
       const villages: VillageMasterItem[] = list.map((item: any) => ({

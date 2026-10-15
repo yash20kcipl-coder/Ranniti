@@ -10,6 +10,7 @@ import { RootState } from '../../store/store';
 import { useLanguage } from '../../languages';
 import React, { useEffect, useRef } from 'react';
 import { AppUpdateModal } from '../../components';
+import { LOG_OUT } from '../../store/reducers/auth';
 import { SCREENS } from '../../navigation/constants';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
@@ -31,7 +32,7 @@ const Splash: React.FC = () => {
 
   const bgRotate = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.3)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoOpacity = useRef(new Animated.Value(0.3)).current;
   const brandOpacity = useRef(new Animated.Value(0)).current;
   const haloScale = useRef(new Animated.Value(0.95)).current;
   const haloOpacity = useRef(new Animated.Value(0.25)).current;
@@ -54,7 +55,10 @@ const Splash: React.FC = () => {
         replace(SCREENS.LOGIN);
       }
     } catch (err) {
-      console.warn('Splash initialization API fetch failed, redirecting to Login:', err);
+      console.warn('Splash initialization API fetch failed, wiping session and redirecting to Login:', err);
+      (globalThis as any).token = null;
+      await Storage.clearAll();
+      dispatch({ type: LOG_OUT });
       replace(SCREENS.LOGIN);
     }
   };

@@ -36,14 +36,18 @@ export class SyncManifestController {
       reduxAction: string;
     }> = [];
 
+    const isMobileUser = !['tenant_admin', 'super_admin'].includes((req as any).user?.role);
+
     for (const [key, meta] of Object.entries(REGISTERED_SYNC_APIS)) {
       const serverVer = serverVersions[key] || 1;
       const clientVer = clientVersions[key] || 0;
 
       if (clientVer < serverVer) {
+        // If mobile field role, point to mobile master endpoint
+        const endpoint = isMobileUser ? meta.endpoint.replace('/tenant', '/mobile/masters') : meta.endpoint;
         staleApis.push({
           key,
-          endpoint: meta.endpoint,
+          endpoint,
           serverVersion: serverVer,
           reduxAction: meta.reduxAction,
         });

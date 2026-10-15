@@ -187,7 +187,7 @@ export const VoterAffinitySection: React.FC<VoterAffinitySectionProps> = ({
               },
             ]}
           >
-            <MaterialDesignIcons name="account-group" size={18} color={theme.colors.primary} />
+            <MaterialDesignIcons name="family" size={18} color={theme.colors.primary} />
             <Text style={[styles.familyBtnText, { color: theme.colors.primary }]}>
               {t('viewFamilyTree')}
             </Text>
