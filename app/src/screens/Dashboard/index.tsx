@@ -5,7 +5,8 @@ import {
   RoleHierarchySection,
   InfluencerOverviewSection,
   PoliticalViewsSection,
-  GenderDemographicsSection
+  GenderDemographicsSection,
+  TurnoutAnalyticsSection,
 } from './components';
 import { dashboardStyles } from './styles';
 import { RootState } from '../../store/store';
@@ -14,8 +15,8 @@ import { SCREENS } from '../../navigation/constants';
 import React, { useEffect, useCallback } from 'react';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
 import { AppHeader, SafeView, ScrollView } from '../../components';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { fetchProfileAndRoleAccessAction } from '../../store/actions/auth';
 import { fetchDashboardMetricsAction } from '../../store/actions/dashboard';
 import { checkAndSyncDatasetsAction } from '../../store/actions/syncActions';
@@ -24,16 +25,23 @@ export const Dashboard: React.FC = () => {
   const dispatch = useDispatch<any>();
   const navigation = useNavigation<any>();
   const auth = useSelector((state: RootState) => state.auth);
+  const election = useSelector((state: RootState) => state.election);
   const dashboard = useSelector((state: RootState) => state.dashboard);
   const { styles } = useAppTheme<ReturnType<typeof dashboardStyles>>(dashboardStyles);
 
   useEffect(() => {
-    dispatch(fetchDashboardMetricsAction());
     dispatch(checkAndSyncDatasetsAction());
   }, [dispatch]);
 
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(fetchDashboardMetricsAction());
+    }, [dispatch])
+  );
+
   const user = auth.user;
   const role = auth.role || user?.role || 'pc_leader';
+  const activeElectionName = dashboard?.activeElection?.name || election?.election?.name;
 
   const handleNavigateProfile = useCallback(() => {
     if (navigation?.navigate) {
@@ -75,6 +83,12 @@ export const Dashboard: React.FC = () => {
     }
   }, [navigation]);
 
+  const handleNavigateElectionPolling = useCallback(() => {
+    if (navigation?.navigate) {
+      navigation.navigate(SCREENS.ELECTION_POLLING);
+    }
+  }, [navigation]);
+
   return (
     <SafeView>
       {/* Reusable Common AppHeader Component with Language Toggle Switch */}
@@ -107,6 +121,15 @@ export const Dashboard: React.FC = () => {
             assignedBoothsCount={dashboard.assignedBoothsCount}
           />
 
+          {/* Real-time Voting Turnout Analytics Section (Only shown when active election exists) */}
+          {activeElectionName ? (
+            <TurnoutAnalyticsSection
+              electionName={activeElectionName}
+              turnoutData={dashboard?.turnoutData}
+              onPressTurnout={handleNavigateElectionPolling}
+            />
+          ) : null}
+
           {/* Role Hierarchy Counts Section */}
           <RoleHierarchySection
             role={role}
@@ -138,9 +161,7 @@ export const Dashboard: React.FC = () => {
             ageData={dashboard.ageData}
             genderData={dashboard.genderData}
             onPressAge={handleNavigateVoters}
-            turnoutData={dashboard?.turnoutData}
             onPressGender={handleNavigateVoters}
-            onPressTurnout={handleNavigateVoters}
           />
         </ScrollView>
       )}

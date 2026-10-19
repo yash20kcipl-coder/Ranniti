@@ -301,7 +301,7 @@ export const AppVersionSection: React.FC<AppVersionSectionProps> = ({
       {/* Edit Version Modal */}
       {editingConfig && (
         <Modal
-          maxWidth="lg"
+          maxWidth="xl"
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           title={`Configure ${editingConfig.platform.toUpperCase()} App Version & Release`}

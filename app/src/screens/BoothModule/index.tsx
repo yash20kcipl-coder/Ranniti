@@ -10,10 +10,12 @@ import { useLanguage } from '../../languages';
 import { MdFlatList } from '../../components';
 import { BoothCard } from './components/BoothCard';
 import { navigatToVoters } from '../../navigation';
+import { SCREENS } from '../../navigation/constants';
 import React, { useState, useCallback } from 'react';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
 import { BoothItem } from '../../store/reducers/booths';
+import { useNavigation } from '@react-navigation/native';
 import { BoothSkeleton } from './components/BoothSkeleton';
 import { BoothEmptyState } from './components/BoothEmptyState';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
@@ -22,6 +24,7 @@ import { SearchHeaderWithFilter } from '../../components/SearchHeaderWithFilter'
 export const AssignedBoothsScreen: React.FC = () => {
   const { t } = useLanguage();
   const dispatch = useDispatch<any>();
+  const navigation = useNavigation<any>();
   const { styles } = useAppTheme<ReturnType<typeof boothStyles>>(boothStyles);
 
   const { booths, loading, loadingMore, pagination, search } = useSelector(
@@ -65,15 +68,27 @@ export const AssignedBoothsScreen: React.FC = () => {
     });
   }, []);
 
+  const handleNavigateToPollDay = useCallback(
+    (booth: BoothItem) => {
+      navigation.navigate(SCREENS.ELECTION_POLLING, {
+        boothId: booth.id,
+        boothName: booth.name,
+        boothNo: String(booth.boothNumber),
+      });
+    },
+    [navigation]
+  );
+
   const renderBoothItem = useCallback(
     ({ item }: { item: BoothItem }) => (
       <BoothCard
         booth={item}
         onPress={handleNavigateToVoters}
         onPressVoters={handleNavigateToVoters}
+        onPressPollDay={handleNavigateToPollDay}
       />
     ),
-    [handleNavigateToVoters]
+    [handleNavigateToVoters, handleNavigateToPollDay]
   );
 
   const renderSkeleton = useCallback(() => <BoothSkeleton />, []);

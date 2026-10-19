@@ -14,6 +14,7 @@ const MASTER_KEY_LABELS: Record<string, string> = {
   religions: 'Religions',
   castes: 'Castes & Subcastes',
   parties: 'Political Parties',
+  elections: 'Elections',
   'bulk-test': 'Bulk Upload Test',
 };
 

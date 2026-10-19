@@ -12,12 +12,11 @@ router
   .get(superAdminSettingsController.getSuperAdminSettings)
   .put(superAdminSettingsController.updateSuperAdminSettings);
 
+// Normal Message Templates (No external API or 11za gateway needed)
 router
   .route('/whatsapp/templates')
   .get(superAdminSettingsController.getSuperAdminWhatsAppTemplates)
   .post(superAdminSettingsController.createSuperAdminWhatsAppTemplate);
-
-router.post('/whatsapp/templates/sync', superAdminSettingsController.syncSuperAdminWhatsAppTemplates);
 
 router
   .route('/whatsapp/templates/:id')
@@ -25,3 +24,4 @@ router
   .delete(superAdminSettingsController.deleteSuperAdminWhatsAppTemplate);
 
 export const superAdminSettingsRoutes = router;
+

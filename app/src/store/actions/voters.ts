@@ -11,7 +11,15 @@ import {
   TOGGLE_VOTED_STATUS,
   UPDATE_VOTER_DETAILS,
   VoterPagination,
+  SET_VOTER_VIEW_MODE,
+  SET_SOCIETIES_LIST,
+  APPEND_SOCIETIES_LIST,
+  SET_SOCIETIES_LOADING,
+  SET_SOCIETIES_LOADING_MORE,
+  SET_SOCIETIES_PAGINATION,
+  SocietyGroupItem,
 } from "../reducers/voters";
+import { INCREMENT_DASHBOARD_VOTE, DECREMENT_DASHBOARD_VOTE } from "../reducers/dashboard";
 import { Dispatch } from "redux";
 import { RootState } from "../store";
 import toast from "../../utils/toast";
@@ -163,6 +171,7 @@ export const fetchVotersAction = (
         if (filters.influencerRole === 'family') params.isFamilyInfluencer = true;
         if (filters.influencerRole === 'social') params.isSocialInfluencer = true;
       }
+      if (filters.society) params.society = filters.society;
 
       const response = await apiClient.get('/mobile/voters', { params });
       const apiData = response?.data?.data?.voters || response?.data?.voters || [];
@@ -233,20 +242,121 @@ export const setVoterFiltersAction = (filters: any) => {
       type: SET_VOTER_FILTERS,
       payload: filters,
     });
-    (fetchVotersAction(1, false) as any)(dispatch, getState);
+    const state = getState().voters;
+    if (state.viewMode === 'societies') {
+      (fetchSocietiesAction(1, false) as any)(dispatch, getState);
+    } else {
+      (fetchVotersAction(1, false) as any)(dispatch, getState);
+    }
   };
 };
 
-export const toggleVotedStatusAction = (voterId: string, currentIsVoted?: boolean) => {
+export const setVoterViewModeAction = (viewMode: 'voters' | 'societies') => {
+  return (dispatch: Dispatch, getState: () => RootState) => {
+    dispatch({ type: SET_VOTER_VIEW_MODE, payload: viewMode });
+    if (viewMode === 'societies') {
+      const { societies } = getState().voters;
+      if (!societies || societies.length === 0) {
+        (fetchSocietiesAction(1, false) as any)(dispatch, getState);
+      }
+    }
+  };
+};
+
+export const fetchSocietiesAction = (
+  page: number = 1,
+  isLoadMore: boolean = false,
+  customLimit?: number
+) => {
+  return async (dispatch: Dispatch, getState: () => RootState) => {
+    const targetPage = Math.max(1, page);
+    if (isLoadMore) {
+      dispatch({ type: SET_SOCIETIES_LOADING_MORE, payload: true });
+    } else {
+      dispatch({ type: SET_SOCIETIES_LOADING, payload: true });
+    }
+
+    try {
+      const { filters, societiesPagination } = getState().voters;
+      const targetLimit = customLimit || societiesPagination?.limit || 20;
+
+      const params: any = {
+        page: targetPage,
+        limit: targetLimit,
+      };
+
+      if (filters.search) params.search = filters.search;
+      if (filters.boothNo && filters.boothNo !== 'All') params.boothId = filters.boothNo;
+      if (filters.acId && filters.acId !== 'All') params.acId = filters.acId;
+
+      const response = await apiClient.get('/mobile/voters/societies', { params });
+      const societies: SocietyGroupItem[] = response?.data?.data?.societies || [];
+      const apiPagination = response?.data?.data?.pagination;
+
+      const total = apiPagination?.total ?? (isLoadMore ? (societiesPagination?.total || 0) : societies.length);
+      const totalPages = apiPagination?.totalPages ?? (total === 0 ? 0 : Math.ceil(total / targetLimit));
+      const hasMore = total > 0 && targetPage < totalPages;
+
+      dispatch({
+        type: SET_SOCIETIES_PAGINATION,
+        payload: {
+          page: targetPage,
+          limit: targetLimit,
+          total,
+          totalPages,
+          hasMore,
+        },
+      });
+
+      if (isLoadMore) {
+        dispatch({ type: APPEND_SOCIETIES_LIST, payload: societies });
+      } else {
+        dispatch({ type: SET_SOCIETIES_LIST, payload: societies });
+      }
+    } catch (e: any) {
+      console.error('Fetch societies error:', e);
+      toast.error(e?.response?.data?.message || 'Failed to load societies');
+    } finally {
+      if (isLoadMore) {
+        dispatch({ type: SET_SOCIETIES_LOADING_MORE, payload: false });
+      } else {
+        dispatch({ type: SET_SOCIETIES_LOADING, payload: false });
+      }
+    }
+  };
+};
+
+export const loadMoreSocietiesAction = () => {
+  return (dispatch: Dispatch, getState: () => RootState) => {
+    const { societies, societiesPagination, societiesLoading, societiesLoadingMore } = getState().voters;
+    if (
+      societiesLoading ||
+      societiesLoadingMore ||
+      !societiesPagination ||
+      !societiesPagination.hasMore ||
+      societies.length === 0 ||
+      societiesPagination.total === 0 ||
+      societiesPagination.page >= societiesPagination.totalPages
+    ) {
+      return;
+    }
+    (fetchSocietiesAction(societiesPagination.page + 1, true) as any)(dispatch, getState);
+  };
+};
+
+export const toggleVotedStatusAction = (voterId: string, currentIsVoted?: boolean, electionId?: string, boothId?: string) => {
   return async (dispatch: Dispatch) => {
     try {
       const newStatus = currentIsVoted !== undefined ? !currentIsVoted : true;
-      await apiClient.put(`/mobile/voters/${voterId}`, {
-        status: newStatus ? 'Voted' : 'Not Voted',
-        isDead: false,
+      await apiClient.post('/mobile/election/mark-voted', {
+        voterId,
+        hasVoted: newStatus,
+        electionId,
+        boothId,
       });
       dispatch({ type: TOGGLE_VOTED_STATUS, payload: voterId });
-      toast.success("Voted status updated");
+      dispatch({ type: newStatus ? INCREMENT_DASHBOARD_VOTE : DECREMENT_DASHBOARD_VOTE });
+      toast.success(newStatus ? "Voter marked as voted" : "Voter marked as unvoted");
     } catch (e: any) {
       console.error('Toggle voted status error:', e);
       toast.error(e?.response?.data?.message || "Failed to update voted status.");

@@ -14,6 +14,9 @@ interface VoterListEmptyStateProps {
   onOpenFilterModal?: () => void;
   onRefresh?: () => void;
   t?: (key: any) => string;
+  title?: string;
+  description?: string;
+  icon?: string;
 }
 
 export const VoterListEmptyState: React.FC<VoterListEmptyStateProps> = ({
@@ -23,6 +26,9 @@ export const VoterListEmptyState: React.FC<VoterListEmptyStateProps> = ({
   onOpenFilterModal,
   onRefresh,
   t,
+  title,
+  description,
+  icon,
 }) => {
   const { theme } = useAppTheme();
   const { t: hookT } = useLanguage();
@@ -59,11 +65,12 @@ export const VoterListEmptyState: React.FC<VoterListEmptyStateProps> = ({
           >
             <MaterialDesignIcons
               name={
-                hasActiveFilters
+                icon ||
+                (hasActiveFilters
                   ? 'filter-remove-outline'
                   : isSearchOnly
                     ? 'account-search-outline'
-                    : 'account-group-outline'
+                    : 'account-group-outline')
               }
               size={30}
               color={hasActiveFilters ? theme.colors.primary : '#64748B'}
@@ -81,22 +88,24 @@ export const VoterListEmptyState: React.FC<VoterListEmptyStateProps> = ({
 
       {/* Title */}
       <Text style={[styles.title, { color: theme.colors.text || '#0F172A' }]}>
-        {hasActiveFilters
-          ? translate('noMatchingVoters')
-          : isSearchOnly
-            ? translate('noSearchResults')
-            : translate('noVotersAvailable')}
+        {title ||
+          (hasActiveFilters
+            ? translate('noMatchingVoters')
+            : isSearchOnly
+              ? translate('noSearchResults')
+              : translate('noVotersAvailable'))}
       </Text>
 
       {/* Description */}
       <Text style={[styles.description, { color: theme.colors.textSecondary || '#64748B' }]}>
-        {hasActiveFilters
-          ? translate('noMatchingVotersDesc')
-          : isSearchOnly
-            ? (searchQuery
-              ? `${translate('noSearchResultsDesc')} ("${searchQuery}")`
-              : translate('noSearchResultsDesc'))
-            : translate('noVotersAvailableDesc')}
+        {description ||
+          (hasActiveFilters
+            ? translate('noMatchingVotersDesc')
+            : isSearchOnly
+              ? searchQuery
+                ? `${translate('noSearchResultsDesc')} ("${searchQuery}")`
+                : translate('noSearchResultsDesc')
+              : translate('noVotersAvailableDesc'))}
       </Text>
 
       {/* Action Buttons Row */}

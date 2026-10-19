@@ -7,6 +7,7 @@ import CustomDrawer from '../components/CustomDrawer';
 import AddTeamMemberScreen from '../screens/TeamModule';
 import AssignedBoothsScreen from '../screens/BoothModule';
 import ContactSyncScreen from '../screens/ContactSyncModule';
+import ElectionPollingScreen from '../screens/ElectionModule';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import FamilyMappingScreen from '../screens/FamilyMappingModule';
 import InfluencerMappingScreen from '../screens/InfluencerModule';
@@ -36,6 +37,7 @@ export const DrawerNavigator = () => {
       <Drawer.Screen name={SCREENS.DASHBOARD} component={Dashboard} options={{ title: 'Dashboard' }} />
       <Drawer.Screen name={SCREENS.ASSIGNED_BOOTHS} component={AssignedBoothsScreen} options={{ title: 'Assigned Booths' }} />
       <Drawer.Screen name={SCREENS.VOTER_LIST} component={VoterListScreen} options={{ title: 'Voters Directory' }} />
+      <Drawer.Screen name={SCREENS.ELECTION_POLLING} component={ElectionPollingScreen} options={{ title: 'Election Polling' }} />
       <Drawer.Screen name={SCREENS.FAMILY_MAPPING} component={FamilyMappingScreen} options={{ title: 'Family Mapping' }} />
       <Drawer.Screen name={SCREENS.INFLUENCER_MAPPING} component={InfluencerMappingScreen} options={{ title: 'Social Influencers' }} />
       <Drawer.Screen name={SCREENS.CONTACT_SYNC} component={ContactSyncScreen} options={{ title: 'Contact Sync Voters' }} />

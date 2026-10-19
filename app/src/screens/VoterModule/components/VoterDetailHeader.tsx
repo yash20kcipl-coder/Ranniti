@@ -6,10 +6,11 @@ import { rfValue } from '../../../utils/responsive';
 import { FontFamily } from '../../../utils/typography';
 import { Voter } from '../../../store/reducers/voters';
 import { SafeImage } from '../../../components/SafeImage';
+import { openPhoneDialer } from '../../../utils/linkingUtils';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { WhatsAppTemplatePickerModal } from './WhatsAppTemplatePickerModal';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
-import { openPhoneDialer, openWhatsAppChat } from '../../../utils/linkingUtils';
 import { logVolunteerInteractionAction } from '../../../store/actions/voters';
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 
 interface VoterDetailHeaderProps {
   voter: Voter;
@@ -19,9 +20,11 @@ interface VoterDetailHeaderProps {
 
 export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, theme }) => {
   const dispatch = useDispatch();
-  const hindiName = voter.hindiName || voter.name;
   const englishName = voter.englishName || '';
+  const hindiName = voter.hindiName || voter.name;
   const mobile = voter.mobile || voter.mobileNo || '';
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = React.useState(false);
+  const [templateChannel, setTemplateChannel] = React.useState<'whatsapp' | 'sms'>('whatsapp');
 
   const handleCall = () => {
     if (voter?.id) {
@@ -31,20 +34,13 @@ export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, 
   };
 
   const handleWhatsApp = () => {
-    if (voter?.id) {
-      dispatch(logVolunteerInteractionAction({ voterId: voter.id, boothId: voter.boothId, activityType: 'whatsapp' }) as any);
-    }
-    openWhatsAppChat(mobile, `Namaste ${englishName || hindiName}, greetings from Ranniti.`);
+    setTemplateChannel('whatsapp');
+    setIsTemplateModalOpen(true);
   };
 
   const handleSms = () => {
-    if (mobile) {
-      if (voter?.id) {
-        dispatch(logVolunteerInteractionAction({ voterId: voter.id, boothId: voter.boothId, activityType: 'sms' }) as any);
-      }
-      const clean = mobile.replace(/[^0-9+]/g, '');
-      Linking.openURL(`sms:${clean}`);
-    }
+    setTemplateChannel('sms');
+    setIsTemplateModalOpen(true);
   };
 
   return (
@@ -57,16 +53,8 @@ export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, 
             placeholderType="avatar"
             name={englishName || hindiName}
             style={styles.avatar}
-            containerStyles={[
-              styles.avatarContainer,
-              { borderColor: voter.isVoted ? '#86EFAC' : '#E2E8F0' },
-            ]}
+            containerStyles={styles.avatarContainer}
           />
-          {voter.isVoted && (
-            <View style={styles.votedStatusDot}>
-              <MaterialDesignIcons name="check" size={11} color="#FFFFFF" />
-            </View>
-          )}
         </View>
 
         <View style={styles.infoCol}>
@@ -81,30 +69,7 @@ export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, 
 
           {/* Badges Row: Voting, Party, Living/Deceased, Shifted */}
           <View style={styles.badgeRow}>
-            {/* Voted / Not Voted Badge */}
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: voter.isVoted ? '#DCFCE7' : theme.colors.secondaryLight,
-                  borderColor: voter.isVoted ? '#BBF7D0' : theme.colors.secondaryBorder,
-                },
-              ]}
-            >
-              <MaterialDesignIcons
-                name={voter.isVoted ? 'check-circle' : 'close-circle'}
-                size={13}
-                color={voter.isVoted ? '#15803D' : theme.colors.secondary}
-              />
-              <Text
-                style={[
-                  styles.badgeText,
-                  { color: voter.isVoted ? '#15803D' : theme.colors.secondary },
-                ]}
-              >
-                {voter.isVoted ? t('voted') : t('notVoted')}
-              </Text>
-            </View>
+
 
             {/* Supporting Party Badge */}
             {Boolean(voter.supportingParty) && (
@@ -247,6 +212,14 @@ export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, 
           </TouchableOpacity>
         </View>
       )}
+
+      {/* WhatsApp / SMS Template Picker Bottom Sheet Modal */}
+      <WhatsAppTemplatePickerModal
+        voter={voter}
+        visible={isTemplateModalOpen}
+        initialChannel={templateChannel}
+        onClose={() => setIsTemplateModalOpen(false)}
+      />
     </View>
   );
 };
@@ -278,19 +251,7 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 34,
   },
-  votedStatusDot: {
-    position: 'absolute',
-    bottom: -1,
-    right: -1,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#16A34A',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   infoCol: {
     flex: 1,
     gap: 3,

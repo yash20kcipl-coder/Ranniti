@@ -63,11 +63,12 @@ export const sendTestPushNotification = (payload: {
 export const sendTestWhatsAppMessage = (payload: {
   templateId?: string;
   phoneNumber: string;
-  sampleVariables?: Record<string, string>;
+  sampleVariables?: Record<string, string> | string[];
+  accountId?: string;
 }) => {
   return async (dispatch: AppDispatch) => {
     try {
-      const res = await api.post('/tenant/settings/whatsapp/test', payload);
+      const res = await api.post('/super-admin/settings/whatsapp/test', payload);
       return res.data?.data || res.data;
     } catch (err) {
       dispatch(errorHandler(err));

@@ -143,7 +143,19 @@ export class MobileBoothService {
           (SELECT COUNT(*)::int FROM voters v WHERE v.booth_id = b.id)
         )::int AS "totalVoters",
         COALESCE(
-          (SELECT COUNT(*)::int FROM voters v WHERE v.booth_id = b.id AND (v.status = 'VOTED' OR v.status = 'voted')),
+          (
+            SELECT ebt.voted_count::int 
+            FROM election_booth_turnout ebt
+            JOIN elections e ON e.id = ebt.election_id AND e.is_active = true
+            WHERE ebt.booth_id = b.id
+            ORDER BY e.is_default DESC, e.created_at DESC
+            LIMIT 1
+          ),
+          (
+            SELECT COUNT(DISTINCT ves.voter_id)::int 
+            FROM voter_election_statuses ves 
+            WHERE ves.booth_id = b.id AND ves.has_voted = true
+          ),
           0
         )::int AS "votedCount",
         COALESCE(

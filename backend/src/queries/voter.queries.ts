@@ -4,7 +4,7 @@ import { getTenantDbPool } from '../utils/tenantDbProvisioner';
 import { normalizeRelation } from '../utils/relationNormalizer';
 import { TenantPoolManager } from '../services/pool/tenantPoolManager';
 import { MasterAutoSyncService } from '../services/sync/masterAutoSync.service';
-import { Voter, VoterFilterParams, VoterStats, InfluencerOption, FamilyCandidateParams, SocialCandidateParams } from '../models/voter.model';
+import { Voter, VoterFilterParams, VoterStats, InfluencerOption, FamilyCandidateParams, SocialCandidateParams, SocietyGroupItem } from '../models/voter.model';
 
 async function executeVoterQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
   if (tenantDbName && tenantDbName.trim()) {
@@ -263,7 +263,11 @@ export class VoterQueries {
       conditions.push(`(v.family_influencer_id IS NULL AND v.social_influencer_id IS NULL)`);
     }
 
-
+    if (params.society && params.society.trim()) {
+      conditions.push(`v.voter_address ILIKE $${paramIndex}`);
+      values.push(`%${params.society.trim()}%`);
+      paramIndex++;
+    }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -373,16 +377,17 @@ export class VoterQueries {
       ORDER BY ${sortClause}
     `;
 
+    const dataParams = [...values, limit, offset];
     let total: number;
     let dataRes: any;
 
     if (typeof params.cachedTotal === 'number' && !isNaN(params.cachedTotal)) {
       total = params.cachedTotal;
-      dataRes = await executeVoterQuery(dataSql, [...values, limit, offset], params.tenantDbName);
+      dataRes = await executeVoterQuery(dataSql, dataParams, params.tenantDbName);
     } else {
       const [countRes, queryRes] = await Promise.all([
         executeVoterQuery(countSql, values, params.tenantDbName),
-        executeVoterQuery(dataSql, [...values, limit, offset], params.tenantDbName),
+        executeVoterQuery(dataSql, dataParams, params.tenantDbName),
       ]);
       total = countRes.rows[0]?.total || 0;
       dataRes = queryRes;
@@ -1914,6 +1919,119 @@ export class VoterQueries {
       limit,
       totalPages,
       influencer,
+    };
+  }
+
+  /**
+   * High-performance Society / Vistar / Area Grouping Query
+   * Aggregates voter count, households, gender breakdown, and booth associations.
+   */
+  static async getSocietiesPaginated(
+    params: {
+      search?: string;
+      boothId?: string;
+      boothIds?: string[];
+      acId?: string;
+      wardId?: string;
+      page?: number;
+      limit?: number;
+    },
+    tenantDbName?: string | null
+  ): Promise<{
+    data: SocietyGroupItem[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(params.limit) || 20));
+    const offset = (page - 1) * limit;
+
+    const conditions: string[] = [
+      "v.voter_address IS NOT NULL",
+      "TRIM(v.voter_address) != ''",
+      "v.voter_address NOT LIKE '(%'",
+    ];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (params.boothId && params.boothId !== 'All' && params.boothId !== 'all') {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.boothId);
+      if (isUuid) {
+        conditions.push(`v.booth_id = $${paramIndex}`);
+        values.push(params.boothId);
+        paramIndex++;
+      } else {
+        conditions.push(`EXISTS (SELECT 1 FROM booths b WHERE b.id = v.booth_id AND b.booth_number::text = $${paramIndex})`);
+        values.push(params.boothId);
+        paramIndex++;
+      }
+    } else if (params.boothIds && params.boothIds.length > 0) {
+      conditions.push(`v.booth_id = ANY($${paramIndex}::uuid[])`);
+      values.push(params.boothIds);
+      paramIndex++;
+    }
+
+    if (params.acId && params.acId !== 'All' && params.acId !== 'all') {
+      conditions.push(`v.ac_id = $${paramIndex}`);
+      values.push(params.acId);
+      paramIndex++;
+    }
+
+    if (params.wardId && params.wardId !== 'All' && params.wardId !== 'all') {
+      conditions.push(`v.ward_id = $${paramIndex}`);
+      values.push(params.wardId);
+      paramIndex++;
+    }
+
+    if (params.search && params.search.trim()) {
+      conditions.push(`v.voter_address ILIKE $${paramIndex}`);
+      values.push(`%${params.search.trim()}%`);
+      paramIndex++;
+    }
+
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
+    const countSql = `
+      SELECT COUNT(DISTINCT TRIM(v.voter_address))::int AS total
+      FROM voters v
+      ${whereClause}
+    `;
+
+    const dataSql = `
+      SELECT 
+        TRIM(v.voter_address) AS "societyName",
+        COUNT(v.id)::int AS "totalVoters",
+        COUNT(CASE WHEN v.gender ILIKE 'male' THEN 1 END)::int AS "maleCount",
+        COUNT(CASE WHEN v.gender ILIKE 'female' THEN 1 END)::int AS "femaleCount",
+        COUNT(CASE WHEN v.gender NOT ILIKE 'male' AND v.gender NOT ILIKE 'female' THEN 1 END)::int AS "otherCount",
+        COUNT(DISTINCT v.house_no)::int AS "totalHouseholds",
+        COUNT(DISTINCT v.booth_id)::int AS "boothCount",
+        STRING_AGG(DISTINCT b.booth_number::text, ', ' ORDER BY b.booth_number::text) AS "boothNumbers"
+      FROM voters v
+      LEFT JOIN booths b ON v.booth_id = b.id
+      ${whereClause}
+      GROUP BY TRIM(v.voter_address)
+      ORDER BY "totalVoters" DESC, "societyName" ASC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    const dataParams = [...values, limit, offset];
+
+    const [countRes, queryRes] = await Promise.all([
+      executeVoterQuery(countSql, values, tenantDbName),
+      executeVoterQuery(dataSql, dataParams, tenantDbName),
+    ]);
+
+    const total = countRes.rows[0]?.total || 0;
+
+    return {
+      data: queryRes.rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
     };
   }
 }

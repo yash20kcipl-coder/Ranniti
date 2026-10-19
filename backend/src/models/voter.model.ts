@@ -145,6 +145,18 @@ export interface VoterFilterParams {
   influencerStatus?: string;
   influencerRole?: string;
   cachedTotal?: number;
+  society?: string;
+}
+
+export interface SocietyGroupItem {
+  societyName: string;
+  totalVoters: number;
+  maleCount: number;
+  femaleCount: number;
+  otherCount: number;
+  totalHouseholds: number;
+  boothCount: number;
+  boothNumbers: string;
 }
 
 export interface InfluencerOption {

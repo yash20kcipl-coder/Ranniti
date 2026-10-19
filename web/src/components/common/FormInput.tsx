@@ -15,6 +15,7 @@ export interface FormInputProps {
   searchable?: boolean;
   value?: any;
   onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
@@ -451,6 +452,7 @@ export const FormInput: React.FC<FormInputProps> = ({
   searchable = true,
   value,
   onChange,
+  onBlur,
   placeholder,
   required = false,
   disabled = false,
@@ -496,6 +498,7 @@ export const FormInput: React.FC<FormInputProps> = ({
               name={name}
               value={value ?? ''}
               onChange={onChange}
+              onBlur={onBlur}
               placeholder={placeholder}
               required={required}
               disabled={disabled}
@@ -548,6 +551,7 @@ export const FormInput: React.FC<FormInputProps> = ({
             name={name}
             value={value || ''}
             onChange={onChange}
+            onBlur={onBlur}
             placeholder={placeholder}
             required={required}
             disabled={disabled}
@@ -621,10 +625,11 @@ export const FormInput: React.FC<FormInputProps> = ({
               name={name}
               value={value ?? ''}
               onChange={onChange}
+              onBlur={onBlur}
               placeholder={placeholder}
               required={required}
               disabled={disabled}
-              className={`${baseInputStyles} ${icon ? (isSm ? 'pl-8' : 'pl-10') : ''} pr-8 font-slab text-xs`}
+              className={`${baseInputStyles} ${icon ? (isSm ? 'pl-8' : 'pl-10') : ''} pr-8 font-slab text-xs [color-scheme:light] dark:[color-scheme:dark] cursor-pointer`}
             />
           </div>
         );
@@ -638,6 +643,7 @@ export const FormInput: React.FC<FormInputProps> = ({
               name={name}
               value={value ?? ''}
               onChange={onChange}
+              onBlur={onBlur}
               placeholder={placeholder}
               required={required}
               disabled={disabled}

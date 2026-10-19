@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   FlaskConical,
   BarChart3,
+  CalendarCheck,
 } from 'lucide-react';
 import { NavPill } from './NavPill';
 import { logout } from '@/redux/actions/auth';
@@ -93,6 +94,14 @@ export const tenantMasterSections = [
       { key: 'acs', label: 'Assembly (AC)', icon: Building2 },
       { key: 'wards', label: 'Wards (Prabhags)', icon: Layers },
       { key: 'booths', label: 'Polling Booths', icon: Vote },
+    ],
+  },
+  {
+    key: 'elections',
+    title: 'Election Cycles',
+    icon: CalendarCheck,
+    items: [
+      { key: 'elections', label: 'Election Master', icon: CalendarCheck },
     ],
   },
 ];
@@ -388,11 +397,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {/* TENANT ADMIN MASTER CATEGORIES */}
               {!isSuperAdmin &&
                 tenantMasterSections.map((section) => {
-                  const userAllowedSubTabs = ((user as any)?.allowedMasterSubTabs as string[] | undefined) ?? [
-                    'acs',
-                    'wards',
-                    'booths',
-                  ];
+                  const rawAllowed = (user as any)?.allowedMasterSubTabs as string[] | undefined;
+                  const isTenantAdmin = user?.role === 'tenant_admin';
+                  const userAllowedSubTabs = rawAllowed
+                    ? (isTenantAdmin && !rawAllowed.includes('elections') ? [...rawAllowed, 'elections'] : rawAllowed)
+                    : ['acs', 'wards', 'booths', 'elections'];
                   const availableItems = section.items.filter((sub) =>
                     userAllowedSubTabs.includes(sub.key)
                   );

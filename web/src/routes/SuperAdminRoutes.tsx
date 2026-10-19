@@ -34,8 +34,9 @@ import {
   BulkUploadTestPage,
 } from '@/pages/super_admin/master';
 
-// Super Admin Settings Page
+// Super Admin Settings Page & WhatsApp Template Dedicated Page
 import { SuperAdminSettingsPage } from '@/pages/super_admin/settings/SuperAdminSettingsPage';
+import { WhatsAppTemplateBuilderPage } from '@/pages/super_admin/settings/WhatsAppTemplateBuilderPage';
 
 export const SuperAdminRoutes: React.FC = () => {
   return (
@@ -43,6 +44,15 @@ export const SuperAdminRoutes: React.FC = () => {
       {/* Default Dashboard -> Dedicated Super Admin Dashboard Overview */}
       <Route index element={<SuperAdminDashboardPage />} />
       <Route path="dashboard" element={<SuperAdminDashboardPage />} />
+
+      {/* WhatsApp Message Template Dedicated Standalone Builder Pages */}
+      <Route path="whatsapp-templates/new" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="whatsapp-templates/:id/edit" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="whatsapp-templates/:id" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="super-admin/whatsapp-templates/new" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="super-admin/whatsapp-templates/:id/edit" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="settings/whatsapp-templates/new" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="settings/whatsapp-templates/:id/edit" element={<WhatsAppTemplateBuilderPage />} />
 
       {/* Voter Management (Super Admin endpoints) */}
       <Route path="voters" element={<SuperAdminVotersPage />} />

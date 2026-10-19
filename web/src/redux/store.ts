@@ -4,6 +4,7 @@ import userreducers from './reducers/user';
 import voterReducer from './reducers/voter';
 import tenantReducer from './reducers/tenant';
 import masterreducers from './reducers/master';
+import electionReducer from './reducers/election';
 import settingsReducer from './reducers/settings';
 import volunteerReducer from './reducers/volunteer';
 import dashboardreducers from './reducers/dashboard';
@@ -19,12 +20,13 @@ const appReducer = combineReducers({
   voter: voterReducer,
   tenant: tenantReducer,
   master: masterreducers,
+  election: electionReducer,
   settings: settingsReducer,
   volunteer: volunteerReducer,
   dashboard: dashboardreducers,
-  tenantDashboard: tenantDashboardReducer,
   importJobs: importJobsReducer,
   familyMapping: familyMappingReducer,
+  tenantDashboard: tenantDashboardReducer,
 });
 
 const rootReducer = (state: ReturnType<typeof appReducer> | undefined, action: UnknownAction) => {

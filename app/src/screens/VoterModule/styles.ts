@@ -44,6 +44,10 @@ export const voterListStyles = (theme: Theme) =>
       backgroundColor: theme.colors.surface || '#FFFFFF',
       ...getShadow(1, '#000000', 0.03),
     },
+    voterCardVoted: {
+      borderColor: '#86EFAC',
+      backgroundColor: '#F0FDF4',
+    },
     cardHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -68,6 +72,18 @@ export const voterListStyles = (theme: Theme) =>
       alignItems: 'center',
       gap: 5,
       marginTop: 1,
+    },
+    serialBadge: {
+      backgroundColor: '#FEF3C7',
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+      borderRadius: 4,
+      alignSelf: 'flex-start',
+    },
+    serialText: {
+      fontFamily: FontFamily.bold,
+      fontSize: rfValue(9.5),
+      color: '#B45309',
     },
     epicBadge: {
       backgroundColor: '#EFF6FF',

@@ -437,34 +437,30 @@ export class TenantApiService {
     tenantDbName?: string | null
   ) {
     const isFiltered = !!params?.search;
-    const cacheKey = !isFiltered ? `ranniti:tenant:${tenantDbName || 'master'}:booth_options_v3:${JSON.stringify(params || {})}` : null;
+    const cacheKey = !isFiltered ? `ranniti:tenant:${tenantDbName || 'master'}:user:${userId}:booth_options_v4:${JSON.stringify(params || {})}` : null;
 
     const fetchBoothOptions = async () => {
       const sqlParams: any[] = [];
       const conditions: string[] = [];
 
-      if (!tenantDbName) {
-        const userBoothsRes = await mainQuery(
+      let assignedBoothIds: string[] = [];
+      try {
+        const userBoothsRes = await executeTenantQuery(
           `SELECT booth_id FROM user_booth_assignments WHERE user_id = $1`,
-          [userId]
+          [userId],
+          tenantDbName
         );
-
         if (userBoothsRes.rows.length > 0) {
-          const assignedBoothIds = userBoothsRes.rows.map(r => r.booth_id);
-          sqlParams.push(assignedBoothIds);
-          conditions.push(`b.id = ANY($${sqlParams.length}::uuid[])`);
-        } else {
-          const acIds = await this.getAssignedAcIds(userId);
-          if (params?.acId) {
-            sqlParams.push(params.acId);
-            conditions.push(`b.ac_id = $${sqlParams.length}`);
-          } else if (acIds.length > 0) {
-            sqlParams.push(acIds);
-            conditions.push(`b.ac_id = ANY($${sqlParams.length}::uuid[])`);
-          }
+          assignedBoothIds = userBoothsRes.rows.map(r => r.booth_id);
         }
+      } catch {
+        // In case table or connection falls back
+      }
 
-        if (params?.acId && userBoothsRes.rows.length > 0) {
+      if (assignedBoothIds.length > 0) {
+        sqlParams.push(assignedBoothIds);
+        conditions.push(`b.id = ANY($${sqlParams.length}::uuid[])`);
+        if (params?.acId) {
           sqlParams.push(params.acId);
           conditions.push(`b.ac_id = $${sqlParams.length}`);
         }
@@ -472,7 +468,13 @@ export class TenantApiService {
         sqlParams.push(params.acId);
         conditions.push(`b.ac_id = $${sqlParams.length}`);
       } else {
-        conditions.push('1=1');
+        const acIds = await this.getAssignedAcIds(userId);
+        if (acIds.length > 0) {
+          sqlParams.push(acIds);
+          conditions.push(`b.ac_id = ANY($${sqlParams.length}::uuid[])`);
+        } else {
+          conditions.push('1=1');
+        }
       }
 
       if (params?.wardId) {

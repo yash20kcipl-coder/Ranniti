@@ -139,4 +139,47 @@ export const FORM_RELATION_OPTIONS: Option[] = [
   { label: 'Other', value: 'Other' },
 ];
 
+export const ELECTION_TYPE_OPTIONS: Option[] = [
+  { label: 'All Election Types', value: '' },
+  { label: 'Assembly (Vidhan Sabha)', value: 'ASSEMBLY' },
+  { label: 'Parliamentary (Lok Sabha)', value: 'PARLIAMENTARY' },
+  { label: 'Municipal Corporation (Nagar Nigam / BMC)', value: 'MUNICIPAL_CORP' },
+  { label: 'Zilla Parishad', value: 'ZILLA_PARISHAD' },
+  { label: 'Panchayat Samiti', value: 'PANCHAYAT_SAMITI' },
+  { label: 'Gram Panchayat', value: 'GRAM_PANCHAYAT' },
+  { label: 'Other Election', value: 'OTHER' },
+];
+
+export const FORM_ELECTION_TYPE_OPTIONS: Option[] = [
+  { label: 'Assembly (Vidhan Sabha)', value: 'ASSEMBLY' },
+  { label: 'Parliamentary (Lok Sabha)', value: 'PARLIAMENTARY' },
+  { label: 'Municipal Corporation (Nagar Nigam / BMC)', value: 'MUNICIPAL_CORP' },
+  { label: 'Zilla Parishad', value: 'ZILLA_PARISHAD' },
+  { label: 'Panchayat Samiti', value: 'PANCHAYAT_SAMITI' },
+  { label: 'Gram Panchayat', value: 'GRAM_PANCHAYAT' },
+  { label: 'Other Election', value: 'OTHER' },
+];
+
+export const ELECTION_STATUS_OPTIONS: Option[] = [
+  { label: 'All Statuses', value: '' },
+  { label: 'Upcoming', value: 'UPCOMING' },
+  { label: 'Active Campaign', value: 'ACTIVE' },
+  { label: 'Completed', value: 'COMPLETED' },
+  { label: 'Archived', value: 'ARCHIVED' },
+];
+
+export const FORM_ELECTION_STATUS_OPTIONS: Option[] = [
+  { label: 'Upcoming', value: 'UPCOMING' },
+  { label: 'Active Campaign', value: 'ACTIVE' },
+  { label: 'Completed', value: 'COMPLETED' },
+  { label: 'Archived', value: 'ARCHIVED' },
+];
+
+export const VOTED_FILTER_OPTIONS: Option[] = [
+  { label: 'All Voters (Turnout)', value: '' },
+  { label: 'Voted', value: 'true' },
+  { label: 'Not Voted', value: 'false' },
+];
+
+
 

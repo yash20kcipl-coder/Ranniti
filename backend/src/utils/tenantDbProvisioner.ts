@@ -166,6 +166,10 @@ export class TenantDbProvisioner {
       'create_user_synced_contacts_table.sql',
       'create_tenant_sync_outbox_table.sql',
       'create_volunteer_activity_logs_table.sql',
+      'create_elections_table.sql',
+      'create_voter_election_statuses_table.sql',
+      'create_election_booth_turnout_table.sql',
+      'drop_slip_columns_from_election_tables.sql',
     ];
 
     const candidateDirs = [

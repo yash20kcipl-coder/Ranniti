@@ -30,6 +30,12 @@ export interface MobileDashboardMetrics {
     votedCount: number;
     totalVoters: number;
   };
+  activeElection?: {
+    id: string;
+    name: string;
+    electionDate?: string;
+    status?: string;
+  } | null;
 }
 
 export class MobileDashboardService {
@@ -129,7 +135,7 @@ export class MobileDashboardService {
 
     const row = voterCountRes.rows[0] || {};
     const totalVotersCount = parseInt(row.total || '0', 10);
-    const votedCount = parseInt(row.voted_count || '0', 10);
+    let votedCount = parseInt(row.voted_count || '0', 10);
     const familyInfluencersCount = parseInt(row.family_influencers || '0', 10);
     const socialInfluencersCount = parseInt(row.social_influencers || '0', 10);
 
@@ -221,6 +227,54 @@ export class MobileDashboardService {
       logger.warn(`[MobileDashboardService] Error fetching team hierarchy counts from Tenant DB:`, err);
     }
 
+    // 4. Query Active Election from Tenant DB
+    let activeElection: { id: string; name: string; electionDate?: string; status?: string } | null = null;
+    try {
+      if (tenantDbName && tenantDbName.trim()) {
+        const pool = TenantPoolManager.getPool(tenantDbName.trim());
+        const { electionQueries } = await import('../../queries/election.queries');
+        const resolved = await electionQueries.resolveDateBasedDefaultElection(pool);
+        if (resolved) {
+          activeElection = {
+            id: resolved.id,
+            name: resolved.name,
+            electionDate: resolved.electionDate,
+            status: resolved.status,
+          };
+
+          // Query live turnout for active election within user's assigned scope
+          try {
+            let turnoutWhere = 'WHERE ves.election_id = $1 AND ves.has_voted = true';
+            const turnoutParams: any[] = [resolved.id];
+
+            if (hasBoothFilter) {
+              turnoutParams.push(assignedBoothIds);
+              turnoutWhere += ` AND ves.booth_id = ANY($${turnoutParams.length})`;
+            } else if (hasAcFilter) {
+              turnoutParams.push(assignedAcId);
+              turnoutWhere += ` AND v.ac_id = $${turnoutParams.length}`;
+            } else if (hasPcFilter) {
+              turnoutParams.push(assignedPcId);
+              turnoutWhere += ` AND v.pc_id = $${turnoutParams.length}`;
+            }
+
+            const turnoutRes = await executeTenantQuery(
+              `SELECT COUNT(DISTINCT ves.voter_id)::int AS voted_count
+               FROM voter_election_statuses ves
+               JOIN voters v ON v.id = ves.voter_id
+               ${turnoutWhere}`,
+              turnoutParams
+            );
+            votedCount = parseInt(turnoutRes.rows[0]?.voted_count || '0', 10);
+          } catch (tErr) {
+            logger.warn(`[MobileDashboardService] Error querying election turnout:`, tErr);
+          }
+        }
+      }
+    } catch (_elErr) {
+      // Election table may not exist yet or empty
+    }
+
     return {
       assignedBoothsCount,
       totalVotersCount,
@@ -249,6 +303,7 @@ export class MobileDashboardService {
         votedCount,
         totalVoters: totalVotersCount,
       },
+      activeElection,
     };
   }
 }

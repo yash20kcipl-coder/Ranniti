@@ -96,7 +96,18 @@ export const SearchHeaderWithFilter: React.FC<SearchHeaderWithFilterProps> = ({
       </View>
 
       {/* Quick Filter Pills */}
-      <View style={{ flexDirection: "row", flexShrink: 1, justifyContent: "space-between" }}>
+      {Boolean((filterOptions && filterOptions.length > 0 && onSelectFilterOption) || totalCount !== undefined) && (
+        <View
+          style={{
+            flexDirection: 'row',
+            flexShrink: 1,
+            justifyContent: Boolean(filterOptions && filterOptions.length > 0 && onSelectFilterOption)
+              ? 'space-between'
+              : 'flex-end',
+            alignItems: 'center',
+            paddingHorizontal: Boolean(filterOptions && filterOptions.length > 0 && onSelectFilterOption) ? 0 : 15,
+          }}
+        >
         {Boolean(filterOptions && filterOptions.length > 0 && onSelectFilterOption) && (
           <ScrollableFilterPills
             options={filterOptions!}
@@ -129,6 +140,7 @@ export const SearchHeaderWithFilter: React.FC<SearchHeaderWithFilterProps> = ({
           </View>
         )}
       </View>
+      )}
       {children}
     </View>
   );

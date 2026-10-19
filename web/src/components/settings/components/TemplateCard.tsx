@@ -12,11 +12,12 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import type { WhatsAppTemplate } from '@/types/settings.types';
+import { normalizeTemplateTextToLabels } from './VariableChips';
 
 interface TemplateCardProps {
   template: WhatsAppTemplate;
   onPreview: (template: WhatsAppTemplate) => void;
-  onTestSend: (template: WhatsAppTemplate) => void;
+  onTestSend?: (template: WhatsAppTemplate) => void;
   onEdit: (template: WhatsAppTemplate) => void;
   onDelete: (template: WhatsAppTemplate) => void;
 }
@@ -116,7 +117,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
           )}
 
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line line-clamp-4 font-sans">
-            {template.bodyText ? template.bodyText.replace(/\\n/g, '\n') : ''}
+            {normalizeTemplateTextToLabels(template.bodyText ? template.bodyText.replace(/\\n/g, '\n') : '')}
           </p>
 
           {template.footerText && (
@@ -147,14 +148,28 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         {template.variables && template.variables.length > 0 && (
           <div className="flex flex-wrap items-center gap-1">
             <span className="text-[10px] font-semibold text-slate-400">Tokens:</span>
-            {template.variables.map((token, idx) => (
-              <span
-                key={idx}
-                className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-[10px] font-mono text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40"
-              >
-                {`{{${token}}}`}
-              </span>
-            ))}
+            {template.variables.map((token, idx) => {
+              const friendlyToken =
+                token === '1'
+                  ? 'voter_name'
+                  : token === '2'
+                    ? 'booth_name'
+                    : token === '3'
+                      ? 'section_no'
+                      : token === '4'
+                        ? 'serial_no'
+                        : token === '5'
+                          ? 'polling_date'
+                          : token;
+              return (
+                <span
+                  key={idx}
+                  className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-[10px] font-mono text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40"
+                >
+                  {`{{${friendlyToken}}}`}
+                </span>
+              );
+            })}
           </div>
         )}
       </div>
@@ -172,15 +187,17 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
             <span>Preview</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => onTestSend(template)}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer"
-            title="Send Test WhatsApp Message"
-          >
-            <Send className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Test Send</span>
-          </button>
+          {onTestSend && (
+            <button
+              type="button"
+              onClick={() => onTestSend(template)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer"
+              title="Send Test WhatsApp Message"
+            >
+              <Send className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Test Send</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-1">

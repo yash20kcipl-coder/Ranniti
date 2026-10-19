@@ -4,9 +4,10 @@ import { Building2 } from 'lucide-react';
 import { TenantAcsPage } from './TenantAcsPage';
 import { TenantWardsPage } from './TenantWardsPage';
 import { TenantBoothsPage } from './TenantBoothsPage';
+import { TenantElectionsPage } from './TenantElectionsPage';
 
-type TenantMasterTabKey = 'acs' | 'wards' | 'booths';
-const TENANT_ALLOWED_KEYS: TenantMasterTabKey[] = ['acs', 'wards', 'booths'];
+type TenantMasterTabKey = 'acs' | 'wards' | 'booths' | 'elections';
+const TENANT_ALLOWED_KEYS: TenantMasterTabKey[] = ['acs', 'wards', 'booths', 'elections'];
 
 interface TenantMasterPageProps {
   defaultTab?: TenantMasterTabKey;
@@ -15,10 +16,15 @@ interface TenantMasterPageProps {
 export const TenantMasterPage: React.FC<TenantMasterPageProps> = ({ defaultTab }) => {
   const user = useAppSelector((state) => (state as any).user?.user ?? (state as any).auth?.user);
 
-  // Allowed tabs from Role Package (falls back to all 3)
-  const userAllowed: TenantMasterTabKey[] = (
-    (user?.allowedMasterSubTabs as TenantMasterTabKey[] | undefined) ?? TENANT_ALLOWED_KEYS
-  ).filter((t): t is TenantMasterTabKey => TENANT_ALLOWED_KEYS.includes(t));
+  // Allowed tabs from Role Package (falls back to all, always ensuring elections is accessible)
+  const rawAllowed = (user?.allowedMasterSubTabs as TenantMasterTabKey[] | undefined);
+  const baseAllowed = rawAllowed
+    ? (!rawAllowed.includes('elections') ? [...rawAllowed, 'elections'] : rawAllowed)
+    : TENANT_ALLOWED_KEYS;
+
+  const userAllowed: TenantMasterTabKey[] = baseAllowed.filter((t): t is TenantMasterTabKey =>
+    TENANT_ALLOWED_KEYS.includes(t as TenantMasterTabKey)
+  );
 
   const resolveActiveTab = (): TenantMasterTabKey => {
     if (defaultTab && userAllowed.includes(defaultTab)) return defaultTab;
@@ -46,6 +52,8 @@ export const TenantMasterPage: React.FC<TenantMasterPageProps> = ({ defaultTab }
       return <TenantWardsPage />;
     case 'booths':
       return <TenantBoothsPage />;
+    case 'elections':
+      return <TenantElectionsPage />;
     case 'acs':
     default:
       return <TenantAcsPage />;

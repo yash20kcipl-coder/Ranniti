@@ -153,6 +153,16 @@ export const AppliedFiltersBar: React.FC<AppliedFiltersBarProps> = ({
       });
     }
 
+    // 11. Society / Area
+    if (filters.society && filters.society.trim()) {
+      list.push({
+        key: 'society',
+        label: t?.('society') || 'Society',
+        valueText: filters.society.trim(),
+        icon: 'office-building',
+      });
+    }
+
     return list;
   }, [filters, master, t]);
 

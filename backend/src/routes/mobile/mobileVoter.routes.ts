@@ -13,6 +13,7 @@ const router = Router();
 router.use(authenticateMobileUser);
 
 router.get('/', mobileVoterController.getVoters);
+router.get('/societies', mobileVoterController.getSocieties);
 router.post('/', mobileVoterController.createVoter);
 router.get('/influencer-options', mobileVoterController.getInfluencerOptions);
 router.get('/family-candidates', validate(familyCandidatesQuerySchema), mobileVoterController.getFamilyCandidates);

@@ -25,6 +25,7 @@ export class MobileVoterController {
       isFamilyInfluencer: query.isFamilyInfluencer !== undefined ? String(query.isFamilyInfluencer) === 'true' : undefined,
       isSocialInfluencer: query.isSocialInfluencer !== undefined ? String(query.isSocialInfluencer) === 'true' : undefined,
       influencerRole: (query.influencerRole && query.influencerRole !== 'all') ? (query.influencerRole as string) : '',
+      society: (query.society as string) || '',
       page: query.page ? parseInt(query.page as string, 10) : 1,
       limit: query.limit ? parseInt(query.limit as string, 10) : 25,
     };
@@ -43,6 +44,36 @@ export class MobileVoterController {
         },
       },
       'Voter list retrieved successfully'
+    );
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getSocieties = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const user = req.mobileUser!;
+    const query = req.query;
+
+    const filters = {
+      search: (query.search as string) || '',
+      boothId: (query.boothId && query.boothId !== 'All' && query.boothId !== 'all') ? (query.boothId as string) : '',
+      acId: (query.acId && query.acId !== 'All' && query.acId !== 'all') ? (query.acId as string) : '',
+      wardId: (query.wardId && query.wardId !== 'All' && query.wardId !== 'all') ? (query.wardId as string) : '',
+      page: query.page ? parseInt(query.page as string, 10) : 1,
+      limit: query.limit ? parseInt(query.limit as string, 10) : 20,
+    };
+
+    const result = await mobileVoterService.getAssignedSocieties(user, filters);
+
+    const response = ApiResponse.success(
+      {
+        societies: result.data,
+        pagination: {
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: result.totalPages,
+        },
+      },
+      'Societies retrieved successfully'
     );
     res.status(response.statusCode).json(response.body);
   });

@@ -21,7 +21,7 @@ export const sendOtpAction = (
       });
 
       const { message, demoOtp } = response.data?.data || {};
-      const activeDemoOtp = demoOtp || (AUTH_CONFIG.IS_OTP_DEMO_MODE ? AUTH_CONFIG.DEMO_OTP : undefined);
+      const activeDemoOtp = demoOtp
 
       if (activeDemoOtp) {
         toast.success(`Demo OTP Code: ${activeDemoOtp}`);

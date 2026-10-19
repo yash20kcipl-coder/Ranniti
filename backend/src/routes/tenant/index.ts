@@ -4,6 +4,7 @@ import { tenantDataRoutes } from './data.routes';
 import { tenantRoleRoutes } from './role.routes';
 import { tenantUserRoutes } from './user.routes';
 import { tenantVoterRoutes } from './voter.routes';
+import { tenantElectionRoutes } from './election.routes';
 import { tenantSettingsRoutes } from './settings.routes';
 import { tenantGeographyRoutes } from './geography.routes';
 import { tenantAuth } from '../../middlewares/tenantAuth.middleware';
@@ -21,6 +22,7 @@ router.use('/users', tenantUserRoutes);
 router.use('/voters', tenantVoterRoutes);
 router.use('/user-roles', tenantRoleRoutes);
 router.use('/settings', tenantSettingsRoutes);
+router.use('/elections', tenantElectionRoutes);
 router.use('/geography', tenantGeographyRoutes);
 router.use('/analytics', tenantVolunteerAnalyticsRoutes);
 

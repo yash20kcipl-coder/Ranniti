@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLanguage } from '../../languages';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootState } from '../../store/store';
-import { toggleVotedStatusAction, fetchVoterByIdAction, updateVoterPartyAction } from '../../store/actions/voters';
+import { fetchVoterByIdAction, updateVoterPartyAction } from '../../store/actions/voters';
 import { VoterFamilyModal } from './components/VoterFamilyModal';
 import { SCREENS } from '../../navigation/constants';
 import { hasVoterPermission } from '../../utils/permissionUtils';
@@ -99,9 +99,7 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
     navigation.navigate(SCREENS.ADD_EDIT_VOTER, { voter });
   };
 
-  const handleToggleVoted = () => {
-    dispatch(toggleVotedStatusAction(voter.id, voter.isVoted));
-  };
+
 
   const handleSelectParty = (partyId: string | null, partyName: string) => {
     dispatch(updateVoterPartyAction(voter.id, partyId, partyName));
@@ -191,34 +189,7 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
         )}
       </ScrollView>
 
-      {/* Floating Bottom Action Bar for Voting Status */}
-      <View style={[styles.bottomBar, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleToggleVoted}
-          style={[
-            styles.voteToggleBtn,
-            {
-              backgroundColor: voter.isVoted ? '#DCFCE7' : theme.colors.primary,
-              borderColor: voter.isVoted ? '#86EFAC' : theme.colors.primary,
-            },
-          ]}
-        >
-          <MaterialDesignIcons
-            name={voter.isVoted ? 'check-circle' : 'vote-outline'}
-            size={20}
-            color={voter.isVoted ? '#15803D' : '#FFFFFF'}
-          />
-          <Text
-            style={[
-              styles.voteToggleText,
-              { color: voter.isVoted ? '#15803D' : '#FFFFFF' },
-            ]}
-          >
-            {voter.isVoted ? t('markAsNotVoted') : t('markAsVoted')}
-          </Text>
-        </TouchableOpacity>
-      </View>
+
 
       {/* Reusable Common Supporting Party Modal Selector */}
       <PartySelectModal
@@ -264,31 +235,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 95,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingTop: 12,
     paddingBottom: 24,
-    borderTopWidth: 1,
-    ...getShadow(4, '#000000', 0.1),
-  },
-  voteToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-  },
-  voteToggleText: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(14),
   },
   emptyContainer: {
     flex: 1,

@@ -91,5 +91,5 @@ export interface AppVersionConfig {
   updatedAt?: string;
 }
 
-export type SettingsTabKey = 'user-roles' | 'tenant-roles' | 'app-versions' | 'whatsapp-templates' | 'whatsapp-config' | 'push-notifications';
+export type SettingsTabKey = 'user-roles' | 'tenant-roles' | 'app-versions' | 'whatsapp-templates' | 'push-notifications';
 

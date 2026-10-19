@@ -16,7 +16,6 @@ const migrationFiles = [
   'create_bulk_upload_demos_table.sql',
   'create_tenant_dashboard_stats_table.sql',
   'remove_push_triggers_column.sql',
-  'remove_tenant_whatsapp_config_and_templates.sql',
   'remove_voter_type_column.sql',
 ];
 

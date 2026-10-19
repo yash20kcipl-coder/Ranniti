@@ -1,9 +1,8 @@
 export { TemplateCard } from './TemplateCard';
-export { TestWhatsAppModal } from './TestWhatsAppModal';
-export { WhatsAppPreviewModal } from './WhatsAppPreviewModal';
-export { TemplateBuilderModal } from './TemplateBuilderModal';
-export { VariableChips, AVAILABLE_VARIABLES } from './VariableChips';
 export { FcmCredentialsCard } from './FcmCredentialsCard';
-export { NotificationTriggersCard } from './NotificationTriggersCard';
+export { WhatsAppPreviewModal } from './WhatsAppPreviewModal';
 export { TestNotificationModal } from './TestNotificationModal';
+export { VariableChips, AVAILABLE_VARIABLES } from './VariableChips';
+export { NotificationTriggersCard } from './NotificationTriggersCard';
+export { WhatsAppTemplateBuilderPage } from '@/pages/super_admin/settings/WhatsAppTemplateBuilderPage';
 

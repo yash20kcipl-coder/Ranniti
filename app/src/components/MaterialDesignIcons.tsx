@@ -280,13 +280,15 @@ export const MaterialDesignIcons: React.FC<IconProps> = ({ name, size = 24, colo
     return <Eye {...iconProps} />;
   }
 
-  // Buildings, Cities, Offices, Booths
+  // Buildings, Cities, Offices, Booths, Societies
   if (
     iconName.includes('building') ||
     iconName.includes('city') ||
     iconName.includes('office') ||
     iconName.includes('booth') ||
-    iconName.includes('town')
+    iconName.includes('town') ||
+    iconName.includes('society') ||
+    iconName.includes('home-group')
   ) {
     return <Building2 {...iconProps} />;
   }

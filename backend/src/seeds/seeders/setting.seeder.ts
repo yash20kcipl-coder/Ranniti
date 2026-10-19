@@ -19,81 +19,146 @@ export interface DefaultWhatsAppTemplate {
 }
 
 export const DEFAULT_WHATSAPP_TEMPLATES: DefaultWhatsAppTemplate[] = [
+  // 1. Digital Voter Slip (Hindi)
   {
-    metaTemplateId: 'TMPL_VOTER_SLIP_01',
-    name: 'voter_slip_delivery',
+    metaTemplateId: 'TMPL_VOTER_SLIP_HI',
+    name: 'digital_voter_slip',
     category: 'UTILITY',
     language: 'hi',
     headerType: 'TEXT',
     headerContent: 'मतदाता पर्ची - चुनाव 2026',
-    bodyText: 'नमस्ते {{1}}, आपका मतदान केंद्र {{2}} है। भाग संख्या {{3}}, क्रमांक संख्या {{4}}। कृपया 20 नवंबर को मतदान अवश्य करें।',
+    bodyText: 'नमस्ते {{voter_name}}, आपका मतदान केंद्र {{booth_name}} है। भाग/वार्ड संख्या {{section_no}}, क्रमांक संख्या #{{serial_no}}। मतदान दिवस {{polling_date}} को सपरिवार मतदान अवश्य करें।',
     footerText: 'रणनीति इलेक्शन सेल',
     buttons: [{ type: 'QUICK_REPLY', text: 'स्थान मैप देखें' }],
-    variables: ['1', '2', '3', '4'],
+    variables: ['voter_name', 'booth_name', 'section_no', 'serial_no', 'polling_date'],
     metaStatus: 'APPROVED',
   },
+  // 2. Digital Voter Slip (English)
   {
-    metaTemplateId: 'TMPL_RALLY_INVITE_02',
-    name: 'campaign_rally_invite',
-    category: 'MARKETING',
-    language: 'hi',
-    headerType: 'IMAGE',
-    headerContent: '/uploads/campaign/rally.png',
-    bodyText: 'प्रिय कार्यकर्ता {{1}}, कल शाम 5 बजे {{2}} में विशाल जनसभा आयोजित है। उम्मीदवार {{3}} जी मार्गदर्शन करेंगे। अपनी उपस्थिति सुनिश्चित करें।',
-    footerText: 'प्रचार समिति',
-    buttons: [{ type: 'URL', text: 'स्थान दिशा-निर्देश', url: 'https://maps.google.com' }],
-    variables: ['1', '2', '3'],
-    metaStatus: 'APPROVED',
-  },
-  {
-    metaTemplateId: 'TMPL_BOOTH_TASK_03',
-    name: 'booth_worker_briefing',
+    metaTemplateId: 'TMPL_VOTER_SLIP_EN',
+    name: 'digital_voter_slip',
     category: 'UTILITY',
     language: 'en',
-    headerType: 'NONE',
-    headerContent: null,
-    bodyText: 'Hello {{1}}, you are assigned as Booth Incharge for Booth #{{2}} - {{3}}. Target voters: {{4}}. Please complete morning setup by 6:00 AM.',
-    footerText: 'Ranniti Campaign HQ',
-    buttons: [{ type: 'QUICK_REPLY', text: 'Confirm Attendance' }],
-    variables: ['1', '2', '3', '4'],
+    headerType: 'TEXT',
+    headerContent: 'Digital Voter Slip - Election 2026',
+    bodyText: 'Namaste {{voter_name}}, your polling station is {{booth_name}}. Part/Ward: {{section_no}}, Serial No: #{{serial_no}}. Polling Date: {{polling_date}}. Please cast your valuable vote with your family.',
+    footerText: 'Ranniti Election Cell',
+    buttons: [{ type: 'QUICK_REPLY', text: 'View Polling Station' }],
+    variables: ['voter_name', 'booth_name', 'section_no', 'serial_no', 'polling_date'],
     metaStatus: 'APPROVED',
   },
+  // 3. Polling Day Reminder (Hindi)
   {
-    metaTemplateId: 'TMPL_POLL_DAY_04',
-    name: 'poll_day_reminder',
+    metaTemplateId: 'TMPL_POLL_REMINDER_HI',
+    name: 'polling_day_reminder',
     category: 'UTILITY',
     language: 'hi',
     headerType: 'TEXT',
     headerContent: 'मतदान दिवस स्मरण पत्र',
-    bodyText: 'सम्मानित मतदाता {{1}}, आज मतदान का दिन है! लोकतंत्र के महापर्व में भाग लें और अपना बहुमूल्य वोट डालें। मतदान समय: प्रातः 7:00 से सायं 6:00 तक।',
+    bodyText: 'सम्मानित मतदाता {{voter_name}}, आज मतदान का दिन है! लोकतंत्र के महापर्व में भाग लें और अपना बहुमूल्य वोट डालें। मतदान केंद्र: {{booth_name}}, मतदाता क्रमांक: #{{serial_no}}। मतदान समय: प्रातः 7:00 से सायं 6:00 तक।',
     footerText: 'रणनीति टीम',
-    variables: ['1'],
+    buttons: [{ type: 'QUICK_REPLY', text: 'मैंने वोट डाल दिया' }],
+    variables: ['voter_name', 'booth_name', 'serial_no'],
     metaStatus: 'APPROVED',
   },
+  // 4. Polling Day Reminder (English)
   {
-    metaTemplateId: 'TMPL_BOOTH_TURNOUT_05',
-    name: 'booth_turnout_alert',
+    metaTemplateId: 'TMPL_POLL_REMINDER_EN',
+    name: 'polling_day_reminder',
+    category: 'UTILITY',
+    language: 'en',
+    headerType: 'TEXT',
+    headerContent: 'Polling Day Reminder',
+    bodyText: 'Dear Voter {{voter_name}}, today is Election Day! Please cast your valuable vote at Booth {{booth_name}}, Serial No: #{{serial_no}}. Polling hours: 7:00 AM to 6:00 PM.',
+    footerText: 'Ranniti Campaign HQ',
+    buttons: [{ type: 'QUICK_REPLY', text: 'I Have Voted' }],
+    variables: ['voter_name', 'booth_name', 'serial_no'],
+    metaStatus: 'APPROVED',
+  },
+  // 5. Candidate Voter Appeal (Hindi)
+  {
+    metaTemplateId: 'TMPL_CANDIDATE_APPEAL_HI',
+    name: 'candidate_voter_appeal',
+    category: 'MARKETING',
+    language: 'hi',
+    headerType: 'TEXT',
+    headerContent: 'विनम्र जन अपील',
+    bodyText: 'नमस्ते {{voter_name}} जी, क्षेत्र के सर्वांगीण विकास, बेहतर शिक्षा, रोजगार एवं जनसुविधाओं हेतु अपने लोकप्रिय प्रत्याशी {{candidate_name}} ({{party_name}}) को अपना आशीर्वाद एवं समर्थन प्रदान करें।',
+    footerText: 'प्रचार समिति',
+    buttons: [{ type: 'QUICK_REPLY', text: 'समर्थन दर्ज करें' }],
+    variables: ['voter_name', 'candidate_name', 'party_name'],
+    metaStatus: 'APPROVED',
+  },
+  // 6. Candidate Voter Appeal (English)
+  {
+    metaTemplateId: 'TMPL_CANDIDATE_APPEAL_EN',
+    name: 'candidate_voter_appeal',
+    category: 'MARKETING',
+    language: 'en',
+    headerType: 'TEXT',
+    headerContent: 'Candidate Appeal',
+    bodyText: 'Dear {{voter_name}}, for holistic development, better education, infrastructure, and public welfare, we humbly seek your blessing and support for candidate {{candidate_name}} ({{party_name}}).',
+    footerText: 'Campaign Committee',
+    buttons: [{ type: 'QUICK_REPLY', text: 'Pledge Support' }],
+    variables: ['voter_name', 'candidate_name', 'party_name'],
+    metaStatus: 'APPROVED',
+  },
+  // 7. Booth Assistance Helpline (Hindi)
+  {
+    metaTemplateId: 'TMPL_BOOTH_HELP_HI',
+    name: 'booth_assistance_helpline',
     category: 'UTILITY',
     language: 'hi',
     headerType: 'TEXT',
-    headerContent: 'बूथ मतदान प्रतिशत अलर्ट',
-    bodyText: 'बूथ प्रभारी {{1}}, दोपहर 1:00 बजे तक आपके बूथ #{{2}} पर केवल {{3}}% मतदान दर्ज हुआ है। छूटे हुए मतदाताओं से संपर्क तेज करें।',
-    footerText: 'इलेक्शन वॉर रूम',
-    variables: ['1', '2', '3'],
+    headerContent: 'मतदान सहायता केंद्र',
+    bodyText: 'नमस्ते {{voter_name}} जी, मतदान केंद्र {{booth_name}} पर वरिष्ठ नागरिकों के लिए वाहन सुविधा, व्हीलचेयर या मतदाता पर्ची सहायता हेतु हमारी वॉर रूम हेल्पलाइन उपलब्ध है। किसी भी असुविधा पर संपर्क करें।',
+    footerText: 'मतदाता सहायता डेस्क',
+    buttons: [{ type: 'QUICK_REPLY', text: 'सहायता चाहिए' }],
+    variables: ['voter_name', 'booth_name'],
     metaStatus: 'APPROVED',
   },
+  // 8. Booth Assistance Helpline (English)
   {
-    metaTemplateId: 'TMPL_FESTIVE_GREET_06',
-    name: 'festive_greetings',
+    metaTemplateId: 'TMPL_BOOTH_HELP_EN',
+    name: 'booth_assistance_helpline',
+    category: 'UTILITY',
+    language: 'en',
+    headerType: 'TEXT',
+    headerContent: 'Voter Assistance Helpline',
+    bodyText: 'Hello {{voter_name}}, for Booth {{booth_name}}, transport assistance for senior citizens, wheelchair support, or voter slip queries, our volunteer helpline is ready to assist you.',
+    footerText: 'Voter Helpdesk',
+    buttons: [{ type: 'QUICK_REPLY', text: 'Need Assistance' }],
+    variables: ['voter_name', 'booth_name'],
+    metaStatus: 'APPROVED',
+  },
+  // 9. Post Vote Gratitude (Hindi)
+  {
+    metaTemplateId: 'TMPL_GRATITUDE_HI',
+    name: 'post_vote_gratitude',
     category: 'MARKETING',
     language: 'hi',
-    headerType: 'IMAGE',
-    headerContent: '/uploads/campaign/greeting.png',
-    bodyText: 'प्रिय {{1}} जी, आपको एवं आपके परिवार को त्योहार की हार्दिक शुभकामनाएं! खुशहाली और समृद्धि की कामना के साथ - {{2}}।',
-    footerText: 'उम्मीदवार संपर्क कार्यालय',
-    variables: ['1', '2'],
+    headerType: 'TEXT',
+    headerContent: 'हार्दिक आभार एवं धन्यवाद',
+    bodyText: 'प्रिय {{voter_name}} जी, लोकतंत्र के महापर्व में अपने मताधिकार का प्रयोग कर देश के विकास में योगदान देने हेतु आपका हृदय से बहुत-बहुत आभार एवं साधुवाद!',
+    footerText: 'रणनीति परिवार',
+    buttons: [{ type: 'QUICK_REPLY', text: 'जय हिंद' }],
+    variables: ['voter_name'],
     metaStatus: 'APPROVED',
-  }
+  },
+  // 10. Post Vote Gratitude (English)
+  {
+    metaTemplateId: 'TMPL_GRATITUDE_EN',
+    name: 'post_vote_gratitude',
+    category: 'MARKETING',
+    language: 'en',
+    headerType: 'TEXT',
+    headerContent: 'Sincere Gratitude',
+    bodyText: 'Dear {{voter_name}}, thank you sincerely for exercising your democratic right and casting your vote! Your participation strengthens our democracy and community.',
+    footerText: 'Ranniti Family',
+    buttons: [{ type: 'QUICK_REPLY', text: 'Thank You' }],
+    variables: ['voter_name'],
+    metaStatus: 'APPROVED',
+  },
 ];
 
 /**
@@ -185,6 +250,11 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
         // index may already exist
       }
 
+      // Remove obsolete media templates and old template names
+      await queryFn(
+        `DELETE FROM whatsapp_templates WHERE header_type IN ('IMAGE', 'VIDEO', 'DOCUMENT') OR name IN ('voter_slip_delivery', 'campaign_rally_invite', 'booth_worker_briefing', 'booth_turnout_alert', 'festive_greetings', 'poll_day_reminder');`
+      );
+
       for (const t of DEFAULT_WHATSAPP_TEMPLATES) {
         await queryFn(
           `INSERT INTO whatsapp_templates (
@@ -215,6 +285,12 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
             t.metaStatus,
           ]
         );
+      }
+      try {
+        const { CacheService } = await import('../../services/cache.service');
+        await CacheService.invalidatePattern('ranniti:wa_templates:*');
+      } catch (_cacheErr) {
+        // cache optional
       }
       logger.info(`✅ Seeded ${DEFAULT_WHATSAPP_TEMPLATES.length} WhatsApp Templates for Master DB.`);
     }

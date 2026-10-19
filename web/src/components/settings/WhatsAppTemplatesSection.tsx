@@ -1,17 +1,15 @@
 import {
   Plus,
-  RefreshCw,
   Search,
   MessageSquare,
   Inbox,
 } from 'lucide-react';
 import {
   TemplateCard,
-  TemplateBuilderModal,
   WhatsAppPreviewModal,
-  TestWhatsAppModal,
 } from './components';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/redux/hooks';
 import { FormInput } from '@/components/common/FormInput';
 import type { WhatsAppTemplate } from '@/types/settings.types';
@@ -20,20 +18,14 @@ import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 
 interface WhatsAppTemplatesSectionProps {
   onFetchTemplates?: () => void;
-  onCreateTemplate?: (templateData: Partial<WhatsAppTemplate>) => Promise<unknown>;
-  onUpdateTemplate?: (id: string, templateData: Partial<WhatsAppTemplate>) => Promise<unknown>;
   onDeleteTemplate?: (id: string) => Promise<unknown>;
-  onSyncTemplates?: () => Promise<unknown>;
   templates?: WhatsAppTemplate[];
   loading?: boolean;
 }
 
 export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> = ({
   onFetchTemplates,
-  onCreateTemplate,
-  onUpdateTemplate,
   onDeleteTemplate,
-  onSyncTemplates,
   templates: customTemplates,
   loading: customLoading,
 }) => {
@@ -41,47 +33,21 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
 
   const templates = customTemplates ?? storeSettings?.whatsappTemplates ?? [];
   const loading = customLoading ?? storeSettings?.loading ?? false;
-  const syncing = storeSettings?.syncing ?? false;
-  const saving = storeSettings?.saving ?? false;
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
+
+  const navigate = useNavigate();
 
   // Modals state
-  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
-  const [templateToEdit, setTemplateToEdit] = useState<WhatsAppTemplate | null>(null);
-
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [templateToPreview, setTemplateToPreview] = useState<WhatsAppTemplate | null>(null);
-
-  const [isTestSendOpen, setIsTestSendOpen] = useState(false);
-  const [templateToTest, setTemplateToTest] = useState<WhatsAppTemplate | null>(null);
-
   const [templateToDelete, setTemplateToDelete] = useState<WhatsAppTemplate | null>(null);
 
   // Initial load on mount
   useDebouncedEffect(() => {
     if (onFetchTemplates) { onFetchTemplates() }
   }, 500, []);
-
-  const handleSyncMeta = async () => {
-    if (onSyncTemplates) {
-      await onSyncTemplates();
-    }
-  };
-
-  const handleCreateOrUpdate = async (templateData: Partial<WhatsAppTemplate>) => {
-    if (templateToEdit) {
-      if (onUpdateTemplate) {
-        await onUpdateTemplate(templateToEdit.id, templateData);
-      }
-    } else {
-      if (onCreateTemplate) {
-        await onCreateTemplate(templateData);
-      }
-    }
-  };
 
   const handleConfirmDelete = async () => {
     if (!templateToDelete) return;
@@ -94,7 +60,6 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
   // Client-side filtering
   const filteredTemplates = (templates || []).filter((t) => {
     if (selectedCategory && t.category !== selectedCategory) return false;
-    if (selectedStatus && t.metaStatus !== selectedStatus) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       return (
@@ -120,30 +85,14 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
             </h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Meta Cloud API verified templates for voter information slips, appeals, and alerts
+            Campaign message templates with dynamic voter tokens for direct voter messaging and slips
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          {onSyncTemplates && (
-            <button
-              type="button"
-              onClick={handleSyncMeta}
-              disabled={syncing}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-60 cursor-pointer"
-              title="Sync approval statuses from Meta Cloud API"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${syncing ? 'animate-spin' : ''}`} />
-              <span>{syncing ? 'Syncing...' : 'Sync with Meta'}</span>
-            </button>
-          )}
-
           <button
             type="button"
-            onClick={() => {
-              setTemplateToEdit(null);
-              setIsBuilderOpen(true);
-            }}
+            onClick={() => navigate('/dashboard/whatsapp-templates/new')}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -166,7 +115,7 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="w-40">
+          <div className="w-48">
             <FormInput
               name="cat_filter"
               type="select"
@@ -174,24 +123,9 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
               onChange={(e) => setSelectedCategory((e.target as any)?.value ?? e)}
               options={[
                 { label: 'All Categories', value: '' },
-                { label: 'Utility', value: 'UTILITY' },
-                { label: 'Marketing', value: 'MARKETING' },
+                { label: 'Utility (Voter Slips, Polling)', value: 'UTILITY' },
+                { label: 'Marketing (Appeals, Rallies)', value: 'MARKETING' },
                 { label: 'Authentication', value: 'AUTHENTICATION' },
-              ]}
-            />
-          </div>
-
-          <div className="w-40">
-            <FormInput
-              name="status_filter"
-              type="select"
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus((e.target as any)?.value ?? e)}
-              options={[
-                { label: 'All Statuses', value: '' },
-                { label: 'Approved', value: 'APPROVED' },
-                { label: 'Pending Review', value: 'PENDING' },
-                { label: 'Rejected', value: 'REJECTED' },
               ]}
             />
           </div>
@@ -240,19 +174,16 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
             <Inbox className="w-6 h-6" />
           </div>
           <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-            No WhatsApp Templates Found
+            No Message Templates Found
           </h4>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            {search || selectedCategory || selectedStatus
+            {search || selectedCategory
               ? 'No templates match your active search filters. Try clearing the filter.'
               : 'Create your first WhatsApp voter slip or broadcast template to get started.'}
           </p>
           <button
             type="button"
-            onClick={() => {
-              setTemplateToEdit(null);
-              setIsBuilderOpen(true);
-            }}
+            onClick={() => navigate('/dashboard/whatsapp-templates/new')}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -269,45 +200,18 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
                 setTemplateToPreview(tpl);
                 setIsPreviewOpen(true);
               }}
-              onTestSend={(tpl) => {
-                setTemplateToTest(tpl);
-                setIsTestSendOpen(true);
-              }}
-              onEdit={(tpl) => {
-                setTemplateToEdit(tpl);
-                setIsBuilderOpen(true);
-              }}
+              onEdit={(tpl) => navigate(`/dashboard/whatsapp-templates/${tpl.id}/edit`)}
               onDelete={(tpl) => setTemplateToDelete(tpl)}
             />
           ))}
         </div>
       )}
 
-      {/* Template Builder Modal */}
-      <TemplateBuilderModal
-        isOpen={isBuilderOpen}
-        onClose={() => setIsBuilderOpen(false)}
-        templateToEdit={templateToEdit}
-        onSubmit={handleCreateOrUpdate}
-        isLoading={saving}
-      />
-
       {/* WhatsApp Mobile Chat Preview Modal */}
       <WhatsAppPreviewModal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         template={templateToPreview}
-        onOpenTestSend={(tpl) => {
-          setTemplateToTest(tpl);
-          setIsTestSendOpen(true);
-        }}
-      />
-
-      {/* Test WhatsApp Message Sender Modal */}
-      <TestWhatsAppModal
-        isOpen={isTestSendOpen}
-        onClose={() => setIsTestSendOpen(false)}
-        template={templateToTest}
       />
 
       {/* Delete Confirmation Modal */}
@@ -315,7 +219,7 @@ export const WhatsAppTemplatesSection: React.FC<WhatsAppTemplatesSectionProps> =
         isOpen={Boolean(templateToDelete)}
         onClose={() => setTemplateToDelete(null)}
         onConfirm={handleConfirmDelete}
-        title="Delete WhatsApp Template?"
+        title="Delete Message Template?"
         description={`Are you sure you want to delete template "${templateToDelete?.name}"? This action cannot be undone.`}
         confirmText="Delete Template"
         variant="danger"

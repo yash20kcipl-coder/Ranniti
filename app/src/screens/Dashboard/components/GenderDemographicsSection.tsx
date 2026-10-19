@@ -2,10 +2,10 @@ import React, { memo } from 'react';
 import { useLanguage } from '../../../languages';
 import { PieChart } from 'react-native-chart-kit';
 import { rfValue } from '../../../utils/responsive';
+import { Users, Calendar } from 'lucide-react-native';
 import { SectionContainer } from './SectionContainer';
 import { FontFamily } from '../../../utils/typography';
 import { useAppTheme } from '../../../hooks/useAppTheme';
-import { Users, Calendar, Activity } from 'lucide-react-native';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 
 export interface GenderDemographicsProps {
@@ -175,48 +175,6 @@ export const GenderDemographicsSection: React.FC<GenderDemographicsProps> = memo
               <Text style={styles.donutCenterValue}>{totalAgeVoters.toLocaleString()}</Text>
               <Text style={styles.donutCenterLabel}>{t('total') || 'Total'}</Text>
             </View>
-          </View>
-        </TouchableOpacity>
-      </SectionContainer>
-
-      {/* 3. Real-time Voting Turnout Section */}
-      <SectionContainer
-        accentColor="#F59E0B"
-        title={t('turnoutAnalytics')}
-        onPressHeader={onPressTurnout}
-        subtitle={t('turnoutSubtitle')}
-        icon={<Activity {...({ size: 18, color: '#F59E0B' } as any)} />}
-      >
-        <TouchableOpacity
-          onPress={onPressTurnout}
-          style={styles.container}
-          activeOpacity={onPressTurnout ? 0.85 : 1}
-        >
-          <View style={styles.turnoutHeader}>
-            <Text style={[styles.turnoutLabel, { color: theme.colors.text || '#0F172A' }]}>
-              Voted: <Text style={styles.boldText}>{turnoutData.votedCount.toLocaleString()}</Text> ({votedPercent}%)
-            </Text>
-            <Text style={[styles.turnoutLabel, { color: theme.colors.textSecondary || '#64748B' }]}>
-              Total Voters: <Text style={styles.boldText}>{turnoutData.totalVoters.toLocaleString()}</Text>
-            </Text>
-          </View>
-
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressSegment,
-                { flex: turnoutData.votedCount, backgroundColor: '#10B981' },
-              ]}
-            />
-            <View
-              style={[
-                styles.progressSegment,
-                {
-                  flex: turnoutData.totalVoters - turnoutData.votedCount,
-                  backgroundColor: '#E2E8F0',
-                },
-              ]}
-            />
           </View>
         </TouchableOpacity>
       </SectionContainer>

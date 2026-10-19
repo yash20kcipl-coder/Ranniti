@@ -1,5 +1,5 @@
 import toast from './toast';
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 export interface InteractionTrackingOptions {
   onTrack?: () => void;
@@ -88,7 +88,40 @@ export const openEmailComposer = (email?: string | null, subject: string = '') =
     .catch(() => toast.error('Error launching email client'));
 };
 
+/**
+ * Common SMS Composer Utility
+ * Opens native SMS app with optional pre-filled message text.
+ */
+export const openSmsComposer = (
+  phoneNumber?: string | null,
+  message: string = '',
+  options?: InteractionTrackingOptions
+) => {
+  if (!phoneNumber) {
+    toast.error('Phone number not available');
+    return;
+  }
+
+  options?.onTrack?.();
+
+  const cleanNumber = phoneNumber.replace(/[^0-9+]/g, '');
+  const encodedMsg = encodeURIComponent(message);
+  const separator = Platform.OS === 'ios' ? '&' : '?';
+  const url = `sms:${cleanNumber}${encodedMsg ? `${separator}body=${encodedMsg}` : ''}`;
+
+  Linking.canOpenURL(url)
+    .then((supported) => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        Linking.openURL(`sms:${cleanNumber}`).catch(() => toast.error('Unable to open SMS app'));
+      }
+    })
+    .catch(() => Linking.openURL(`sms:${cleanNumber}`).catch(() => toast.error('Unable to open SMS app')));
+};
+
 // Aliases for convenience across screens and components
 export const handleCall = openPhoneDialer;
 export const handleWhatsApp = openWhatsAppChat;
+export const handleSms = openSmsComposer;
 export const handleEmail = openEmailComposer;

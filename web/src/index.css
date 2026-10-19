@@ -27,6 +27,11 @@
   /* Date input styling to position native calendar picker indicator on the far right */
   input[type="date"] {
     position: relative;
+    color-scheme: light;
+  }
+
+  .dark input[type="date"] {
+    color-scheme: dark;
   }
 
   input[type="date"]::-webkit-calendar-picker-indicator {
@@ -35,16 +40,23 @@
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
-    opacity: 0.65;
-    transition: opacity 0.2s ease;
+    opacity: 0.75;
+    transition: opacity 0.2s ease, transform 0.15s ease;
   }
 
   input[type="date"]::-webkit-calendar-picker-indicator:hover {
     opacity: 1;
+    transform: translateY(-50%) scale(1.05);
   }
 
   .dark input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.85);
+    filter: brightness(0) invert(1);
+    opacity: 0.85;
+  }
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.05);
   }
 
   /* Custom sleek scrollbar for webkit */

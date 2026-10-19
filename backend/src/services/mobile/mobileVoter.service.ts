@@ -12,6 +12,8 @@ export class MobileVoterService {
     const filters: VoterFilterParams = { ...params };
     filters.tenantDbName = user.tenantDbName;
 
+    const isBoothRestrictedRole = user.role === 'supporter' || user.role === 'sub_leader';
+
     // Scope to volunteer's assigned booth IDs or AC ID if restricted
     if (user.assignedBoothIds && user.assignedBoothIds.length > 0) {
       if (filters.boothId) {
@@ -21,6 +23,15 @@ export class MobileVoterService {
       } else {
         filters.boothIds = user.assignedBoothIds;
       }
+    } else if (isBoothRestrictedRole) {
+      // If a field volunteer has no assigned booths, they must not see unassigned voters
+      return {
+        data: [],
+        total: 0,
+        page: Math.max(1, params.page || 1),
+        limit: params.limit || 25,
+        totalPages: 0,
+      };
     } else if (user.assignedAcId && !filters.acId) {
       filters.acId = user.assignedAcId;
     } else if (user.assignedPcId && !filters.pcId) {
@@ -412,6 +423,57 @@ export class MobileVoterService {
       throw ApiError.notFound('Voter record not found or update failed');
     }
     return updated;
+  }
+
+  /**
+   * Fetch aggregated societies/areas scoped to mobile user permissions
+   */
+  async getAssignedSocieties(
+    user: Omit<UserRecord, 'passwordHash'>,
+    params: {
+      search?: string;
+      boothId?: string;
+      acId?: string;
+      wardId?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    const filters: {
+      search?: string;
+      boothId?: string;
+      boothIds?: string[];
+      acId?: string;
+      wardId?: string;
+      page?: number;
+      limit?: number;
+    } = { ...params };
+    const tenantDbName = user.tenantDbName;
+
+    const isBoothRestrictedRole = user.role === 'supporter' || user.role === 'sub_leader';
+
+    if (user.assignedBoothIds && user.assignedBoothIds.length > 0) {
+      if (filters.boothId) {
+        if (!user.assignedBoothIds.includes(filters.boothId)) {
+          throw ApiError.forbidden('Access denied to the requested booth');
+        }
+      } else {
+        filters.boothIds = user.assignedBoothIds;
+      }
+    } else if (isBoothRestrictedRole) {
+      // If a field volunteer has no assigned booths, return empty societies
+      return {
+        data: [],
+        total: 0,
+        page: Math.max(1, Number(params.page) || 1),
+        limit: Math.max(1, Math.min(100, Number(params.limit) || 20)),
+        totalPages: 0,
+      };
+    } else if (user.assignedAcId && !filters.acId) {
+      filters.acId = user.assignedAcId;
+    }
+
+    return await VoterQueries.getSocietiesPaginated(filters, tenantDbName);
   }
 }
 

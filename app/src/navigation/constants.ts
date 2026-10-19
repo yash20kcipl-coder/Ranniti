@@ -20,6 +20,7 @@ export const SCREENS = {
   PROFILE: 'profile',
   SETTINGS: 'settings',
   NOTIFICATIONS: 'notifications',
+  ELECTION_POLLING: 'electionpolling',
 } as const;
 
 export const DRAWER_MENU = [
@@ -29,6 +30,7 @@ export const DRAWER_MENU = [
     name: SCREENS.VOTER_LIST, icon: 'users', label: 'Voters Directory', category: 'MAIN MENU',
     onPress: () => navigatToVoters()
   },
+  { name: SCREENS.ELECTION_POLLING, icon: 'vote', label: 'Election Polling', category: 'CAMPAIGN MODULES', badge: 'LIVE' },
   { name: SCREENS.FAMILY_MAPPING, icon: 'family', label: 'Family Mapping', category: 'CAMPAIGN MODULES' },
   { name: SCREENS.INFLUENCER_MAPPING, icon: 'sparkle', label: 'Social Influencers', category: 'CAMPAIGN MODULES', badge: 'VIP' },
   { name: SCREENS.CONTACT_SYNC, icon: 'phone', label: 'Contact Sync Voters', category: 'CAMPAIGN MODULES' },

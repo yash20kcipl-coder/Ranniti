@@ -37,11 +37,13 @@ export const TenantRoutes: React.FC = () => {
       <Route path="voters/:id" element={<TenantVoterDetailPage />} />
       <Route path="voters/:id/edit" element={<TenantVoterFormPage />} />
 
-      {/* Tenant Master Data (AC, Ward, Booth) */}
+      {/* Tenant Master Data (AC, Ward, Booth, Elections) */}
       <Route path="tenant-master" element={<TenantMasterPage />} />
       <Route path="tenant-master/acs" element={<TenantMasterPage defaultTab="acs" />} />
       <Route path="tenant-master/wards" element={<TenantMasterPage defaultTab="wards" />} />
       <Route path="tenant-master/booths" element={<TenantMasterPage defaultTab="booths" />} />
+      <Route path="tenant-master/elections" element={<TenantMasterPage defaultTab="elections" />} />
+      <Route path="elections" element={<TenantMasterPage defaultTab="elections" />} />
 
       {/* Tenant Volunteers & Cadre */}
       <Route path="volunteers" element={<TenantVolunteersPage />} />

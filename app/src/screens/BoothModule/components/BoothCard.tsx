@@ -13,12 +13,14 @@ interface BoothCardProps {
   booth: BoothItem;
   onPress?: (booth: BoothItem) => void;
   onPressVoters?: (booth: BoothItem) => void;
+  onPressPollDay?: (booth: BoothItem) => void;
 }
 
 export const BoothCard: React.FC<BoothCardProps> = ({
   booth,
   onPress,
   onPressVoters,
+  onPressPollDay,
 }) => {
   const { t } = useLanguage();
   const { theme } = useAppTheme();
@@ -306,12 +308,80 @@ export const BoothCard: React.FC<BoothCardProps> = ({
             </Text>
           </View>
         </View>
+
+        {/* Action Row: Directory vs Poll Day Live */}
+        <View style={styles.cardActionRow}>
+          <TouchableOpacity
+            style={[
+              styles.actionBtnOutline,
+              { borderColor: isDark ? '#334155' : '#E2E8F0' },
+            ]}
+            onPress={handleCardPress}
+            activeOpacity={0.7}
+          >
+            <MaterialDesignIcons name="account-group-outline" size={14} color="#2563EB" />
+            <Text style={[styles.actionBtnOutlineText, { color: isDark ? '#93C5FD' : '#2563EB' }]}>
+              {t('allVoters')}
+            </Text>
+          </TouchableOpacity>
+
+          {Boolean(onPressPollDay) && (
+            <TouchableOpacity
+              style={styles.actionBtnPrimary}
+              onPress={() => onPressPollDay && onPressPollDay(booth)}
+              activeOpacity={0.7}
+            >
+              <MaterialDesignIcons name="vote" size={14} color="#FFFFFF" />
+              <Text style={styles.actionBtnPrimaryText}>{t('pollDayMode')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
+  cardActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 0.5,
+    borderTopColor: '#E2E8F0',
+  },
+  actionBtnOutline: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 5,
+  },
+  actionBtnOutlineText: {
+    fontFamily: FontFamily.bold,
+    fontSize: rfValue(11.5),
+  },
+  actionBtnPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: '#059669',
+    gap: 5,
+  },
+  actionBtnPrimaryText: {
+    fontFamily: FontFamily.bold,
+    fontSize: rfValue(11.5),
+    color: '#FFFFFF',
+  },
   card: {
     borderRadius: 14,
     borderWidth: 0.5,

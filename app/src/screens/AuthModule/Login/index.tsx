@@ -19,6 +19,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { navigateToDashboard } from '../../../navigation/navigationUtils';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { sendOtpAction, verifyOtpAction, verifyMpinAction, fetchProfileAndRoleAccessAction } from '../../../store/actions/auth';
+import { AUTH_CONFIG } from '../../../constants/authConfig';
 
 const RANNITI_LOGO = require('../../../assets/images/ranniti-logo.png');
 
@@ -52,6 +53,10 @@ const Login = () => {
   };
 
   useEffect(() => {
+    if (AUTH_CONFIG.IS_OTP_DEMO_MODE) {
+      setIdentifier(AUTH_CONFIG.DEMO_CREDENCIALS.mobile);
+      setMpinInput(AUTH_CONFIG.DEMO_CREDENCIALS.pass);
+    }
     checkExistingMpinStatus();
   }, []);
 

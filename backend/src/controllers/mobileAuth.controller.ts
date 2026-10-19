@@ -69,8 +69,9 @@ export class MobileAuthController {
   });
 
   verifyMpin = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { mobile, mpin } = req.body;
-    const result = await mobileAuthService.verifyMpinLogin(mobile, mpin);
+    const { mobile, identifier, mpin } = req.body;
+    const targetMobile = mobile || identifier;
+    const result = await mobileAuthService.verifyMpinLogin(targetMobile, mpin);
     const formattedUser = attachFileUrls(result.user, undefined, req);
     const response = ApiResponse.success(
       { user: formattedUser, token: result.token, access: result.access },

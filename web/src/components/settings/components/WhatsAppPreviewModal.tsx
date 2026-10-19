@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Modal } from '@/components/common/Modal';
-import { AVAILABLE_VARIABLES } from './VariableChips';
 import { SafeImage } from '@/components/common/SafeImage';
 import type { WhatsAppTemplate } from '@/types/settings.types';
+import { AVAILABLE_VARIABLES, normalizeTemplateTextToLabels } from './VariableChips';
 
 interface WhatsAppPreviewModalProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ export const WhatsAppPreviewModal: React.FC<WhatsAppPreviewModalProps> = ({
 
   // Render text with interpolated values or raw placeholders
   const getRenderedBody = () => {
-    let text = template.bodyText ? template.bodyText.replace(/\\n/g, '\n') : '';
+    let text = normalizeTemplateTextToLabels(template.bodyText ? template.bodyText.replace(/\\n/g, '\n') : '');
     if (!showSimulatedData) return text;
 
     AVAILABLE_VARIABLES.forEach((v) => {

@@ -1,18 +1,11 @@
-import { TabContainer, type TabItem } from '@/components/common/TabContainer';
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import {
   WhatsAppTemplatesSection,
-  WhatsAppConfigSection,
   PushNotificationSection,
-  TestWhatsAppModal,
   AppVersionSection,
 } from '@/components/settings';
 import {
   Settings,
   MessageSquare,
-  Key,
   Bell,
   Save,
   Loader2,
@@ -23,16 +16,17 @@ import {
   fetchSuperAdminSettings,
   updateSuperAdminSettings,
   fetchSuperAdminWhatsAppTemplates,
-  createSuperAdminWhatsAppTemplate,
-  updateSuperAdminWhatsAppTemplate,
   deleteSuperAdminWhatsAppTemplate,
-  syncSuperAdminMetaTemplates,
   fetchSuperAdminAppVersions,
   updateSuperAdminAppVersionConfig,
 } from '@/redux/actions/settings';
 import toast from 'react-hot-toast';
+import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { TenantRoleManager } from '@/pages/super_admin/roles';
-import type { CampaignSettings, WhatsAppTemplate, SettingsTabKey, AppVersionConfig } from '@/types/settings.types';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { TabContainer, type TabItem } from '@/components/common/TabContainer';
+import type { CampaignSettings, SettingsTabKey, AppVersionConfig } from '@/types/settings.types';
 
 export const SuperAdminSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -41,7 +35,6 @@ export const SuperAdminSettingsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as SettingsTabKey | null;
 
-  const [isTestWhatsAppOpen, setIsTestWhatsAppOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTabKey>(() => tabParam || 'tenant-roles');
   const [localSettings, setLocalSettings] = useState<CampaignSettings | null>(null);
 
@@ -80,20 +73,8 @@ export const SuperAdminSettingsPage: React.FC = () => {
     dispatch(fetchSuperAdminWhatsAppTemplates());
   }, [dispatch]);
 
-  const handleCreateTemplate = React.useCallback((data: Partial<WhatsAppTemplate>) => {
-    return dispatch(createSuperAdminWhatsAppTemplate(data));
-  }, [dispatch]);
-
-  const handleUpdateTemplate = React.useCallback((id: string, data: Partial<WhatsAppTemplate>) => {
-    return dispatch(updateSuperAdminWhatsAppTemplate(id, data));
-  }, [dispatch]);
-
   const handleDeleteTemplate = React.useCallback((id: string) => {
     return dispatch(deleteSuperAdminWhatsAppTemplate(id));
-  }, [dispatch]);
-
-  const handleSyncTemplates = React.useCallback(() => {
-    return dispatch(syncSuperAdminMetaTemplates());
   }, [dispatch]);
 
   const handleUpdateAppVersion = React.useCallback(
@@ -127,18 +108,13 @@ export const SuperAdminSettingsPage: React.FC = () => {
     },
     {
       id: 'whatsapp-templates',
-      label: 'WhatsApp Templates (Master)',
+      label: 'WhatsApp Message Templates',
       icon: MessageSquare,
       count: whatsappTemplates.length,
     },
     {
-      id: 'whatsapp-config',
-      label: 'WhatsApp Meta API (Master)',
-      icon: Key,
-    },
-    {
       id: 'push-notifications',
-      label: 'Push Notifications (Master)',
+      label: 'Push Notifications',
       icon: Bell,
     },
   ];
@@ -157,7 +133,7 @@ export const SuperAdminSettingsPage: React.FC = () => {
                 Super Admin Master Settings
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Manage global tenant feature packages, app version force updates, master Meta API credentials, and default push settings
+                Manage global tenant feature packages, app version force updates, and election message templates
               </p>
             </div>
           </div>
@@ -200,20 +176,9 @@ export const SuperAdminSettingsPage: React.FC = () => {
           ),
           'whatsapp-templates': (
             <WhatsAppTemplatesSection
-              onFetchTemplates={handleFetchTemplates}
-              onCreateTemplate={handleCreateTemplate}
-              onUpdateTemplate={handleUpdateTemplate}
-              onDeleteTemplate={handleDeleteTemplate}
-              onSyncTemplates={handleSyncTemplates}
               loading={loading}
-            />
-          ),
-          'whatsapp-config': (
-            <WhatsAppConfigSection
-              settings={localSettings || ({} as CampaignSettings)}
-              onChange={handleUpdateLocal}
-              onOpenTestSend={() => setIsTestWhatsAppOpen(true)}
-              loading={loading || !localSettings}
+              onFetchTemplates={handleFetchTemplates}
+              onDeleteTemplate={handleDeleteTemplate}
             />
           ),
           'push-notifications': (
@@ -224,13 +189,6 @@ export const SuperAdminSettingsPage: React.FC = () => {
             />
           ),
         }}
-      />
-
-      {/* Global Test WhatsApp Modal */}
-      <TestWhatsAppModal
-        isOpen={isTestWhatsAppOpen}
-        onClose={() => setIsTestWhatsAppOpen(false)}
-        template={whatsappTemplates[0] || null}
       />
     </div>
   );

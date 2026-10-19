@@ -8,6 +8,12 @@ export const TOGGLE_VOTED_STATUS = "TOGGLE_VOTED_STATUS";
 export const UPDATE_VOTER_DETAILS = "UPDATE_VOTER_DETAILS";
 export const SET_VOTERS_PAGINATION = "SET_VOTERS_PAGINATION";
 export const SET_VOTERS_LOADING_MORE = "SET_VOTERS_LOADING_MORE";
+export const SET_VOTER_VIEW_MODE = "SET_VOTER_VIEW_MODE";
+export const SET_SOCIETIES_LIST = "SET_SOCIETIES_LIST";
+export const APPEND_SOCIETIES_LIST = "APPEND_SOCIETIES_LIST";
+export const SET_SOCIETIES_LOADING = "SET_SOCIETIES_LOADING";
+export const SET_SOCIETIES_LOADING_MORE = "SET_SOCIETIES_LOADING_MORE";
+export const SET_SOCIETIES_PAGINATION = "SET_SOCIETIES_PAGINATION";
 
 export interface Voter {
   id: string;
@@ -105,8 +111,24 @@ export interface VoterPagination {
   hasMore: boolean;
 }
 
+export interface SocietyGroupItem {
+  societyName: string;
+  totalVoters: number;
+  maleCount: number;
+  femaleCount: number;
+  otherCount: number;
+  totalHouseholds: number;
+  boothCount: number;
+  boothNumbers: string;
+}
+
 export interface VoterState {
+  viewMode: 'voters' | 'societies';
   voters: Voter[];
+  societies: SocietyGroupItem[];
+  societiesPagination: VoterPagination;
+  societiesLoading: boolean;
+  societiesLoadingMore: boolean;
   filters: {
     search: string;
     boothNo: string;
@@ -119,6 +141,7 @@ export interface VoterState {
     voterType?: string;
     isDead?: string;
     influencerRole?: string;
+    society?: string;
   };
   pagination: VoterPagination;
   loading: boolean;
@@ -133,8 +156,21 @@ const initialPagination: VoterPagination = {
   hasMore: false,
 };
 
+const initialSocietiesPagination: VoterPagination = {
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 1,
+  hasMore: false,
+};
+
 const initialVoterState: VoterState = {
+  viewMode: 'voters',
   voters: [],
+  societies: [],
+  societiesLoading: false,
+  societiesLoadingMore: false,
+  societiesPagination: initialSocietiesPagination,
   loading: true,
   loadingMore: false,
   filters: {
@@ -149,6 +185,7 @@ const initialVoterState: VoterState = {
     voterType: '',
     isDead: '',
     influencerRole: '',
+    society: '',
   },
   pagination: initialPagination,
 };
@@ -233,6 +270,41 @@ const voterReducer = (state = initialVoterState, action: any): VoterState => {
         voters: state.voters.map((v) =>
           v.id === action.payload.id ? { ...v, ...action.payload } : v
         ),
+      };
+    case SET_VOTER_VIEW_MODE:
+      return {
+        ...state,
+        viewMode: action.payload,
+      };
+    case SET_SOCIETIES_LOADING:
+      return {
+        ...state,
+        societiesLoading: action.payload,
+      };
+    case SET_SOCIETIES_LOADING_MORE:
+      return {
+        ...state,
+        societiesLoadingMore: action.payload,
+      };
+    case SET_SOCIETIES_PAGINATION:
+      return {
+        ...state,
+        societiesPagination: {
+          ...state.societiesPagination,
+          ...action.payload,
+        },
+      };
+    case SET_SOCIETIES_LIST:
+      return {
+        ...state,
+        societies: action.payload,
+        societiesLoading: false,
+      };
+    case APPEND_SOCIETIES_LIST:
+      return {
+        ...state,
+        societies: [...state.societies, ...action.payload],
+        societiesLoadingMore: false,
       };
     default:
       return state;

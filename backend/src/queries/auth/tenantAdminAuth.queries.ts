@@ -44,7 +44,7 @@ export class TenantAdminAuthQueries {
               tr.role_name            AS "tenantRoleName",
               tr.allowed_tabs         AS "allowedTabs",
               COALESCE(tr.allowed_tabs->'webTabs', '["dashboard", "voter_directory", "master_data", "settings"]'::jsonb) AS "allowedWebTabs",
-              COALESCE(tr.allowed_tabs->'masterSubTabs', '["acs", "wards", "booths"]'::jsonb) AS "allowedMasterSubTabs",
+              COALESCE(tr.allowed_tabs->'masterSubTabs', '["acs", "wards", "booths", "elections"]'::jsonb) AS "allowedMasterSubTabs",
               t.created_at            AS "createdAt",
               t.updated_at            AS "updatedAt"
        FROM tenants t
@@ -74,7 +74,7 @@ export class TenantAdminAuthQueries {
               tr.role_name            AS "tenantRoleName",
               tr.allowed_tabs         AS "allowedTabs",
               COALESCE(tr.allowed_tabs->'webTabs', '["dashboard", "voter_directory", "master_data", "settings"]'::jsonb) AS "allowedWebTabs",
-              COALESCE(tr.allowed_tabs->'masterSubTabs', '["acs", "wards", "booths"]'::jsonb) AS "allowedMasterSubTabs",
+              COALESCE(tr.allowed_tabs->'masterSubTabs', '["acs", "wards", "booths", "elections"]'::jsonb) AS "allowedMasterSubTabs",
               t.created_at            AS "createdAt",
               t.updated_at            AS "updatedAt"
        FROM tenants t
