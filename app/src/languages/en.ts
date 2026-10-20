@@ -603,6 +603,20 @@ export const en = {
   filteredBySociety: 'Filtered by Society',
   noSocietiesFound: 'No societies or areas found',
   noSocietiesFoundDesc: 'Try adjusting your search query or booth filters.',
+  hourlyTurnoutTitle: 'Hourly Turnout Surge',
+  votingVelocity: 'Voting Speed',
+  votesPerHour: 'votes/hour',
+  boothReporting: 'Booths Reporting',
+  peakHour: 'Peak Voting Hour',
+  turnoutByHour: 'Turnout by Hourly Slot',
+  noHourlyDataYet: 'No hourly votes recorded yet',
+  maleTurnout: 'Male Turnout',
+  femaleTurnout: 'Female Turnout',
+  otherTurnout: 'Other Turnout',
+  pending: 'Pending',
+  votes: 'votes',
+  currentBooth: 'Current Booth',
+  selectBoothSubtitle: 'Choose a polling booth to view voters and track live turnout',
 };
 
 export type TranslationKeys = keyof typeof en;

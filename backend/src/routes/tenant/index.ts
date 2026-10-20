@@ -9,6 +9,7 @@ import { tenantSettingsRoutes } from './settings.routes';
 import { tenantGeographyRoutes } from './geography.routes';
 import { tenantAuth } from '../../middlewares/tenantAuth.middleware';
 import { tenantVolunteerAnalyticsRoutes } from './volunteerAnalytics.routes';
+import { tenantBulkRoutes } from './bulk.routes';
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.use('/settings', tenantSettingsRoutes);
 router.use('/elections', tenantElectionRoutes);
 router.use('/geography', tenantGeographyRoutes);
 router.use('/analytics', tenantVolunteerAnalyticsRoutes);
+router.use('/bulk-import', tenantBulkRoutes);
 
 // Mount master geography/reference lookup endpoints directly under /tenant/* (e.g., /tenant/castes, /tenant/acs, /tenant/pcs)
 router.use(tenantGeographyRoutes);

@@ -167,6 +167,18 @@ export function resolveBreadcrumbs(pathname: string): { title: string; breadcrum
     };
   }
 
+  // ── 7a. Election Polling War Room ──────────────────────────────────────────
+  if (path.match(/\/(dashboard\/)?(tenant-master\/)?elections\/[^/]+\/turnout/)) {
+    return {
+      title: 'Live Election Polling War Room',
+      breadcrumbs: [
+        { label: 'Campaign', href: '/dashboard' },
+        { label: 'Elections', href: '/dashboard/tenant-master/elections' },
+        { label: 'Live Polling War Room' },
+      ],
+    };
+  }
+
   // ── 7. Tenant Master Data ──────────────────────────────────────────────────
   if (path.startsWith('/dashboard/tenant-master')) {
     const segments = path.split('/');

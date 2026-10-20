@@ -152,6 +152,21 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [assignModalType, setAssignModalType] = useState<'family' | 'social'>('family');
 
+  // Helper to determine if a field is locked in Edit mode:
+  // If editing and the field was already populated from the database (existingVoter or voterMeta), it is disabled.
+  const isFieldLocked = (fieldKey: string): boolean => {
+    if (!isEditing) return false;
+    let initialVal = existingVoter?.[fieldKey] ?? voterMeta?.[fieldKey];
+    if ((initialVal === undefined || initialVal === null || String(initialVal).trim() === '') && fieldKey === 'mobileNo') {
+      initialVal = existingVoter?.mobile ?? voterMeta?.mobile;
+    }
+    if ((initialVal === undefined || initialVal === null || String(initialVal).trim() === '') && fieldKey === 'mobile') {
+      initialVal = existingVoter?.mobileNo ?? voterMeta?.mobileNo;
+    }
+    if (initialVal === undefined || initialVal === null) return false;
+    return String(initialVal).trim() !== '';
+  };
+
   // 1. Initial Master Data Hydration on Screen Mount
   useEffect(() => {
     dispatch(fetchMasterStatesAction());
@@ -799,6 +814,7 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
             errors={errors}
             formData={formData}
             setFormData={setFormData}
+            isFieldLocked={isFieldLocked}
             canEditVoterStatus={canEditVoterStatus}
             canEditInclination={canEditInclination}
             canEditDemographics={canEditDemographics}
@@ -809,16 +825,17 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
         {(activeTab === 'all' || activeTab === 'electoral') && (
           <VoterGeographyFormSection
             t={t}
+            rawAcs={acs}
             theme={theme}
             errors={errors}
             formData={formData}
             pcOptions={pcOptions}
             acOptions={acOptions}
-            rawAcs={acs}
             setFormData={setFormData}
             sameAddress={sameAddress}
             stateOptions={stateOptions}
             boothOptions={boothOptions}
+            isFieldLocked={isFieldLocked}
             setSameAddress={setSameAddress}
             canEditContact={canEditContact}
             districtOptions={districtOptions}
@@ -855,15 +872,16 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
             t={t}
             theme={theme}
             errors={errors}
+            rawCastes={castes}
             formData={formData}
+            rawReligions={religions}
             setFormData={setFormData}
             casteOptions={casteOptions}
+            isFieldLocked={isFieldLocked}
             canEditContact={canEditContact}
             religionOptions={religionOptions}
             canEditDemographics={canEditDemographics}
             subcasteSuggestions={subcasteSuggestions}
-            rawCastes={castes}
-            rawReligions={religions}
           />
         )}
 

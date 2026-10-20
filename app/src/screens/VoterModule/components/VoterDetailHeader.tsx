@@ -244,7 +244,8 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    borderWidth: 2.5,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
   },
   avatar: {
     width: 68,

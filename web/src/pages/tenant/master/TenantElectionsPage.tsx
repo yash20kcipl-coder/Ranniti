@@ -11,10 +11,11 @@ import {
   syncDefaultElectionByDate,
   deleteTenantElection,
 } from '@/redux/actions/election';
+import { useNavigate } from 'react-router-dom';
 import React, { useState, useMemo } from 'react';
-import { Vote, Star, Calendar } from 'lucide-react';
 import { ElectionModal } from './components/ElectionModal';
 import { PageHeader } from '@/components/common/PageHeader';
+import { Vote, Star, Calendar, Activity } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
@@ -24,6 +25,7 @@ import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 import type { Election, CreateElectionPayload, UpdateElectionPayload } from '@/types/election.types';
 
 export const TenantElectionsPage: React.FC = () => {
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { elections, total, loading } = useAppSelector((state) => state.election);
 
@@ -176,9 +178,14 @@ export const TenantElectionsPage: React.FC = () => {
       render: (row) => (
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-2">
-            <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">
+            <button
+              type="button"
+              onClick={() => navigate(`/dashboard/tenant-master/elections/${row.id}/turnout`)}
+              className="text-left font-slab font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+              title="Open Live Turnout War Room"
+            >
               {row.name}
-            </span>
+            </button>
             {row.isDefault && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
                 <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
@@ -339,19 +346,29 @@ export const TenantElectionsPage: React.FC = () => {
               setDeleteModalOpen(true);
             }}
             extra={
-              !row.isDefault ? (
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => {
-                    setItemToSetDefault(row);
-                    setDefaultModalOpen(true);
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-md transition-colors"
-                  title="Set as Default / Active Election"
+                  onClick={() => navigate(`/dashboard/tenant-master/elections/${row.id}/turnout`)}
+                  className="p-1.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-md transition-colors"
+                  title="Open Live Polling War Room"
                 >
-                  <Star className="w-4 h-4" />
+                  <Activity className="w-4 h-4 text-emerald-500" />
                 </button>
-              ) : undefined
+                {!row.isDefault && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setItemToSetDefault(row);
+                      setDefaultModalOpen(true);
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-md transition-colors"
+                    title="Set as Default / Active Election"
+                  >
+                    <Star className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             }
           />
         )}

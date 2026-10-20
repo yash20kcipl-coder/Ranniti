@@ -25,6 +25,7 @@ interface VoterIdentificationFormSectionProps {
   canEditDemographics: boolean;
   canEditVoterStatus: boolean;
   canEditInclination: boolean;
+  isFieldLocked?: (key: string) => boolean;
 }
 
 export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSectionProps> = ({
@@ -36,12 +37,23 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
   canEditDemographics,
   canEditVoterStatus,
   canEditInclination,
+  isFieldLocked = () => false,
 }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
   const statusOptions = React.useMemo(() => getStatusOptions(t), [t]);
   const voterTypeOptions = React.useMemo(() => getVoterTypeOptions(t), [t]);
+
+  const isEpicLocked = isFieldLocked('epicNo');
+  const isEngFirstLocked = isFieldLocked('engFirstName');
+  const isEngMiddleLocked = isFieldLocked('engMiddleName');
+  const isEngSurnameLocked = isFieldLocked('engSurname');
+  const isFirstLocked = isFieldLocked('firstName');
+  const isMiddleLocked = isFieldLocked('middleName');
+  const isSurnameLocked = isFieldLocked('surname');
+  const isGenderLocked = isFieldLocked('gender');
+  const isDobLocked = isFieldLocked('dob');
 
   const calculateAge = (dobString: string): number | null => {
     if (!dobString) return null;
@@ -133,7 +145,8 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
           value={formData.epicNo}
           autoCapitalize="characters"
           placeholder="e.g. RJ14829102"
-          editable={canEditDemographics}
+          editable={canEditDemographics && !isEpicLocked}
+          locked={isEpicLocked}
           label={`${t('epicVoterId')} *`}
           icon="badge-account-horizontal-outline"
           onChangeText={(val) => setFormData((prev: any) => ({ ...prev, epicNo: val.toUpperCase() }))}
@@ -149,7 +162,8 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
               label={`${t('firstNameEng')}`}
               placeholder="First Name"
               value={formData.engFirstName}
-              editable={canEditDemographics}
+              editable={canEditDemographics && !isEngFirstLocked}
+              locked={isEngFirstLocked}
               error={errors.engFirstName}
               onChangeText={(val) => setFormData((prev: any) => ({ ...prev, engFirstName: val }))}
             />
@@ -159,7 +173,8 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
               label={t('middleNameEng')}
               placeholder="Middle Name"
               value={formData.engMiddleName}
-              editable={canEditDemographics}
+              editable={canEditDemographics && !isEngMiddleLocked}
+              locked={isEngMiddleLocked}
               onChangeText={(val) => setFormData((prev: any) => ({ ...prev, engMiddleName: val }))}
             />
           </View>
@@ -169,7 +184,8 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
           label={t('surnameEng')}
           placeholder="Surname"
           value={formData.engSurname}
-          editable={canEditDemographics}
+          editable={canEditDemographics && !isEngSurnameLocked}
+          locked={isEngSurnameLocked}
           onChangeText={(val) => setFormData((prev: any) => ({ ...prev, engSurname: val }))}
         />
 
@@ -183,7 +199,8 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
               label={t('firstNameReg')}
               placeholder="पहला नाम"
               value={formData.firstName}
-              editable={canEditDemographics}
+              editable={canEditDemographics && !isFirstLocked}
+              locked={isFirstLocked}
               onChangeText={(val) => setFormData((prev: any) => ({ ...prev, firstName: val }))}
             />
           </View>
@@ -192,7 +209,8 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
               label={t('middleNameReg')}
               placeholder="मध्य नाम"
               value={formData.middleName}
-              editable={canEditDemographics}
+              editable={canEditDemographics && !isMiddleLocked}
+              locked={isMiddleLocked}
               onChangeText={(val) => setFormData((prev: any) => ({ ...prev, middleName: val }))}
             />
           </View>
@@ -202,14 +220,15 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
           label={t('surnameReg')}
           placeholder="उपनाम"
           value={formData.surname}
-          editable={canEditDemographics}
+          editable={canEditDemographics && !isSurnameLocked}
+          locked={isSurnameLocked}
           onChangeText={(val) => setFormData((prev: any) => ({ ...prev, surname: val }))}
         />
 
         {/* Gender Pills */}
         <View style={styles.fieldBlock}>
           <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>{t('gender')}</Text>
-          <View style={[styles.pillRow, !canEditDemographics && { opacity: 0.6 }]}>
+          <View style={[styles.pillRow, (!canEditDemographics || isGenderLocked) && { opacity: 0.6 }]}>
             {FORM_GENDER_OPTIONS.map((gOpt) => {
               const g = gOpt.id;
               const isSelected = formData.gender === g;
@@ -218,7 +237,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
                 <TouchableOpacity
                   key={g}
                   activeOpacity={0.8}
-                  disabled={!canEditDemographics}
+                  disabled={!canEditDemographics || isGenderLocked}
                   style={[
                     styles.genderPill,
                     {
@@ -256,7 +275,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
         <View style={styles.flex1}>
           <TouchableOpacity
             activeOpacity={0.8}
-            disabled={!canEditDemographics}
+            disabled={!canEditDemographics || isDobLocked}
             onPress={() => setShowDatePicker(true)}
           >
             <AppTextInput
@@ -264,6 +283,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
               placeholder="YYYY-MM-DD"
               value={formData.dob}
               editable={false}
+              locked={isDobLocked}
               icon="calendar"
               containerStyle={{ marginBottom: 0 }}
             />

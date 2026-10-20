@@ -36,6 +36,7 @@ const AVAILABLE_MOBILE_SCREENS = [
   { key: 'survey', label: 'Cadre / Voter Survey' },
   { key: 'booth_analytics', label: 'Booth Analytics' },
   { key: 'gate_meetings', label: 'Gate Meetings' },
+  { key: 'election_polling', label: 'Election Polling & Turnout' },
 ];
 
 interface TenantUserRoleManagerProps {
@@ -444,7 +445,7 @@ export const TenantUserRoleManager: React.FC<TenantUserRoleManagerProps> = ({ hi
             />
 
             {/* Subordinate Role Delegation Matrix (can_create_roles) */}
-            <div className="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/60 space-y-3">
+            <div className="p-4 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/60 space-y-3">
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
                   <UserPlus size={16} /> User Delegation & Onboarding Rights
@@ -461,8 +462,8 @@ export const TenantUserRoleManager: React.FC<TenantUserRoleManagerProps> = ({ hi
                     <div
                       key={subRole.key}
                       onClick={() => handleToggleCreatableRole(subRole.key)}
-                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex flex-col justify-between gap-2 ${isChecked
-                        ? 'bg-white dark:bg-slate-900 border-indigo-500 dark:border-indigo-500 shadow-sm'
+                      className={`p-3 rounded-lg border text-xs cursor-pointer transition-all flex flex-col justify-between gap-2 ${isChecked
+                        ? 'bg-white dark:bg-slate-900 border-indigo-500 dark:border-indigo-500 shadow-xs'
                         : 'bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-70'
                         }`}
                     >
@@ -509,38 +510,38 @@ export const TenantUserRoleManager: React.FC<TenantUserRoleManagerProps> = ({ hi
             </div>
 
             {/* Voter Data Editing & Field Action Matrix */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-slate-50 to-violet-50/70 dark:from-slate-800/80 dark:to-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 space-y-3">
+            <div className="p-4 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/60 space-y-3">
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
                   <ShieldCheck size={16} /> Voter Data Action & Edit Permission Matrix
                 </h4>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                   Controls what field leaders and supporters can view or modify on voters in the mobile app
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {VOTER_PERM_DEFINITIONS.map((def) => {
                   const isChecked = Boolean(editingRole.voterPermissions?.[def.key]);
                   return (
                     <div
                       key={def.key}
                       onClick={() => handleToggleVoterPermission(def.key)}
-                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start justify-between gap-3 ${isChecked
-                        ? 'bg-white dark:bg-slate-900 border-indigo-400 dark:border-indigo-600 shadow-sm'
+                      className={`p-3 rounded-lg border text-xs cursor-pointer transition-all flex items-start justify-between gap-3 ${isChecked
+                        ? 'bg-white dark:bg-slate-900 border-indigo-400 dark:border-indigo-600 shadow-xs'
                         : 'bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-70'
                         }`}
                     >
                       <div>
                         <div className={`font-semibold text-xs flex items-center gap-1.5 ${isChecked ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-600 dark:text-slate-400'}`}>
-                          {isChecked ? <Edit3 size={12} className="text-indigo-600" /> : <Lock size={12} className="text-slate-400" />}
+                          {isChecked ? <Edit3 size={12} className="text-indigo-600 dark:text-indigo-400" /> : <Lock size={12} className="text-slate-400" />}
                           {def.label}
                         </div>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{def.desc}</p>
                       </div>
 
-                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all ${isChecked ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-700'}`}>
-                        {isChecked && <span className="text-[10px] font-bold">✓</span>}
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${isChecked ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-700'}`}>
+                        {isChecked && <span className="text-[9px] font-bold">✓</span>}
                       </div>
                     </div>
                   );

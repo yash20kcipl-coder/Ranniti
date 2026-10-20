@@ -59,35 +59,44 @@ export const BackgroundImportWidget: React.FC = () => {
     }
   }, [dispatch, voterFilters, isSuperAdmin]);
 
-  // Restore active and recent background import jobs on component mount & sync across tabs
+  // Restore active and recent background import jobs once on component mount
   useEffect(() => {
     dispatch(fetchActiveImportJobs());
-
-    const syncInterval = setInterval(() => {
-      dispatch(fetchActiveImportJobs());
-    }, 10000);
-
-    return () => clearInterval(syncInterval);
   }, [dispatch]);
 
-  // Poll backend for job status updates every 1.5s while active
+  // Sync jobs across browser tabs without sending recurring server requests
   useEffect(() => {
-    if (activeJobsList.length === 0) return;
+    if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('ranniti_import_jobs_channel');
 
-    const pendingOrProcessing = activeJobsList.filter(
-      (job) => job.status === 'processing' || job.status === 'pending'
-    );
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'JOB_STARTED' || event.data?.type === 'JOB_UPDATED') {
+        dispatch(fetchActiveImportJobs());
+      }
+    };
 
-    if (pendingOrProcessing.length === 0) return;
+    return () => {
+      channel.close();
+    };
+  }, [dispatch]);
+
+  // Poll backend for job status updates every 1.5s ONLY while jobs are actively pending or processing
+  const pendingOrProcessingIds = activeJobsList
+    .filter((job) => job.status === 'processing' || job.status === 'pending')
+    .map((j) => j.jobId);
+  const activeIdsKey = pendingOrProcessingIds.sort().join(',');
+
+  useEffect(() => {
+    if (pendingOrProcessingIds.length === 0) return;
 
     const interval = setInterval(() => {
-      pendingOrProcessing.forEach((job) => {
-        dispatch(fetchJobStatus(job.jobId));
+      pendingOrProcessingIds.forEach((jobId) => {
+        dispatch(fetchJobStatus(jobId));
       });
     }, 1500);
 
     return () => clearInterval(interval);
-  }, [dispatch, activeJobIds]);
+  }, [dispatch, activeIdsKey]);
 
   // Visual progression ticker & instant completion snap
   useEffect(() => {

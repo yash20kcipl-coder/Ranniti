@@ -6,18 +6,19 @@ import { FontFamily } from '../../utils/typography';
 
 export const appModalStyles = (theme: Theme) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    width: '85%',
-    maxHeight: '85%',
-    alignSelf: 'center',
-    borderRadius: 28,
     padding: 24,
-    alignItems: 'center',
+    width: '93%',
+    maxHeight: '85%',
+    borderRadius: 20,
     overflow: 'hidden',
+    alignSelf: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    backgroundColor: theme.colors.surface,
   },
   content: {
-    alignItems: 'center',
     marginBottom: 24,
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',

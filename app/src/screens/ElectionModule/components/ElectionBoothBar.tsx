@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Modal,
 } from 'react-native';
 import { useLanguage } from '../../../languages';
 import { useAppTheme } from '../../../hooks/useAppTheme';
@@ -26,39 +25,23 @@ export interface ElectionBoothBarProps {
     acName?: string | null;
   } | null;
   summary: MobileTurnoutSummary;
-  search?: string;
   onChangeBooth: () => void;
   onPressSurge?: () => void;
-  onChangeSearch?: (val: string) => void;
+  canChangeBooth?: boolean;
 }
 
 export const ElectionBoothBar: React.FC<ElectionBoothBarProps> = ({
   booth,
   summary,
-  search = '',
   onChangeBooth,
   onPressSurge,
-  onChangeSearch,
+  canChangeBooth = true,
 }) => {
   const { t } = useLanguage();
   const { theme } = useAppTheme();
   const isDark = theme.colors.background === darkColors.background;
-  const [keypadVisible, setKeypadVisible] = useState(false);
 
   const pct = Math.min(100, Math.max(0, summary.turnoutPercentage || 0));
-
-  const handleKeypadPress = (digit: string) => {
-    if (!onChangeSearch) return;
-    if (digit === 'CLEAR') {
-      onChangeSearch('');
-    } else if (digit === 'BACK') {
-      onChangeSearch(search.slice(0, -1));
-    } else {
-      if (search.length < 6) {
-        onChangeSearch(search + digit);
-      }
-    }
-  };
 
   const cardBg = theme.colors.surface || '#FFFFFF';
   const cardBorder = theme.colors.border || (isDark ? '#334155' : '#E2E8F0');
@@ -118,45 +101,26 @@ export const ElectionBoothBar: React.FC<ElectionBoothBarProps> = ({
           </View>
         </TouchableOpacity>
 
-        <View style={styles.headerRight}>
-          {onChangeSearch && (
+        {canChangeBooth && (
+          <View style={styles.headerRight}>
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => setKeypadVisible(true)}
+              onPress={onChangeBooth}
               style={[
-                styles.iconBtn,
+                styles.changeBtn,
                 {
-                  backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
-                  borderColor: isDark ? '#334155' : '#E2E8F0',
+                  backgroundColor: isDark ? '#1E3A8A25' : '#EFF6FF',
+                  borderColor: isDark ? '#1E40AF40' : '#BFDBFE',
                 },
               ]}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <MaterialDesignIcons
-                name="dialpad"
-                size={15}
-                color={theme.colors.primary || '#2563EB'}
-              />
+              <Text style={styles.changeBtnText}>
+                {t('changeBooth')}
+              </Text>
+              <MaterialDesignIcons name="chevron-down" size={13} color="#2563EB" />
             </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={onChangeBooth}
-            style={[
-              styles.changeBtn,
-              {
-                backgroundColor: isDark ? '#1E3A8A25' : '#EFF6FF',
-                borderColor: isDark ? '#1E40AF40' : '#BFDBFE',
-              },
-            ]}
-          >
-            <Text style={styles.changeBtnText}>
-              {t('changeBooth')}
-            </Text>
-            <MaterialDesignIcons name="chevron-down" size={13} color="#2563EB" />
-          </TouchableOpacity>
-        </View>
+          </View>
+        )}
       </View>
 
       {/* 2. Detailed Statistics Container (Matching BoothCard) */}
@@ -261,97 +225,7 @@ export const ElectionBoothBar: React.FC<ElectionBoothBarProps> = ({
         </View>
       </View>
 
-      {/* Quick Numeric Keypad Bottom Sheet Modal */}
-      <Modal
-        visible={keypadVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setKeypadVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setKeypadVisible(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.modalContent}
-            onPress={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderTitleRow}>
-                <MaterialDesignIcons
-                  name="dialpad"
-                  size={18}
-                  color={theme.colors.primary || '#1E40AF'}
-                />
-                <Text style={styles.modalTitle}>
-                  {t('searchBySerialOrName')}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setKeypadVisible(false)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <MaterialDesignIcons name="close" size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
 
-            {/* Display Box */}
-            <View style={styles.modalDisplay}>
-              <Text style={styles.modalDisplayPrefix}>#</Text>
-              <Text style={styles.modalDisplayText}>
-                {search ? search : t('searchBySerialOrName')}
-              </Text>
-              {Boolean(search) && (
-                <TouchableOpacity
-                  onPress={() => onChangeSearch?.('')}
-                  style={styles.modalClearBtn}
-                >
-                  <MaterialDesignIcons name="close-circle" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* 3x4 Touch Grid */}
-            <View style={styles.keypadGrid}>
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'CLEAR', '0', 'BACK'].map((val) => {
-                const isClear = val === 'CLEAR';
-                const isBack = val === 'BACK';
-                return (
-                  <TouchableOpacity
-                    key={val}
-                    activeOpacity={0.6}
-                    onPress={() => handleKeypadPress(val)}
-                    style={[
-                      styles.keypadKey,
-                      (isClear || isBack) && styles.keypadKeyAction,
-                    ]}
-                  >
-                    {isBack ? (
-                      <MaterialDesignIcons name="backspace-outline" size={20} color="#EF4444" />
-                    ) : isClear ? (
-                      <Text style={styles.keypadClearText}>{t('clear') || 'C'}</Text>
-                    ) : (
-                      <Text style={styles.keypadNumberText}>{val}</Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Done Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setKeypadVisible(false)}
-              style={styles.modalDoneBtn}
-            >
-              <Text style={styles.modalDoneBtnText}>{t('done') || 'Apply Search'}</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 };
@@ -411,14 +285,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  iconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    borderWidth: 0.5,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   changeBtn: {
     flexDirection: 'row',
@@ -493,102 +359,5 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 2.5,
-  },
-
-  /* Numeric Keypad Modal */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
-    paddingBottom: 28,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalHeaderTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  modalTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(13.5),
-    color: '#0F172A',
-  },
-  modalDisplay: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#F1F5F9',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    marginBottom: 14,
-  },
-  modalDisplayPrefix: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(18),
-    color: '#1E40AF',
-    marginRight: 4,
-  },
-  modalDisplayText: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(18),
-    color: '#1E40AF',
-  },
-  modalClearBtn: {
-    position: 'absolute',
-    right: 12,
-  },
-  keypadGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 14,
-  },
-  keypadKey: {
-    width: '31%',
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  keypadKeyAction: {
-    backgroundColor: '#F1F5F9',
-  },
-  keypadNumberText: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(18),
-    color: '#0F172A',
-  },
-  keypadClearText: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(14),
-    color: '#EF4444',
-  },
-  modalDoneBtn: {
-    height: 44,
-    backgroundColor: '#1E40AF',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalDoneBtnText: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(13),
-    color: '#FFFFFF',
   },
 });

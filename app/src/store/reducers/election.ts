@@ -41,7 +41,14 @@ export interface ElectionState {
   filters: ElectionFilters;
   offlineQueue: OfflineVoteQueueItem[];
   hourlyTurnout: {
-    hourlySurge?: Array<{ hour: string; count: number; percentage: number }>;
+    hourlySurge?: Array<{
+      timeSlot?: string;
+      hour?: string;
+      votesCast?: number;
+      count?: number;
+      percentage?: number;
+    }>;
+    boothTurnout?: any;
     summary?: Record<string, any>;
   } | null;
 }

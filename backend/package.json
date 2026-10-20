@@ -13,6 +13,7 @@
     "migrate:master": "tsx src/scripts/migrateMaster.ts",
     "migrate:tenants": "tsx src/scripts/migrateTenants.ts",
     "test:voter-filters": "tsx src/scripts/testVoterFilters.ts",
+    "test:autoupdate": "tsx src/scripts/testAutoUpdateSync.ts",
     "seed:volunteers": "tsx src/seeds/seeders/volunteer.seeder.ts",
     "seed:settings": "tsx src/seeds/seeders/setting.seeder.ts",
     "seed:whatsapp-templates": "tsx src/seeds/seeders/whatsapp_template.seeder.ts",

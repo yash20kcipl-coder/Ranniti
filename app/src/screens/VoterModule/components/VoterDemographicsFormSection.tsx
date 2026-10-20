@@ -24,6 +24,7 @@ export interface VoterDemographicsFormSectionProps {
   casteSuggestions?: string[];
   rawCastes?: any[];
   rawReligions?: any[];
+  isFieldLocked?: (key: string) => boolean;
 }
 
 export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSectionProps> = ({
@@ -41,9 +42,14 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
   casteSuggestions = [],
   rawCastes = [],
   rawReligions = [],
+  isFieldLocked = () => false,
 }) => {
   const relationOptions = React.useMemo(() => getRelationOptions(t), [t]);
 
+  const isMobileLocked = isFieldLocked('mobileNo') || isFieldLocked('mobile');
+  const isEmailLocked = isFieldLocked('email');
+  const isAadhaarLocked = isFieldLocked('aadhaarNo');
+  const isPanLocked = isFieldLocked('panNo');
 
   // Cascading caste options filtered by selected religionId if religion is set
   const filteredCasteOptions = React.useMemo(() => {
@@ -134,7 +140,8 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         keyboardType="phone-pad"
         maxLength={10}
         error={errors.mobileNo}
-        editable={canEditContact}
+        editable={canEditContact && !isMobileLocked}
+        locked={isMobileLocked}
       />
       <AppTextInput
         label={t('emailAddress') || 'Email Address'}
@@ -147,7 +154,8 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         keyboardType="email-address"
         autoCapitalize="none"
         error={errors.email}
-        editable={canEditContact}
+        editable={canEditContact && !isEmailLocked}
+        locked={isEmailLocked}
       />
 
       <AppTextInput
@@ -160,7 +168,8 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         icon="id-card"
         keyboardType="numeric"
         maxLength={12}
-        editable={canEditDemographics}
+        editable={canEditDemographics && !isAadhaarLocked}
+        locked={isAadhaarLocked}
       />
 
       <AppTextInput
@@ -173,7 +182,8 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         icon="credit-card"
         autoCapitalize="characters"
         maxLength={10}
-        editable={canEditDemographics}
+        editable={canEditDemographics && !isPanLocked}
+        locked={isPanLocked}
       />
 
       {/* Socio-Cultural: Religion, Caste, Subcaste */}

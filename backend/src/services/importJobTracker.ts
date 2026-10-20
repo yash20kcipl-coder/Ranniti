@@ -22,12 +22,40 @@ export interface ImportJob {
   startedAt: string;
   completedAt?: string;
   errorMessage?: string;
+  tenantDbName?: string;
 }
 
 class ImportJobTrackerService {
   private jobs: Map<string, ImportJob> = new Map();
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
-  createJob(category: string, totalRecords = 0): ImportJob {
+  constructor() {
+    // Periodically prune completed/failed jobs older than 2 hours to avoid memory leaks
+    this.cleanupTimer = setInterval(() => {
+      this.pruneOldJobs();
+    }, 15 * 60 * 1000);
+    if (this.cleanupTimer?.unref) {
+      this.cleanupTimer.unref();
+    }
+  }
+
+  public pruneOldJobs(): void {
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+    let prunedCount = 0;
+    for (const [id, job] of this.jobs.entries()) {
+      if ((job.status === 'completed' || job.status === 'failed') && job.startedAt) {
+        if (new Date(job.startedAt).getTime() < twoHoursAgo) {
+          this.jobs.delete(id);
+          prunedCount++;
+        }
+      }
+    }
+    if (prunedCount > 0) {
+      logger.info(`[ImportJobTracker] Pruned ${prunedCount} expired import jobs from memory.`);
+    }
+  }
+
+  createJob(category: string, totalRecords = 0, tenantDbName?: string): ImportJob {
     const jobId = randomUUID();
     const job: ImportJob = {
       jobId,
@@ -42,10 +70,11 @@ class ImportJobTrackerService {
       durationMs: 0,
       errors: [],
       startedAt: new Date().toISOString(),
+      tenantDbName,
     };
 
     this.jobs.set(jobId, job);
-    logger.info(`[ImportJobTracker] Job created: ${jobId} (${category}, total: ${totalRecords})`);
+    logger.info(`[ImportJobTracker] Job created: ${jobId} (${category}, total: ${totalRecords}${tenantDbName ? `, tenantDb: ${tenantDbName}` : ''})`);
     return job;
   }
 
@@ -91,14 +120,16 @@ class ImportJobTrackerService {
     if (typeof insertedCount === 'number') job.insertedCount = insertedCount;
     if (typeof failedCount === 'number') job.failedCount = failedCount;
     job.processedRecords = job.insertedCount + job.failedCount;
-    if (job.totalRecords === 0) job.totalRecords = job.processedRecords;
+    if (job.totalRecords === 0 || job.totalRecords < job.processedRecords) {
+      job.totalRecords = job.processedRecords;
+    }
     job.progressPercent = 100;
     job.completedAt = new Date().toISOString();
     job.durationMs = Date.now() - new Date(job.startedAt).getTime();
     if (job.durationMs > 0) {
       job.recordsPerSecond = Math.round((job.processedRecords / (job.durationMs / 1000)));
     }
-    if (errors.length > 0) {
+    if (Array.isArray(errors)) {
       job.errors = errors.slice(0, 10000);
     }
 
@@ -117,12 +148,22 @@ class ImportJobTrackerService {
     logger.error(`[ImportJobTracker] Job failed: ${jobId} - ${errorMessage}`);
   }
 
-  getJob(jobId: string): ImportJob | undefined {
-    return this.jobs.get(jobId);
+  getJob(jobId: string, tenantDbName?: string): ImportJob | undefined {
+    const job = this.jobs.get(jobId);
+    if (!job) return undefined;
+    if (tenantDbName && job.tenantDbName !== tenantDbName) {
+      return undefined;
+    }
+    return job;
   }
 
-  getAllJobs(): ImportJob[] {
-    return Array.from(this.jobs.values()).sort(
+  getAllJobs(tenantDbName?: string): ImportJob[] {
+    const all = Array.from(this.jobs.values());
+    const filtered = tenantDbName
+      ? all.filter((j) => j.tenantDbName === tenantDbName)
+      : all;
+
+    return filtered.sort(
       (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
     );
   }

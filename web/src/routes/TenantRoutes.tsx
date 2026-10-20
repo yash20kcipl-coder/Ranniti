@@ -12,7 +12,7 @@ import {
 } from '@/pages/tenant/voters';
 
 // Tenant Master Data Page
-import { TenantMasterPage } from '@/pages/tenant/master';
+import { TenantMasterPage, TenantElectionTurnoutPage } from '@/pages/tenant/master';
 
 // Tenant Volunteers Page
 import { TenantVolunteersPage } from '@/pages/tenant/volunteers/TenantVolunteersPage';
@@ -43,7 +43,9 @@ export const TenantRoutes: React.FC = () => {
       <Route path="tenant-master/wards" element={<TenantMasterPage defaultTab="wards" />} />
       <Route path="tenant-master/booths" element={<TenantMasterPage defaultTab="booths" />} />
       <Route path="tenant-master/elections" element={<TenantMasterPage defaultTab="elections" />} />
+      <Route path="tenant-master/elections/:id/turnout" element={<TenantElectionTurnoutPage />} />
       <Route path="elections" element={<TenantMasterPage defaultTab="elections" />} />
+      <Route path="elections/:id/turnout" element={<TenantElectionTurnoutPage />} />
 
       {/* Tenant Volunteers & Cadre */}
       <Route path="volunteers" element={<TenantVolunteersPage />} />

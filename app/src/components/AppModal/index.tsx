@@ -101,12 +101,12 @@ export const AppModal: React.FC<AppModalProps> = ({
 
   return (
     <Modal
+      exiting={FadeOut}
+      position="center"
       visible={visible}
       onDismiss={onDismiss}
-      position="center"
-      contentContainerStyle={styles.container}
       entering={ZoomIn.duration(400)}
-      exiting={FadeOut}
+      contentContainerStyle={styles.container}
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={onDismiss} style={styles.closeBtn} activeOpacity={0.7}>

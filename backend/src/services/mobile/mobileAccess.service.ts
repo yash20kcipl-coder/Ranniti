@@ -72,7 +72,7 @@ export class MobileAccessService {
       return {
         roleKey: 'pc_leader',
         roleName: 'Parliamentary Constituency Leader',
-        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics', 'gate_meetings'],
+        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics', 'gate_meetings', 'election_polling'],
         voterPermissions: {
           canViewVoter: true,
           canCreateVoter: true,
@@ -91,7 +91,7 @@ export class MobileAccessService {
       return {
         roleKey: 'ac_leader',
         roleName: 'Assembly Constituency Leader',
-        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics', 'gate_meetings'],
+        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics', 'gate_meetings', 'election_polling'],
         voterPermissions: {
           canViewVoter: true,
           canCreateVoter: true,
@@ -110,7 +110,7 @@ export class MobileAccessService {
       return {
         roleKey: 'sub_leader',
         roleName: 'Sub Leader',
-        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics'],
+        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics', 'election_polling'],
         voterPermissions: {
           canViewVoter: true,
           canCreateVoter: true,
@@ -129,7 +129,7 @@ export class MobileAccessService {
     return {
       roleKey: 'supporter',
       roleName: 'Booth Supporter',
-      mobileScreens: ['voter_search', 'family_tree'],
+      mobileScreens: ['voter_search', 'family_tree', 'election_polling'],
       voterPermissions: {
         canViewVoter: true,
         canCreateVoter: false,

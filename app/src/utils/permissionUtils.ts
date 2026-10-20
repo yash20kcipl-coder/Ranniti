@@ -4,11 +4,12 @@ import { SCREENS } from '../navigation/constants';
  * Maps database/web role mobileScreens keys to mobile application navigation routes
  */
 export const MOBILE_SCREEN_TO_ROUTES_MAP: Record<string, string[]> = {
-  booth_analytics: [SCREENS.DASHBOARD, SCREENS.ASSIGNED_BOOTHS],
+  booth_analytics: [SCREENS.DASHBOARD, SCREENS.ASSIGNED_BOOTHS, SCREENS.ELECTION_POLLING],
   voter_search: [SCREENS.VOTER_LIST, SCREENS.VOTER_DETAIL, SCREENS.ADD_EDIT_VOTER],
   family_tree: [SCREENS.FAMILY_MAPPING],
   gate_meetings: [SCREENS.INFLUENCER_MAPPING, SCREENS.CONTACT_SYNC],
   team_management: [SCREENS.TEAM_MANAGEMENT, SCREENS.ONBOARD_TEAM_MEMBER, SCREENS.VOLUNTEER_DETAIL],
+  election_polling: [SCREENS.ELECTION_POLLING],
 };
 
 /**

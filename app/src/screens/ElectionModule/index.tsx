@@ -1,44 +1,40 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
-  Text,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { RootState, AppDispatch } from '../../store/store';
-import {
-  fetchMobilePollingVotersAction,
-  markMobileVoterVotedAction,
-  MobilePollingVoter,
-  fetchMobileBoothTurnoutAction,
-} from '../../store/actions/mobileElection';
-import { fetchAssignedBoothsAction } from '../../store/actions/booths';
 import {
   ElectionBoothBar,
   OfflineSyncBanner,
   ElectionSkeleton,
   ElectionFilterType,
+  HourlyTurnoutModal,
+  BoothPickerModal,
 } from './components';
-import { VoterCard } from '../VoterModule/components/VoterCard';
-import { WhatsAppTemplatePickerModal } from '../VoterModule/components/WhatsAppTemplatePickerModal';
 import {
   SearchHeaderWithFilter,
   MdFlatList,
   NoData,
   ScrollView,
   ConfirmModal,
-  AppModal,
 } from '../../components';
-import { MaterialDesignIcons } from '../../components/MaterialDesignIcons';
-import { useAppTheme } from '../../hooks/useAppTheme';
-import { useLanguage } from '../../languages';
 import { electionStyles } from './styles';
+import {
+  fetchMobilePollingVotersAction,
+  markMobileVoterVotedAction,
+  MobilePollingVoter,
+  fetchMobileBoothTurnoutAction,
+} from '../../store/actions/mobileElection';
+import { useLanguage } from '../../languages';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '../../store/store';
+import { VoterCard } from '../VoterModule/components/VoterCard';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { useDebouncedEffect } from '../../hooks/useDebouncedEffect';
-import { rfValue } from '../../utils/responsive';
-import { FontFamily } from '../../utils/typography';
+import { fetchAssignedBoothsAction } from '../../store/actions/booths';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { WhatsAppTemplatePickerModal } from '../VoterModule/components/WhatsAppTemplatePickerModal';
 
 export const ElectionPollingScreen: React.FC = () => {
   const { t } = useLanguage();
@@ -48,30 +44,48 @@ export const ElectionPollingScreen: React.FC = () => {
   const { theme, styles } = useAppTheme(electionStyles);
 
   // Redux store data
-  const electionState = useSelector((state: RootState) => state.election);
   const boothsState = useSelector((state: RootState) => state.booths);
-  const { voters, turnoutSummary, booth, election, loading, loadingMore, pagination } = electionState;
+  const electionState = useSelector((state: RootState) => state.election);
+  const { voters, turnoutSummary, booth, election, loading, loadingMore, pagination, hourlyTurnout } = electionState;
 
-  // Selected booth handling: route param > state.election.booth > first assigned booth
+  // Selected booth handling: selectedBoothId > route param > state.election.booth > first assigned booth
   const routeBoothId = route.params?.boothId;
-  const activeBoothId = routeBoothId || booth?.id || boothsState.booths?.[0]?.id;
-
-  // Local filter states
-  const [searchInput, setSearchInput] = useState('');
-  const [activeTab, setActiveTab] = useState<ElectionFilterType>('all');
+  const [selectedBoothId, setSelectedBoothId] = useState<string | null>(routeBoothId || null);
+  const activeBoothId = selectedBoothId || routeBoothId || booth?.id || boothsState.booths?.[0]?.id;
 
   // Modal states
-  const [undoModalVisible, setUndoModalVisible] = useState(false);
-  const [voterToUndo, setVoterToUndo] = useState<MobilePollingVoter | null>(null);
   const [isUndoing, setIsUndoing] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [isHourlyLoading, setIsHourlyLoading] = useState(false);
+  const [undoModalVisible, setUndoModalVisible] = useState(false);
   const [boothPickerVisible, setBoothPickerVisible] = useState(false);
+  const [hourlyModalVisible, setHourlyModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<ElectionFilterType>('all');
   const [templateModalVoter, setTemplateModalVoter] = useState<any>(null);
+  const [voterToUndo, setVoterToUndo] = useState<MobilePollingVoter | null>(null);
   const [templateModalChannel, setTemplateModalChannel] = useState<'whatsapp' | 'sms'>('whatsapp');
 
   const handleOpenWhatsAppModal = useCallback((voter: any) => {
     setTemplateModalChannel('whatsapp');
     setTemplateModalVoter(voter);
   }, []);
+
+  const handleSelectBooth = useCallback(
+    (b: any) => {
+      setSelectedBoothId(b.id);
+      if (navigation.setParams) {
+        navigation.setParams({ boothId: b.id } as any);
+      }
+      dispatch(
+        fetchMobilePollingVotersAction({
+          boothId: b.id,
+          page: 1,
+          limit: 50,
+        })
+      );
+    },
+    [dispatch, navigation]
+  );
 
   // 1. Initial Booths fetch if empty
   useEffect(() => {
@@ -311,14 +325,19 @@ export const ElectionPollingScreen: React.FC = () => {
           <ElectionBoothBar
             booth={booth}
             summary={turnoutSummary}
-            search={searchInput}
+            canChangeBooth={(boothsState.booths?.length || 0) > 1}
             onChangeBooth={() => setBoothPickerVisible(true)}
-            onPressSurge={() => {
+            onPressSurge={async () => {
+              setHourlyModalVisible(true);
               if (election?.id && activeBoothId) {
-                dispatch(fetchMobileBoothTurnoutAction(election.id, activeBoothId));
+                setIsHourlyLoading(true);
+                try {
+                  await dispatch(fetchMobileBoothTurnoutAction(election.id, activeBoothId));
+                } finally {
+                  setIsHourlyLoading(false);
+                }
               }
             }}
-            onChangeSearch={setSearchInput}
           />
 
           {/* Main Polling Voter List using MdFlatList */}
@@ -340,103 +359,24 @@ export const ElectionPollingScreen: React.FC = () => {
       )}
 
       {/* Booth Selector Modal */}
-      <AppModal
+      <BoothPickerModal
         visible={boothPickerVisible}
-        onDismiss={() => setBoothPickerVisible(false)}
-        title={t('changeBooth')}
-        icon="office-building-marker"
-      >
-        <ScrollView
-          style={screenStyles.boothPickerScroll}
-          showsVerticalScrollIndicator={false}
-          useFlex={false}
-          useThemeBackground={false}
-        >
-          {boothsState.booths && boothsState.booths.length > 0 ? (
-            boothsState.booths.map((b) => {
-              const isSelected = b.id === activeBoothId;
-              return (
-                <TouchableOpacity
-                  key={b.id}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    dispatch(
-                      fetchMobilePollingVotersAction({
-                        boothId: b.id,
-                        page: 1,
-                        limit: 50,
-                      })
-                    );
-                    setBoothPickerVisible(false);
-                  }}
-                  style={[
-                    screenStyles.boothOptionItem,
-                    isSelected && screenStyles.boothOptionItemSelected,
-                  ]}
-                >
-                  <View style={screenStyles.boothOptionLeft}>
-                    <View
-                      style={[
-                        screenStyles.boothBadgePill,
-                        isSelected && screenStyles.boothBadgePillSelected,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          screenStyles.boothBadgeText,
-                          isSelected && screenStyles.boothBadgeTextSelected,
-                        ]}
-                      >
-                        #{b.boothNumber || '-'}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          screenStyles.boothOptionName,
-                          isSelected && { color: theme.colors.primary },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {b.name}
-                      </Text>
-                      {b.locationBuilding || b.wardName ? (
-                        <Text style={screenStyles.boothOptionSub} numberOfLines={1}>
-                          {b.locationBuilding || b.wardName}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </View>
-                  {isSelected && (
-                    <MaterialDesignIcons
-                      name="check-circle"
-                      size={20}
-                      color={theme.colors.primary}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })
-          ) : (
-            <NoData
-              icon="office-building-marker-outline"
-              text={t('noBoothsFound')}
-              description={t('noBoothsFoundDesc')}
-            />
-          )}
-        </ScrollView>
-      </AppModal>
+        onClose={() => setBoothPickerVisible(false)}
+        booths={boothsState.booths || []}
+        activeBoothId={activeBoothId}
+        onSelectBooth={handleSelectBooth}
+      />
 
       {/* Undo Vote Confirmation Modal (Rule 24) */}
       <ConfirmModal
-        visible={undoModalVisible}
-        title={t('confirmUndoVoteTitle')}
-        message={t('confirmUndoVoteMessage')}
-        confirmText={t('undoVote')}
-        cancelText={t('cancel')}
         variant="warning"
         isLoading={isUndoing}
+        cancelText={t('cancel')}
+        visible={undoModalVisible}
+        confirmText={t('undoVote')}
+        title={t('confirmUndoVoteTitle')}
         onConfirm={handleConfirmUndoVote}
+        message={t('confirmUndoVoteMessage')}
         onDismiss={() => {
           setUndoModalVisible(false);
           setVoterToUndo(null);
@@ -450,6 +390,16 @@ export const ElectionPollingScreen: React.FC = () => {
         initialChannel={templateModalChannel}
         onClose={() => setTemplateModalVoter(null)}
       />
+
+      {/* Hourly Turnout Surge Modal */}
+      <HourlyTurnoutModal
+        summary={turnoutSummary}
+        hourlyData={hourlyTurnout}
+        isLoading={isHourlyLoading}
+        visible={hourlyModalVisible}
+        booth={booth || currentBoothItem || null}
+        onClose={() => setHourlyModalVisible(false)}
+      />
     </View>
   );
 };
@@ -460,60 +410,6 @@ const screenStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
-  },
-  boothPickerScroll: {
-    maxHeight: 320,
-    width: '100%',
-  },
-  boothOptionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-    marginBottom: 8,
-  },
-  boothOptionItemSelected: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF',
-  },
-  boothOptionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  boothBadgePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: '#E2E8F0',
-  },
-  boothBadgePillSelected: {
-    backgroundColor: '#DBEAFE',
-  },
-  boothBadgeText: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(11),
-    color: '#475569',
-  },
-  boothBadgeTextSelected: {
-    color: '#1E40AF',
-  },
-  boothOptionName: {
-    fontFamily: FontFamily.bodyBold,
-    fontSize: rfValue(13),
-    color: '#0F172A',
-  },
-  boothOptionSub: {
-    fontFamily: FontFamily.body,
-    fontSize: rfValue(11),
-    color: '#64748B',
-    marginTop: 2,
   },
 });
 

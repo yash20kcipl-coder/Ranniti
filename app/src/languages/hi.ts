@@ -605,6 +605,20 @@ export const hi: Record<TranslationKeys, string> = {
   filteredBySociety: 'सोसायटी अनुसार फ़िल्टर किया गया',
   noSocietiesFound: 'कोई सोसायटी या क्षेत्र नहीं मिला',
   noSocietiesFoundDesc: 'कृपया अपनी खोज या बूथ फ़िल्टर बदलकर पुनः प्रयास करें।',
+  hourlyTurnoutTitle: 'प्रति घंटा मतदान रुझान',
+  votingVelocity: 'मतदान की गति',
+  votesPerHour: 'वोट/घंटा',
+  boothReporting: 'रिपोर्टिंग बूथ',
+  peakHour: 'अधिकतम मतदान समय',
+  turnoutByHour: 'समय अनुसार मतदान स्थिति',
+  noHourlyDataYet: 'अभी तक कोई प्रति घंटा मतदान दर्ज नहीं हुआ',
+  maleTurnout: 'पुरुष मतदान',
+  femaleTurnout: 'महिला मतदान',
+  otherTurnout: 'अन्य मतदान',
+  pending: 'लंबित',
+  votes: 'वोट',
+  currentBooth: 'वर्तमान बूथ',
+  selectBoothSubtitle: 'मतदाता देखने और लाइव मतदान ट्रैक करने के लिए बूथ चुनें',
 };
 
 

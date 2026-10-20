@@ -25,6 +25,7 @@ interface VoterGeographyFormSectionProps {
   talukaSuggestions?: string[];
   villageSuggestions?: string[];
   rawAcs?: any[];
+  isFieldLocked?: (key: string) => boolean;
 }
 
 export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps> = ({
@@ -44,7 +45,16 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
   talukaSuggestions = [],
   villageSuggestions = [],
   rawAcs = [],
+  isFieldLocked = () => false,
 }) => {
+  const isStateLocked = isFieldLocked('stateId');
+  const isDistrictLocked = isFieldLocked('districtId');
+  const isPcLocked = isFieldLocked('pcId');
+  const isAcLocked = isFieldLocked('acId');
+  const isBoothLocked = isFieldLocked('boothId');
+  const isSerialLocked = isFieldLocked('serialNo');
+  const isSectionLocked = isFieldLocked('sectionNo');
+
   const handleSameAddressChange = (enabled: boolean) => {
     setSameAddress(enabled);
     if (enabled) {
@@ -85,6 +95,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               placeholder={t('selectState')}
               value={formData.stateId}
               options={stateOptions}
+              disabled={isStateLocked}
               searchable={true}
               onSelect={(val) => {
                 setFormData((prev: any) => ({
@@ -104,6 +115,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               placeholder={t('selectDistrict')}
               value={formData.districtId}
               options={districtOptions}
+              disabled={isDistrictLocked}
               searchable={true}
               onSelect={(val) => {
                 setFormData((prev: any) => ({
@@ -123,6 +135,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               placeholder={t('selectPc')}
               value={formData.pcId}
               options={pcOptions}
+              disabled={isPcLocked}
               searchable={true}
               onSelect={(val) => {
                 setFormData((prev: any) => ({
@@ -140,6 +153,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               placeholder={t('selectAc')}
               value={formData.acId}
               options={acOptions}
+              disabled={isAcLocked}
               searchable={true}
               onSelect={(val) => {
                 const matchedAc = (rawAcs || []).find((a: any) => String(a.id) === String(val));
@@ -163,6 +177,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           icon="office-building"
           value={formData.boothId}
           options={boothOptions}
+          disabled={isBoothLocked}
           searchable={true}
           searchPlaceholder={t('searchBoothPlaceholder') || 'Search booth number or name...'}
           onSelect={(val) => {
@@ -188,6 +203,8 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               placeholder="e.g. 142"
               keyboardType="numeric"
               value={formData.serialNo ? String(formData.serialNo) : ''}
+              editable={!isSerialLocked}
+              locked={isSerialLocked}
               onChangeText={(val) => setFormData((prev: any) => ({ ...prev, serialNo: val }))}
             />
           </View>
@@ -197,6 +214,8 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               placeholder="e.g. 2"
               keyboardType="numeric"
               value={formData.sectionNo ? String(formData.sectionNo) : ''}
+              editable={!isSectionLocked}
+              locked={isSectionLocked}
               onChangeText={(val) => setFormData((prev: any) => ({ ...prev, sectionNo: val }))}
             />
           </View>

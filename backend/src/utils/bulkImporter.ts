@@ -162,11 +162,12 @@ export class BulkImporter {
 
       const now = process.hrtime.bigint();
       const durationMs = Number(now - startTime) / 1e6;
-      const rps = Math.round((totalProcessed / (durationMs / 1000)) || 0);
+      const completedCount = insertedCount + failedCount;
+      const rps = Math.round((completedCount / (durationMs / 1000)) || 0);
 
       if (config.onProgress) {
         config.onProgress({
-          processed: totalProcessed,
+          processed: completedCount,
           inserted: insertedCount,
           failed: failedCount,
           durationMs: Math.round(durationMs),
