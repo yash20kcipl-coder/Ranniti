@@ -33,10 +33,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Allow access to your camera to capture photos for profile pictures, documents, and identity verification.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>Allow access to phone contacts to find registered voters in your polling booth.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>Allow access to phone contacts to find and match registered voters in your polling booth and constituency.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Allow saving exported photos and verification documents to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Allow access to your photo library to select and upload voter photos, documents, and identity verification proofs.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

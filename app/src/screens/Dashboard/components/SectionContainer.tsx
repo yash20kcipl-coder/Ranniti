@@ -70,6 +70,7 @@ export const SectionContainer: React.FC<SectionContainerProps> = ({
             <View style={styles.titleTextColumn}>
               {title && (
                 <Text
+                  numberOfLines={1}
                   style={[
                     styles.title,
                     { color: theme.colors.text || '#0F172A' },
@@ -137,12 +138,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FontFamily.bold,
-    fontSize: rfValue(18),
+    fontSize: rfValue(16),
     letterSpacing: -0.2,
   },
   subtitle: {
     fontFamily: FontFamily.medium,
-    fontSize: rfValue(11),
+    fontSize: rfValue(10),
   },
   headerRight: {
     flexDirection: 'row',

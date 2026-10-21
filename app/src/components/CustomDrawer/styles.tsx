@@ -11,7 +11,7 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
     },
     // Header Styling
     header: {
-      paddingTop: Math.max(insets.top + 16, 36),
+      paddingTop: insets.top + 5,
       paddingHorizontal: 20,
       paddingBottom: 20,
       backgroundColor: theme.colors.primary,
@@ -116,7 +116,7 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
     },
     drawerContent: {
       paddingHorizontal: 14,
-      paddingBottom: 24,
+      paddingBottom: 14,
     },
     categoryHeader: {
       marginTop: 14,
@@ -193,7 +193,7 @@ export const customDrawerStyles = (theme: Theme, insets: any) =>
     footer: {
       paddingHorizontal: 16,
       paddingTop: 12,
-      paddingBottom: Math.max(insets.bottom + 12, 20),
+      paddingBottom: insets.bottom,
       borderTopWidth: 1,
       borderTopColor: theme.colors.border,
       backgroundColor: theme.colors.surface,

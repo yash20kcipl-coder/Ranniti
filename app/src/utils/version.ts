@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
  * Single source of truth for the app version across the entire mobile application.
  */
 export const APP_VERSION_CONFIG = {
-  ios: '1.8',
+  ios: '1.7',
   android: '1.0.9',
   buildNumber: '10',
 };
