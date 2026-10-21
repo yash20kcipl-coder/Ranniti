@@ -22,7 +22,7 @@ import { TenantAnalyticsPage } from '@/pages/tenant/analytics';
 
 // Tenant Settings & User Role Manager Pages
 import { TenantUserRoleManager } from '@/pages/tenant/roles';
-import { TenantSettingsPage } from '@/pages/tenant/settings';
+import { TenantSettingsPage, WhatsAppTemplateBuilderPage } from '@/pages/tenant/settings';
 
 export const TenantRoutes: React.FC = () => {
   return (
@@ -57,6 +57,13 @@ export const TenantRoutes: React.FC = () => {
       <Route path="settings" element={<TenantSettingsPage />} />
       <Route path="settings/roles" element={<TenantUserRoleManager />} />
       <Route path="settings/*" element={<TenantSettingsPage />} />
+
+      {/* Tenant WhatsApp Message Template Dedicated Standalone Builder Pages */}
+      <Route path="whatsapp-templates/new" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="whatsapp-templates/:id/edit" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="whatsapp-templates/:id" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="settings/whatsapp-templates/new" element={<WhatsAppTemplateBuilderPage />} />
+      <Route path="settings/whatsapp-templates/:id/edit" element={<WhatsAppTemplateBuilderPage />} />
 
       {/* Fallback within Tenant dashboard */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

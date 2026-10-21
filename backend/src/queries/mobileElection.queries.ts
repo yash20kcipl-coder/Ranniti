@@ -303,23 +303,29 @@ export class MobileElectionQueries {
   }
 
   /**
-   * Fetch approved WhatsApp templates from Master DB combined with election & campaign metadata
+   * Fetch approved WhatsApp templates from Tenant DB combined with election & campaign metadata
    */
   static async getMobileWhatsAppTemplates(tenantPool: Pool): Promise<{
     templates: any[];
     election: { id: string | null; name: string | null; electionDate: string | null };
     campaign: { candidateName: string | null; partyName: string | null };
   }> {
-    // 1. Fetch APPROVED templates from Master DB
-    const templatesRes = await query(
-      `SELECT id, meta_template_id AS "metaTemplateId", name, category, language,
-              header_type AS "headerType", header_content AS "headerContent",
-              body_text AS "bodyText", footer_text AS "footerText",
-              buttons, variables, meta_status AS "metaStatus"
-       FROM whatsapp_templates
-       WHERE meta_status = 'APPROVED'
-       ORDER BY category ASC, name ASC;`
-    );
+    // 1. Fetch APPROVED templates from Tenant DB
+    let templateRows: any[] = [];
+    try {
+      const tenantTemplatesRes = await tenantPool.query(
+        `SELECT id, meta_template_id AS "metaTemplateId", name, category, language,
+                header_type AS "headerType", header_content AS "headerContent",
+                body_text AS "bodyText", footer_text AS "footerText",
+                buttons, variables, meta_status AS "metaStatus"
+         FROM whatsapp_templates
+         WHERE meta_status = 'APPROVED'
+         ORDER BY category ASC, name ASC;`
+      );
+      templateRows = tenantTemplatesRes.rows;
+    } catch {
+      templateRows = [];
+    }
 
     // 2. Fetch Active default election from Tenant DB
     let defaultElection = null;
@@ -341,7 +347,7 @@ export class MobileElectionQueries {
     }
 
     return {
-      templates: templatesRes.rows,
+      templates: templateRows,
       election: {
         id: defaultElection?.id || null,
         name: defaultElection?.name || null,

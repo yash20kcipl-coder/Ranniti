@@ -1,11 +1,9 @@
 import {
-  WhatsAppTemplatesSection,
   PushNotificationSection,
   AppVersionSection,
 } from '@/components/settings';
 import {
   Settings,
-  MessageSquare,
   Bell,
   Save,
   Loader2,
@@ -15,8 +13,6 @@ import {
 import {
   fetchSuperAdminSettings,
   updateSuperAdminSettings,
-  fetchSuperAdminWhatsAppTemplates,
-  deleteSuperAdminWhatsAppTemplate,
   fetchSuperAdminAppVersions,
   updateSuperAdminAppVersionConfig,
 } from '@/redux/actions/settings';
@@ -30,7 +26,7 @@ import type { CampaignSettings, SettingsTabKey, AppVersionConfig } from '@/types
 
 export const SuperAdminSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { settings, loading, saving, whatsappTemplates = [], appVersions = [] } = useAppSelector((state) => state.settings);
+  const { settings, loading, saving, appVersions = [] } = useAppSelector((state) => state.settings);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as SettingsTabKey | null;
@@ -69,14 +65,6 @@ export const SuperAdminSettingsPage: React.FC = () => {
     });
   };
 
-  const handleFetchTemplates = React.useCallback(() => {
-    dispatch(fetchSuperAdminWhatsAppTemplates());
-  }, [dispatch]);
-
-  const handleDeleteTemplate = React.useCallback((id: string) => {
-    return dispatch(deleteSuperAdminWhatsAppTemplate(id));
-  }, [dispatch]);
-
   const handleUpdateAppVersion = React.useCallback(
     (idOrPlatform: string, payload: Partial<AppVersionConfig>) => {
       return dispatch(updateSuperAdminAppVersionConfig(idOrPlatform, payload));
@@ -107,12 +95,6 @@ export const SuperAdminSettingsPage: React.FC = () => {
       count: appVersions.length,
     },
     {
-      id: 'whatsapp-templates',
-      label: 'WhatsApp Message Templates',
-      icon: MessageSquare,
-      count: whatsappTemplates.length,
-    },
-    {
       id: 'push-notifications',
       label: 'Push Notifications',
       icon: Bell,
@@ -133,7 +115,7 @@ export const SuperAdminSettingsPage: React.FC = () => {
                 Super Admin Master Settings
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Manage global tenant feature packages, app version force updates, and election message templates
+                Manage global tenant feature packages and app version force updates
               </p>
             </div>
           </div>
@@ -172,13 +154,6 @@ export const SuperAdminSettingsPage: React.FC = () => {
               saving={saving}
               loading={loading}
               onUpdateVersion={handleUpdateAppVersion}
-            />
-          ),
-          'whatsapp-templates': (
-            <WhatsAppTemplatesSection
-              loading={loading}
-              onFetchTemplates={handleFetchTemplates}
-              onDeleteTemplate={handleDeleteTemplate}
             />
           ),
           'push-notifications': (

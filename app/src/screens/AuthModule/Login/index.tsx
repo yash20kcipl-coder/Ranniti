@@ -9,6 +9,7 @@ import { MpinScreen } from './components/MpinScreen';
 import { getAppVersion } from '../../../utils/version';
 import { SafeView } from '../../../components/SafeView';
 import { useAppTheme } from '../../../hooks/useAppTheme';
+import { AUTH_CONFIG } from '../../../constants/authConfig';
 import { createFcmToken } from '../../../utils/notification';
 import Storage, { STORAGE_KEYS } from '../../../utils/storage';
 import PermissionsPopUp from '../../../components/Permissions';
@@ -19,7 +20,6 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { navigateToDashboard } from '../../../navigation/navigationUtils';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { sendOtpAction, verifyOtpAction, verifyMpinAction, fetchProfileAndRoleAccessAction } from '../../../store/actions/auth';
-import { AUTH_CONFIG } from '../../../constants/authConfig';
 
 const RANNITI_LOGO = require('../../../assets/images/ranniti-logo.png');
 
@@ -312,12 +312,12 @@ const Login = () => {
         </View>
       </ScrollView>
 
-      <PermissionsPopUp
+      {/* <PermissionsPopUp
         type="notifications"
         onCheck={() => {
           requestUserPermission();
         }}
-      />
+      /> */}
     </SafeView>
   );
 };

@@ -13,31 +13,21 @@ interface BoothCardProps {
   booth: BoothItem;
   onPress?: (booth: BoothItem) => void;
   onPressVoters?: (booth: BoothItem) => void;
-  onPressPollDay?: (booth: BoothItem) => void;
 }
 
 export const BoothCard: React.FC<BoothCardProps> = ({
   booth,
   onPress,
   onPressVoters,
-  onPressPollDay,
 }) => {
   const { t } = useLanguage();
   const { theme } = useAppTheme();
   const isDark = theme.colors.background === darkColors.background;
 
-  const votedCount = booth.votedCount || 0;
   const totalVoters = booth.totalVoters || 0;
-  const pendingCount = Math.max(0, totalVoters - votedCount);
-
   const maleCount = booth.maleCount || 0;
   const femaleCount = booth.femaleCount || 0;
   const otherCount = booth.otherCount || 0;
-
-  const turnoutPercentage = useMemo(() => {
-    if (totalVoters <= 0) return 0;
-    return Math.min(100, Math.round((votedCount / totalVoters) * 100));
-  }, [totalVoters, votedCount]);
 
   // Calculate gender percentages for proportional breakdown
   const { malePct, femalePct, otherPct } = useMemo(() => {
@@ -75,7 +65,7 @@ export const BoothCard: React.FC<BoothCardProps> = ({
         },
       ]}
     >
-      {/* 1. Header: Booth Number Badge + Info + Turnout Pill & Chevron */}
+      {/* 1. Header: Booth Number Badge + Info + Total Voters Pill & Chevron */}
       <View style={styles.headerRow}>
         <View
           style={[
@@ -119,47 +109,23 @@ export const BoothCard: React.FC<BoothCardProps> = ({
         <View style={styles.headerRight}>
           <View
             style={[
-              styles.turnoutPill,
+              styles.voterPill,
               {
-                backgroundColor:
-                  turnoutPercentage >= 50
-                    ? isDark
-                      ? '#064E3B40'
-                      : '#ECFDF5'
-                    : isDark
-                      ? '#1E293B'
-                      : '#F1F5F9',
-                borderColor:
-                  turnoutPercentage >= 50
-                    ? isDark
-                      ? '#047857'
-                      : '#A7F3D0'
-                    : isDark
-                      ? '#334155'
-                      : '#E2E8F0',
+                backgroundColor: isDark ? '#1E293B' : '#EFF6FF',
+                borderColor: isDark ? '#334155' : '#DBEAFE',
               },
             ]}
           >
-            <View
-              style={[
-                styles.turnoutDot,
-                { backgroundColor: turnoutPercentage >= 50 ? '#059669' : '#64748B' },
-              ]}
-            />
-            <Text
-              style={[
-                styles.turnoutPillText,
-                { color: turnoutPercentage >= 50 ? '#059669' : textMuted },
-              ]}
-            >
-              {turnoutPercentage}%
+            <MaterialDesignIcons name="user" size={13} color="#2563EB" />
+            <Text style={[styles.voterPillText, { color: isDark ? '#93C5FD' : '#1D4ED8' }]}>
+              {totalVoters.toLocaleString()}
             </Text>
           </View>
           <MaterialDesignIcons name="chevron-right" size={18} color={textMuted} />
         </View>
       </View>
 
-      {/* 2. Compact Statistics Container */}
+      {/* 2. Compact Statistics: Gender Breakdown */}
       <View
         style={[
           styles.statsContainer,
@@ -169,50 +135,6 @@ export const BoothCard: React.FC<BoothCardProps> = ({
           },
         ]}
       >
-        {/* Row A: Key Voter Counts (Total, Voted, Pending) */}
-        <View style={styles.countsRow}>
-          <View style={styles.countItem}>
-            <Text style={[styles.countLabel, { color: textMuted }]} numberOfLines={1}>
-              {t('totalVoters')}
-            </Text>
-            <Text style={[styles.countValue, { color: textColor }]}>
-              {totalVoters.toLocaleString()}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.dividerVertical,
-              { backgroundColor: isDark ? '#334155' : '#E2E8F0' },
-            ]}
-          />
-
-          <View style={styles.countItem}>
-            <Text style={[styles.countLabel, { color: '#059669' }]} numberOfLines={1}>
-              {t('voted')}
-            </Text>
-            <Text style={[styles.countValue, { color: '#059669' }]}>
-              {votedCount.toLocaleString()}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.dividerVertical,
-              { backgroundColor: isDark ? '#334155' : '#E2E8F0' },
-            ]}
-          />
-
-          <View style={styles.countItem}>
-            <Text style={[styles.countLabel, { color: '#D97706' }]} numberOfLines={1}>
-              {t('pendingVoters')}
-            </Text>
-            <Text style={[styles.countValue, { color: '#D97706' }]}>
-              {pendingCount.toLocaleString()}
-            </Text>
-          </View>
-        </View>
-
         {/* Proportional Segmented Color Bar for Gender Balance */}
         <View
           style={[
@@ -246,16 +168,11 @@ export const BoothCard: React.FC<BoothCardProps> = ({
           )}
         </View>
 
-        {/* Row B: Gender Badges (Male, Female, Other) */}
+        {/* Gender Badges (Male, Female, Other) */}
         <View style={styles.genderRow}>
           {/* Male Pill */}
-          <View
-            style={[
-              styles.genderPill,
-              // { backgroundColor: isDark ? '#1E3A8A20' : '#EFF6FF' },
-            ]}
-          >
-            <MaterialDesignIcons name="gender-male" size={12} color="#2563EB" />
+          <View style={styles.genderPill}>
+            <MaterialDesignIcons name="gender-male" size={13} color="#2563EB" />
             <Text
               style={[
                 styles.genderPillText,
@@ -269,13 +186,8 @@ export const BoothCard: React.FC<BoothCardProps> = ({
           </View>
 
           {/* Female Pill */}
-          <View
-            style={[
-              styles.genderPill,
-              // { backgroundColor: isDark ? '#83184320' : '#FDF2F8' },
-            ]}
-          >
-            <MaterialDesignIcons name="gender-female" size={12} color="#EC4899" />
+          <View style={styles.genderPill}>
+            <MaterialDesignIcons name="gender-female" size={13} color="#EC4899" />
             <Text
               style={[
                 styles.genderPillText,
@@ -289,51 +201,20 @@ export const BoothCard: React.FC<BoothCardProps> = ({
           </View>
 
           {/* Other Pill */}
-          <View
-            style={[
-              styles.genderPill,
-              // { backgroundColor: isDark ? '#4C1D9520' : '#F5F3FF' },
-            ]}
-          >
-            <MaterialDesignIcons name="gender-trans" size={12} color="#8B5CF6" />
-            <Text
-              style={[
-                styles.genderPillText,
-                { color: isDark ? '#C4B5FD' : '#5B21B6' },
-              ]}
-              numberOfLines={1}
-            >
-              {t('otherGender')}:{' '}
-              <Text style={styles.genderBold}>{otherCount.toLocaleString()}</Text> ({otherPct}%)
-            </Text>
-          </View>
-        </View>
-
-        {/* Action Row: Directory vs Poll Day Live */}
-        <View style={styles.cardActionRow}>
-          <TouchableOpacity
-            style={[
-              styles.actionBtnOutline,
-              { borderColor: isDark ? '#334155' : '#E2E8F0' },
-            ]}
-            onPress={handleCardPress}
-            activeOpacity={0.7}
-          >
-            <MaterialDesignIcons name="account-group-outline" size={14} color="#2563EB" />
-            <Text style={[styles.actionBtnOutlineText, { color: isDark ? '#93C5FD' : '#2563EB' }]}>
-              {t('allVoters')}
-            </Text>
-          </TouchableOpacity>
-
-          {Boolean(onPressPollDay) && (
-            <TouchableOpacity
-              style={styles.actionBtnPrimary}
-              onPress={() => onPressPollDay && onPressPollDay(booth)}
-              activeOpacity={0.7}
-            >
-              <MaterialDesignIcons name="vote" size={14} color="#FFFFFF" />
-              <Text style={styles.actionBtnPrimaryText}>{t('pollDayMode')}</Text>
-            </TouchableOpacity>
+          {otherCount > 0 && (
+            <View style={styles.genderPill}>
+              <MaterialDesignIcons name="gender-trans" size={13} color="#8B5CF6" />
+              <Text
+                style={[
+                  styles.genderPillText,
+                  { color: isDark ? '#C4B5FD' : '#5B21B6' },
+                ]}
+                numberOfLines={1}
+              >
+                {t('otherGender')}:{' '}
+                <Text style={styles.genderBold}>{otherCount.toLocaleString()}</Text> ({otherPct}%)
+              </Text>
+            </View>
           )}
         </View>
       </View>
@@ -342,46 +223,6 @@ export const BoothCard: React.FC<BoothCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  cardActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 0.5,
-    borderTopColor: '#E2E8F0',
-  },
-  actionBtnOutline: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 5,
-  },
-  actionBtnOutlineText: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(11.5),
-  },
-  actionBtnPrimary: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: '#059669',
-    gap: 5,
-  },
-  actionBtnPrimaryText: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(11.5),
-    color: '#FFFFFF',
-  },
   card: {
     borderRadius: 14,
     borderWidth: 0.5,
@@ -433,25 +274,20 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
-  turnoutPill: {
+  voterPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 8,
     borderWidth: 0.5,
-    gap: 4,
+    gap: 4.5,
   },
-  turnoutDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2.5,
-  },
-  turnoutPillText: {
+  voterPillText: {
     fontFamily: FontFamily.bold,
-    fontSize: rfValue(10),
+    fontSize: rfValue(11),
   },
   statsContainer: {
     borderRadius: 10,
@@ -459,28 +295,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 8,
     gap: 6,
-  },
-  countsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  countItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 1,
-  },
-  countLabel: {
-    fontSize: rfValue(9.5),
-    fontFamily: FontFamily.bodyBold,
-  },
-  countValue: {
-    fontFamily: FontFamily.bold,
-    fontSize: rfValue(12.5),
-  },
-  dividerVertical: {
-    width: 0.5,
-    height: 20,
   },
   genderBarTrack: {
     height: 4,

@@ -1,5 +1,5 @@
 {
-  "name": "App",
+  "name": "ranniti",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -13,7 +13,6 @@
     "@react-native-async-storage/async-storage": "^3.1.1",
     "@react-native-documents/picker": "^12.0.2",
     "@react-native-documents/viewer": "^4.0.1",
-    "@react-native/new-app-screen": "0.87.1",
     "@react-navigation/drawer": "^7.14.2",
     "@react-navigation/native": "^7.4.1",
     "@react-navigation/native-stack": "^7.19.2",
@@ -30,7 +29,7 @@
     "react-native-fast-image": "^8.8.1",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^3.3.0",
-    "react-native-image-crop-picker": "^0.51.1",
+    "react-native-image-crop-picker": "^0.52.0",
     "react-native-keyboard-controller": "^1.22.5",
     "react-native-otp-entry": "^1.8.6",
     "react-native-pager-view": "^9.0.5",

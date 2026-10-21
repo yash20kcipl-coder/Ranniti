@@ -30,9 +30,9 @@ import {
   Info,
 } from 'lucide-react';
 import {
-  fetchSuperAdminWhatsAppTemplates,
-  createSuperAdminWhatsAppTemplate,
-  updateSuperAdminWhatsAppTemplate,
+  fetchTenantWhatsAppTemplates,
+  createTenantWhatsAppTemplate,
+  updateTenantWhatsAppTemplate,
 } from '@/redux/actions/settings';
 import toast from 'react-hot-toast';
 import { FormInput } from '@/components/common/FormInput';
@@ -85,81 +85,34 @@ const HEADER_TYPE_OPTIONS = [
 // Election campaign pre-configured template presets
 export const TEMPLATE_PRESETS = [
   {
-    name: 'voter_slip_delivery',
-    label: 'मतदाता पर्ची (Voter Slip)',
-    description: 'Official voter slip with booth, room and serial details',
+    name: 'digital_voter_slip_hi',
+    label: 'मतदाता पर्ची (Hindi Voter Slip)',
+    description: 'Official digital voter slip with booth, part, and serial number in Hindi',
     category: 'UTILITY' as const,
     language: 'hi',
     headerType: 'TEXT' as const,
-    headerContent: '🗳️ आधिकारिक मतदाता सूचना पर्ची',
+    headerContent: 'मतदाता पर्ची - चुनाव 2026',
     bodyText:
-      'नमस्ते {{voter_name}} जी,\n\nचुनाव 2026 हेतु आपकी मतदाता जानकारी:\n• पहचान पत्र: {{epic_no}}\n• मतदान केंद्र: {{booth_name}}\n• भाग व क्रम संख्या: {{serial_no}}\n• मतदान तिथि: {{polling_date}}\n• पता: {{booth_address}}\n\nकृपया लोकतंत्र के महापर्व में मतदान अवश्य करें।',
-    footerText: 'रणनीति इलेक्शन हेल्पडेस्क',
+      'नमस्ते {{voter_name}}, आपका मतदान केंद्र {{booth_name}} है। भाग/वार्ड संख्या {{section_no}}, क्रमांक संख्या #{{serial_no}}। मतदान दिवस {{polling_date}} को सपरिवार मतदान अवश्य करें।',
+    footerText: 'रणनीति इलेक्शन सेल',
     buttons: [
-      { type: 'URL' as const, text: 'स्थान मैप देखें 📍', url: 'https://maps.google.com' },
-      { type: 'QUICK_REPLY' as const, text: 'मैंने वोट दिया ✅' },
+      { type: 'QUICK_REPLY' as const, text: 'स्थान मैप देखें' },
     ],
   },
   {
-    name: 'campaign_rally_invite',
-    label: 'विशाल जनसभा (Rally Invite)',
-    description: 'Campaign rally and public gathering invitation',
-    category: 'MARKETING' as const,
-    language: 'hi',
-    headerType: 'IMAGE' as const,
-    headerContent: 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=800&auto=format&fit=crop&q=60',
-    bodyText:
-      'प्रिय कार्यकर्ता एवं सम्मानित मतदाता {{voter_name}},\n\nकल शाम 5:00 बजे हमारे लोकप्रिय उम्मीदवार {{candidate_name}} जी की विशाल जनसभा आयोजित की जा रही है।\n\nस्थान: गांधी मैदान, वार्ड 12\n\nआप सभी सपरिवार सादर आमंत्रित हैं। आपकी उपस्थिति हमारा संबल है।',
-    footerText: 'प्रचार समिति | रणनीति 2026',
-    buttons: [
-      { type: 'URL' as const, text: 'दिशा-निर्देश देखें', url: 'https://maps.google.com' },
-      { type: 'QUICK_REPLY' as const, text: 'मैं आऊंगा/आऊंगी' },
-    ],
-  },
-  {
-    name: 'poll_day_reminder',
-    label: 'मतदान दिवस स्मरण (Poll Day Alert)',
-    description: 'Urgent voting reminder on polling day morning',
-    category: 'UTILITY' as const,
-    language: 'hi',
-    headerType: 'TEXT' as const,
-    headerContent: '⏰ आज मतदान दिवस है!',
-    bodyText:
-      'सम्मानित मतदाता {{voter_name}},\n\nआज मतदान का दिन है! अपने बूथ {{booth_name}} पर जाकर अपना बहुमूल्य मत अवश्य डालें।\n\nमतदान समय: सुबह 7:00 बजे से शाम 6:00 बजे तक।\nआपका मत, आपका भविष्य!',
-    footerText: 'रणनीति इलेक्शन वॉर रूम',
-    buttons: [
-      { type: 'QUICK_REPLY' as const, text: 'मैंने वोट डाल दिया ✅' },
-      { type: 'PHONE_NUMBER' as const, text: 'हेल्पलाइन कॉल करें', phoneNumber: '+919876543210' },
-    ],
-  },
-  {
-    name: 'booth_worker_briefing',
-    label: 'बूथ कार्यकर्ता निर्देश (Worker Briefing)',
-    description: 'Direct operational dispatch for booth incharge and volunteers',
+    name: 'digital_voter_slip_en',
+    label: 'Digital Voter Slip (English)',
+    description: 'Official digital voter slip with booth, part, and serial number in English',
     category: 'UTILITY' as const,
     language: 'en',
     headerType: 'TEXT' as const,
-    headerContent: '📋 Booth Incharge Morning Briefing',
+    headerContent: 'Digital Voter Slip - Election 2026',
     bodyText:
-      'Hello {{worker_name}},\n\nYou are stationed as Lead Incharge for Booth {{booth_name}} (Serial {{serial_no}}).\n\nKey instructions for today:\n1. Reach booth room by 6:00 AM\n2. Verify EVM mock poll with polling officer\n3. Mark voter attendance in Ranniti App\n\nContact War Room in case of discrepancies.',
-    footerText: 'Ranniti Campaign HQ',
+      'Namaste {{voter_name}}, your polling station is {{booth_name}}. Part/Ward: {{section_no}}, Serial No: #{{serial_no}}. Polling Date: {{polling_date}}. Please cast your valuable vote with your family.',
+    footerText: 'Ranniti Election Cell',
     buttons: [
-      { type: 'QUICK_REPLY' as const, text: 'Reporting at Booth 🫡' },
-      { type: 'PHONE_NUMBER' as const, text: 'Emergency Support', phoneNumber: '+919876543210' },
+      { type: 'QUICK_REPLY' as const, text: 'View Polling Station' },
     ],
-  },
-  {
-    name: 'festive_greetings',
-    label: 'शुभकामना संदेश (Festive Greetings)',
-    description: 'Festival greetings with candidate message',
-    category: 'MARKETING' as const,
-    language: 'hi',
-    headerType: 'IMAGE' as const,
-    headerContent: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60',
-    bodyText:
-      'प्रिय {{voter_name}} जी,\n\nआपको एवं आपके संपूर्ण परिवार को पावन पर्व की हार्दिक शुभकामनाएं एवं बधाई!\n\nयह उत्सव आपके जीवन में खुशहाली, सुख और समृद्धि लेकर आए।\n\nसस्नेह,\n{{candidate_name}} एवं समस्त कार्यकर्ता टीम।',
-    footerText: 'उम्मीदवार संपर्क कार्यालय',
-    buttons: [{ type: 'QUICK_REPLY' as const, text: 'आपको भी शुभकामनाएं 🙏' }],
   },
 ];
 
@@ -186,7 +139,7 @@ export const WhatsAppTemplateBuilderPage: React.FC<WhatsAppTemplateBuilderPagePr
 
   useEffect(() => {
     if (id && whatsappTemplates.length === 0) {
-      dispatch(fetchSuperAdminWhatsAppTemplates());
+      dispatch(fetchTenantWhatsAppTemplates());
     }
   }, [id, whatsappTemplates.length, dispatch]);
 
@@ -426,10 +379,10 @@ export const WhatsAppTemplateBuilderPage: React.FC<WhatsAppTemplateBuilderPagePr
         await onSubmit(payload);
       } else if (activeTemplate?.id || id) {
         const targetId = (activeTemplate?.id || id)!;
-        await dispatch(updateSuperAdminWhatsAppTemplate(targetId, payload));
+        await dispatch(updateTenantWhatsAppTemplate(targetId, payload));
         toast.success('Template updated successfully!');
       } else {
-        await dispatch(createSuperAdminWhatsAppTemplate(payload));
+        await dispatch(createTenantWhatsAppTemplate(payload));
         toast.success('Template created and registered successfully!');
       }
       handleBack();

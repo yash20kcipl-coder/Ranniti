@@ -4,7 +4,7 @@ import apiClient from '../api/apiClient';
 import Storage, { STORAGE_KEYS } from '../utils/storage';
 import { useState, useEffect, useCallback } from 'react';
 import { SET_APP_VERSION } from '../store/reducers/appVersion';
-import appVersion, { getAppVersion, isVersionLessThan } from '../utils/version';
+import { getAppVersion, isVersionLessThan } from '../utils/version';
 
 export interface VersionStatus {
   status: 'loading' | 'allowed' | 'force-update' | 'recommended-update' | 'maintenance';

@@ -13,7 +13,7 @@ export interface TabContainerProps<T extends string = string> {
   tabs: TabItem<T>[];
   activeTab: T;
   onTabChange: (tabId: T) => void;
-  views?: Record<T, React.ReactNode>;
+  views?: Partial<Record<T, React.ReactNode>>;
   children?: React.ReactNode;
   className?: string;
   tabsHeaderClassName?: string;

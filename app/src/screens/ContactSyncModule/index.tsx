@@ -18,7 +18,6 @@ import {
   removeSyncedContactAction,
   setDeviceContactsAction,
 } from '../../store/actions/contactSync';
-import { toggleVotedStatusAction } from '../../store/actions/voters';
 import { SyncedContactVoter, DeviceContactItem } from '../../store/reducers/contactSync';
 import { useLanguage } from '../../languages';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -107,12 +106,6 @@ export const ContactSyncScreen: React.FC = () => {
     [dispatch, t]
   );
 
-  const handleToggleVoted = useCallback(
-    (voterId: string) => {
-      dispatch(toggleVotedStatusAction(voterId));
-    },
-    [dispatch]
-  );
 
   const handleConfirmUnlink = async () => {
     if (!unlinkingTarget) return;
@@ -151,7 +144,6 @@ export const ContactSyncScreen: React.FC = () => {
           <View style={styles.skeletonActions}>
             <Skeleton width={70} height={28} borderRadius={6} />
             <Skeleton width={90} height={28} borderRadius={6} />
-            <Skeleton width="40%" height={28} borderRadius={6} />
           </View>
         </View>
       ))}
@@ -212,7 +204,6 @@ export const ContactSyncScreen: React.FC = () => {
           <SyncedContactCard
             item={item}
             theme={theme}
-            onToggleVoted={handleToggleVoted}
             onRequestUnlink={setUnlinkingTarget}
           />
         )}

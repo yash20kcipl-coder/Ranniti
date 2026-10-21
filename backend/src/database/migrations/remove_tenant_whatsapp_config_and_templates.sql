@@ -8,5 +8,3 @@ ALTER TABLE campaign_settings
   DROP COLUMN IF EXISTS whatsapp_webhook_verify_token,
   DROP COLUMN IF EXISTS whatsapp_quality_rating,
   DROP COLUMN IF EXISTS whatsapp_daily_limit;
-
-DROP TABLE IF EXISTS whatsapp_templates;

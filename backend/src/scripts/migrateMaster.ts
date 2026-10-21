@@ -10,11 +10,13 @@ const migrationFiles = [
   'create_tenants_table.sql',
   'create_campaign_settings_tables.sql',
   'create_voters_table.sql',
+  'alter_voter_name_columns_to_text.sql',
   'create_otp_verifications_table.sql',
   'create_app_versions_table.sql',
   'create_audit_logs_table.sql',
   'create_bulk_upload_demos_table.sql',
   'create_tenant_dashboard_stats_table.sql',
+  'create_user_synced_contacts_table.sql',
   'remove_push_triggers_column.sql',
   'remove_voter_type_column.sql',
 ];

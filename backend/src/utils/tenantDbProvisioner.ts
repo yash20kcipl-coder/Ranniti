@@ -162,6 +162,7 @@ export class TenantDbProvisioner {
       'create_campaign_settings_tables.sql',
       'remove_push_triggers_column.sql',
       'remove_tenant_whatsapp_config_and_templates.sql',
+      'create_tenant_whatsapp_templates_table.sql',
       'create_tenant_user_roles_table.sql',
       'create_user_synced_contacts_table.sql',
       'create_tenant_sync_outbox_table.sql',

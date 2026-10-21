@@ -5,26 +5,19 @@ import { Platform } from 'react-native';
  * Single source of truth for the app version across the entire mobile application.
  */
 export const APP_VERSION_CONFIG = {
-  version: '1.0.0',
-  buildNumber: '102',
-  android: '1.0.0',
-  ios: '1.0.0',
+  ios: '1.8',
+  android: '1.0.9',
+  buildNumber: '10',
 };
 
-const appVersion: Record<'android' | 'ios', string> = {
-  android: APP_VERSION_CONFIG.android,
-  ios: APP_VERSION_CONFIG.ios,
-};
-
-export default appVersion;
+export default APP_VERSION_CONFIG;
 
 /**
  * Returns the current installed app version string (e.g., '1.0.0').
- * Dynamically queries native DeviceInfo first, falling back to APP_VERSION_CONFIG.
  */
 export function getAppVersion(): string {
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
-  return appVersion[platform] || APP_VERSION_CONFIG.version;
+  return APP_VERSION_CONFIG[platform];
 }
 
 /**

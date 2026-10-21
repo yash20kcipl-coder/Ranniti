@@ -188,6 +188,11 @@ export class MobileVoterController {
     const voterId = req.params.id as string;
     const user = req.mobileUser!;
 
+    if (!voterId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(voterId)) {
+      res.status(400).json(ApiResponse.error('Invalid voter ID format', 400).body);
+      return;
+    }
+
     const voter = await mobileVoterService.getVoterByIdWithScopeCheck(user, voterId);
     const formattedVoter = attachFileUrls(voter, undefined, req);
 
@@ -198,6 +203,11 @@ export class MobileVoterController {
   getVoterFamily = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const voterId = req.params.id as string;
     const user = req.mobileUser!;
+
+    if (!voterId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(voterId)) {
+      res.status(400).json(ApiResponse.error('Invalid voter ID format', 400).body);
+      return;
+    }
 
     const familyData = await mobileVoterService.getVoterFamily(user, voterId);
     const formattedHead = attachFileUrls(familyData.head, ['avatar', 'partySymbol'], req);
@@ -230,6 +240,11 @@ export class MobileVoterController {
   updateVoter = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const voterId = req.params.id as string;
     const user = req.mobileUser!;
+
+    if (!voterId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(voterId)) {
+      res.status(400).json(ApiResponse.error('Invalid voter ID format', 400).body);
+      return;
+    }
 
     const updatedVoter = await mobileVoterService.updateVoterWithPermissionCheck(
       user,

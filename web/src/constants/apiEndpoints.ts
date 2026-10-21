@@ -28,7 +28,6 @@ export const API_ENDPOINTS = {
     TENANTS: `${API_TIERS.SUPER_ADMIN}/tenants`,
     TENANT_ROLES: `${API_TIERS.SUPER_ADMIN}/tenant-roles`,
     SETTINGS: `${API_TIERS.SUPER_ADMIN}/settings`,
-    WHATSAPP_TEMPLATES: `${API_TIERS.SUPER_ADMIN}/settings/whatsapp/templates`,
     VOTERS: `${API_TIERS.SUPER_ADMIN}/voters`,
     MASTERS: {
       STATES: `${API_TIERS.SUPER_ADMIN}/masters/states`,

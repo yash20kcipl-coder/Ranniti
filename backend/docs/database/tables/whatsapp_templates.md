@@ -1,7 +1,7 @@
-# `whatsapp_templates` Table Specification (Master DB Only)
+# `whatsapp_templates` Table Specification (Tenant DBs)
 
 > [!NOTE]
-> Centralized WhatsApp templates managed by Super Admin on the Master DB. Tenant DBs do not store local templates.
+> Tenant-isolated WhatsApp message templates maintained independently on each Tenant DB for candidate campaigns and field volunteer outreach. Starter defaults are seeded upon tenant provisioning.
 
 ## Columns
 

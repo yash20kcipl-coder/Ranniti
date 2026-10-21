@@ -47,118 +47,6 @@ export const DEFAULT_WHATSAPP_TEMPLATES: DefaultWhatsAppTemplate[] = [
     variables: ['voter_name', 'booth_name', 'section_no', 'serial_no', 'polling_date'],
     metaStatus: 'APPROVED',
   },
-  // 3. Polling Day Reminder (Hindi)
-  {
-    metaTemplateId: 'TMPL_POLL_REMINDER_HI',
-    name: 'polling_day_reminder',
-    category: 'UTILITY',
-    language: 'hi',
-    headerType: 'TEXT',
-    headerContent: 'मतदान दिवस स्मरण पत्र',
-    bodyText: 'सम्मानित मतदाता {{voter_name}}, आज मतदान का दिन है! लोकतंत्र के महापर्व में भाग लें और अपना बहुमूल्य वोट डालें। मतदान केंद्र: {{booth_name}}, मतदाता क्रमांक: #{{serial_no}}। मतदान समय: प्रातः 7:00 से सायं 6:00 तक।',
-    footerText: 'रणनीति टीम',
-    buttons: [{ type: 'QUICK_REPLY', text: 'मैंने वोट डाल दिया' }],
-    variables: ['voter_name', 'booth_name', 'serial_no'],
-    metaStatus: 'APPROVED',
-  },
-  // 4. Polling Day Reminder (English)
-  {
-    metaTemplateId: 'TMPL_POLL_REMINDER_EN',
-    name: 'polling_day_reminder',
-    category: 'UTILITY',
-    language: 'en',
-    headerType: 'TEXT',
-    headerContent: 'Polling Day Reminder',
-    bodyText: 'Dear Voter {{voter_name}}, today is Election Day! Please cast your valuable vote at Booth {{booth_name}}, Serial No: #{{serial_no}}. Polling hours: 7:00 AM to 6:00 PM.',
-    footerText: 'Ranniti Campaign HQ',
-    buttons: [{ type: 'QUICK_REPLY', text: 'I Have Voted' }],
-    variables: ['voter_name', 'booth_name', 'serial_no'],
-    metaStatus: 'APPROVED',
-  },
-  // 5. Candidate Voter Appeal (Hindi)
-  {
-    metaTemplateId: 'TMPL_CANDIDATE_APPEAL_HI',
-    name: 'candidate_voter_appeal',
-    category: 'MARKETING',
-    language: 'hi',
-    headerType: 'TEXT',
-    headerContent: 'विनम्र जन अपील',
-    bodyText: 'नमस्ते {{voter_name}} जी, क्षेत्र के सर्वांगीण विकास, बेहतर शिक्षा, रोजगार एवं जनसुविधाओं हेतु अपने लोकप्रिय प्रत्याशी {{candidate_name}} ({{party_name}}) को अपना आशीर्वाद एवं समर्थन प्रदान करें।',
-    footerText: 'प्रचार समिति',
-    buttons: [{ type: 'QUICK_REPLY', text: 'समर्थन दर्ज करें' }],
-    variables: ['voter_name', 'candidate_name', 'party_name'],
-    metaStatus: 'APPROVED',
-  },
-  // 6. Candidate Voter Appeal (English)
-  {
-    metaTemplateId: 'TMPL_CANDIDATE_APPEAL_EN',
-    name: 'candidate_voter_appeal',
-    category: 'MARKETING',
-    language: 'en',
-    headerType: 'TEXT',
-    headerContent: 'Candidate Appeal',
-    bodyText: 'Dear {{voter_name}}, for holistic development, better education, infrastructure, and public welfare, we humbly seek your blessing and support for candidate {{candidate_name}} ({{party_name}}).',
-    footerText: 'Campaign Committee',
-    buttons: [{ type: 'QUICK_REPLY', text: 'Pledge Support' }],
-    variables: ['voter_name', 'candidate_name', 'party_name'],
-    metaStatus: 'APPROVED',
-  },
-  // 7. Booth Assistance Helpline (Hindi)
-  {
-    metaTemplateId: 'TMPL_BOOTH_HELP_HI',
-    name: 'booth_assistance_helpline',
-    category: 'UTILITY',
-    language: 'hi',
-    headerType: 'TEXT',
-    headerContent: 'मतदान सहायता केंद्र',
-    bodyText: 'नमस्ते {{voter_name}} जी, मतदान केंद्र {{booth_name}} पर वरिष्ठ नागरिकों के लिए वाहन सुविधा, व्हीलचेयर या मतदाता पर्ची सहायता हेतु हमारी वॉर रूम हेल्पलाइन उपलब्ध है। किसी भी असुविधा पर संपर्क करें।',
-    footerText: 'मतदाता सहायता डेस्क',
-    buttons: [{ type: 'QUICK_REPLY', text: 'सहायता चाहिए' }],
-    variables: ['voter_name', 'booth_name'],
-    metaStatus: 'APPROVED',
-  },
-  // 8. Booth Assistance Helpline (English)
-  {
-    metaTemplateId: 'TMPL_BOOTH_HELP_EN',
-    name: 'booth_assistance_helpline',
-    category: 'UTILITY',
-    language: 'en',
-    headerType: 'TEXT',
-    headerContent: 'Voter Assistance Helpline',
-    bodyText: 'Hello {{voter_name}}, for Booth {{booth_name}}, transport assistance for senior citizens, wheelchair support, or voter slip queries, our volunteer helpline is ready to assist you.',
-    footerText: 'Voter Helpdesk',
-    buttons: [{ type: 'QUICK_REPLY', text: 'Need Assistance' }],
-    variables: ['voter_name', 'booth_name'],
-    metaStatus: 'APPROVED',
-  },
-  // 9. Post Vote Gratitude (Hindi)
-  {
-    metaTemplateId: 'TMPL_GRATITUDE_HI',
-    name: 'post_vote_gratitude',
-    category: 'MARKETING',
-    language: 'hi',
-    headerType: 'TEXT',
-    headerContent: 'हार्दिक आभार एवं धन्यवाद',
-    bodyText: 'प्रिय {{voter_name}} जी, लोकतंत्र के महापर्व में अपने मताधिकार का प्रयोग कर देश के विकास में योगदान देने हेतु आपका हृदय से बहुत-बहुत आभार एवं साधुवाद!',
-    footerText: 'रणनीति परिवार',
-    buttons: [{ type: 'QUICK_REPLY', text: 'जय हिंद' }],
-    variables: ['voter_name'],
-    metaStatus: 'APPROVED',
-  },
-  // 10. Post Vote Gratitude (English)
-  {
-    metaTemplateId: 'TMPL_GRATITUDE_EN',
-    name: 'post_vote_gratitude',
-    category: 'MARKETING',
-    language: 'en',
-    headerType: 'TEXT',
-    headerContent: 'Sincere Gratitude',
-    bodyText: 'Dear {{voter_name}}, thank you sincerely for exercising your democratic right and casting your vote! Your participation strengthens our democracy and community.',
-    footerText: 'Ranniti Family',
-    buttons: [{ type: 'QUICK_REPLY', text: 'Thank You' }],
-    variables: ['voter_name'],
-    metaStatus: 'APPROVED',
-  },
 ];
 
 /**
@@ -242,19 +130,31 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
       logger.info(`ℹ️ Campaign Settings already present for ${dbLabel}.`);
     }
 
-    // 2. Seed WhatsApp Templates (Master DB Only)
-    if (!tenantDbName) {
-      try {
-        await queryFn(`CREATE UNIQUE INDEX IF NOT EXISTS uq_whatsapp_templates_name_lang ON whatsapp_templates(name, language);`);
-      } catch (idxErr: any) {
-        // index may already exist
-      }
+    // 2. Seed WhatsApp Templates (Master and Tenant DBs)
+    try {
+      await queryFn(`CREATE UNIQUE INDEX IF NOT EXISTS uq_whatsapp_templates_name_lang ON whatsapp_templates(name, language);`);
+    } catch (idxErr: any) {
+      // index may already exist
+    }
 
-      // Remove obsolete media templates and old template names
+    // Only delete obsolete templates on Master DB
+    if (!tenantDbName) {
       await queryFn(
         `DELETE FROM whatsapp_templates WHERE header_type IN ('IMAGE', 'VIDEO', 'DOCUMENT') OR name IN ('voter_slip_delivery', 'campaign_rally_invite', 'booth_worker_briefing', 'booth_turnout_alert', 'festive_greetings', 'poll_day_reminder');`
       );
+    }
 
+    // For tenant DB: only insert defaults if tenant has no templates yet, so tenant custom templates are preserved!
+    let shouldSeed = true;
+    if (tenantDbName) {
+      const existingCount = await queryFn(`SELECT COUNT(*)::int AS count FROM whatsapp_templates`);
+      if ((existingCount.rows[0]?.count || 0) > 0) {
+        shouldSeed = false;
+        logger.info(`ℹ️ WhatsApp Templates already present for ${dbLabel}.`);
+      }
+    }
+
+    if (shouldSeed) {
       for (const t of DEFAULT_WHATSAPP_TEMPLATES) {
         await queryFn(
           `INSERT INTO whatsapp_templates (
@@ -286,13 +186,14 @@ export const seedSettings = async (tenantDbName?: string): Promise<void> => {
           ]
         );
       }
-      try {
-        const { CacheService } = await import('../../services/cache.service');
-        await CacheService.invalidatePattern('ranniti:wa_templates:*');
-      } catch (_cacheErr) {
-        // cache optional
-      }
-      logger.info(`✅ Seeded ${DEFAULT_WHATSAPP_TEMPLATES.length} WhatsApp Templates for Master DB.`);
+      logger.info(`✅ Seeded ${DEFAULT_WHATSAPP_TEMPLATES.length} WhatsApp Templates for ${dbLabel}.`);
+    }
+
+    try {
+      const { CacheService } = await import('../../services/cache.service');
+      await CacheService.invalidatePattern(`ranniti:wa_templates:${tenantDbName || 'master'}`);
+    } catch (_cacheErr) {
+      // cache optional
     }
   } catch (err: any) {
     logger.error(`❌ Failed to seed settings for ${dbLabel}:`, err);

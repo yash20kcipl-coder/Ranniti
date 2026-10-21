@@ -5,28 +5,27 @@ import { getShadow } from '../../../utils/shadow';
 import { rfValue } from '../../../utils/responsive';
 import { FontFamily } from '../../../utils/typography';
 import { SafeImage } from '../../../components/SafeImage';
+import { Phone, MessageCircle, Trash2 } from 'lucide-react-native';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SyncedContactVoter } from '../../../store/reducers/contactSync';
 import { openPhoneDialer, openWhatsAppChat } from '../../../utils/linkingUtils';
-import { Phone, MessageCircle, CheckCircle, XCircle, Trash2 } from 'lucide-react-native';
 
 interface SyncedContactCardProps {
   item: SyncedContactVoter;
   theme: Theme;
-  onToggleVoted: (voterId: string) => void;
   onRequestUnlink: (item: SyncedContactVoter) => void;
 }
 
 export const SyncedContactCard: React.FC<SyncedContactCardProps> = ({
   item,
   theme,
-  onToggleVoted,
   onRequestUnlink,
 }) => {
   const { t } = useLanguage();
   const styles = getStyles(theme);
 
   const phoneToCall = item.mobileNo || item.devicePhone;
+  const boothDisplay = item.boothName || (item.boothNo ? `${t('booth')} #${item.boothNo}` : '');
 
   return (
     <View style={styles.card}>
@@ -58,10 +57,11 @@ export const SyncedContactCard: React.FC<SyncedContactCardProps> = ({
             {item.devicePhone} | EPIC: {item.epicNo}
           </Text>
 
-          {Boolean(item.boothNo || item.boothName) && (
+          {Boolean(boothDisplay || item.houseNo) && (
             <Text style={styles.boothText} numberOfLines={1}>
-              Booth #{item.boothNo} {item.boothName ? `(${item.boothName})` : ''}
-              {item.houseNo ? ` • H.No: ${item.houseNo}` : ''}
+              {boothDisplay}
+              {Boolean(boothDisplay && item.houseNo) && ' • '}
+              {item.houseNo ? `H.No: ${item.houseNo}` : ''}
             </Text>
           )}
         </View>
@@ -98,21 +98,6 @@ export const SyncedContactCard: React.FC<SyncedContactCardProps> = ({
             <Text style={[styles.actionBtnText, { color: '#16A34A' }]}>{t('whatsApp')}</Text>
           </TouchableOpacity>
         )}
-
-        <TouchableOpacity
-          style={[styles.votedBtn, item.isVoted ? styles.votedActive : styles.votedInactive]}
-          onPress={() => onToggleVoted(item.voterId)}
-          activeOpacity={0.8}
-        >
-          {item.isVoted ? (
-            <CheckCircle {...({ size: 14, color: '#FFFFFF' } as any)} />
-          ) : (
-            <XCircle {...({ size: 14, color: '#64748B' } as any)} />
-          )}
-          <Text style={[styles.votedBtnText, item.isVoted && { color: '#FFFFFF' }]}>
-            {item.isVoted ? t('voted') : t('markVoted')}
-          </Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -206,25 +191,5 @@ const getStyles = (theme: Theme) =>
     actionBtnText: {
       fontFamily: FontFamily.bodyBold,
       fontSize: rfValue(11),
-    },
-    votedBtn: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 4,
-      paddingVertical: 6,
-      borderRadius: 8,
-    },
-    votedActive: {
-      backgroundColor: '#16A34A',
-    },
-    votedInactive: {
-      backgroundColor: '#E2E8F0',
-    },
-    votedBtnText: {
-      fontFamily: FontFamily.bodyBold,
-      fontSize: rfValue(11),
-      color: '#475569',
     },
   });
