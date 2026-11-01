@@ -61,6 +61,8 @@
     "pg": "^8.23.0",
     "pg-copy-streams": "^7.0.0",
     "sanitize-html": "^2.18.0",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "xlsx": "^0.18.5",
     "zod": "^3.24.2"
   },
@@ -79,6 +81,8 @@
     "@types/pg": "^8.23.1",
     "@types/pg-copy-streams": "^1.2.5",
     "@types/sanitize-html": "^2.16.2",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }

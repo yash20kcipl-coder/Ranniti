@@ -19,6 +19,7 @@
 		588898FF1772436AB7125D42 /* RobotoSlab-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 65980655CC1E4861885B6572 /* RobotoSlab-Bold.ttf */; };
 		6DBBD825FED64042A495E780 /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E46124C352E64B65A24907DB /* Inter-Bold.ttf */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
+		761780EF2CA45674006654EE /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EE2CA45674006654EE /* SceneDelegate.swift */; };
 		7D529395B23A4C57BBC709CA /* RobotoSlab-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 737363385B6A42B2B8F36D97 /* RobotoSlab-Black.ttf */; };
 		7E4EEE28684D4164B50874D3 /* RobotoSlab-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = DB4D34FD2ACA478EB9D2A27F /* RobotoSlab-ExtraBold.ttf */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
@@ -53,6 +54,7 @@
 		65980655CC1E4861885B6572 /* RobotoSlab-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 523708667737; includeInIndex = 0; lastKnownFileType = unknown; name = "RobotoSlab-Bold.ttf"; path = "../src/assets/fonts/RobotoSlab-Bold.ttf"; sourceTree = "<group>"; };
 		737363385B6A42B2B8F36D97 /* RobotoSlab-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 523708667737; includeInIndex = 0; lastKnownFileType = unknown; name = "RobotoSlab-Black.ttf"; path = "../src/assets/fonts/RobotoSlab-Black.ttf"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Ranniti/AppDelegate.swift; sourceTree = "<group>"; };
+		761780EE2CA45674006654EE /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = Ranniti/SceneDelegate.swift; sourceTree = "<group>"; };
 		7923F4F5FAC84A2EA4263631 /* Inter-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 523708667737; includeInIndex = 0; lastKnownFileType = unknown; name = "Inter-Medium.ttf"; path = "../src/assets/fonts/Inter-Medium.ttf"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Ranniti/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		91CBA3021C0A4689B35F2FFD /* Oswald-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 523708667737; includeInIndex = 0; lastKnownFileType = unknown; name = "Oswald-SemiBold.ttf"; path = "../src/assets/fonts/Oswald-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 			children = (
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
+				761780EE2CA45674006654EE /* SceneDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
@@ -283,9 +286,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Ranniti/Pods-Ranniti-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Ranniti/Pods-Ranniti-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -322,9 +329,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Ranniti/Pods-Ranniti-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Ranniti/Pods-Ranniti-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -339,6 +350,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				761780EF2CA45674006654EE /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

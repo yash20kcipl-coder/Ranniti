@@ -5,9 +5,11 @@ import morgan from 'morgan';
 import { config } from './config';
 import { apiRouter } from './routes';
 import compression from 'compression';
+import swaggerUi from 'swagger-ui-express';
 import { ApiError } from './utils/apiError';
 import { fileUrlMiddleware } from './utils/fileUrl';
 import { errorHandler } from './middlewares/error.middleware';
+import { swaggerSpec, swaggerUiOptions } from './config/swagger';
 import { sanitizeMiddleware } from './middlewares/sanitize.middleware';
 import { responseTimeLogger } from './middlewares/responseTime.middleware';
 import express, { Express, Request, Response, NextFunction } from 'express';
@@ -21,10 +23,11 @@ export const createApp = (): Express => {
   // Response compression (gzip/deflate) for high-performance payload transfer
   app.use(compression());
 
-  // Security HTTP headers
+  // Security HTTP headers (disable CSP so Swagger UI can load inline styles and scripts)
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: false,
     })
   );
 
@@ -59,6 +62,13 @@ export const createApp = (): Express => {
       message: 'Static file not found',
       timestamp: new Date().toISOString(),
     });
+  });
+
+  // Interactive Swagger API Documentation
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+  app.get('/api-docs.json', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
   });
 
   // API v1 routes

@@ -14,3 +14,17 @@ if (fs.existsSync(srcDir)) {
 } else {
   console.warn(`⚠️ Source migrations directory not found at: ${srcDir}`);
 }
+
+// Copy Swagger UI CSS & Hook files
+const swaggerAssets = ['swagger.css', 'swagger.auth-hook.js'];
+for (const asset of swaggerAssets) {
+  const assetSrc = path.join(__dirname, `../src/config/${asset}`);
+  const assetDist = path.join(__dirname, `../dist/config/${asset}`);
+  if (fs.existsSync(assetSrc)) {
+    fs.mkdirSync(path.dirname(assetDist), { recursive: true });
+    fs.copyFileSync(assetSrc, assetDist);
+    console.log(`✅ Copied ${asset} to dist/config/${asset}`);
+  }
+}
+
+

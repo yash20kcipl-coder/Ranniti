@@ -11,6 +11,7 @@ const app = createApp();
 const server = app.listen(config.port, () => {
   logger.info(`Server running in ${config.env} mode on http://localhost:${config.port}`);
   logger.info(`Health check available at http://localhost:${config.port}/api/v1/health`);
+  logger.info(`Swagger API docs available at http://localhost:${config.port}/api-docs`);
 
   // Start background outbox retry worker
   SyncOutboxRetryService.startBackgroundWorker(60000);
