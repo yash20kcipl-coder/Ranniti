@@ -19,6 +19,8 @@ const migrationFiles = [
   'create_user_synced_contacts_table.sql',
   'remove_push_triggers_column.sql',
   'remove_voter_type_column.sql',
+  'create_elections_table.sql',
+  'create_tenant_elections_table.sql',
 ];
 
 export async function runMasterMigrations(): Promise<void> {

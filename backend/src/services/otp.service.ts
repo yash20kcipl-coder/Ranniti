@@ -152,7 +152,6 @@ export class OtpService {
       assignedAcId: user.assignedAcId,
       tenantDbName: user.tenantDbName,
       parentLeaderId: user.parentLeaderId,
-      assignedBoothIds: user.assignedBoothIds,
     });
 
     const access = await mobileAccessService.getRoleAccessConfig({

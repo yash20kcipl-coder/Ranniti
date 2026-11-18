@@ -39,7 +39,6 @@ export class MobileAuthService {
       assignedAcId: user.assignedAcId,
       tenantDbName: user.tenantDbName,
       parentLeaderId: user.parentLeaderId,
-      assignedBoothIds: user.assignedBoothIds,
     });
 
     const access = await mobileAccessService.getRoleAccessConfig({
@@ -151,7 +150,6 @@ export class MobileAuthService {
       assignedAcId: user.assignedAcId,
       tenantDbName: user.tenantDbName,
       parentLeaderId: user.parentLeaderId,
-      assignedBoothIds: user.assignedBoothIds,
     });
 
     const access = await mobileAccessService.getRoleAccessConfig({

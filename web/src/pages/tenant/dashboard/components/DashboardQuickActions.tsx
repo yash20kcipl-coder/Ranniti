@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Vote, UserPlus, UserCheck, Building2, RefreshCw, Sparkles, BarChart3 } from 'lucide-react';
+import { Vote, UserPlus, UserCheck, Building2, RefreshCw, Sparkles, BarChart3, Map } from 'lucide-react';
 
 export interface DashboardQuickActionsProps {
   onRefresh: () => void;
@@ -14,6 +14,15 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
   const navigate = useNavigate();
 
   const actions = [
+    {
+      label: 'GIS Map View',
+      subtext: 'Constituency & Booth GIS',
+      icon: Map,
+      color: 'from-purple-600 to-indigo-600',
+      textColor: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-50 dark:bg-purple-950/40 border-purple-200/80 dark:border-purple-900/60',
+      onClick: () => navigate('/dashboard/map-view'),
+    },
     {
       label: 'Voter Directory',
       subtext: 'Search & filter voters',

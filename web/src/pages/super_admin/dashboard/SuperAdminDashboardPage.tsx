@@ -10,7 +10,6 @@ import { fetchSuperAdminDashboardMetrics, } from '@/redux/actions/superAdminDash
 // Subcomponents per Rule 21
 import { KpiStatsGrid } from './components/KpiStatsGrid';
 import { RecentTenantsCard } from './components/RecentTenantsCard';
-import { DashboardQuickActions } from './components/DashboardQuickActions';
 import { VoterDemographicsCard } from './components/VoterDemographicsCard';
 import { TenantDistributionCard } from './components/TenantDistributionCard';
 
@@ -58,7 +57,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
       />
 
       {/* Quick Launchpad & Status Bar */}
-      <DashboardQuickActions onRefresh={handleManualRefresh} refreshing={refreshing} />
+      {/* <DashboardQuickActions onRefresh={handleManualRefresh} refreshing={refreshing} /> */}
 
       {/* Top 4 KPI Metrics Grid */}
       <KpiStatsGrid data={data} loading={loading} />

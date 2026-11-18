@@ -29,7 +29,10 @@ import {
   ChevronUp,
   Shield,
   RotateCcw,
+  Play,
   Activity,
+  CalendarCheck,
+  Calendar,
 } from 'lucide-react';
 import {
   fetchTenantById,
@@ -38,6 +41,7 @@ import {
   fetchTenantProvisioningStatus,
   fetchTenantDbSyncStatus,
   retryTenantProvisioning,
+  resumeTenantProvisioning,
   type TenantDbSyncStatus,
 } from '@/redux/actions/tenant';
 import toast from 'react-hot-toast';
@@ -119,6 +123,7 @@ export const TenantDetailPage: React.FC = () => {
   const [checkingSync, setCheckingSync] = useState(false);
   const [isDriftExpanded, setIsDriftExpanded] = useState(false);
   const [retryingProvisioning, setRetryingProvisioning] = useState(false);
+  const [resumingProvisioning, setResumingProvisioning] = useState(false);
 
   // UI state for search & copy feedback
   const [constituencySearch, setConstituencySearch] = useState('');
@@ -131,6 +136,30 @@ export const TenantDetailPage: React.FC = () => {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const handleResumeProvisioning = async () => {
+    if (!id) return;
+    setResumingProvisioning(true);
+    try {
+      await dispatch(resumeTenantProvisioning(id));
+      toast.success('Tenant provisioning resumed from checkpoint');
+      setTenant((prev: any) =>
+        prev
+          ? {
+            ...prev,
+            status: 'provisioning',
+            provisioningStatus: 'provisioning',
+            errorMessage: null,
+            currentStep: 'Resuming provisioning from checkpoint...',
+          }
+          : prev
+      );
+    } catch {
+      // Handled by Redux errorHandler
+    } finally {
+      setResumingProvisioning(false);
+    }
+  };
+
   const handleRetryProvisioning = async () => {
     if (!id) return;
     setRetryingProvisioning(true);
@@ -140,14 +169,14 @@ export const TenantDetailPage: React.FC = () => {
       setTenant((prev: any) =>
         prev
           ? {
-              ...prev,
-              status: 'provisioning',
-              provisioningStatus: 'provisioning',
-              errorMessage: null,
-              currentStep: 'Restarting provisioning pipeline...',
-              currentPhase: 'db_init',
-              provisioningProgress: 5,
-            }
+            ...prev,
+            status: 'provisioning',
+            provisioningStatus: 'provisioning',
+            errorMessage: null,
+            currentStep: 'Restarting provisioning pipeline...',
+            currentPhase: 'db_init',
+            provisioningProgress: 5,
+          }
           : prev
       );
     } catch {
@@ -709,21 +738,19 @@ export const TenantDetailPage: React.FC = () => {
           {/* Active or Failed Provisioning Progress Monitor Card */}
           {(isProvisioning || isFailed) && (
             <div
-              className={`rounded-3xl p-6 sm:p-7 border shadow-sm space-y-6 transition-all ${
-                isFailed
+              className={`rounded-3xl p-6 sm:p-7 border shadow-sm space-y-6 transition-all ${isFailed
                   ? 'bg-rose-500/5 border-rose-500/30 dark:bg-rose-950/20 dark:border-rose-900/40'
                   : 'bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-cyan-500/5 border-indigo-500/30 dark:border-indigo-500/20'
-              }`}
+                }`}
             >
               {/* Header with Title, Live Badge, and Retry Button */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-lg ${
-                      isFailed
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-lg ${isFailed
                         ? 'bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/30'
                         : 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/30'
-                    }`}
+                      }`}
                   >
                     {isFailed ? (
                       <AlertCircle className="w-5 h-5" />
@@ -737,11 +764,10 @@ export const TenantDetailPage: React.FC = () => {
                         {isFailed ? 'Tenant Provisioning Failed' : 'Tenant Data Provisioning in Progress'}
                       </h3>
                       <span
-                        className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          isFailed
+                        className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${isFailed
                             ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                             : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 animate-pulse'
-                        }`}
+                          }`}
                       >
                         {isFailed ? 'Action Required' : 'Live Stream'}
                       </span>
@@ -764,21 +790,34 @@ export const TenantDetailPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Retry / Restart Pipeline Button */}
-                  <button
-                    type="button"
-                    onClick={handleRetryProvisioning}
-                    disabled={retryingProvisioning}
-                    className={`py-2 px-3.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${
-                      isFailed
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/25'
-                        : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
-                    } disabled:opacity-50`}
-                    title={isFailed ? 'Retry Provisioning Pipeline' : 'Restart Provisioning Pipeline'}
-                  >
-                    <RotateCcw size={13} className={retryingProvisioning ? 'animate-spin' : ''} />
-                    <span>{retryingProvisioning ? 'Starting...' : isFailed ? 'Retry Pipeline' : 'Restart'}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Resume Pipeline Button (checkpoint resumption without data loss) */}
+                    <button
+                      type="button"
+                      onClick={handleResumeProvisioning}
+                      disabled={resumingProvisioning || retryingProvisioning}
+                      className="py-2 px-3.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/25 disabled:opacity-50"
+                      title="Resume provisioning from last checkpoint without wiping already copied data"
+                    >
+                      <Play size={12} className={resumingProvisioning ? 'animate-spin' : 'fill-current'} />
+                      <span>{resumingProvisioning ? 'Resuming...' : 'Resume'}</span>
+                    </button>
+
+                    {/* Retry / Restart Pipeline Button */}
+                    <button
+                      type="button"
+                      onClick={handleRetryProvisioning}
+                      disabled={retryingProvisioning || resumingProvisioning}
+                      className={`py-2 px-3.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${isFailed
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/25'
+                          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+                        } disabled:opacity-50`}
+                      title={isFailed ? 'Retry Provisioning Pipeline' : 'Restart Provisioning Pipeline from 0%'}
+                    >
+                      <RotateCcw size={13} className={retryingProvisioning ? 'animate-spin' : ''} />
+                      <span>{retryingProvisioning ? 'Starting...' : isFailed ? 'Retry Pipeline' : 'Restart'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -786,11 +825,10 @@ export const TenantDetailPage: React.FC = () => {
               <div className="space-y-1.5">
                 <div className="h-3 w-full bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 shadow-sm ${
-                      isFailed
+                    className={`h-full rounded-full transition-all duration-500 shadow-sm ${isFailed
                         ? 'bg-gradient-to-r from-rose-500 to-red-600'
                         : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500'
-                    }`}
+                      }`}
                     style={{ width: `${Math.max(4, tenant.provisioningProgress || 0)}%` }}
                   />
                 </div>
@@ -815,15 +853,14 @@ export const TenantDetailPage: React.FC = () => {
                   return (
                     <div
                       key={stage.id}
-                      className={`rounded-2xl p-3 border transition-all flex flex-col justify-between ${
-                        isCurrent
+                      className={`rounded-2xl p-3 border transition-all flex flex-col justify-between ${isCurrent
                           ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-400/60 dark:border-indigo-600/60 shadow-sm ring-1 ring-indigo-500/20'
                           : isDone
-                          ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
-                          : isError
-                          ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-400 dark:border-rose-800 text-rose-800 dark:text-rose-300'
-                          : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800/60 text-slate-400'
-                      }`}
+                            ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+                            : isError
+                              ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-400 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                              : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800/60 text-slate-400'
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -844,10 +881,10 @@ export const TenantDetailPage: React.FC = () => {
                           {isCurrent
                             ? 'Active now'
                             : isDone
-                            ? 'Completed'
-                            : isError
-                            ? 'Failed here'
-                            : 'Pending'}
+                              ? 'Completed'
+                              : isError
+                                ? 'Failed here'
+                                : 'Pending'}
                         </div>
                       </div>
                     </div>
@@ -870,8 +907,8 @@ export const TenantDetailPage: React.FC = () => {
                         {tenant.activeTable
                           ? TABLE_FRIENDLY_NAMES[tenant.activeTable]?.label || tenant.activeTable
                           : isFailed
-                          ? 'Provisioning Halted'
-                          : 'Schema Initialization'}
+                            ? 'Provisioning Halted'
+                            : 'Schema Initialization'}
                       </span>
                       {tenant.activeTable && (
                         <span className="font-mono text-[10px] text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">
@@ -1316,6 +1353,87 @@ export const TenantDetailPage: React.FC = () => {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Assigned Master Elections Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                  <CalendarCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 dark:text-white text-base tracking-tight">
+                    Assigned Master Elections
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Election cycles currently monitored and operated by this organization
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate(`/dashboard/tenants/${tenant.id}/edit`)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer"
+              >
+                <Edit size={12} />
+                <span>Modify Assignments</span>
+              </button>
+            </div>
+
+            {Array.isArray((tenant as any).assignedElections) && (tenant as any).assignedElections.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(tenant as any).assignedElections.map((elec: any) => (
+                  <div
+                    key={elec.id}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                          {elec.name}
+                        </h4>
+                        {elec.electionCode && (
+                          <span className="font-mono text-[10px] text-slate-400">
+                            #{elec.electionCode}
+                          </span>
+                        )}
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                        {elec.electionType}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/40 dark:border-slate-700/40">
+                      <div className="flex items-center gap-1">
+                        <Calendar size={12} className="text-indigo-500" />
+                        <span>Poll: {elec.electionDate || 'Not set'}</span>
+                      </div>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          elec.status === 'ACTIVE'
+                            ? 'bg-emerald-500/10 text-emerald-500'
+                            : 'bg-blue-500/10 text-blue-500'
+                        }`}
+                      >
+                        {elec.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 text-center">
+                <CalendarCheck className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  No Master Elections currently assigned to this tenant.
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Assign an election via the edit button or from the Super Admin Election Master.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

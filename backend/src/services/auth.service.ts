@@ -38,7 +38,6 @@ export class AuthService {
       tenantDbName: user.tenantDbName,
       parentLeaderId: user.parentLeaderId,
       assignedAcId: user.assignedAcId,
-      assignedBoothIds: user.assignedBoothIds,
     });
 
     const { passwordHash, ...userWithoutPassword } = user;

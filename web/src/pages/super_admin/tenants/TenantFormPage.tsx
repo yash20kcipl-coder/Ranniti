@@ -20,12 +20,14 @@ import {
   ChevronRight,
   Pencil,
   Trash2,
+  CalendarCheck,
 } from 'lucide-react';
 import {
   provisionTenantUser,
   updateTenantUser,
   fetchTenantById,
 } from '@/redux/actions/tenant';
+import { fetchSuperAdminElectionOptions } from '@/redux/actions/superAdminElection';
 import toast from 'react-hot-toast';
 import { Modal } from '@/components/common/Modal';
 import { SafeImage } from '@/components/common/SafeImage';
@@ -62,6 +64,7 @@ export const TenantFormPage: React.FC = () => {
   const [avatar, setAvatar] = useState<File | string | null>(null);
   const [selectedPcIds, setSelectedPcIds] = useState<string[]>([]);
   const [selectedAcIds, setSelectedAcIds] = useState<string[]>([]);
+  const [selectedElectionIds, setSelectedElectionIds] = useState<string[]>([]);
 
   // Expand/collapse states for PC cards on the main card
   const [expandedPcIds, setExpandedPcIds] = useState<string[]>([]);
@@ -86,14 +89,16 @@ export const TenantFormPage: React.FC = () => {
   const pcs = useAppSelector((state) => (state.master as any)?.pcs || []);
   const acs = useAppSelector((state) => (state.master as any)?.acs || []);
   const tenantRoles = useAppSelector((state) => state.role.tenantRoles || []);
+  const electionOptions = useAppSelector((state) => state.superAdminElection?.electionOptions || []);
 
   // Fetch PC & AC master data and existing tenant data if in Edit mode
   useDebouncedEffect(
     () => {
-      // Always fetch fresh PC & AC master datasets and role packages from backend
+      // Always fetch fresh PC & AC master datasets, role packages, and election options from backend
       dispatch(fetchMasterCategoryData('pcs', '/masters/pcs', false));
       dispatch(fetchMasterCategoryData('acs', '/masters/acs', false));
       dispatch(fetchTenantRolePackages());
+      dispatch(fetchSuperAdminElectionOptions());
 
       if (isEditMode && id) {
         setFetching(true);
@@ -110,6 +115,7 @@ export const TenantFormPage: React.FC = () => {
               setSelectedPcIds(pcList);
               setSelectedAcIds(acList);
               setOriginalAcIds(acList);
+              setSelectedElectionIds(Array.isArray(data.electionIds) ? data.electionIds : []);
               setTenantDbName(data.tenantDbName || '');
               setExistingAvatarUrl(data.avatar || null);
             }
@@ -465,6 +471,7 @@ export const TenantFormPage: React.FC = () => {
         organizationName: organizationName.trim(),
         pcIds: effectivePcIds,
         acIds: selectedAcIds,
+        electionIds: selectedElectionIds,
         tenantRoleId: tenantRoleId || undefined,
       };
 
@@ -690,6 +697,66 @@ export const TenantFormPage: React.FC = () => {
                   maxSizeMB={5}
                   onChange={(file) => setAvatar(file)}
                 />
+              </div>
+
+              {/* Assigned Master Elections */}
+              <div className="space-y-2 pt-3.5 border-t border-slate-100 dark:border-slate-800 mt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <CalendarCheck className="w-4 h-4 text-indigo-500" />
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Assigned Master Elections ({selectedElectionIds.length})
+                    </label>
+                  </div>
+                  <span className="text-[11px] text-slate-400">
+                    Syncs to tenant database
+                  </span>
+                </div>
+
+                {electionOptions.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-2">No master elections found</p>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto space-y-1 p-2 bg-slate-50/60 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                    {electionOptions.map((opt: any) => {
+                      const isSelected = selectedElectionIds.includes(opt.id);
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedElectionIds((prev) =>
+                              prev.includes(opt.id)
+                                ? prev.filter((eid) => eid !== opt.id)
+                                : [...prev, opt.id]
+                            );
+                          }}
+                          className={`w-full flex items-center justify-between p-2 rounded text-xs transition-colors text-left ${
+                            isSelected
+                              ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-medium'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-semibold">{opt.name}</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                              {opt.electionType} • {opt.electionDate}
+                              {opt.electionCode ? ` • #${opt.electionCode}` : ''}
+                            </span>
+                          </div>
+                          <div
+                            className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
+                              isSelected
+                                ? 'bg-indigo-600 border-indigo-600 text-white'
+                                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>

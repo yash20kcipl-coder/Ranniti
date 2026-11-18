@@ -1,15 +1,17 @@
-import { useAppDispatch } from '@/redux/hooks';
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { resolveBreadcrumbs } from './utils/breadcrumbs';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { Sidebar, Topbar, CommandPalette } from './components';
+import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { checkAndSyncTenantDatasets } from '@/redux/actions/syncActions';
 import { BackgroundImportWidget } from '@/components/common/BackgroundImportWidget';
-import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 
 export const DashboardLayout: React.FC = () => {
   const dispatch = useAppDispatch();
   const location = useLocation();
+  const { user } = useAppSelector((state) => state.auth);
+  const isTenantUser = user?.role === 'tenant_admin';
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -20,10 +22,12 @@ export const DashboardLayout: React.FC = () => {
     }
   });
 
-  // Sync manifest check on layout mount
+  // Sync manifest check on layout mount (strictly for tenant accounts)
   useDebouncedEffect(() => {
-    dispatch(checkAndSyncTenantDatasets());
-  }, 200, [dispatch]);
+    if (isTenantUser) {
+      dispatch(checkAndSyncTenantDatasets());
+    }
+  }, 200, [dispatch, isTenantUser]);
 
   // Close mobile sidebar on route change
   useEffect(() => {

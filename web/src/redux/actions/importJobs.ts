@@ -72,6 +72,7 @@ const getBulkEndpoints = (getState?: () => RootState) => {
       fileUpload: (cat: string) => `/super-admin/masters/bulk-import-file/${cat}`,
       bulkUpload: (cat: string) => `/super-admin/masters/bulk-import/${cat}`,
       sampleTemplate: (cat: string) => `/super-admin/masters/sample-template/${cat}`,
+      deleteJob: (id: string) => `/super-admin/masters/bulk-import/jobs/${id}`,
     };
   }
 
@@ -82,6 +83,7 @@ const getBulkEndpoints = (getState?: () => RootState) => {
     fileUpload: (cat: string) => `/tenant/bulk-import/file/${cat}`,
     bulkUpload: (cat: string) => `/tenant/bulk-import/${cat}`,
     sampleTemplate: (cat: string) => `/tenant/bulk-import/sample-template/${cat}`,
+    deleteJob: (id: string) => `/tenant/bulk-import/jobs/${id}`,
   };
 };
 
@@ -196,10 +198,20 @@ export const fetchJobStatus = (jobId: string) => {
   };
 };
 
-export const dismissJob = (jobId: string) => ({
-  type: DISMISS_IMPORT_JOB,
-  payload: jobId,
-});
+export const dismissJob = (jobId: string) => {
+  return (dispatch: AppDispatch, getState: () => RootState) => {
+    dispatch({
+      type: DISMISS_IMPORT_JOB,
+      payload: jobId,
+    });
+    try {
+      const endpoints = getBulkEndpoints(getState);
+      if (endpoints.deleteJob) {
+        api.delete(endpoints.deleteJob(jobId)).catch(() => {});
+      }
+    } catch (_) {}
+  };
+};
 
 export const clearCompletedJobs = () => ({
   type: CLEAR_COMPLETED_JOBS,

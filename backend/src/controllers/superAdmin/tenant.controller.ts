@@ -12,6 +12,8 @@ import { query as masterQuery } from '../../queries/dbPool';
 import { TenantQueries } from '../../queries/tenant.queries';
 import { generateTenantPassword } from '../../utils/password';
 import { getTenantDbPool } from '../../utils/tenantDbProvisioner';
+import { superAdminElectionQueries } from '../../queries/superAdminElection.queries';
+import { ElectionSyncService } from '../../services/superAdmin/electionSync.service';
 import { tenantProvisioningService } from '../../provisioning/services/tenantProvisioning.service';
 
 export class TenantController {
@@ -19,7 +21,7 @@ export class TenantController {
    * Provision a new tenant account — inserts directly into tenants table.
    */
   provisionTenantUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { name, email, mobile, organizationName, pcIds, acIds, tenantRoleId, avatar } = req.body;
+    const { name, email, mobile, organizationName, pcIds, acIds, tenantRoleId, avatar, electionIds } = req.body;
 
     if (!name || !email || !mobile || !organizationName) {
       throw new ApiError(400, 'Name, email, mobile, and organization name are required');
@@ -82,6 +84,14 @@ export class TenantController {
       tenantRoleId: assignedRoleId,
     });
 
+    // Assign elections if provided
+    if (Array.isArray(electionIds) && electionIds.length > 0) {
+      const assignedByUserId = (req as any).user?.id || (req as any).adminUser?.id;
+      await superAdminElectionQueries.assignElectionsToTenant(tenant.id, electionIds, assignedByUserId).catch((err) => {
+        logger.error(`[TenantController] Error assigning initial elections for tenant '${tenant.id}':`, err);
+      });
+    }
+
     // Trigger background DB creation + schema init + voter copy (non-blocking)
     tenantProvisioningService
       .provisionTenantDataAsync(tenant.id, tenantDbName, resolvedAcIds, resolvedPcIds)
@@ -124,6 +134,9 @@ export class TenantController {
       throw new ApiError(404, 'Tenant not found');
     }
     const formattedTenant = attachFileUrls(tenant, ['avatar'], req);
+    const assignedElections = await superAdminElectionQueries.getAssignedElectionsForTenant(id);
+    (formattedTenant as any).assignedElections = assignedElections;
+    (formattedTenant as any).electionIds = assignedElections.map((e) => e.id);
     const response = ApiResponse.success(formattedTenant, 'Tenant retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
@@ -160,7 +173,7 @@ export class TenantController {
    */
   updateTenantUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const { name, email, mobile, organizationName, pcIds, acIds, tenantRoleId, avatar } = req.body;
+    const { name, email, mobile, organizationName, pcIds, acIds, tenantRoleId, avatar, electionIds } = req.body;
 
     if (!name || !email || !mobile || !organizationName) {
       throw new ApiError(400, 'Name, email, mobile, and organization name are required');
@@ -234,6 +247,51 @@ export class TenantController {
       tenantRoleId: tenantRoleId !== undefined ? tenantRoleId : existing.tenantRoleId,
       avatar: avatar ?? null,
     });
+
+    // Handle Election Assignment Sync
+    if (electionIds !== undefined && Array.isArray(electionIds)) {
+      (async () => {
+        try {
+          const assignedByUserId = (req as any).user?.id || (req as any).adminUser?.id;
+          const prevElections = await superAdminElectionQueries.getAssignedElectionsForTenant(id);
+          const prevIds = prevElections.map((e) => e.id);
+
+          const toAdd = electionIds.filter((eid: string) => !prevIds.includes(eid));
+          const toRemove = prevIds.filter((eid: string) => !electionIds.includes(eid));
+
+          if (toAdd.length > 0) {
+            for (const eid of toAdd) {
+              await masterQuery(
+                `INSERT INTO tenant_elections (tenant_id, election_id, assigned_by)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (tenant_id, election_id) DO NOTHING;`,
+                [id, eid, assignedByUserId || null]
+              );
+            }
+          }
+
+          if (toRemove.length > 0) {
+            await masterQuery(
+              `DELETE FROM tenant_elections WHERE tenant_id = $1 AND election_id = ANY($2::uuid[]);`,
+              [id, toRemove]
+            );
+            if (existing.tenantDbName) {
+              for (const eid of toRemove) {
+                await ElectionSyncService.removeElectionFromTenantDb(existing.tenantDbName, eid).catch(() => { });
+              }
+            }
+          }
+
+          if (existing.tenantDbName) {
+            await ElectionSyncService.syncAllAssignedElectionsForTenant(id, existing.tenantDbName);
+          }
+        } catch (elecSyncErr) {
+          logger.error(`[TenantController] Error syncing election assignments for tenant '${id}':`, elecSyncErr);
+        }
+      })().catch((err) => {
+        logger.error(`[TenantController] Background election sync error for tenant '${id}':`, err);
+      });
+    }
 
     if (existing.tenantDbName && (removedAcIds.length > 0 || addedAcIds.length > 0)) {
       (async () => {

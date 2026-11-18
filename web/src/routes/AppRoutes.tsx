@@ -14,6 +14,9 @@ const SuperAdminRoutes = React.lazy(() =>
 const TenantRoutes = React.lazy(() =>
   import('./TenantRoutes').then((m) => ({ default: m.TenantRoutes }))
 );
+const MapPreviewPage = React.lazy(() =>
+  import('@/pages/tenant/dashboard/MapPreviewPage').then((m) => ({ default: m.MapPreviewPage }))
+);
 
 const RouteLoadingSpinner = () => (
   <div className="min-h-[60vh] w-full flex flex-col items-center justify-center p-6 select-none">
@@ -74,6 +77,24 @@ export const AppRoutes: React.FC = () => {
         element={
           isAuthenticated ? <Navigate to="/dashboard/voters" replace /> : <LoginPage />
         }
+      />
+
+      {/* Standalone Demo Preview (Accessible directly without logging in) */}
+      <Route
+        path="/map-preview"
+        element={
+          <React.Suspense fallback={<RouteLoadingSpinner />}>
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
+              <div className="max-w-7xl mx-auto">
+                <MapPreviewPage />
+              </div>
+            </div>
+          </React.Suspense>
+        }
+      />
+      <Route
+        path="/map-view"
+        element={<Navigate to="/map-preview" replace />}
       />
 
       {/* Main Protected Dashboard — delegates to SuperAdmin or Tenant route module */}

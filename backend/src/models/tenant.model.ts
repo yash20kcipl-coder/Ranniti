@@ -11,6 +11,8 @@ export interface Tenant {
   tenantDbName: string;
   pcIds: string[];
   acIds: string[];
+  electionIds?: string[];
+  assignedElections?: any[];
   tenantRoleId?: string | null;
   tenantRoleName?: string | null;
   status: 'pending' | 'provisioning' | 'active' | 'failed' | 'suspended';
@@ -34,5 +36,7 @@ export interface CreateTenantInput {
   avatar?: string | null;
   pcIds: string[];
   acIds: string[];
+  electionIds?: string[];
+  assignedElections?: any[];
   tenantRoleId?: string | null;
 }

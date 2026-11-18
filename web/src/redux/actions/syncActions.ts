@@ -7,8 +7,13 @@ import { TENANT_MASTER_ENDPOINTS } from '@/hooks/useTenantMasterData';
 import { getLocalVersions, saveLocalVersion } from '@/utils/syncManager';
 
 export const checkAndSyncTenantDatasets = () => {
-  return async (dispatch: AppDispatch) => {
+  return async (dispatch: AppDispatch, getState: any) => {
     try {
+      const state = getState();
+      if (state.auth?.user?.role === 'super_admin') {
+        return { syncedCount: 0, requiresSync: false };
+      }
+
       const clientVersions = getLocalVersions();
 
       // Query Sync Manifest Endpoint

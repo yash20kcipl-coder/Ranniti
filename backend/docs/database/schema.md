@@ -38,6 +38,7 @@ For the complete multi-tenant database placement and deletion architecture, see 
 | **`tenant_dashboard_stats`**       | [`tenant_dashboard_stats.md`](./tables/tenant_dashboard_stats.md)             | Pre-aggregated rollup cache for instant (<5ms) tenant campaign dashboard metric loading    |
 | **`volunteer_activity_logs`**      | [`volunteer_activity_logs.md`](./tables/volunteer_activity_logs.md)           | Telemetry tracking volunteer outreach actions (calls, WhatsApp messages, SMS) for voters |
 | **`elections`**                    | [`elections.md`](./tables/elections.md)                                       | Election master entities, dates, targets, active/default campaign toggles                  |
+| **`tenant_elections`**             | [`tenant_elections.md`](./tables/tenant_elections.md)                         | Super Admin assignments of master elections to tenant organizations with active defaults   |
 | **`voter_election_statuses`**      | [`voter_election_statuses.md`](./tables/voter_election_statuses.md)           | Election-wise voter turnout, polling-day telemetry & historical records |
 | **`election_booth_turnout`**       | [`election_booth_turnout.md`](./tables/election_booth_turnout.md)             | Real-time pre-aggregated counter cache per booth per election for instant (<5ms) turnout  |
 

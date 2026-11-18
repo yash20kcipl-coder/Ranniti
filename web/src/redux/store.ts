@@ -5,6 +5,7 @@ import voterReducer from './reducers/voter';
 import tenantReducer from './reducers/tenant';
 import masterreducers from './reducers/master';
 import electionReducer from './reducers/election';
+import superAdminElectionReducer from './reducers/superAdminElection';
 import settingsReducer from './reducers/settings';
 import volunteerReducer from './reducers/volunteer';
 import dashboardreducers from './reducers/dashboard';
@@ -21,6 +22,7 @@ const appReducer = combineReducers({
   tenant: tenantReducer,
   master: masterreducers,
   election: electionReducer,
+  superAdminElection: superAdminElectionReducer,
   settings: settingsReducer,
   volunteer: volunteerReducer,
   dashboard: dashboardreducers,

@@ -1,0 +1,330 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 1,
+        "ward_name": "Sector 1 - Dumas Coastal & Beach",
+        "total_booths": 24,
+        "total_voters": 28400,
+        "cadre_coverage": 82,
+        "turnout_pct": 72.4,
+        "dominant_community": "Koli/Patel (65%)",
+        "status": "Stronghold",
+        "color_tier": 5,
+        "fill_color": "#be185d"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.695, 21.065],
+            [72.745, 21.070],
+            [72.750, 21.110],
+            [72.715, 21.115],
+            [72.685, 21.100],
+            [72.695, 21.065]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 2,
+        "ward_name": "Sector 2 - Sultanabad & Coastlink",
+        "total_booths": 20,
+        "total_voters": 22100,
+        "cadre_coverage": 65,
+        "turnout_pct": 58.5,
+        "dominant_community": "Tandel/Fishermen (72%)",
+        "status": "Competitive",
+        "color_tier": 2,
+        "fill_color": "#fbcfe8"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.745, 21.070],
+            [72.790, 21.075],
+            [72.785, 21.110],
+            [72.750, 21.110],
+            [72.745, 21.070]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 3,
+        "ward_name": "Sector 3 - Gaviar Airport Corridor",
+        "total_booths": 18,
+        "total_voters": 19800,
+        "cadre_coverage": 74,
+        "turnout_pct": 63.8,
+        "dominant_community": "Patel/Ahir (55%)",
+        "status": "Favorable",
+        "color_tier": 3,
+        "fill_color": "#f472b6"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.715, 21.115],
+            [72.750, 21.110],
+            [72.765, 21.140],
+            [72.725, 21.145],
+            [72.715, 21.115]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 4,
+        "ward_name": "Sector 4 - Vesu VIP Urban Hub",
+        "total_booths": 32,
+        "total_voters": 41200,
+        "cadre_coverage": 96,
+        "turnout_pct": 81.2,
+        "dominant_community": "Patidar/Jain (78%)",
+        "status": "Focal Stronghold",
+        "color_tier": 8,
+        "fill_color": "#090d16"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.765, 21.130],
+            [72.805, 21.125],
+            [72.810, 21.155],
+            [72.775, 21.160],
+            [72.765, 21.130]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 5,
+        "ward_name": "Sector 5 - Someshwara Enclave",
+        "total_booths": 26,
+        "total_voters": 31500,
+        "cadre_coverage": 88,
+        "turnout_pct": 74.0,
+        "dominant_community": "Patidar/Brahmin (68%)",
+        "status": "Stronghold",
+        "color_tier": 6,
+        "fill_color": "#701a75"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.775, 21.160],
+            [72.810, 21.155],
+            [72.815, 21.175],
+            [72.775, 21.175],
+            [72.775, 21.160]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 6,
+        "ward_name": "Sector 6 - Piplod Riverfront",
+        "total_booths": 22,
+        "total_voters": 27300,
+        "cadre_coverage": 91,
+        "turnout_pct": 77.5,
+        "dominant_community": "Urban Professionals (70%)",
+        "status": "Stronghold",
+        "color_tier": 5,
+        "fill_color": "#9d174d"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.765, 21.160],
+            [72.775, 21.160],
+            [72.775, 21.185],
+            [72.745, 21.185],
+            [72.765, 21.160]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 7,
+        "ward_name": "Sector 7 - Magdalla Port Belt",
+        "total_booths": 24,
+        "total_voters": 26900,
+        "cadre_coverage": 77,
+        "turnout_pct": 66.8,
+        "dominant_community": "Muslim/OBC (56%)",
+        "status": "Competitive",
+        "color_tier": 4,
+        "fill_color": "#db2777"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.725, 21.145],
+            [72.765, 21.140],
+            [72.765, 21.185],
+            [72.725, 21.185],
+            [72.725, 21.145]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 8,
+        "ward_name": "Sector 8 - Althan Central Urban",
+        "total_booths": 28,
+        "total_voters": 35800,
+        "cadre_coverage": 85,
+        "turnout_pct": 69.8,
+        "dominant_community": "Jain/Bania (58%)",
+        "status": "Favorable",
+        "color_tier": 5,
+        "fill_color": "#831843"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.805, 21.130],
+            [72.845, 21.135],
+            [72.840, 21.160],
+            [72.810, 21.155],
+            [72.805, 21.130]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 9,
+        "ward_name": "Sector 9 - Althan Canal Corridor",
+        "total_booths": 25,
+        "total_voters": 30200,
+        "cadre_coverage": 89,
+        "turnout_pct": 72.1,
+        "dominant_community": "Mixed Urban (62%)",
+        "status": "Stronghold",
+        "color_tier": 6,
+        "fill_color": "#701a75"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.810, 21.155],
+            [72.840, 21.160],
+            [72.845, 21.175],
+            [72.815, 21.175],
+            [72.810, 21.155]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 10,
+        "ward_name": "Sector 10 - Bhimrad Industrial Zone",
+        "total_booths": 36,
+        "total_voters": 44500,
+        "cadre_coverage": 48,
+        "turnout_pct": 34.0,
+        "dominant_community": "Migrant Labor (65%)",
+        "status": "Critical Gap",
+        "color_tier": 2,
+        "fill_color": "#fbcfe8"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.795, 21.100],
+            [72.855, 21.105],
+            [72.845, 21.135],
+            [72.805, 21.130],
+            [72.795, 21.100]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 11,
+        "ward_name": "Sector 11 - Khajod DREAM City & Bourse",
+        "total_booths": 16,
+        "total_voters": 18200,
+        "cadre_coverage": 70,
+        "turnout_pct": 61.0,
+        "dominant_community": "Diamond Community (74%)",
+        "status": "Favorable",
+        "color_tier": 3,
+        "fill_color": "#f472b6"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.765, 21.085],
+            [72.810, 21.080],
+            [72.815, 21.110],
+            [72.775, 21.110],
+            [72.765, 21.085]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ward_number": 12,
+        "ward_name": "Sector 12 - Abhva-Sania Agrarian Belt",
+        "total_booths": 19,
+        "total_voters": 21850,
+        "cadre_coverage": 73,
+        "turnout_pct": 63.5,
+        "dominant_community": "Koli Patel (60%)",
+        "status": "Favorable",
+        "color_tier": 3,
+        "fill_color": "#f472b6"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.810, 21.080],
+            [72.855, 21.085],
+            [72.855, 21.105],
+            [72.815, 21.110],
+            [72.810, 21.080]
+          ]
+        ]
+      }
+    }
+  ]
+}

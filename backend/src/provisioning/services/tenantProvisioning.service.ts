@@ -16,6 +16,7 @@ import { VillageProvisionService } from './village.provision.service';
 import { ReligionProvisionService } from './religion.provision.service';
 import { DistrictProvisionService } from './district.provision.service';
 import { TenantDbProvisioner, getTenantDbPool } from '../../utils/tenantDbProvisioner';
+import { ElectionSyncService } from '../../services/superAdmin/electionSync.service';
 
 /**
  * Syncs all master lookup tables into a tenant pool in strict dependency order.
@@ -176,6 +177,13 @@ export class TenantProvisioningService {
             40,
             true
           );
+        }
+
+        // Step 4.5 — Sync assigned master elections into tenant DB
+        try {
+          await ElectionSyncService.syncAllAssignedElectionsForTenant(tenantId, tenantDbName);
+        } catch (elecErr) {
+          logger.warn(`[TenantProvisioningService] Warning syncing assigned elections for tenant '${tenantId}':`, elecErr);
         }
 
         // Step 5 — Build GIN Trigram Search Indexes in post-import pass (90–98%)

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Tenant Dashboard Page
 import TenantDashboardPage from '@/pages/tenant/dashboard';
+import { MapPreviewPage } from '@/pages/tenant/dashboard/MapPreviewPage';
 
 // Tenant Voters Pages
 import {
@@ -30,6 +31,8 @@ export const TenantRoutes: React.FC = () => {
       {/* Tenant Campaign Command Dashboard */}
       <Route index element={<TenantDashboardPage />} />
       <Route path="dashboard" element={<TenantDashboardPage />} />
+      <Route path="map-view" element={<MapPreviewPage />} />
+      <Route path="map-preview" element={<MapPreviewPage />} />
 
       {/* Voter Management (Tenant endpoints) */}
       <Route path="voters" element={<TenantVotersPage />} />

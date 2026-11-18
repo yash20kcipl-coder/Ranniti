@@ -67,6 +67,47 @@ export interface HourlyTurnoutItem {
   votesCast: number;
 }
 
+export interface SuperAdminElectionTenant {
+  id: string;
+  name: string;
+  organizationName: string;
+  assignedAt: string;
+}
+
+export interface SuperAdminElection extends Election {
+  assignedTenantsCount: number;
+  assignedTenants: SuperAdminElectionTenant[];
+}
+
+export interface CreateSuperAdminElectionPayload extends CreateElectionPayload {
+  tenantIds?: string[];
+}
+
+export interface UpdateSuperAdminElectionPayload extends UpdateElectionPayload {
+  tenantIds?: string[];
+}
+
+export interface SuperAdminElectionOption {
+  id: string;
+  name: string;
+  electionCode: string | null;
+  electionType: string;
+  electionDate: string;
+  status: string;
+}
+
+export interface SuperAdminElectionState {
+  elections: SuperAdminElection[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  selectedElection: SuperAdminElection | null;
+  electionOptions: SuperAdminElectionOption[];
+  loading: boolean;
+  error: string | null;
+}
+
 export interface ElectionState {
   elections: Election[];
   total: number;

@@ -36,6 +36,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'operations' },
+  { path: '/dashboard/map-view', label: 'GIS Map View', icon: Map, section: 'operations' },
   { path: '/dashboard/voters', label: 'Voter Directory', icon: Vote, section: 'operations' },
   { path: '/dashboard/volunteers', label: 'Volunteers', icon: UserCheck, section: 'operations' },
   { path: '/dashboard/analytics', label: 'Analytics', icon: BarChart3, section: 'operations' },
@@ -72,6 +73,7 @@ export const masterSections = [
     title: 'Political Entities',
     icon: Flag,
     items: [
+      { key: 'elections', label: 'Elections', icon: CalendarCheck },
       { key: 'parties', label: 'Political Parties', icon: Flag },
     ],
   },

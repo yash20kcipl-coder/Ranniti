@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Super Admin Dashboard Overview Page
 import { SuperAdminDashboardPage } from '@/pages/super_admin/dashboard';
+import { MapPreviewPage } from '@/pages/tenant/dashboard/MapPreviewPage';
 
 // Super Admin Voters Pages
 import {
@@ -32,6 +33,7 @@ import {
   PartiesPage,
   BoothsPage,
   BulkUploadTestPage,
+  SuperAdminElectionsPage,
 } from '@/pages/super_admin/master';
 
 // Super Admin Settings Page
@@ -43,6 +45,8 @@ export const SuperAdminRoutes: React.FC = () => {
       {/* Default Dashboard -> Dedicated Super Admin Dashboard Overview */}
       <Route index element={<SuperAdminDashboardPage />} />
       <Route path="dashboard" element={<SuperAdminDashboardPage />} />
+      <Route path="map-view" element={<MapPreviewPage />} />
+      <Route path="map-preview" element={<MapPreviewPage />} />
 
       {/* Voter Management (Super Admin endpoints) */}
       <Route path="voters" element={<SuperAdminVotersPage />} />
@@ -79,6 +83,7 @@ export const SuperAdminRoutes: React.FC = () => {
       <Route path="master/wards" element={<WardsPage />} />
       <Route path="master/parties" element={<PartiesPage />} />
       <Route path="master/booths" element={<BoothsPage />} />
+      <Route path="master/elections" element={<SuperAdminElectionsPage />} />
       <Route path="master/bulk-test" element={<BulkUploadTestPage />} />
       <Route path="master/demo" element={<Navigate to="/dashboard/master/bulk-test" replace />} />
       <Route path="StateAssembly/*" element={<Navigate to="/dashboard/master/acs" replace />} />

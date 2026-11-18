@@ -98,9 +98,19 @@ coverage/
 # ------------------------------------------------------------------------------
 # Backend Uploads & Generated Media
 # ------------------------------------------------------------------------------
-# Ignore dynamically uploaded voter media while preserving directory structure
+# Ignore dynamically uploaded media while preserving directory structure
 backend/uploads/voters/*
 !backend/uploads/voters/.gitkeep
+backend/uploads/imports/*
+!backend/uploads/imports/.gitkeep
+
+# Raw GIS / Shapefile datasets
+data/
+
+# Large datasets exceeding GitHub 100MB limit
+xlsx/*choriyasi*.xlsx
+xlsx/168_choriyasi.xlsx
+*choriyasi*.xlsx
 
 # ------------------------------------------------------------------------------
 # React Native / Mobile App (app/)

@@ -1,5 +1,6 @@
 import {
   MapPin,
+  Map,
   Building2,
   CheckCircle,
   AlertTriangle,
@@ -108,13 +109,23 @@ export const BoothCoverageCard: React.FC<BoothCoverageCardProps> = ({ data, load
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/dashboard/tenant-master')}
-          className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
-        >
-          Manage <ChevronRight size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/map-view')}
+            className="text-xs font-semibold px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            <Map size={13} />
+            <span>GIS Map</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/tenant-master')}
+            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+          >
+            Manage <ChevronRight size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Main Content Area */}

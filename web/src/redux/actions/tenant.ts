@@ -145,12 +145,28 @@ export const fetchTenantProvisioningStatus = (id: string) => {
 };
 
 /**
- * Retries/restarts background data provisioning for a tenant
+ * Retries/restarts background data provisioning for a tenant (from scratch)
  */
 export const retryTenantProvisioning = (id: string) => {
   return async (dispatch: AppDispatch) => {
     try {
       const res = await api.post(`/provisioning/${id}/start`);
+      dispatch(fetchTenantUsers(false));
+      return res.data?.data || res.data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    }
+  };
+};
+
+/**
+ * Resumes background data provisioning for a tenant from last checkpoint
+ */
+export const resumeTenantProvisioning = (id: string) => {
+  return async (dispatch: AppDispatch) => {
+    try {
+      const res = await api.post(`/provisioning/${id}/resume`);
       dispatch(fetchTenantUsers(false));
       return res.data?.data || res.data;
     } catch (err) {

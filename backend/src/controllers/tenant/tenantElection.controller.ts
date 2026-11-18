@@ -55,67 +55,18 @@ export class TenantElectionController {
 
   /**
    * POST /api/v1/tenant/elections
-   * Create a new election
+   * Restrict election creation to Super Admin
    */
-  createElection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const pool = req.tenantPool;
-    if (!pool) {
-      throw ApiError.badRequest('Tenant database connection pool not initialized');
-    }
-
-    const { name, electionDate, electionType, electionCode, countingDate, stateId, pcId, acId, isDefault, isActive, status, totalVotersSnapshot, targetVotes, description } = req.body;
-
-    if (!name || !name.trim()) {
-      throw ApiError.badRequest('Election name is required');
-    }
-    if (!electionDate) {
-      throw ApiError.badRequest('Election polling date is required');
-    }
-
-    const created = await electionQueries.createTenantElection(pool, {
-      name,
-      electionDate,
-      electionType,
-      electionCode,
-      countingDate,
-      stateId,
-      pcId,
-      acId,
-      isDefault: Boolean(isDefault),
-      isActive: isActive !== undefined ? Boolean(isActive) : true,
-      status,
-      totalVotersSnapshot: totalVotersSnapshot ? parseInt(totalVotersSnapshot, 10) : 0,
-      targetVotes: targetVotes ? parseInt(targetVotes, 10) : 0,
-      description,
-    });
-
-    const response = ApiResponse.success(created, 'Election created successfully', 201);
-    res.status(response.statusCode).json(response.body);
+  createElection = asyncHandler(async (_req: Request, _res: Response): Promise<void> => {
+    throw ApiError.forbidden('Elections must be created and assigned by Super Admin. Please contact your system administrator.');
   });
 
   /**
    * PUT /api/v1/tenant/elections/:id
-   * Update an existing election
+   * Restrict election update to Super Admin
    */
-  updateElection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const pool = req.tenantPool;
-    if (!pool) {
-      throw ApiError.badRequest('Tenant database connection pool not initialized');
-    }
-
-    const id = req.params.id as string;
-    if (!id) {
-      throw ApiError.badRequest('Election ID is required');
-    }
-
-    const existing = await electionQueries.getTenantElectionById(pool, id);
-    if (!existing) {
-      throw ApiError.notFound(`Election with ID '${id}' not found`);
-    }
-
-    const updated = await electionQueries.updateTenantElection(pool, id, req.body);
-    const response = ApiResponse.success(updated, 'Election updated successfully');
-    res.status(response.statusCode).json(response.body);
+  updateElection = asyncHandler(async (_req: Request, _res: Response): Promise<void> => {
+    throw ApiError.forbidden('Elections can only be edited by Super Admin. Please contact your system administrator.');
   });
 
   /**
@@ -174,26 +125,10 @@ export class TenantElectionController {
 
   /**
    * DELETE /api/v1/tenant/elections/:id
-   * Delete an election
+   * Restrict election deletion to Super Admin
    */
-  deleteElection = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const pool = req.tenantPool;
-    if (!pool) {
-      throw ApiError.badRequest('Tenant database connection pool not initialized');
-    }
-
-    const id = req.params.id as string;
-    if (!id) {
-      throw ApiError.badRequest('Election ID is required');
-    }
-
-    const deleted = await electionQueries.deleteTenantElection(pool, id);
-    if (!deleted) {
-      throw ApiError.notFound(`Election with ID '${id}' not found`);
-    }
-
-    const response = ApiResponse.success(null, 'Election deleted successfully');
-    res.status(response.statusCode).json(response.body);
+  deleteElection = asyncHandler(async (_req: Request, _res: Response): Promise<void> => {
+    throw ApiError.forbidden('Elections can only be deleted by Super Admin. Please contact your system administrator.');
   });
 
   /**

@@ -5,6 +5,7 @@ import { superAdminMasterRoutes } from './master.routes';
 import { superAdminTenantRoutes } from './tenant.routes';
 import { superAdminSettingsRoutes } from './settings.routes';
 import { superAdminDashboardRoutes } from './dashboard.routes';
+import { superAdminElectionRoutes } from './election.routes';
 import { superAdminAppVersionRoutes } from './appVersion.routes';
 import { superAdminAuth } from '../../middlewares/superAdminAuth.middleware';
 import { provisioningRoutes } from '../../provisioning/routes/provisioning.routes';
@@ -22,6 +23,7 @@ router.use('/provisioning', provisioningRoutes);
 router.use('/tenant-roles', superAdminRoleRoutes);
 router.use('/settings', superAdminSettingsRoutes);
 router.use('/dashboard', superAdminDashboardRoutes);
+router.use('/elections', superAdminElectionRoutes);
 router.use('/app-versions', superAdminAppVersionRoutes);
 
 export const superAdminRouter = router;

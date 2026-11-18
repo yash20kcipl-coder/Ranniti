@@ -5,24 +5,20 @@ import {
 } from '@/constants/dropdownOptions';
 import {
   fetchTenantElections,
-  createTenantElection,
-  updateTenantElection,
   setDefaultTenantElection,
   syncDefaultElectionByDate,
-  deleteTenantElection,
 } from '@/redux/actions/election';
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useMemo } from 'react';
-import { ElectionModal } from './components/ElectionModal';
 import { PageHeader } from '@/components/common/PageHeader';
-import { Vote, Star, Calendar, Activity } from 'lucide-react';
+import { Vote, Star, Calendar, Activity, ShieldCheck } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
-import type { Election, CreateElectionPayload, UpdateElectionPayload } from '@/types/election.types';
+import type { Election } from '@/types/election.types';
 
 export const TenantElectionsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,16 +32,7 @@ export const TenantElectionsPage: React.FC = () => {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  // Modal States
-  const [isSaving, setIsSaving] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Election | null>(null);
-
-  // Confirmation States
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<Election | null>(null);
-
+  // Set Default State
   const [isSettingDefault, setIsSettingDefault] = useState(false);
   const [defaultModalOpen, setDefaultModalOpen] = useState(false);
   const [itemToSetDefault, setItemToSetDefault] = useState<Election | null>(null);
@@ -114,42 +101,6 @@ export const TenantElectionsPage: React.FC = () => {
       toast.error(err.message || 'Failed to sync default election');
     } finally {
       setIsSyncing(false);
-    }
-  };
-
-  // Form Submit Handler
-  const handleFormSubmit = async (payload: CreateElectionPayload | UpdateElectionPayload) => {
-    setIsSaving(true);
-    try {
-      if (editingItem) {
-        await dispatch(updateTenantElection(editingItem.id, payload));
-        toast.success('Election updated successfully');
-      } else {
-        await dispatch(createTenantElection(payload as CreateElectionPayload));
-        toast.success('Election created successfully');
-      }
-      setIsModalOpen(false);
-      setEditingItem(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save election');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Delete Handler
-  const handleDeleteConfirm = async () => {
-    if (!itemToDelete) return;
-    setIsDeleting(true);
-    try {
-      await dispatch(deleteTenantElection(itemToDelete.id));
-      toast.success('Election deleted successfully');
-      setDeleteModalOpen(false);
-      setItemToDelete(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete election');
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -292,21 +243,31 @@ export const TenantElectionsPage: React.FC = () => {
     <div className="space-y-4">
       <PageHeader
         title="Election Master"
-        subtitle="Manage campaign election cycles, dates, registered voter targets, and polling turnout configurations"
+        subtitle="View assigned campaign elections, designate the active default election, and monitor polling-day operations"
         icon={<Vote size={22} />}
         badge={
           <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {total} {total === 1 ? 'Record' : 'Records'}
+            {total} {total === 1 ? 'Assigned' : 'Assigned'}
           </span>
         }
         onSyncClick={handleSyncDefaultByDate}
         syncLabel={isSyncing ? 'Syncing...' : 'Sync Default by Date'}
-        onAddClick={() => {
-          setEditingItem(null);
-          setIsModalOpen(true);
-        }}
-        addLabel="Add Election"
       />
+
+      {/* Central Super Admin Management Notice */}
+      <div className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300">
+        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+          <ShieldCheck size={16} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-slate-800 dark:text-slate-200">
+            Elections are centrally configured and assigned by Super Admin
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            You can select your active campaign default election and launch the Live Polling War Room to monitor booth turnout.
+          </p>
+        </div>
+      </div>
 
       <FilterBar
         searchValue={search}
@@ -314,7 +275,7 @@ export const TenantElectionsPage: React.FC = () => {
           setSearch(val);
           setPage(1);
         }}
-        searchPlaceholder="Search elections..."
+        searchPlaceholder="Search assigned elections..."
         filters={filterFields}
         onReset={handleClearFilters}
       />
@@ -337,20 +298,12 @@ export const TenantElectionsPage: React.FC = () => {
         }}
         actions={(row) => (
           <TableActions
-            onEdit={() => {
-              setEditingItem(row);
-              setIsModalOpen(true);
-            }}
-            onDelete={() => {
-              setItemToDelete(row);
-              setDeleteModalOpen(true);
-            }}
             extra={
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => navigate(`/dashboard/tenant-master/elections/${row.id}/turnout`)}
-                  className="p-1.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-md transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-md transition-colors cursor-pointer"
                   title="Open Live Polling War Room"
                 >
                   <Activity className="w-4 h-4 text-emerald-500" />
@@ -362,7 +315,7 @@ export const TenantElectionsPage: React.FC = () => {
                       setItemToSetDefault(row);
                       setDefaultModalOpen(true);
                     }}
-                    className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-md transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-md transition-colors cursor-pointer"
                     title="Set as Default / Active Election"
                   >
                     <Star className="w-4 h-4" />
@@ -372,31 +325,6 @@ export const TenantElectionsPage: React.FC = () => {
             }
           />
         )}
-      />
-
-      <ElectionModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingItem(null);
-        }}
-        onSubmit={handleFormSubmit}
-        initialData={editingItem}
-        isSaving={isSaving}
-      />
-
-      <ConfirmModal
-        isOpen={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setItemToDelete(null);
-        }}
-        onConfirm={handleDeleteConfirm}
-        title="Delete Election"
-        message={`Are you sure you want to delete "${itemToDelete?.name}"? All associated polling-day voter statuses and booth turnout metrics for this election will be permanently deleted.`}
-        confirmText="Delete Election"
-        variant="danger"
-        loading={isDeleting}
       />
 
       <ConfirmModal

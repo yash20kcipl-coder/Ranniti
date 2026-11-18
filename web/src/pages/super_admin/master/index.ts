@@ -9,4 +9,5 @@ export * from './PartiesPage';
 export * from './WardsPage';
 export * from './BoothsPage';
 export * from './BulkUploadTestPage';
+export * from './SuperAdminElectionsPage';
 
