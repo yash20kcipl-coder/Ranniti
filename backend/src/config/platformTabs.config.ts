@@ -65,9 +65,9 @@ export const PLATFORM_AVAILABLE_VOLUNTEER_PERMISSIONS: AvailableVolunteerPermiss
     { key: 'canExportData', label: 'Export Voter Lists' },
   ],
   subordinateRoles: [
-    { key: 'ac_leader', label: 'AC Leader (Assembly Coordinator)' },
+    { key: 'ac_leader', label: 'AC Leader' },
     { key: 'sub_leader', label: 'Sub-Leader' },
-    { key: 'supporter', label: 'Campaign Supporter' },
+    { key: 'supporter', label: 'Volunteer' },
   ],
 };
 
@@ -118,7 +118,7 @@ const PLATFORM_TABS: PlatformTabStructure[] = [
   },
   {
     key: 'imports',
-    label: 'Import Hub / Data Imports',
+    label: 'Data Imports',
     description: 'Monitor bulk imports, upload files, inspect errors, and download templates',
     isDefault: true,
   },

@@ -28,6 +28,7 @@ export const CadreDeploymentCard: React.FC<CadreDeploymentCardProps> = ({ data, 
       <Card
         loading
         skeletonVariant="stats"
+        skeletonFooter
         title="Booth team"
         subtitle="Your sub-leaders and supporters at every polling booth"
         icon={<Users size={20} className="text-[#4338CA] dark:text-indigo-400" />}

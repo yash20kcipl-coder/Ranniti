@@ -158,7 +158,7 @@ export const BoothFormModal: React.FC<BoothFormModalProps> = ({
         />
         <FormInput
           type="select"
-          label="Ward / Prabhag (Optional)"
+          label="Ward (Optional)"
           value={wardId}
           onChange={(e) => setWardId(e.target.value)}
           options={wardOptions}
@@ -180,7 +180,7 @@ export const BoothFormModal: React.FC<BoothFormModalProps> = ({
           required
         />
         <FormInput
-          label="Location Building / Address"
+          label="Booth Address"
           value={locationBuilding}
           onChange={(e) => setLocationBuilding(e.target.value)}
           placeholder="e.g. Room No. 4, Ground Floor, Z.P. High School"

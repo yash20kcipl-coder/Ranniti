@@ -17,7 +17,7 @@ export const DEFAULT_SURVEY_FIELD_POINTS: SurveyFieldPointsConfig = {
     requirePreviouslyEmpty: true,
   },
   party_id: {
-    label: 'Party Leaning / Preference',
+    label: 'Party Leaning',
     points: 20,
     category: 'political',
     enabled: true,
@@ -59,14 +59,14 @@ export const DEFAULT_SURVEY_FIELD_POINTS: SurveyFieldPointsConfig = {
     requirePreviouslyEmpty: false,
   },
   profession: {
-    label: 'Profession / Occupation',
+    label: 'Profession',
     points: 5,
     category: 'demographic',
     enabled: true,
     requirePreviouslyEmpty: false,
   },
   status: {
-    label: 'Voter Shifted / Active Status',
+    label: 'Voter Status',
     points: 10,
     category: 'status',
     enabled: true,
@@ -80,7 +80,7 @@ export const DEFAULT_SURVEY_FIELD_POINTS: SurveyFieldPointsConfig = {
     requirePreviouslyEmpty: false,
   },
   dob: {
-    label: 'Date of Birth / Age Correction',
+    label: 'Date of Birth',
     points: 5,
     category: 'demographic',
     enabled: true,

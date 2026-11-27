@@ -160,7 +160,7 @@ export const BoothSelectorModal: React.FC<BoothSelectorModalProps> = ({
 
       <Text style={styles.subtitle}>
         {singleSelect
-          ? (t('selectOnePrimaryBooth') || 'Select 1 primary polling booth for this cadre')
+          ? (t('selectOnePrimaryBooth') || 'Select 1 primary polling booth for this volunteer')
           : `${t('selected') || 'Selected'} ${tempSelectedIds.length} ${t('of') || 'of'} ${booths.length} ${t('availableBooths') || 'available booths'}`}
       </Text>
 

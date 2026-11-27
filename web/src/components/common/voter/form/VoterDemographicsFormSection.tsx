@@ -104,10 +104,10 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
       title="Contact & Socio-Cultural Background"
       subtitle="Relative, Mobile, Email, Religion, Caste, and Profession"
     >
-      {/* Relative / Guardian Information */}
+      {/* Relative Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         <FormInput
-          label="Relative / Guardian Name"
+          label="Relative Name"
           name="guardianName"
           value={formData.guardianName || ''}
           onChange={handleChange}
@@ -159,7 +159,7 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         />
 
         <FormInput
-          label="Caste / Community"
+          label="Caste"
           type="autocomplete"
           name="caste"
           value={casteDisplayValue}
@@ -170,7 +170,7 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         />
 
         <FormInput
-          label="Subcaste / Category"
+          label="Subcaste"
           type="autocomplete"
           name="subcasteName"
           value={formData.subcasteName || ''}
@@ -194,7 +194,7 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         />
 
         <FormInput
-          label="Specific Profession / Occupation"
+          label="Profession"
           type="autocomplete"
           name="profession"
           value={formData.profession || ''}

@@ -132,14 +132,14 @@ export const WardFormModal: React.FC<WardFormModalProps> = ({
         />
         <FormInput
           type="number"
-          label="Ward / Prabhag Number"
+          label="Ward Number"
           value={wardNumber}
           onChange={(e) => setWardNumber(e.target.value)}
           placeholder="e.g. 12"
           required
         />
         <FormInput
-          label="Ward / Prabhag Name"
+          label="Ward Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Ward No. 12 - Shivajinagar"

@@ -3,6 +3,7 @@ import { attachFileUrls } from '../../utils/fileUrl';
 import { ApiResponse } from '../../utils/apiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { VoterService } from '../../services/tenant/voter.service';
+import { VoterPdfExportService } from '../../services/tenant/voterPdfExport.service';
 import { VoterFilterParams, FamilyCandidateParams, SocialCandidateParams } from '../../models/voter.model';
 
 export class VoterController {
@@ -163,6 +164,25 @@ export class VoterController {
     };
 
     await VoterService.exportVotersStream(res, filterParams);
+  });
+
+  static exportBoothVotersPdf = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const boothId = req.query.boothId as string;
+    if (!boothId || !boothId.trim()) {
+      res.status(400).json({ success: false, message: 'boothId is required for PDF roll export' });
+      return;
+    }
+
+    const language = (req.query.language as 'gu' | 'en') || 'gu';
+    const includePhotos = req.query.includePhotos !== 'false';
+    const tenantDbName = (req.tenantDbName || req.user?.tenantDbName);
+
+    await VoterPdfExportService.exportBoothVoterListPdf(res, {
+      boothId,
+      language,
+      tenantDbName,
+      includePhotos,
+    });
   });
 
   static getFamilyCandidates = asyncHandler(async (req: Request, res: Response): Promise<void> => {

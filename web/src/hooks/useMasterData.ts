@@ -76,12 +76,7 @@ export const useMasterData = (
       categories.forEach((cat) => {
         const isLoaded = master.loadedCategories?.[cat];
         const isFetching = master.fetchingCategories?.[cat];
-        const isPaginatedPage = Boolean(master.pagination?.[cat]?.page && master.pagination[cat]?.limit);
-        const isPartialPage = Boolean(
-          master.pagination?.[cat]?.total &&
-          (master as any)[cat]?.length < master.pagination[cat].total
-        );
-        if ((!isLoaded || isPartialPage || isPaginatedPage) && !isFetching) {
+        if (!isLoaded && !isFetching) {
           const endpoint = MASTER_ENDPOINTS[cat];
           if (endpoint) {
             dispatch(fetchMasterCategoryData(cat, endpoint, false));

@@ -3,8 +3,9 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { Card, CardFooterLink } from '@/components/common/Card';
 import { IndiaMap } from '@/components/Map/IndiaMap';
 import type { GeoLevel } from '@/types/electionGis.types';
-import { MapPin, Compass, Plus, Minus } from 'lucide-react';
+import { MapPin, Compass, Plus, Minus, ExternalLink } from 'lucide-react';
 import type { TenantDashboardOverviewPayload } from '@/redux/actions/tenantDashboardOverview';
+import { useNavigate } from 'react-router-dom';
 
 interface AssignedAreaMapCardProps {
   data: TenantDashboardOverviewPayload | null;
@@ -12,6 +13,7 @@ interface AssignedAreaMapCardProps {
 }
 
 export const AssignedAreaMapCard: React.FC<AssignedAreaMapCardProps> = ({ data, loading }) => {
+  const navigate = useNavigate()
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
   const [isMapInteractive, setIsMapInteractive] = useState(false);
@@ -40,9 +42,10 @@ export const AssignedAreaMapCard: React.FC<AssignedAreaMapCardProps> = ({ data, 
     return (
       <Card
         loading
-        skeletonVariant="default"
-        title="Assigned Area & Polling Stations"
-        subtitle="Map view of your assigned constituency"
+        skeletonVariant="map"
+        skeletonFooter
+        title="Your area"
+        subtitle="The constituency you're assigned to work in"
         icon={<Compass size={20} className="text-[#4338CA] dark:text-indigo-400" />}
         className="flex flex-col justify-between h-full min-h-[580px]"
       />
@@ -125,6 +128,7 @@ export const AssignedAreaMapCard: React.FC<AssignedAreaMapCardProps> = ({ data, 
             defaultShowStates={true}
             showStateContext={true}
             assignedAcNames={assignedAcs.map((a) => a.name)}
+            assignedAcNumbers={assignedAcs.map((a) => a.acNumber).filter((n): n is number => Boolean(n))}
             autoFitSelection={true}
             interactive={isMapInteractive}
             onMapReady={(m) => {
@@ -198,7 +202,7 @@ export const AssignedAreaMapCard: React.FC<AssignedAreaMapCardProps> = ({ data, 
           </div>
 
           {/* Bottom-right Open Full Map Button */}
-          {/* <button
+          <button
             type="button"
             onClick={() =>
               navigate(
@@ -208,7 +212,7 @@ export const AssignedAreaMapCard: React.FC<AssignedAreaMapCardProps> = ({ data, 
             className="absolute right-[14px] bottom-[14px] z-20 inline-flex items-center gap-2 min-h-[40px] px-4 rounded-[12px] bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-[0_2px_10px_rgba(15,23,42,0.12)] text-[13px] font-semibold text-[#4338CA] dark:text-indigo-400 cursor-pointer transition-colors"
           >
             Open full map <ExternalLink size={14} strokeWidth={2.2} />
-          </button> */}
+          </button>
         </div>
       ) : (
         <div

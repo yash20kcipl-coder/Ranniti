@@ -68,6 +68,8 @@ export interface IndiaMapProps {
   showStateContext?: boolean;
   /** List of assigned AC names whose opacity is emphasized while non-assigned ACs are dimmed */
   assignedAcNames?: string[];
+  /** List of assigned AC numbers (ac_no) used as fallback when DB AC names differ from GeoJSON */
+  assignedAcNumbers?: number[];
   /** Enable/disable map pan & zoom interactions (default: true) */
   interactive?: boolean;
   /** Optional callback receiving the underlying MapLibre Map instance */
@@ -118,6 +120,7 @@ export const IndiaMap: React.FC<IndiaMapProps> = ({
   autoFitSelection = false,
   showStateContext = false,
   assignedAcNames,
+  assignedAcNumbers,
   interactive = true,
   onMapReady,
   minHeightClassName = 'min-h-[680px]',
@@ -145,9 +148,88 @@ export const IndiaMap: React.FC<IndiaMapProps> = ({
     [assignedAcNames]
   );
 
+  const assignedAcNumberList = useMemo(
+    () => (assignedAcNumbers || []).map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0),
+    [assignedAcNumbers]
+  );
+
   // Data State
   const [acGeoJson, setAcGeoJson] = useState<any | null>(null);
   const [booths, setBooths] = useState<PollingBoothRecord[]>([]);
+
+  // Resolve assigned / selected AC GeoJSON features with name -> ac_no -> PC fallbacks
+  const resolvedAssignedAc = useMemo(() => {
+    const empty = { features: [] as any[], namesLower: [] as string[] };
+    if (!acGeoJson?.features) return empty;
+
+    const targetState = normalizeGeoKey(selectedState);
+    const targetPc = normalizeGeoKey(selectedPc);
+    const stateFeatures = targetState
+      ? acGeoJson.features.filter((f: any) => normalizeGeoKey(f?.properties?.st_name) === targetState)
+      : acGeoJson.features;
+
+    let matched: any[] = [];
+
+    if (normalizedAssignedAcList.length > 0 || assignedAcNumberList.length > 0) {
+      const assignedKeys = new Set(normalizedAssignedAcList.map((n) => normalizeGeoKey(n)));
+      const assignedNumbers = new Set(assignedAcNumberList);
+
+      // 1. Match by normalized AC name (preferring matching PC if specified)
+      if (assignedKeys.size > 0) {
+        matched = stateFeatures.filter((f: any) => {
+          const acMatch = assignedKeys.has(normalizeGeoKey(f?.properties?.ac_name));
+          const pcMatch = !targetPc || normalizeGeoKey(f?.properties?.pc_name) === targetPc;
+          return acMatch && pcMatch;
+        });
+        if (matched.length === 0 && targetPc) {
+          matched = stateFeatures.filter((f: any) =>
+            assignedKeys.has(normalizeGeoKey(f?.properties?.ac_name))
+          );
+        }
+      }
+
+      // 2. Fallback to ac_no when DB uses placeholder/different AC names (for single/specific AC assignments)
+      if (matched.length === 0 && assignedNumbers.size > 0 && !targetPc) {
+        matched = stateFeatures.filter((f: any) =>
+          assignedNumbers.has(Number(f?.properties?.ac_no || f?.properties?.ac_number))
+        );
+      }
+
+      // 3. Fallback to all ACs in selectedPc (e.g. when assigned to a PC whose DB ACs have placeholder names)
+      if (matched.length === 0 && targetPc) {
+        matched = stateFeatures.filter(
+          (f: any) => normalizeGeoKey(f?.properties?.pc_name) === targetPc
+        );
+      }
+
+      // 4. Last resort: match by ac_no even when targetPc is set
+      if (matched.length === 0 && assignedNumbers.size > 0) {
+        matched = stateFeatures.filter((f: any) =>
+          assignedNumbers.has(Number(f?.properties?.ac_no || f?.properties?.ac_number))
+        );
+      }
+    } else if ((level === 'ac' || level === 'booth') && selectedAc) {
+      const targetAc = normalizeGeoKey(selectedAc);
+      matched = stateFeatures.filter((f: any) => {
+        const acMatch = normalizeGeoKey(f?.properties?.ac_name) === targetAc;
+        const pcMatch = !targetPc || normalizeGeoKey(f?.properties?.pc_name) === targetPc;
+        return acMatch && pcMatch;
+      });
+    } else if (targetPc) {
+      matched = stateFeatures.filter(
+        (f: any) => normalizeGeoKey(f?.properties?.pc_name) === targetPc
+      );
+    }
+
+    const namesLower = Array.from(
+      new Set(
+        matched
+          .map((f: any) => String(f?.properties?.ac_name || '').toLowerCase().trim())
+          .filter(Boolean)
+      )
+    );
+    return { features: matched, namesLower };
+  }, [acGeoJson, selectedState, selectedPc, selectedAc, level, normalizedAssignedAcList, assignedAcNumberList]);
 
   // Hover Tooltip State
   const [hoverInfo, setHoverInfo] = useState<{
@@ -593,27 +675,8 @@ export const IndiaMap: React.FC<IndiaMapProps> = ({
     }
 
   // --- D. Focused AC Name Labels ---
-  if (acGeoJson?.features) {
-    let acFeaturesToLabel: any[] = [];
-    if (normalizedAssignedAcList.length > 0) {
-      const assignedKeys = new Set(normalizedAssignedAcList.map((n) => normalizeGeoKey(n)));
-      const targetPc = normalizeGeoKey(selectedPc);
-      acFeaturesToLabel = acGeoJson.features.filter((f: any) => {
-        const acMatch = assignedKeys.has(normalizeGeoKey(f?.properties?.ac_name));
-        const pcMatch = !targetPc || normalizeGeoKey(f?.properties?.pc_name) === targetPc;
-        return acMatch && pcMatch;
-      });
-    } else if ((level === 'ac' || level === 'booth') && selectedAc) {
-      const targetAc = normalizeGeoKey(selectedAc);
-      const targetPc = normalizeGeoKey(selectedPc);
-      acFeaturesToLabel = acGeoJson.features.filter((f: any) => {
-        const acMatch = normalizeGeoKey(f?.properties?.ac_name) === targetAc;
-        const pcMatch = !targetPc || normalizeGeoKey(f?.properties?.pc_name) === targetPc;
-        return acMatch && pcMatch;
-      });
-    }
-
-    acFeaturesToLabel.forEach((feature: any) => {
+  if (resolvedAssignedAc.features.length > 0 && (normalizedAssignedAcList.length > 0 || assignedAcNumberList.length > 0 || ((level === 'ac' || level === 'booth') && selectedAc))) {
+    resolvedAssignedAc.features.forEach((feature: any) => {
       if (!feature?.geometry?.coordinates) return;
       const b = new LngLatBounds();
       extendBoundsFromCoords(feature.geometry.coordinates, b);
@@ -640,11 +703,11 @@ export const IndiaMap: React.FC<IndiaMapProps> = ({
   showStates,
   showNeighboringCountries,
   onSelectState,
-  acGeoJson,
+  resolvedAssignedAc,
   level,
   selectedAc,
-  selectedPc,
   normalizedAssignedAcList,
+  assignedAcNumberList,
 ]);
 
 // 7. Initialize MapLibre GL Map Instance
@@ -870,14 +933,8 @@ useEffect(() => {
     }
 
     const assignedAcCondition: any =
-      normalizedAssignedAcList.length > 0
-        ? selectedPc
-          ? [
-            'all',
-            ['==', ['downcase', ['coalesce', ['get', 'pc_name'], '']], selectedPc.toLowerCase()],
-            ['in', ['downcase', ['coalesce', ['get', 'ac_name'], '']], ['literal', normalizedAssignedAcList]],
-          ]
-          : ['in', ['downcase', ['coalesce', ['get', 'ac_name'], '']], ['literal', normalizedAssignedAcList]]
+      resolvedAssignedAc.namesLower.length > 0
+        ? ['in', ['downcase', ['coalesce', ['get', 'ac_name'], '']], ['literal', resolvedAssignedAc.namesLower]]
         : selectedPc
           ? ['==', ['downcase', ['coalesce', ['get', 'pc_name'], '']], selectedPc.toLowerCase()]
           : statePcFilter;
@@ -974,7 +1031,7 @@ useEffect(() => {
       map.setLayoutProperty('booth-circle-layer', 'visibility', level === 'booth' ? 'visible' : 'none');
     }
   }
-}, [isMapLoaded, level, selectedState, selectedPc, selectedAc, borderStyle, acGeoJson, showStateContext, normalizedAssignedAcList, opacity, metric]);
+}, [isMapLoaded, level, selectedState, selectedPc, selectedAc, borderStyle, acGeoJson, showStateContext, resolvedAssignedAc, opacity, metric]);
 
 // 11b. Auto-fit bounds to selected region when autoFitSelection is enabled
 useEffect(() => {
@@ -983,28 +1040,14 @@ useEffect(() => {
 
   let targetFeatures: any[] = [];
 
-  if (normalizedAssignedAcList.length > 0 && acGeoJson?.features) {
-    const assignedKeys = new Set(normalizedAssignedAcList.map((n) => normalizeGeoKey(n)));
-    const targetPc = normalizeGeoKey(selectedPc);
-    targetFeatures = acGeoJson.features.filter((f: any) => {
-      const acMatch = assignedKeys.has(normalizeGeoKey(f?.properties?.ac_name));
-      const pcMatch = !targetPc || normalizeGeoKey(f?.properties?.pc_name) === targetPc;
-      return acMatch && pcMatch;
-    });
-  } else if ((level === 'ac' || level === 'booth') && selectedAc && acGeoJson?.features) {
-    const targetAc = normalizeGeoKey(selectedAc);
-    const targetPc = normalizeGeoKey(selectedPc);
-    targetFeatures = acGeoJson.features.filter((f: any) => {
-      const acMatch = normalizeGeoKey(f?.properties?.ac_name) === targetAc;
-      const pcMatch = !targetPc || normalizeGeoKey(f?.properties?.pc_name) === targetPc;
-      return acMatch && pcMatch;
-    });
-  } else if (level === 'pc' && selectedPc && normalizedPcData?.features) {
+  if (resolvedAssignedAc.features.length > 0) {
+    targetFeatures = resolvedAssignedAc.features;
+  } else if (selectedPc && normalizedPcData?.features) {
     const targetPc = normalizeGeoKey(selectedPc);
     targetFeatures = normalizedPcData.features.filter(
       (f: any) => normalizeGeoKey(f?.properties?.pc_name) === targetPc
     );
-  } else if (level === 'state' && selectedState && normalizedPcData?.features) {
+  } else if (selectedState && normalizedPcData?.features) {
     const targetState = normalizeGeoKey(selectedState);
     targetFeatures = normalizedPcData.features.filter(
       (f: any) => normalizeGeoKey(f?.properties?.st_name) === targetState
@@ -1024,7 +1067,7 @@ useEffect(() => {
     selectionBoundsRef.current = bounds;
     map.fitBounds(bounds, { padding: 40, duration: 0 });
   }
-}, [isMapLoaded, autoFitSelection, level, selectedState, selectedPc, selectedAc, acGeoJson, normalizedPcData, normalizedAssignedAcList]);
+}, [isMapLoaded, autoFitSelection, level, selectedState, selectedPc, selectedAc, resolvedAssignedAc, normalizedPcData]);
 
 // 12. Update Metric Expressions
 useEffect(() => {

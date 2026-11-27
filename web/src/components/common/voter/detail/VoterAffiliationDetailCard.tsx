@@ -24,7 +24,7 @@ export const VoterAffiliationDetailCard: React.FC<VoterAffiliationDetailCardProp
         <div className="min-w-0 flex-1">
           <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Political Party</span>
           <span className="font-bold text-slate-900 dark:text-slate-100 text-xs truncate block">
-            {voter.partyName || 'Independent / None'}
+            {voter.partyName || 'Undecided'}
           </span>
         </div>
       </div>

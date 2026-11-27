@@ -94,7 +94,7 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
           required
         />
         <FormInput
-          label="Abbreviation / Code"
+          label="Party Code"
           value={abbreviation}
           onChange={(e) => setAbbreviation(e.target.value)}
           placeholder="e.g. BJP"
@@ -189,7 +189,7 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
           placeholder="e.g. NDA / INDIA"
         />
         <FileUploadInput
-          label="Symbol / Party Logo"
+          label="Party Logo"
           name="symbolLogo"
           value={symbolLogo}
           onChange={(val) => setSymbolLogo(val)}

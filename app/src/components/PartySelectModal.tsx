@@ -157,7 +157,7 @@ export const PartySelectModal: React.FC<PartySelectModalProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Option 1: Independent / Undecided */}
+        {/* Option 1: Undecided */}
         {(!search || 'independent'.includes(search.toLowerCase()) || 'undecided'.includes(search.toLowerCase())) && (
           <TouchableOpacity
             style={[
@@ -166,7 +166,7 @@ export const PartySelectModal: React.FC<PartySelectModalProps> = ({
             ]}
             activeOpacity={0.7}
             onPress={() =>
-              handleSelect(null, t('undecidedIndependent') || 'Independent / Undecided')
+              handleSelect(null, t('undecidedIndependent') || 'Undecided')
             }
           >
             <View style={[styles.partyLogoBox, { backgroundColor: '#F1F5F9' }]}>
@@ -184,7 +184,7 @@ export const PartySelectModal: React.FC<PartySelectModalProps> = ({
                 ]}
                 numberOfLines={1}
               >
-                {t('undecidedIndependent') || 'Independent / Undecided'}
+                {t('undecidedIndependent') || 'Undecided'}
               </Text>
               <Text style={styles.partySubText}>
                 {t('neutral') || 'No specific party affiliation'}
@@ -224,7 +224,7 @@ export const PartySelectModal: React.FC<PartySelectModalProps> = ({
               onPress={() => {
                 if (isSelected) {
                   // Deselect currently selected party
-                  handleSelect(null, t('undecidedIndependent') || 'Independent / Undecided');
+                  handleSelect(null, t('undecidedIndependent') || 'Undecided');
                 } else {
                   handleSelect(party.id, party.abbreviation || party.name);
                 }

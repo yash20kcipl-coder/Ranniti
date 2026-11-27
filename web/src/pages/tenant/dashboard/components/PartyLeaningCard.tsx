@@ -127,6 +127,7 @@ export const PartyLeaningCard: React.FC<PartyLeaningCardProps> = ({ data, loadin
       <Card
         loading
         skeletonVariant="chart"
+        skeletonFooter
         title="Party support & undecided voters"
         subtitle="See who voters support and how many are still undecided"
         icon={<Vote size={20} className="text-[#4338CA] dark:text-indigo-400" />}

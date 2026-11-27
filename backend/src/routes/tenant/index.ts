@@ -11,6 +11,7 @@ import { tenantAuth } from '../../middlewares/tenantAuth.middleware';
 import { tenantVolunteerAnalyticsRoutes } from './volunteerAnalytics.routes';
 import { tenantSurveyScoringRoutes } from './surveyScoring.routes';
 import { tenantBulkRoutes } from './bulk.routes';
+import { tenantReportRoutes } from './report.routes';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.use('/settings', tenantSettingsRoutes);
 router.use('/elections', tenantElectionRoutes);
 router.use('/geography', tenantGeographyRoutes);
 router.use('/analytics', tenantVolunteerAnalyticsRoutes);
+router.use('/reports', tenantReportRoutes);
 router.use('/surveys', tenantSurveyScoringRoutes);
 router.use('/bulk-import', tenantBulkRoutes);
 

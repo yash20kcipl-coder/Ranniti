@@ -70,7 +70,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
             name="partyId"
             value={formData.partyId}
             onChange={handleChange}
-            options={[{ label: 'None / Independent / Undecided', value: '' }, ...partyOptions]}
+            options={[{ label: 'Undecided', value: '' }, ...partyOptions]}
           />
         </div>
 

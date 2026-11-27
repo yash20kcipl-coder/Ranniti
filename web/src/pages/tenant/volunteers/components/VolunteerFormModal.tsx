@@ -426,7 +426,7 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
             onChange={(e) => {
               const newRole = e.target.value as VolunteerRecord['role'];
               const roleOption = FORM_VOLUNTEER_ROLE_OPTIONS.find((o) => o.value === newRole);
-              const newRoleName = roleOption ? roleOption.label : 'Campaign Supporter';
+              const newRoleName = roleOption ? roleOption.label : 'Volunteer';
               setEditingVolunteer({
                 ...editingVolunteer,
                 role: newRole,

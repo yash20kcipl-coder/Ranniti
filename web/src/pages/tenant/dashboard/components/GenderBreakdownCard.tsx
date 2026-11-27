@@ -23,7 +23,8 @@ export const GenderBreakdownCard: React.FC<GenderBreakdownCardProps> = ({ data, 
     return (
       <Card
         loading
-        skeletonVariant="chart"
+        skeletonVariant="donut"
+        skeletonFooter
         title="Voters by gender"
         subtitle="Who your voters are, and how many you can call"
         icon={<Users size={20} className="text-[#4338CA] dark:text-indigo-400" />}

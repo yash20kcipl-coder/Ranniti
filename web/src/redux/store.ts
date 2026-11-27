@@ -14,6 +14,7 @@ import familyMappingReducer from './reducers/familyMapping';
 import tenantDashboardReducer from './reducers/tenantDashboard';
 import tenantDashboardOverviewReducer from './reducers/tenantDashboardOverview';
 import surveyReducer from './reducers/survey';
+import reportsReducer from './reducers/reports';
 import { combineReducers, configureStore, type UnknownAction } from '@reduxjs/toolkit';
 
 const appReducer = combineReducers({
@@ -33,6 +34,7 @@ const appReducer = combineReducers({
   tenantDashboard: tenantDashboardReducer,
   tenantDashboardOverview: tenantDashboardOverviewReducer,
   survey: surveyReducer,
+  reports: reportsReducer,
 });
 
 const rootReducer = (state: ReturnType<typeof appReducer> | undefined, action: UnknownAction) => {

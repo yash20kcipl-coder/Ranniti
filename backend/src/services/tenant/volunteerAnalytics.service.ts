@@ -29,6 +29,8 @@ export interface VolunteerLeaderboardItem {
   role: string;
   roleName: string;
   assignedBoothsCount: number;
+  assignedVotersCount: number;
+  uniqueVotersTouched: number;
   contactsSynced: number;
   callsCount: number;
   whatsAppCount: number;
@@ -113,6 +115,29 @@ export class VolunteerAnalyticsService {
           COUNT(DISTINCT booth_id) AS assigned_booths_count
         FROM user_booth_assignments
         GROUP BY user_id
+      ),
+      assigned_voters AS (
+        SELECT
+          uba.user_id AS volunteer_id,
+          COUNT(DISTINCT v.id)::int AS assigned_voters_count
+        FROM user_booth_assignments uba
+        INNER JOIN voters v ON v.booth_id = uba.booth_id AND v.is_dead = false
+        GROUP BY uba.user_id
+      ),
+      unique_touched AS (
+        SELECT
+          volunteer_id,
+          COUNT(DISTINCT voter_id)::int AS unique_voters_touched
+        FROM (
+          SELECT user_id AS volunteer_id, voter_id
+          FROM user_synced_contacts
+          ${syncTimeFilter}
+          UNION
+          SELECT volunteer_id, voter_id
+          FROM volunteer_activity_logs
+          ${actTimeFilter ? `${actTimeFilter} AND voter_id IS NOT NULL` : 'WHERE voter_id IS NOT NULL'}
+        ) t
+        GROUP BY volunteer_id
       )
       SELECT 
         u.id,
@@ -126,11 +151,15 @@ export class VolunteerAnalyticsService {
         COALESCE(ac.whatsapp_count, 0)::int AS "whatsAppCount",
         COALESCE(ac.sms_count, 0)::int AS "smsCount",
         COALESCE(bc.assigned_booths_count, 0)::int AS "assignedBoothsCount",
+        COALESCE(av.assigned_voters_count, 0)::int AS "assignedVotersCount",
+        COALESCE(ut.unique_voters_touched, 0)::int AS "uniqueVotersTouched",
         (COALESCE(sc.contacts_synced, 0) + COALESCE(ac.calls_count, 0) + COALESCE(ac.whatsapp_count, 0) + COALESCE(ac.sms_count, 0))::int AS "totalTouches"
       FROM tenant_users u
       LEFT JOIN sync_counts sc ON sc.volunteer_id = u.id
       LEFT JOIN activity_counts ac ON ac.volunteer_id = u.id
       LEFT JOIN booth_counts bc ON bc.volunteer_id = u.id
+      LEFT JOIN assigned_voters av ON av.volunteer_id = u.id
+      LEFT JOIN unique_touched ut ON ut.volunteer_id = u.id
       ${whereClause}
       ORDER BY "totalTouches" DESC, "contactsSynced" DESC, u.name ASC;
     `;
@@ -184,7 +213,13 @@ export class VolunteerAnalyticsService {
       const totalVoterTouches = totalContactsSynced + totalCallsInitiated + totalWhatsAppSent + totalSmsSent;
 
       const leaderboard: VolunteerLeaderboardItem[] = rows.map((r) => {
-        const score = maxTouches > 0 ? Math.round((r.totalTouches / maxTouches) * 100) : 0;
+        const assignedVoters = r.assignedVotersCount || 0;
+        const uniqueTouched = r.uniqueVotersTouched || 0;
+        const coverageScore =
+          assignedVoters > 0
+            ? Math.min(100, Math.round((uniqueTouched / assignedVoters) * 1000) / 10)
+            : 0;
+
         return {
           id: r.id,
           name: r.name,
@@ -193,12 +228,14 @@ export class VolunteerAnalyticsService {
           role: r.role,
           roleName: r.roleName,
           assignedBoothsCount: r.assignedBoothsCount,
+          assignedVotersCount: assignedVoters,
+          uniqueVotersTouched: uniqueTouched,
           contactsSynced: r.contactsSynced,
           callsCount: r.callsCount,
           whatsAppCount: r.whatsAppCount,
           smsCount: r.smsCount,
           totalTouches: r.totalTouches,
-          engagementScore: score,
+          engagementScore: coverageScore,
         };
       });
 

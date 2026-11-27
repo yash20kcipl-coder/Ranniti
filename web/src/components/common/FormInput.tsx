@@ -6,6 +6,7 @@ import { Eye, EyeOff, Check, AlertCircle, ChevronDown, Search, X, Loader2 } from
 export interface Option {
   label: string;
   value: string | number;
+  subtitle?: string;
 }
 
 export interface FormInputProps {
@@ -24,6 +25,8 @@ export interface FormInputProps {
   suggestions?: string[];
   /** Async search fallback when local suggestions don't match */
   onRemoteSearch?: (query: string) => Promise<any[]>;
+  /** Async search handler for select dropdown options */
+  onOptionSearch?: (query: string) => Promise<Option[]>;
   /** Callback with full object when selected from suggestions or remote results */
   onSelectDetailed?: (item: any) => void;
   /** Custom renderer for detailed suggestion item */
@@ -58,6 +61,7 @@ interface SearchableSelectProps {
   baseInputStyles: string;
   inlineLabel?: string;
   clearable?: boolean;
+  onOptionSearch?: (query: string) => Promise<Option[]>;
 }
 
 interface AutocompleteInputProps {
@@ -372,9 +376,14 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   baseInputStyles,
   inlineLabel,
   clearable = true,
+  onOptionSearch,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [remoteOptions, setRemoteOptions] = useState<Option[]>([]);
+  const [isRemoteSearching, setIsRemoteSearching] = useState(false);
+  const [cachedSelectedOption, setCachedSelectedOption] = useState<Option | null>(null);
+  const remoteSearchTimeoutRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -392,14 +401,15 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
     const openUpwards = spaceBelow < 260 && spaceAbove > spaceBelow;
+    const targetWidth = Math.min(Math.max(rect.width, onOptionSearch ? 320 : rect.width), window.innerWidth - 16);
 
     setDropdownCoords({
       top: openUpwards ? rect.top - 6 : rect.bottom + 6,
-      left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
-      width: rect.width,
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - targetWidth - 8)),
+      width: targetWidth,
       openUpwards,
     });
-  }, []);
+  }, [onOptionSearch]);
 
   // Update coords and attach listeners when open
   useEffect(() => {
@@ -465,20 +475,67 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  const hasActiveValue = value !== undefined && value !== null && String(value).trim() !== '';
-  const selectedOption = options.find((opt) => String(opt.value) === String(value));
+  // Remote search when onOptionSearch is provided and user types in search box
+  useEffect(() => {
+    if (!isOpen || !onOptionSearch) return;
+    const trimmed = searchTerm.trim();
+    if (!trimmed) {
+      setRemoteOptions([]);
+      setIsRemoteSearching(false);
+      return;
+    }
+
+    if (remoteSearchTimeoutRef.current) {
+      clearTimeout(remoteSearchTimeoutRef.current);
+    }
+
+    let cancelled = false;
+    setIsRemoteSearching(true);
+    remoteSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const results = await onOptionSearch(trimmed);
+        if (!cancelled) {
+          setRemoteOptions(Array.isArray(results) ? results : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setRemoteOptions([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRemoteSearching(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      if (remoteSearchTimeoutRef.current) {
+        clearTimeout(remoteSearchTimeoutRef.current);
+      }
+    };
+  }, [isOpen, searchTerm, onOptionSearch]);
+
+  const selectedOption =
+    options.find((opt) => String(opt.value) === String(value)) ||
+    (cachedSelectedOption && String(cachedSelectedOption.value) === String(value) ? cachedSelectedOption : undefined);
+  const isSelectedOptionActive = Boolean(selectedOption && String(selectedOption.value).trim() !== '');
 
   const filteredOptions = options.filter((opt) => {
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     return (
       opt.label.toLowerCase().includes(term) ||
+      (opt.subtitle ? opt.subtitle.toLowerCase().includes(term) : false) ||
       String(opt.value).toLowerCase().includes(term)
     );
   });
 
-  const handleSelect = (optValue: string | number) => {
-    onChange?.({ target: { name: name || '', value: optValue } });
+  const displayedOptions = onOptionSearch && searchTerm.trim() ? remoteOptions : filteredOptions;
+
+  const handleSelect = (opt: Option) => {
+    setCachedSelectedOption(String(opt.value).trim() !== '' ? opt : null);
+    onChange?.({ target: { name: name || '', value: opt.value } });
     setIsOpen(false);
     setSearchTerm('');
   };
@@ -486,11 +543,12 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    setCachedSelectedOption(null);
     onChange?.({ target: { name: name || '', value: '' } });
     setSearchTerm('');
   };
 
-  const isSearchActive = searchable && options.length > 5;
+  const isSearchActive = searchable && (Boolean(onOptionSearch) || options.length > 5);
 
   return (
     <div ref={containerRef} className={`relative w-full ${isOpen ? 'z-[100]' : ''}`}>
@@ -519,19 +577,19 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
           )}
 
           <div className="flex items-center min-w-0 truncate">
-            {inlineLabel && hasActiveValue && (
+            {inlineLabel && isSelectedOptionActive && (
               <span className="text-slate-400 dark:text-slate-500 font-normal shrink-0 mr-1 text-[11px]">
                 {inlineLabel}:
               </span>
             )}
-            <span className={`truncate font-slab ${size === 'sm' ? 'text-[11px]' : 'text-xs'} ${hasActiveValue ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-400 dark:text-slate-500 font-normal'}`}>
-              {selectedOption ? selectedOption.label : (hasActiveValue ? String(value) : placeholder)}
+            <span className={`truncate font-slab ${size === 'sm' ? 'text-[11px]' : 'text-xs'} ${isSelectedOptionActive ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-400 dark:text-slate-500 font-normal'}`}>
+              {selectedOption ? selectedOption.label : placeholder}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-1 shrink-0 text-slate-400 dark:text-slate-500 ml-1">
-          {clearable && hasActiveValue && !disabled && !required && (
+          {clearable && isSelectedOptionActive && !disabled && !required && (
             <span
               role="button"
               tabIndex={0}
@@ -606,20 +664,32 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
           {/* Options List */}
           <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5">
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((opt) => {
+            {isRemoteSearching ? (
+              <div className="flex items-center justify-center gap-2 py-4 text-xs font-slab text-slate-500 dark:text-slate-400">
+                <Loader2 size={14} className="animate-spin text-indigo-500" />
+                <span>Searching...</span>
+              </div>
+            ) : displayedOptions.length > 0 ? (
+              displayedOptions.map((opt) => {
                 const isSelected = String(opt.value) === String(value ?? '');
                 return (
                   <button
                     key={String(opt.value)}
                     type="button"
-                    onClick={() => handleSelect(opt.value)}
+                    onClick={() => handleSelect(opt)}
                     className={`w-full px-3 py-1.5 rounded-lg text-xs font-slab flex items-center justify-between text-left transition-colors cursor-pointer ${isSelected
                       ? 'bg-indigo-600 text-white font-medium'
                       : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
                       }`}
                   >
-                    <span className="truncate">{opt.label}</span>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="truncate">{opt.label}</span>
+                      {opt.subtitle && (
+                        <span className={`text-[10px] truncate mt-0.5 ${isSelected ? 'text-indigo-100' : 'text-slate-400 dark:text-slate-500'}`}>
+                          {opt.subtitle}
+                        </span>
+                      )}
+                    </div>
                     {isSelected && <Check size={14} className="shrink-0 ml-2 text-white" />}
                   </button>
                 );
@@ -651,6 +721,7 @@ export const FormInput: React.FC<FormInputProps> = ({
   options = [],
   suggestions = [],
   onRemoteSearch,
+  onOptionSearch,
   onSelectDetailed,
   renderSuggestionDetail,
   error,
@@ -733,6 +804,7 @@ export const FormInput: React.FC<FormInputProps> = ({
             baseInputStyles={baseInputStyles}
             inlineLabel={inlineLabel}
             clearable={clearable}
+            onOptionSearch={onOptionSearch}
           />
         );
 

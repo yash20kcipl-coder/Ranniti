@@ -127,7 +127,7 @@ export const TenantVolunteersPage: React.FC = () => {
       mobile: '',
       email: '',
       role: 'supporter',
-      roleName: 'Campaign Supporter',
+      roleName: 'Volunteer',
       avatar: null,
       parentLeaderId: null,
       assignedAcId: null,
@@ -417,15 +417,10 @@ export const TenantVolunteersPage: React.FC = () => {
       {/* Page Header */}
       <PageHeader
         addLabel="Onboard Volunteer"
-        title="Field Volunteers & Cadre"
+        title="Field Volunteers"
         onAddClick={handleOpenCreateModal}
         icon={<Users className="w-5 h-5 text-indigo-500" />}
-        subtitle="Manage PC/AC leaders, sub-leaders, and ground supporters with booth territory assignments"
-        badge={
-          <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
-            {volunteers.length} Cadres
-          </span>
-        }
+        subtitle="Manage PC/AC leaders, sub-leaders, and ground volunteers with booth territory assignments"
       />
 
       {/* Cadre & Booth Coverage Stats */}

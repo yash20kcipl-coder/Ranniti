@@ -39,6 +39,7 @@ export interface FilterField {
     setDraftValues: React.Dispatch<React.SetStateAction<Record<string, any>>>
   ) => void;
   onDraftRevert?: () => void;
+  onOptionSearch?: (query: string, currentValues: Record<string, any>) => Promise<Option[]>;
 }
 
 export interface FilterBarProps {
@@ -441,6 +442,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                                 placeholder={resolveFieldPlaceholder(field, draftValues) || `Select ${field.label}`}
                                 disabled={resolveFieldDisabled(field, draftValues)}
                                 helperText={resolveFieldHelperText(field, draftValues)}
+                                onOptionSearch={field.onOptionSearch ? (q) => field.onOptionSearch!(q, draftValues) : undefined}
                               />
                             )}
                           </div>
@@ -528,6 +530,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   onChange={(e) => field.onChange((e.target as any)?.value ?? e)}
                   placeholder={resolveFieldPlaceholder(field, activeFilterValues) || `Select ${field.label}`}
                   type={field.type === 'pills' || field.type === 'notice' ? 'select' : (field.type || 'select')}
+                  onOptionSearch={field.onOptionSearch ? (q) => field.onOptionSearch!(q, activeFilterValues) : undefined}
                 />
               </div>
             );

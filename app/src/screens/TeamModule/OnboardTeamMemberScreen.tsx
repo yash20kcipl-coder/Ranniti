@@ -267,7 +267,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
       return;
     }
     if (!selectedRole) {
-      toast.error('Please select a cadre role');
+      toast.error('Please select a volunteer role');
       return;
     }
     if (selectedRole !== 'pc_leader' && !parentLeaderId && eligibleParentLeaders.length > 0) {
@@ -319,7 +319,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
       dispatch(
         onboardTeamMemberAction(createPayload, () => {
           dispatch(fetchTeamMembersAction({ role: selectedRole }));
-          toast.success(t('teamMemberSuccessOnboarded') || 'Cadre Successfully Onboarded');
+          toast.success(t('teamMemberSuccessOnboarded') || 'Volunteer Successfully Onboarded');
           navigation.goBack();
         })
       );
@@ -363,7 +363,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>{t('selectRole')} *</Text>
           </View>
           <Text style={styles.sectionSubtitle}>
-            Choose cadre responsibility level allowed under your hierarchy
+            Choose volunteer responsibility level allowed under your hierarchy
           </Text>
 
           <View style={styles.roleGrid}>
@@ -409,7 +409,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
               <Text style={styles.sectionTitle}>{t('reportingLeader') || 'Reporting Leader'} *</Text>
             </View>
             <Text style={styles.sectionSubtitle}>
-              {ROLE_HIERARCHY_HINT[selectedRole] || 'Designate the commanding supervisor for this cadre member'}
+              {ROLE_HIERARCHY_HINT[selectedRole] || 'Designate the commanding supervisor for this volunteer'}
             </Text>
 
             {eligibleParentLeaders.length === 0 ? (
@@ -455,7 +455,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <MaterialDesignIcons name="account-details" size={20} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Cadre Credentials</Text>
+            <Text style={styles.sectionTitle}>Volunteer Credentials</Text>
           </View>
 
           {/* Avatar / Profile Photo Picker */}

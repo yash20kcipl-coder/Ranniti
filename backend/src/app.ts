@@ -34,8 +34,9 @@ export const createApp = (): Express => {
   // Enable CORS
   app.use(
     cors({
-      origin: config.corsOrigin,
       credentials: true,
+      origin: config.corsOrigin,
+      exposedHeaders: ['Content-Disposition'],
     })
   );
 

@@ -403,7 +403,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
           <View style={styles.lockedScopeCard}>
             <MaterialDesignIcons name="map-marker-radius" size={16} color={theme.colors.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.lockedScopeLabel}>{t('assignedWard') || 'Assigned Ward / Cluster'}</Text>
+              <Text style={styles.lockedScopeLabel}>{t('assignedWard') || 'Assigned Ward'}</Text>
               <Text style={styles.lockedScopeValue}>{user?.assignedArea || 'Ward 14 (8 Booths)'}</Text>
             </View>
           </View>
@@ -443,9 +443,9 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
 
         <View style={styles.divider} />
 
-        {/* ─── 5. Voter Category / Inclination (2-Column Grid Tiles) ─── */}
+        {/* ─── 5. Voter Category (2-Column Grid Tiles) ─── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>{t('voterCategoryInclination') || 'Voter Category / Inclination'}</Text>
+          <Text style={styles.sectionTitle}>{t('voterCategoryInclination') || 'Voter Category'}</Text>
           {selectedVoterType ? (
             <TouchableOpacity onPress={() => setSelectedVoterType('')}>
               <Text style={styles.clearText}>{t('clear') || 'Clear'}</Text>

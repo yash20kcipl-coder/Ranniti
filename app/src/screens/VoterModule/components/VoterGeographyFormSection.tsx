@@ -267,7 +267,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               disabled={!canEditContact}
               value={formData.village || ''}
               suggestions={villageSuggestions}
-              placeholder={t('villagePlaceholder') || 'Village / Town'}
+              placeholder={t('villagePlaceholder') || 'Village'}
               onChangeText={(val) => {
                 setFormData((prev: any) => ({ ...prev, village: val }));
                 const matchingV = (rawVillages || []).find(
@@ -292,7 +292,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           disabled={!canEditContact}
           value={formData.taluka || ''}
           suggestions={talukaSuggestions}
-          placeholder={t('talukaPlaceholder') || 'Taluka / Tehsil'}
+          placeholder={t('talukaPlaceholder') || 'Taluka'}
           onChangeText={(val) => {
             setFormData((prev: any) => ({ ...prev, taluka: val }));
             const matchingT = (rawTalukas || []).find(

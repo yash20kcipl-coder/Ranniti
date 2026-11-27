@@ -108,7 +108,7 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
       ...prev,
       partyId: isDeselected ? '' : (partyId || ''),
       partyName: isDeselected ? '' : partyName,
-      supportingParty: isDeselected ? (t('undecidedIndependent') || 'Independent / Undecided') : partyName,
+      supportingParty: isDeselected ? (t('undecidedIndependent') || 'Undecided') : partyName,
       partyAbbreviation: isDeselected ? '' : prev.partyAbbreviation,
       partySymbol: isDeselected ? '' : prev.partySymbol,
       partyColor: isDeselected ? '' : prev.partyColor,

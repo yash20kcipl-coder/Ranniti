@@ -111,14 +111,44 @@ export function resolveBreadcrumbs(pathname: string): { title: string; breadcrum
     };
   }
 
-  // ── 3c. Campaign Analytics ──────────────────────────────────────────────────
-  if (path === '/dashboard/analytics') {
+  // ── 3c. Campaign Reports ──────────────────────────────────────────────────
+  if (path === '/dashboard/reports/volunteer-outreach') {
     return {
-      title: 'Campaign Analytics & Reports',
+      title: 'Volunteer Outreach & Performance',
       breadcrumbs: [
         { label: 'Platform', href: '/dashboard' },
-        { label: 'Overview & Insights', href: '/dashboard/analytics' },
-        { label: 'Analytics & Reports' },
+        { label: 'Reports', href: '/dashboard/reports/volunteer-outreach' },
+        { label: 'Volunteer Outreach' },
+      ],
+    };
+  }
+  if (path === '/dashboard/reports/voter-sync') {
+    return {
+      title: 'Voter Sync to Volunteer',
+      breadcrumbs: [
+        { label: 'Platform', href: '/dashboard' },
+        { label: 'Reports', href: '/dashboard/reports/volunteer-outreach' },
+        { label: 'Voter Sync' },
+      ],
+    };
+  }
+  if (path === '/dashboard/reports/voting') {
+    return {
+      title: 'Voting Report by Election',
+      breadcrumbs: [
+        { label: 'Platform', href: '/dashboard' },
+        { label: 'Reports', href: '/dashboard/reports/volunteer-outreach' },
+        { label: 'Voting Report' },
+      ],
+    };
+  }
+  if (path === '/dashboard/reports') {
+    return {
+      title: 'Campaign Reports',
+      breadcrumbs: [
+        { label: 'Platform', href: '/dashboard' },
+        { label: 'Overview & Insights', href: '/dashboard/reports' },
+        { label: 'Reports' },
       ],
     };
   }

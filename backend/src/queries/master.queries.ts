@@ -1109,8 +1109,8 @@ export class MasterQueries {
     wardId?: string;
     search?: string;
     limit?: number;
-  }): Promise<Array<{ id: string; boothNumber: number; name: string; acId: string }>> {
-    const { acId, wardId, search, limit = 500 } = filter;
+  }): Promise<Array<{ id: string; boothNumber: number; name: string; acId: string; acName?: string; pcName?: string }>> {
+    const { acId, wardId, search, limit } = filter;
     const conditions: string[] = [];
     const params: any[] = [];
 
@@ -1126,26 +1126,28 @@ export class MasterQueries {
 
     if (search && search.trim()) {
       params.push(`%${search.trim()}%`);
-      conditions.push(`(b.name ILIKE $${params.length} OR CAST(b.booth_number AS TEXT) ILIKE $${params.length})`);
+      const p = `$${params.length}`;
+      conditions.push(`(b.name ILIKE ${p} OR CAST(b.booth_number AS TEXT) ILIKE ${p} OR a.name ILIKE ${p} OR pc.name ILIKE ${p})`);
     }
 
-    // Guard: Prevent full table scan across millions of booths if no scoping param was supplied
-    if (conditions.length === 0) {
-      return [];
-    }
-
-    const maxLimit = Math.min(Math.max(1, limit), 1000);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const defaultLimit = conditions.length === 0 ? 50 : 500;
+    const maxLimit = Math.min(Math.max(1, limit ?? defaultLimit), 1000);
     params.push(maxLimit);
 
     const sql = `
       SELECT 
-        b.id,
-        b.booth_number AS "boothNumber",
-        b.name,
+        b.id, 
+        b.booth_number AS "boothNumber", 
+        b.name, 
         b.ac_id AS "acId",
+        a.name AS "acName",
+        pc.name AS "pcName",
         b.ward_id AS "wardId"
       FROM booths b
-      WHERE ${conditions.join(' AND ')}
+      LEFT JOIN assembly_constituencies a ON a.id = b.ac_id
+      LEFT JOIN parliamentary_constituencies pc ON pc.id = a.pc_id
+      ${whereClause}
       ORDER BY b.booth_number ASC
       LIMIT $${params.length}
     `;

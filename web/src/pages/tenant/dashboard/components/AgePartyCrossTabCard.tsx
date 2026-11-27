@@ -113,7 +113,8 @@ export const AgePartyCrossTabCard: React.FC<AgePartyCrossTabCardProps> = ({ data
     return (
       <Card
         loading
-        skeletonVariant="chart"
+        skeletonVariant="columns"
+        skeletonFooter
         title="Voters by age group"
         subtitle="See which age groups are still undecided"
         icon={<BarChart3 size={20} className="text-[#4338CA] dark:text-indigo-400" />}

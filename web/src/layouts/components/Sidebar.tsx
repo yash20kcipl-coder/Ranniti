@@ -17,11 +17,13 @@ import {
   X,
   PanelLeftClose,
   FlaskConical,
-  BarChart3,
   CalendarCheck,
   Briefcase,
   Award,
   FileSpreadsheet,
+  FileBarChart2,
+  Activity,
+  Smartphone,
 } from 'lucide-react';
 import { NavPill } from './NavPill';
 import { logout } from '@/redux/actions/auth';
@@ -30,7 +32,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setMasterTab } from '@/redux/actions/masterSuperAdmin';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-export type NavSection = 'overview' | 'field' | 'administration' | 'system';
+export type NavSection = 'overview' | 'field' | 'administration' | 'masters' | 'system';
 
 export interface NavItem {
   path: string;
@@ -43,11 +45,10 @@ export const navItems: NavItem[] = [
   // Overview & Insights
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'overview' },
   // { path: '/dashboard/map-view', label: 'Constituency Map', icon: Map, section: 'overview' },
-  { path: '/dashboard/analytics', label: 'Analytics & Reports', icon: BarChart3, section: 'overview' },
 
   // Field & Voters
   { path: '/dashboard/voters', label: 'Voter Directory', icon: Vote, section: 'field' },
-  { path: '/dashboard/volunteers', label: 'Volunteers & Cadre', icon: UserCheck, section: 'field' },
+  { path: '/dashboard/volunteers', label: 'Volunteers', icon: UserCheck, section: 'field' },
   // { path: '/dashboard/surveys', label: 'Surveys & Feedback', icon: Award, section: 'field' },
 
   // Team & Administration
@@ -59,19 +60,25 @@ export const navItems: NavItem[] = [
   { path: '/dashboard/settings', label: 'Settings', icon: Settings, section: 'system' },
 ];
 
+export const reportSubItems = [
+  { path: '/dashboard/reports/volunteer-outreach', label: 'Volunteer Outreach', icon: Activity },
+  { path: '/dashboard/reports/voter-sync', label: 'Voter Sync', icon: Smartphone },
+  { path: '/dashboard/reports/voting', label: 'Voting Report', icon: Vote },
+];
+
 export const masterSections = [
   {
     key: 'geography',
     title: 'Areas & Polling Booths',
     icon: MapPin,
     items: [
-      { key: 'districts', label: 'Districts', icon: Map },
-      { key: 'talukas', label: 'Talukas', icon: Building },
-      { key: 'villages', label: 'Villages', icon: Home },
       { key: 'pcs', label: 'Parliamentary (PC)', icon: Landmark },
       { key: 'acs', label: 'Assembly (AC)', icon: Building2 },
       { key: 'wards', label: 'Wards (Prabhags)', icon: Layers },
       { key: 'booths', label: 'Polling Booths', icon: Vote },
+      { key: 'districts', label: 'Districts', icon: Map },
+      { key: 'talukas', label: 'Talukas (Tehsils)', icon: Building },
+      { key: 'villages', label: 'Villages (Gaon)', icon: Home },
     ],
   },
   {
@@ -79,8 +86,8 @@ export const masterSections = [
     title: 'Castes & Professions',
     icon: Users,
     items: [
-      { key: 'religions', label: 'Religions', icon: HeartHandshake },
       { key: 'castes', label: 'Castes & Subcastes', icon: UserCheck },
+      { key: 'religions', label: 'Religions', icon: HeartHandshake },
       { key: 'profession-categories', label: 'Profession Categories', icon: Briefcase },
       { key: 'professions', label: 'Specific Professions', icon: Award },
     ],
@@ -178,6 +185,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [openTenantCategory, setOpenTenantCategory] = useState<string | null>(() => {
     return currentTenantMasterTab ? 'geography' : null;
   });
+
+  const isReportsRoute = location.pathname.startsWith('/dashboard/reports');
+  const [isReportsOpen, setIsReportsOpen] = useState<boolean>(() => isReportsRoute);
+
+  useEffect(() => {
+    if (isReportsRoute) {
+      setIsReportsOpen(true);
+    }
+  }, [isReportsRoute]);
 
   // Automatically keep expanded category in sync with the active route
   useEffect(() => {
@@ -310,7 +326,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {navItems
                 .filter((item) => {
                   if (item.section !== 'overview') return false;
-                  if (item.path === '/dashboard/analytics') return !isSuperAdmin;
                   return true;
                 })
                 .map((item) => {
@@ -332,6 +347,51 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                   );
                 })}
+
+              {/* Collapsible Reports Submenu for Tenant Users */}
+              {!isSuperAdmin && (
+                <NavPill
+                  label="Reports"
+                  icon={FileBarChart2}
+                  isActive={isReportsRoute}
+                  isCollapsed={isSidebarCollapsed}
+                  badge={reportSubItems.length}
+                  hasSubmenu={true}
+                  isSubmenuOpen={isReportsOpen}
+                  onToggleSubmenu={(e) => {
+                    e.stopPropagation();
+                    setIsReportsOpen((prev) => !prev);
+                  }}
+                  onClick={() => {
+                    if (isSidebarCollapsed) {
+                      navigate(reportSubItems[0].path);
+                    } else {
+                      setIsReportsOpen((prev) => !prev);
+                      if (!isReportsRoute) {
+                        navigate(reportSubItems[0].path);
+                      }
+                    }
+                  }}
+                >
+                  <div className="space-y-0.5 py-0.5">
+                    {reportSubItems.map((sub) => {
+                      const isSubActive =
+                        location.pathname === sub.path || location.pathname.startsWith(sub.path + '/');
+                      return (
+                        <NavPill
+                          key={sub.path}
+                          variant="sub-pill"
+                          to={sub.path}
+                          onClick={onCloseMobileSidebar}
+                          label={sub.label}
+                          icon={sub.icon}
+                          isActive={isSubActive}
+                        />
+                      );
+                    })}
+                  </div>
+                </NavPill>
+              )}
             </div>
 
             {/* GROUP 2: FIELD & VOTERS */}
@@ -410,6 +470,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                   );
                 })}
+            </div>
+
+            {/* GROUP 4: MASTER DATA */}
+            <div className="space-y-1">
+              {!isSidebarCollapsed && (
+                <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400/90 dark:text-slate-500/90">
+                  Master Data
+                </div>
+              )}
 
               {/* SUPER ADMIN MASTER CATEGORIES */}
               {isSuperAdmin &&
@@ -580,7 +649,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             </div>
 
-            {/* GROUP 4: SYSTEM */}
+            {/* GROUP 5: SYSTEM */}
             <div className="space-y-1">
               {!isSidebarCollapsed && (
                 <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400/90 dark:text-slate-500/90">
@@ -612,9 +681,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     item.path === '/dashboard/imports'
                       ? location.pathname === '/dashboard/imports' || location.pathname.startsWith('/dashboard/imports/')
                       : item.path === '/dashboard/ui-gallery'
-                      ? location.pathname === '/dashboard/ui-gallery'
-                      : location.pathname.startsWith('/dashboard/settings') ||
-                      location.pathname.startsWith('/dashboard/super-admin/settings');
+                        ? location.pathname === '/dashboard/ui-gallery'
+                        : location.pathname.startsWith('/dashboard/settings') ||
+                        location.pathname.startsWith('/dashboard/super-admin/settings');
 
                   return (
                     <NavPill

@@ -21,8 +21,12 @@ import { TenantVolunteersPage } from '@/pages/tenant/volunteers/TenantVolunteers
 // Tenant Web Users Page (Dedicated Standalone Web User Management)
 import { TenantWebUsersPage } from '@/pages/tenant/users';
 
-// Tenant Campaign Analytics Page
-import { TenantAnalyticsPage } from '@/pages/tenant/analytics';
+// Tenant Campaign Reports Pages
+import {
+  VolunteerOutreachReportPage,
+  VoterSyncReportPage,
+  VotingReportPage,
+} from '@/pages/tenant/reports';
 
 // Tenant Volunteer Surveys & Gamification Page
 import { TenantVolunteerSurveysPage } from '@/pages/tenant/surveys';
@@ -73,8 +77,11 @@ export const TenantRoutes: React.FC = () => {
       {/* Tenant Web Portal Users (Standalone Page) */}
       <Route path="users" element={<TenantWebUsersPage />} />
 
-      {/* Tenant Campaign & Outreach Analytics */}
-      <Route path="analytics" element={<TenantAnalyticsPage />} />
+      {/* Tenant Campaign Reports (Separate Pages per Sidebar Tab) */}
+      <Route path="reports" element={<Navigate to="/dashboard/reports/volunteer-outreach" replace />} />
+      <Route path="reports/volunteer-outreach" element={<VolunteerOutreachReportPage />} />
+      <Route path="reports/voter-sync" element={<VoterSyncReportPage />} />
+      <Route path="reports/voting" element={<VotingReportPage />} />
 
       {/* Tenant Import Hub */}
       <Route path="imports" element={<ImportsManagementPage />} />

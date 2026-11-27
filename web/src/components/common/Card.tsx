@@ -80,6 +80,9 @@ export type CardSkeletonVariant =
   | 'tiles'
   | 'stats'
   | 'chart'
+  | 'map'
+  | 'columns'
+  | 'donut'
   | 'table'
   | 'simple';
 
@@ -244,12 +247,21 @@ export interface CardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 't
    * - `default`: Standard card skeleton with header, content blocks, and footer
    * - `tiles`: 2-column grid of 8 tiles with icons & progress tracks (Field completeness)
    * - `stats`: Top 2 stat boxes, progress track, 3 readiness rows, tip box (Cadre deployment)
-   * - `chart`: Top metrics row, horizontal bars with percentage chips (Party / Age / Gender)
+   * - `chart`: Top metrics row, horizontal bars with percentage chips (Party support)
+   * - `map`: Full-bleed map canvas with floating constituency/zoom/action pills
+   * - `columns`: Legend row + vertical column bar chart with X-axis labels
+   * - `donut`: Donut ring + breakdown rows + bottom tip callout
    * - `table`: Structured table skeleton
    * - `simple`: Minimalistic KPI placeholder
    * @default 'default'
    */
   skeletonVariant?: CardSkeletonVariant;
+
+  /**
+   * Whether to show the footer skeleton when `loading={true}` (even if `footer` prop is omitted).
+   * @default false
+   */
+  skeletonFooter?: boolean;
 
   /**
    * Custom skeleton element to render inside the card shell when `loading={true}`.
@@ -282,7 +294,7 @@ export const CardSkeleton: React.FC<{
   hasFooter = true,
 }) => {
     return (
-      <div className="flex flex-col justify-between h-full w-full">
+      <div className="flex flex-col justify-between flex-1 h-full w-full">
         {/* Header Skeleton */}
         {hasHeader && (
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#EEF1F6] dark:border-slate-800/80 animate-pulse">
@@ -316,7 +328,11 @@ export const CardSkeleton: React.FC<{
         )}
 
         {/* Body Skeleton */}
-        <div className="flex-1 p-5 animate-pulse">
+        <div
+          className={`flex-1 animate-pulse flex flex-col ${
+            variant === 'map' ? 'p-0' : 'p-5'
+          }`}
+        >
           {variant === 'tiles' ? (
             <div className="flex flex-col h-full justify-between gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -398,7 +414,7 @@ export const CardSkeleton: React.FC<{
               </div>
             </div>
           ) : variant === 'chart' ? (
-            <div className="flex flex-col h-full justify-between space-y-5">
+            <div className="flex flex-col h-full gap-6">
               {/* Top metrics row */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -415,8 +431,9 @@ export const CardSkeleton: React.FC<{
               </div>
 
               {/* Share bars */}
-              <div className="space-y-3 pt-2">
-                {Array.from({ length: 6 }).map((_, i) => (
+              <div className="flex-1 flex flex-col justify-center space-y-4">
+                <div className="h-3 w-28 bg-slate-200/80 dark:bg-slate-800 rounded" />
+                {Array.from({ length: 7 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-24 sm:w-32 flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-[3px] bg-slate-200 dark:bg-slate-700 shrink-0" />
@@ -425,7 +442,7 @@ export const CardSkeleton: React.FC<{
                     <div className="flex-1 h-3.5 rounded-full bg-slate-200/80 dark:bg-slate-800 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-slate-300 dark:bg-slate-700"
-                        style={{ width: `${Math.max(15, 90 - i * 14)}%` }}
+                        style={{ width: `${Math.max(15, 92 - i * 11)}%` }}
                       />
                     </div>
                     <div className="w-20 flex justify-end gap-1.5">
@@ -434,6 +451,121 @@ export const CardSkeleton: React.FC<{
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          ) : variant === 'map' ? (
+            <div className="relative w-full flex-1 min-h-[316px] bg-slate-100/90 dark:bg-slate-800/50 overflow-hidden">
+              {/* Subtle map contour placeholders */}
+              <div className="absolute inset-0 opacity-40">
+                <div className="absolute top-1/4 left-1/4 w-48 h-48 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700" />
+                <div className="absolute bottom-1/4 right-1/4 w-36 h-36 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700" />
+              </div>
+
+              {/* Top-left Constituency Card */}
+              <div className="absolute top-[14px] left-[14px] px-[14px] py-[10px] rounded-[14px] bg-white/95 dark:bg-slate-900/95 shadow-sm space-y-1.5">
+                <div className="h-2.5 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-4 w-12 bg-slate-200/80 dark:bg-slate-800 rounded-full" />
+                </div>
+              </div>
+
+              {/* Top-right Zoom Controls */}
+              <div className="absolute top-[14px] right-[14px] w-[40px] h-[80px] rounded-[12px] bg-white/95 dark:bg-slate-900/95 shadow-sm flex flex-col items-center justify-around p-2">
+                <div className="w-4 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="w-full h-px bg-slate-200 dark:bg-slate-800" />
+                <div className="w-4 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+              </div>
+
+              {/* Bottom-left Polling Booths Pill */}
+              <div className="absolute left-[14px] bottom-[14px] px-[14px] py-2.5 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-sm flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+                <div className="h-3.5 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
+              </div>
+
+              {/* Bottom-right Open Full Map Button */}
+              <div className="absolute right-[14px] bottom-[14px] h-[40px] w-32 rounded-[12px] bg-white/95 dark:bg-slate-900/95 shadow-sm flex items-center justify-center px-3">
+                <div className="h-3.5 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+              </div>
+            </div>
+          ) : variant === 'columns' ? (
+            <div className="flex flex-col flex-1 justify-between space-y-5">
+              {/* Legend Row */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="h-3 w-44 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="flex items-center gap-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-[3px] bg-slate-200 dark:bg-slate-700" />
+                      <div className="h-3 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Column Plot Area */}
+              <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex items-end gap-3 sm:gap-4 min-h-[220px] px-2 pt-6 border-b border-slate-200 dark:border-slate-700">
+                  {[62, 84, 70, 52, 34].map((heightPct, idx) => (
+                    <div key={idx} className="flex-1 h-full flex flex-col items-center justify-end gap-1.5">
+                      <div className="h-3 w-8 bg-slate-200 dark:bg-slate-700 rounded" />
+                      <div
+                        className="w-full rounded-t-[8px] bg-slate-200/90 dark:bg-slate-700/80"
+                        style={{ height: `${heightPct}%` }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* X-Axis Labels */}
+                <div className="flex gap-3 sm:gap-5 px-1 pt-2.5">
+                  {Array.from({ length: 5 }).map((_, idx) => (
+                    <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                      <div className="h-3.5 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
+                      <div className="h-3 w-14 bg-slate-200/70 dark:bg-slate-800 rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : variant === 'donut' ? (
+            <div className="flex flex-col flex-1 justify-between space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-[196px_minmax(0,1fr)] gap-7 items-center flex-1">
+                {/* Donut Ring Skeleton */}
+                <div className="relative w-[196px] h-[196px] mx-auto sm:mx-0 rounded-full border-[22px] border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-1.5">
+                  <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-16 bg-slate-200/80 dark:bg-slate-800 rounded" />
+                  <div className="h-2.5 w-20 bg-slate-200/60 dark:bg-slate-800/70 rounded" />
+                </div>
+
+                {/* Breakdown Rows */}
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="px-3 py-2 space-y-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-2.5 h-2.5 rounded-[3px] bg-slate-200 dark:bg-slate-700 shrink-0" />
+                        <div className="h-3.5 w-20 bg-slate-200 dark:bg-slate-700 rounded flex-1 max-w-[100px]" />
+                        <div className="flex-1" />
+                        <div className="h-3.5 w-14 bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-3 w-10 bg-slate-200/70 dark:bg-slate-800 rounded" />
+                      </div>
+                      <div className="flex items-center gap-2 pl-5">
+                        <div className="w-3.5 h-3.5 rounded bg-slate-200 dark:bg-slate-700 shrink-0" />
+                        <div className="flex-1 h-2 rounded-[4px] bg-slate-200/80 dark:bg-slate-800" />
+                        <div className="h-3 w-28 bg-slate-200/70 dark:bg-slate-800 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bottom Tip Callout */}
+              <div className="p-3.5 rounded-[12px] bg-slate-100/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 flex items-start gap-2.5 mt-auto">
+                <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 shrink-0 mt-0.5" />
+                <div className="space-y-1.5 flex-1">
+                  <div className="h-3.5 w-56 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-72 bg-slate-200/70 dark:bg-slate-700/60 rounded" />
+                </div>
               </div>
             </div>
           ) : variant === 'simple' ? (
@@ -502,6 +634,7 @@ const CardComponent = forwardRef<HTMLDivElement, CardProps>(
       hoverable = false,
       loading = false,
       skeletonVariant = 'default',
+      skeletonFooter = false,
       skeleton,
       onClick,
       className = '',
@@ -516,7 +649,7 @@ const CardComponent = forwardRef<HTMLDivElement, CardProps>(
     // Consolidate action slots
     const resolvedActions = action || headerActions;
     const hasHeader = Boolean(title || subtitle || icon || badge || resolvedActions);
-    const hasFooter = Boolean(footer);
+    const hasFooter = Boolean(footer) || skeletonFooter;
     const isInteractive = Boolean(onClick || hoverable);
 
     // Keyboard accessibility for clickable cards

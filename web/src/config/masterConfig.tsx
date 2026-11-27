@@ -40,7 +40,7 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
     ],
     fields: [
       { name: 'name', label: 'State Name', type: 'text', required: true, placeholder: 'e.g. Maharashtra' },
-      { name: 'code', label: 'State Code / Abbreviation', type: 'text', placeholder: 'e.g. MH' },
+      { name: 'code', label: 'State Code', type: 'text', placeholder: 'e.g. MH' },
     ],
   },
   religions: {
@@ -65,7 +65,7 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
     apiEndpoint: '/masters/castes',
     description: 'Manage caste categories and social classifications.',
     columns: [
-      { key: 'name', header: 'Caste / Subcaste Name', sortable: true },
+      { key: 'name', header: 'Caste Name', sortable: true },
       { key: 'category', header: 'Category', sortable: true },
       {
         key: 'religionName',
@@ -81,7 +81,7 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
       },
     ],
     fields: [
-      { name: 'name', label: 'Caste / Subcaste Name', type: 'text', required: true, placeholder: 'e.g. Kunbi Maratha, Chitpavan Brahmin' },
+      { name: 'name', label: 'Caste Name', type: 'text', required: true, placeholder: 'e.g. Kunbi Maratha, Chitpavan Brahmin' },
       {
         name: 'category',
         label: 'Category',
@@ -361,7 +361,7 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
     columns: [
       {
         key: 'symbolLogo',
-        header: 'Symbol / Logo',
+        header: 'Party Logo',
         render: (row) => (
           <SafeImage
             alt={row.name}
@@ -372,26 +372,26 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
         ),
       },
       { key: 'name', header: 'Party Name', sortable: true },
-      { key: 'abbreviation', header: 'Abbreviation / Code', sortable: true },
+      { key: 'abbreviation', header: 'Party Code', sortable: true },
       { key: 'alliance', header: 'Alliance', render: (row) => row.alliance || '-' },
     ],
     fields: [
       { name: 'name', label: 'Party Name', type: 'text', required: true, fullWidth: true, placeholder: 'e.g. Bharatiya Janata Party' },
       { name: 'abbreviation', label: 'Abbreviation', type: 'text', required: true, placeholder: 'e.g. BJP' },
       { name: 'alliance', label: 'Alliance Name', type: 'text', placeholder: 'e.g. NDA / INDIA' },
-      { name: 'symbolLogo', label: 'Symbol / Party Logo', type: 'file', fullWidth: true },
+      { name: 'symbolLogo', label: 'Party Logo', type: 'file', fullWidth: true },
     ],
   },
   wards: {
     key: 'wards',
-    label: 'Wards (Prabhags)',
+    label: 'Wards',
     singularLabel: 'Ward',
     addLabel: 'Add Ward',
     apiEndpoint: '/masters/wards',
-    description: 'Manage electoral wards / prabhags under Assembly Constituencies.',
+    description: 'Manage electoral wards under Assembly Constituencies.',
     columns: [
       { key: 'wardNumber', header: 'Ward No.', sortable: true },
-      { key: 'name', header: 'Ward / Prabhag Name', sortable: true },
+      { key: 'name', header: 'Ward Name', sortable: true },
       {
         key: 'acName',
         header: 'Assembly Constituency (AC)',
@@ -429,8 +429,8 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
         optionsSource: 'acs',
         placeholder: 'Select AC',
       },
-      { name: 'wardNumber', label: 'Ward / Prabhag Number', type: 'number', required: true, placeholder: 'e.g. 12' },
-      { name: 'name', label: 'Ward / Prabhag Name', type: 'text', required: true, fullWidth: true, placeholder: 'e.g. Ward No. 12 - Shivajinagar' },
+      { name: 'wardNumber', label: 'Ward Number', type: 'number', required: true, placeholder: 'e.g. 12' },
+      { name: 'name', label: 'Ward Name', type: 'text', required: true, fullWidth: true, placeholder: 'e.g. Ward No. 12 - Shivajinagar' },
     ],
   },
   booths: {
@@ -489,14 +489,14 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
       },
       {
         name: 'wardId',
-        label: 'Ward / Prabhag',
+        label: 'Ward',
         type: 'select',
         optionsSource: 'wards',
         placeholder: 'Select Ward (Optional)',
       },
       { name: 'boothNumber', label: 'Booth Number', type: 'number', required: true, placeholder: 'e.g. 102' },
       { name: 'name', label: 'Polling Station Name', type: 'text', required: true, fullWidth: true, placeholder: 'e.g. National High School Hall' },
-      { name: 'locationBuilding', label: 'Location Building / Address', type: 'textarea', rows: 2, fullWidth: true, placeholder: 'e.g. Room No. 4, Ground Floor, Main Wing' },
+      { name: 'locationBuilding', label: 'Booth Address', type: 'textarea', rows: 2, fullWidth: true, placeholder: 'e.g. Room No. 4, Ground Floor, Main Wing' },
       { name: 'totalVoters', label: 'Total Allocated Voters', type: 'number', placeholder: 'e.g. 1200' },
     ],
   },

@@ -154,7 +154,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
         />
 
         <FormInput
-          label="Polling Station / Booth"
+          label="Polling Booth"
           type="select"
           name="boothId"
           value={formData.boothId}
@@ -169,7 +169,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           name="houseNo"
           value={formData.houseNo}
           onChange={handleChange}
-          placeholder="House / Flat / Door No."
+          placeholder="House Number"
         />
       </div>
 
@@ -195,7 +195,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
         <FormInput
           name="taluka"
           type="autocomplete"
-          label="Taluka / Tehsil"
+          label="Taluka"
           value={formData.taluka}
           onChange={handleChange}
           placeholder="Select or type Taluka"
@@ -207,7 +207,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
         <FormInput
           name="village"
           type="autocomplete"
-          label="Village / Locality"
+          label="Village"
           value={formData.village}
           onChange={handleChange}
           placeholder="Select or type Village"

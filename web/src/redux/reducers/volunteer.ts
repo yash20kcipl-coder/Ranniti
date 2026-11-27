@@ -60,6 +60,8 @@ export interface VolunteerLeaderboardItem {
   role: string;
   roleName: string;
   assignedBoothsCount: number;
+  assignedVotersCount: number;
+  uniqueVotersTouched: number;
   contactsSynced: number;
   callsCount: number;
   whatsAppCount: number;

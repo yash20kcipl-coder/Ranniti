@@ -254,7 +254,7 @@ const voterReducer = (state = initialVoterState, action: any): VoterState => {
           v.id === action.payload.voterId
             ? {
                 ...v,
-                supportingParty: action.payload.supportingParty ?? (isDeselected ? 'Independent / Undecided' : action.payload.party),
+                supportingParty: action.payload.supportingParty ?? (isDeselected ? 'Undecided' : action.payload.party),
                 partyName: action.payload.partyName ?? (isDeselected ? '' : action.payload.party),
                 partyId: action.payload.partyId ? String(action.payload.partyId) : '',
                 partyAbbreviation: action.payload.partyAbbreviation ?? (isDeselected ? '' : v.partyAbbreviation),

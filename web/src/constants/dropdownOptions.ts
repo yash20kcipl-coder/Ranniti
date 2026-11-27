@@ -21,7 +21,7 @@ export const VOTER_TYPE_OPTIONS: Option[] = [
   { label: 'Student', value: 'Student' },
   { label: 'Senior Citizen', value: 'Senior' },
   { label: 'NRI Voter', value: 'NRI' },
-  { label: 'VIP / Key Person', value: 'VIP' },
+  { label: 'VIP Voter', value: 'VIP' },
 ];
 
 export const FORM_VOTER_TYPE_OPTIONS: Option[] = [
@@ -31,7 +31,7 @@ export const FORM_VOTER_TYPE_OPTIONS: Option[] = [
   { label: 'Student', value: 'Student' },
   { label: 'Senior Citizen', value: 'Senior' },
   { label: 'NRI Voter', value: 'NRI' },
-  { label: 'VIP / Key Person', value: 'VIP' },
+  { label: 'VIP Voter', value: 'VIP' },
 ];
 
 export const USER_STATUS_OPTIONS: Option[] = [
@@ -42,21 +42,21 @@ export const USER_STATUS_OPTIONS: Option[] = [
 export const STATUS_OPTIONS: Option[] = [
   { label: 'All Statuses', value: '' },
   { label: 'Active Voter', value: 'ACTIVE' },
-  { label: 'Shifted / Transferred', value: 'SHIFTED' },
+  { label: 'Shifted', value: 'SHIFTED' },
   { label: 'Unverified', value: 'UNVERIFIED' },
-  { label: 'Inactive / Suspended', value: 'INACTIVE' },
+  { label: 'Inactive', value: 'INACTIVE' },
   { label: 'Pending Verification', value: 'PENDING' },
 ];
 
 export const IS_DEAD_OPTIONS: Option[] = [
-  { label: 'All Living & Deceased', value: '' },
+  { label: 'All Statuses', value: '' },
   { label: 'Living Only', value: 'false' },
   { label: 'Deceased Only', value: 'true' },
 ];
 
 export const AGE_GROUP_OPTIONS: Option[] = [
   { label: 'All Age Groups', value: '' },
-  { label: '18 - 25 Years (Youth / First Time Voters)', value: '18-25' },
+  { label: '18 - 25 Years', value: '18-25' },
   { label: '26 - 35 Years (Young Adults)', value: '26-35' },
   { label: '36 - 50 Years (Middle Aged)', value: '36-50' },
   { label: '51 - 65 Years (Seniors)', value: '51-65' },
@@ -100,11 +100,11 @@ export const USER_ROLE_OPTIONS: Option[] = [
 
 export const LEADER_CREATABLE_ROLE_OPTIONS: Option[] = [
   { label: 'Assembly Leader', value: 'leader' },
-  { label: 'Booth Coordinator (Sub-Leader)', value: 'sub_leader' },
+  { label: 'Sub-Leader', value: 'sub_leader' },
 ];
 
 export const SUB_LEADER_CREATABLE_ROLE_OPTIONS: Option[] = [
-  { label: 'Field Supporter', value: 'supporter' },
+  { label: 'Volunteer', value: 'supporter' },
 ];
 
 export const VOLUNTEER_ROLE_OPTIONS: Option[] = [
@@ -112,14 +112,14 @@ export const VOLUNTEER_ROLE_OPTIONS: Option[] = [
   { label: 'PC Leader', value: 'pc_leader' },
   { label: 'AC Leader', value: 'ac_leader' },
   { label: 'Sub-Leader', value: 'sub_leader' },
-  { label: 'Campaign Supporter', value: 'supporter' },
+  { label: 'Volunteer', value: 'supporter' },
 ];
 
 export const FORM_VOLUNTEER_ROLE_OPTIONS: Option[] = [
   { label: 'PC Leader', value: 'pc_leader' },
   { label: 'AC Leader', value: 'ac_leader' },
   { label: 'Sub-Leader', value: 'sub_leader' },
-  { label: 'Campaign Supporter', value: 'supporter' },
+  { label: 'Volunteer', value: 'supporter' },
 ];
 
 export const FORM_ROLE_CATEGORY_OPTIONS: Option[] = [
@@ -130,13 +130,13 @@ export const FORM_ROLE_CATEGORY_OPTIONS: Option[] = [
   { label: 'PC Leader', value: 'pc_leader' },
   { label: 'AC Leader', value: 'ac_leader' },
   { label: 'Sub-Leader', value: 'sub_leader' },
-  { label: 'Campaign Supporter', value: 'supporter' },
+  { label: 'Volunteer', value: 'supporter' },
 ];
 
 export const SUBORDINATE_ROLE_DELEGATION_OPTIONS = [
   { key: 'ac_leader', label: 'AC Leader', desc: 'Can manage assembly operations and subordinates' },
   { key: 'sub_leader', label: 'Sub-Leader', desc: 'Can manage ward clusters and booth volunteers' },
-  { key: 'supporter', label: 'Campaign Supporter', desc: 'Can perform ground surveys and booth voter lookups' },
+  { key: 'supporter', label: 'Volunteer', desc: 'Can perform ground surveys and booth voter lookups' },
 ];
 
 export const RELATION_OPTIONS: Option[] = [
@@ -159,7 +159,7 @@ export const ELECTION_TYPE_OPTIONS: Option[] = [
   { label: 'All Election Types', value: '' },
   { label: 'Assembly (Vidhan Sabha)', value: 'ASSEMBLY' },
   { label: 'Parliamentary (Lok Sabha)', value: 'PARLIAMENTARY' },
-  { label: 'Municipal Corporation (Nagar Nigam / BMC)', value: 'MUNICIPAL_CORP' },
+  { label: 'Municipal Corporation', value: 'MUNICIPAL_CORP' },
   { label: 'Zilla Parishad', value: 'ZILLA_PARISHAD' },
   { label: 'Panchayat Samiti', value: 'PANCHAYAT_SAMITI' },
   { label: 'Gram Panchayat', value: 'GRAM_PANCHAYAT' },
@@ -169,7 +169,7 @@ export const ELECTION_TYPE_OPTIONS: Option[] = [
 export const FORM_ELECTION_TYPE_OPTIONS: Option[] = [
   { label: 'Assembly (Vidhan Sabha)', value: 'ASSEMBLY' },
   { label: 'Parliamentary (Lok Sabha)', value: 'PARLIAMENTARY' },
-  { label: 'Municipal Corporation (Nagar Nigam / BMC)', value: 'MUNICIPAL_CORP' },
+  { label: 'Municipal Corporation', value: 'MUNICIPAL_CORP' },
   { label: 'Zilla Parishad', value: 'ZILLA_PARISHAD' },
   { label: 'Panchayat Samiti', value: 'PANCHAYAT_SAMITI' },
   { label: 'Gram Panchayat', value: 'GRAM_PANCHAYAT' },

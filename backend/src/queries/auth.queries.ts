@@ -60,10 +60,10 @@ export class AuthQueries {
         pc_leader: 'PC Leader',
         ac_leader: 'AC Leader',
         sub_leader: 'Sub-Leader',
-        supporter: 'Campaign Supporter',
+        supporter: 'Volunteer',
         leader: 'Assembly Leader',
       };
-      if (user.role && ROLE_NAME_MAP[user.role] && (!user.roleName || (user.role !== 'supporter' && user.roleName === 'Campaign Supporter / Volunteer') || user.roleName === 'Campaign Supporter / Volunteer')) {
+      if (user.role && ROLE_NAME_MAP[user.role] && (!user.roleName || user.roleName === 'Campaign Supporter / Volunteer' || user.roleName === 'Campaign Supporter' || user.roleName === 'Volunteer')) {
         user.roleName = ROLE_NAME_MAP[user.role];
       }
 

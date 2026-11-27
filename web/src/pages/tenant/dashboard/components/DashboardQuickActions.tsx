@@ -42,7 +42,7 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
       onClick: () => navigate('/dashboard/voters/new'),
     },
     {
-      label: 'Field Cadre',
+      label: 'Field Volunteers',
       subtext: 'Manage volunteers & leads',
       icon: UserCheck,
       color: 'from-blue-600 to-cyan-600',
@@ -51,13 +51,13 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
       onClick: () => navigate('/dashboard/volunteers'),
     },
     {
-      label: 'Campaign Analytics',
-      subtext: 'Outreach & Leaderboard',
+      label: 'Campaign Reports',
+      subtext: 'Outreach, Sync & Voting',
       icon: BarChart3,
       color: 'from-amber-500 to-orange-600',
       textColor: 'text-amber-600 dark:text-amber-400',
       bgColor: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200/80 dark:border-amber-900/60',
-      onClick: () => navigate('/dashboard/analytics'),
+      onClick: () => navigate('/dashboard/reports/volunteer-outreach'),
     },
     {
       label: 'Master Setup',

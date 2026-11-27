@@ -36,7 +36,7 @@ export const VOTER_TYPE_OPTIONS: DropdownOption[] = [
   { id: 'Student', label: 'Student', icon: 'school-outline' },
   { id: 'Senior', label: 'Senior Citizen', icon: 'human-cane' },
   { id: 'NRI', label: 'NRI Voter', icon: 'airplane' },
-  { id: 'VIP', label: 'VIP / Key Person', icon: 'star-outline' },
+  { id: 'VIP', label: 'VIP Voter', icon: 'star-outline' },
 ];
 
 export const FORM_VOTER_TYPE_OPTIONS: DropdownOption[] = [
@@ -45,7 +45,7 @@ export const FORM_VOTER_TYPE_OPTIONS: DropdownOption[] = [
   { id: 'Student', label: 'Student', icon: 'school-outline' },
   { id: 'Senior', label: 'Senior Citizen', icon: 'human-cane' },
   { id: 'NRI', label: 'NRI Voter', icon: 'airplane' },
-  { id: 'VIP', label: 'VIP / Key Person', icon: 'star-outline' },
+  { id: 'VIP', label: 'VIP Voter', icon: 'star-outline' },
 ];
 
 export const getVoterTypeOptions = (t?: (key: any) => string, includeAll: boolean = false): DropdownOption[] => {
@@ -55,7 +55,7 @@ export const getVoterTypeOptions = (t?: (key: any) => string, includeAll: boolea
     { id: 'Student', label: t ? t('voterTypeStudent') || 'Student' : 'Student', icon: 'school-outline' },
     { id: 'Senior', label: t ? t('voterTypeSenior') || 'Senior Citizen' : 'Senior Citizen', icon: 'human-cane' },
     { id: 'NRI', label: t ? t('voterTypeNri') || 'NRI Voter' : 'NRI Voter', icon: 'airplane' },
-    { id: 'VIP', label: t ? t('voterTypeVip') || 'VIP / Key Person' : 'VIP / Key Person', icon: 'star-outline' },
+    { id: 'VIP', label: t ? t('voterTypeVip') || 'VIP Voter' : 'VIP Voter', icon: 'star-outline' },
   ];
   if (includeAll) {
     return [{ id: '', label: t ? t('allTypes') || 'All Voter Types' : 'All Voter Types', icon: 'account-multiple-outline' }, ...options];
@@ -67,26 +67,26 @@ export const getVoterTypeOptions = (t?: (key: any) => string, includeAll: boolea
 export const STATUS_OPTIONS: DropdownOption[] = [
   { id: '', label: 'All Statuses' },
   { id: 'ACTIVE', label: 'Active Voter' },
-  { id: 'SHIFTED', label: 'Shifted / Transferred' },
+  { id: 'SHIFTED', label: 'Shifted' },
   { id: 'UNVERIFIED', label: 'Unverified' },
-  { id: 'INACTIVE', label: 'Inactive / Suspended' },
+  { id: 'INACTIVE', label: 'Inactive' },
   { id: 'PENDING', label: 'Pending Verification' },
 ];
 
 export const FORM_STATUS_OPTIONS: DropdownOption[] = [
   { id: 'ACTIVE', label: 'Active Voter' },
-  { id: 'SHIFTED', label: 'Shifted / Transferred' },
+  { id: 'SHIFTED', label: 'Shifted' },
   { id: 'UNVERIFIED', label: 'Unverified' },
-  { id: 'INACTIVE', label: 'Inactive / Suspended' },
+  { id: 'INACTIVE', label: 'Inactive' },
   { id: 'PENDING', label: 'Pending Verification' },
 ];
 
 export const getStatusOptions = (t?: (key: any) => string, includeAll: boolean = false): DropdownOption[] => {
   const options: DropdownOption[] = [
     { id: 'ACTIVE', label: t ? t('statusActive') || 'Active Voter' : 'Active Voter' },
-    { id: 'SHIFTED', label: t ? t('statusShifted') || 'Shifted / Transferred' : 'Shifted / Transferred' },
+    { id: 'SHIFTED', label: t ? t('statusShifted') || 'Shifted' : 'Shifted' },
     { id: 'UNVERIFIED', label: t ? t('statusUnverified') || 'Unverified' : 'Unverified' },
-    { id: 'INACTIVE', label: t ? t('statusInactive') || 'Inactive / Suspended' : 'Inactive / Suspended' },
+    { id: 'INACTIVE', label: t ? t('statusInactive') || 'Inactive' : 'Inactive' },
     { id: 'PENDING', label: t ? t('statusPending') || 'Pending Verification' : 'Pending Verification' },
   ];
   if (includeAll) {
@@ -155,13 +155,13 @@ export const getRelationOptions = (t?: (key: any) => string, includeAll: boolean
 
 // ─── LIVING / DECEASED (IS_DEAD) OPTIONS ────────────────────────────────────
 export const IS_DEAD_OPTIONS: DropdownOption[] = [
-  { id: '', label: 'All Living & Deceased' },
+  { id: '', label: 'All Statuses' },
   { id: 'false', label: 'Living Only' },
   { id: 'true', label: 'Deceased Only' },
 ];
 
 export const getIsDeadOptions = (t?: (key: any) => string): DropdownOption[] => [
-  { id: '', label: t ? t('allVoters') || 'All Living & Deceased' : 'All Living & Deceased' },
+  { id: '', label: t ? t('allVoters') || 'All Statuses' : 'All Statuses' },
   { id: 'false', label: t ? t('living') || 'Living Only' : 'Living Only' },
   { id: 'true', label: t ? t('deceased') || 'Deceased Only' : 'Deceased Only' },
 ];
@@ -169,7 +169,7 @@ export const getIsDeadOptions = (t?: (key: any) => string): DropdownOption[] => 
 // ─── AGE GROUP OPTIONS ──────────────────────────────────────────────────────
 export const AGE_GROUP_OPTIONS: DropdownOption[] = [
   { id: '', label: 'All Age Groups' },
-  { id: '18-25', label: '18 - 25 Years (Youth / First Time Voters)' },
+  { id: '18-25', label: '18 - 25 Years' },
   { id: '26-35', label: '26 - 35 Years (Young Adults)' },
   { id: '36-50', label: '36 - 50 Years (Middle Aged)' },
   { id: '51-65', label: '51 - 65 Years (Seniors)' },
@@ -209,12 +209,12 @@ export const VOLUNTEER_ROLE_OPTIONS: DropdownOption[] = [
   { id: 'pc_leader', label: 'PC Leader' },
   { id: 'ac_leader', label: 'AC Leader' },
   { id: 'sub_leader', label: 'Sub-Leader' },
-  { id: 'supporter', label: 'Campaign Supporter' },
+  { id: 'supporter', label: 'Volunteer' },
 ];
 
 export const FORM_VOLUNTEER_ROLE_OPTIONS: DropdownOption[] = [
   { id: 'pc_leader', label: 'PC Leader' },
   { id: 'ac_leader', label: 'AC Leader' },
   { id: 'sub_leader', label: 'Sub-Leader' },
-  { id: 'supporter', label: 'Campaign Supporter' },
+  { id: 'supporter', label: 'Volunteer' },
 ];

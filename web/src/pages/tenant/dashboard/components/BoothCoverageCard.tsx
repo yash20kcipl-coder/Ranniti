@@ -48,7 +48,7 @@ const ROLE_CONFIG: Record<
     iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   },
   supporter: {
-    label: 'Supporter / Booth Volunteer',
+    label: 'Volunteer',
     icon: UserCheck,
     gradient: 'from-emerald-500 to-teal-500',
     iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -86,7 +86,7 @@ export const BoothCoverageCard: React.FC<BoothCoverageCardProps> = ({ data, load
     { role: 'pc_leader', roleName: 'PC Leader', volunteerCount: 0, coveredBoothsCount: 0 },
     { role: 'ac_leader', roleName: 'AC Leader', volunteerCount: 0, coveredBoothsCount: 0 },
     { role: 'sub_leader', roleName: 'Sub-Leader', volunteerCount: 0, coveredBoothsCount: 0 },
-    { role: 'supporter', roleName: 'Supporter / Volunteer', volunteerCount: 0, coveredBoothsCount: 0 },
+    { role: 'supporter', roleName: 'Volunteer', volunteerCount: 0, coveredBoothsCount: 0 },
   ];
 
   const effectiveRoleCoverage =

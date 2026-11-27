@@ -436,7 +436,7 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
 
   const partyOptions: DropdownOption[] = useMemo(() => {
     const list: DropdownOption[] = [
-      { id: '', label: t('undecidedIndependent') || 'None / Independent / Undecided' },
+      { id: '', label: t('undecidedIndependent') || 'Undecided' },
     ];
     (parties || []).forEach((p) => {
       list.push({

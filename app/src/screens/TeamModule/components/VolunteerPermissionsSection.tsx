@@ -18,7 +18,7 @@ const SCREEN_NAME_MAP: Record<string, { label: string; icon: string }> = {
   family_tree: { label: 'Family Mapping', icon: 'account-group-outline' },
   booth_analytics: { label: 'Booth Analytics', icon: 'chart-bar' },
   gate_meetings: { label: 'Influencer Mapping', icon: 'star-outline' },
-  team_management: { label: 'Cadre Management', icon: 'shield-account-outline' },
+  team_management: { label: 'Team Management', icon: 'shield-account-outline' },
 };
 
 export const VolunteerPermissionsSection: React.FC<VolunteerPermissionsSectionProps> = ({

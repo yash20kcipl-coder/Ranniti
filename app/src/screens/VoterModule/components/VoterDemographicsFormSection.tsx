@@ -123,7 +123,7 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
       <View style={styles.row}>
         <View style={styles.flex1}>
           <AppTextInput
-            label={t('relativeName') || 'Relative / Guardian Name'}
+            label={t('relativeName') || 'Relative Name'}
             placeholder={t('relativeNamePlaceholder') || 'e.g. Ramesh Chandra Sharma'}
             value={formData.guardianName || formData.relativeName || ''}
             onChangeText={(text) => {

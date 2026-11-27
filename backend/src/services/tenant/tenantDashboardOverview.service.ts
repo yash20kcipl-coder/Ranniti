@@ -213,7 +213,7 @@ export class TenantDashboardOverviewService {
       },
       {
         key: 'party_id',
-        label: 'Party Support / Leaning',
+        label: 'Party Leaning',
         category: 'political',
         filledCount: fieldCounts.party,
         totalCount: totalVoters,
@@ -258,7 +258,7 @@ export class TenantDashboardOverviewService {
       },
       {
         key: 'profession',
-        label: 'Occupation / Job',
+        label: 'Profession',
         category: 'demographic',
         filledCount: fieldCounts.profession,
         totalCount: totalVoters,
@@ -267,7 +267,7 @@ export class TenantDashboardOverviewService {
       },
       {
         key: 'influencer',
-        label: 'Family / Community Head',
+        label: 'Family Head',
         category: 'political',
         filledCount: fieldCounts.influencer,
         totalCount: totalVoters,
@@ -297,7 +297,7 @@ export class TenantDashboardOverviewService {
         `
         SELECT 
           v.party_id AS "partyId", 
-          COALESCE(p.name, 'Undecided / Swing Voters') AS "partyName",
+          COALESCE(p.name, 'Undecided Voters') AS "partyName",
           p.abbreviation AS "abbreviation",
           p.color AS "color",
           COUNT(*)::int AS "count"
@@ -352,7 +352,7 @@ export class TenantDashboardOverviewService {
             ELSE NULL
           END AS "ageGroup",
           v.party_id AS "partyId",
-          COALESCE(p.name, 'Undecided / Swing') AS "partyName",
+          COALESCE(p.name, 'Undecided') AS "partyName",
           p.abbreviation AS "abbreviation",
           p.color AS "color",
           COUNT(*)::int AS "count"

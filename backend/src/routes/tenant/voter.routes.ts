@@ -22,6 +22,7 @@ router.use(authenticateJwt);
 // Stats, Export, Influencer options & Candidate endpoints
 router.get('/stats', VoterController.getVoterStats);
 router.get('/export', VoterController.exportVoters);
+router.get('/export-pdf', VoterController.exportBoothVotersPdf);
 router.get('/influencer-options', VoterController.getInfluencerOptions);
 router.get('/family-candidates', validate(familyCandidatesQuerySchema), VoterController.getFamilyCandidates);
 router.get('/social-candidates', validate(socialCandidatesQuerySchema), VoterController.getSocialCandidates);

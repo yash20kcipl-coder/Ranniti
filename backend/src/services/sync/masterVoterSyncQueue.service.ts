@@ -213,6 +213,16 @@ export class MasterVoterSyncQueueService {
   private static async executeJob(job: SyncQueueJob): Promise<void> {
     const { id: jobId, ac_id: acId, tenant_id: tenantId, tenant_db_name: tenantDbName } = job;
     logger.info(`[MasterVoterSyncQueue] 🚀 Starting job ${jobId} -> syncing voters for AC ${acId} to '${tenantDbName}'`);
+    console.log('[MasterVoterSyncQueue] 🚀 Running voter sync job:', {
+      jobId,
+      acId,
+      tenantId,
+      tenantDbName,
+      status: job.status,
+      retryCount: job.retry_count,
+      totalVoters: job.total_voters,
+      syncedVoters: job.synced_voters,
+    });
 
     let tenantPool: any = null;
     let masterClient: any = null;
@@ -441,9 +451,10 @@ export class MasterVoterSyncQueueService {
          FROM master_voter_sync_queue
          WHERE status = 'retrying' AND next_retry_at <= NOW()`
       );
-      const count = res.rows.length;
+      const count = Number(res.rows[0]?.count || 0);
       if (count > 0) {
-        logger.info(`[MasterVoterSyncQueue] Found ${count} retry jobs ready to process.`);
+        logger.info(`[MasterVoterSyncQueue] Found ${count} retry job(s) ready to process.`);
+        console.log(`[MasterVoterSyncQueue] Triggering retry processing for ${count} job(s)...`);
         this.triggerWorker();
       }
       return count;

@@ -20,7 +20,7 @@ export const AgeCohortBarChart: React.FC<AgeCohortBarChartProps> = ({ data, clas
 
   const cohorts = [
     { key: 'age_18_25', label: '18–25 yrs', sub: 'First-time/Youth', count: data.age_18_25 || 0, color: 'from-indigo-500 to-blue-500', barColor: '#6366F1' },
-    { key: 'age_26_35', label: '26–35 yrs', sub: 'Young Cadre', count: data.age_26_35 || 0, color: 'from-blue-500 to-cyan-500', barColor: '#3B82F6' },
+    { key: 'age_26_35', label: '26–35 yrs', sub: 'Young Adults', count: data.age_26_35 || 0, color: 'from-blue-500 to-cyan-500', barColor: '#3B82F6' },
     { key: 'age_36_50', label: '36–50 yrs', sub: 'Working Core', count: data.age_36_50 || 0, color: 'from-emerald-500 to-teal-500', barColor: '#10B981' },
     { key: 'age_51_65', label: '51–65 yrs', sub: 'Mature Base', count: data.age_51_65 || 0, color: 'from-amber-500 to-orange-500', barColor: '#F59E0B' },
     { key: 'age_65_plus', label: '65+ yrs', sub: 'Senior Citizens', count: data.age_65_plus || 0, color: 'from-purple-500 to-pink-500', barColor: '#A855F7' },

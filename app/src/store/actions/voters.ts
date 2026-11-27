@@ -384,13 +384,13 @@ export const updateVoterPartyAction = (
         type: UPDATE_VOTER_PARTY,
         payload: {
           voterId,
-          party: isDeselected ? 'Independent / Undecided' : partyName,
+          party: isDeselected ? 'Undecided' : partyName,
           partyId: cleanPartyId,
           partyName: isDeselected ? '' : (mapped?.partyName || updatedVoter?.partyName || partyName),
           partyAbbreviation: isDeselected ? '' : (mapped?.partyAbbreviation || updatedVoter?.partyAbbreviation || ''),
           partySymbol: isDeselected ? '' : (mapped?.partySymbol || updatedVoter?.partySymbol || ''),
           partyColor: isDeselected ? '' : (mapped?.partyColor || updatedVoter?.partyColor || ''),
-          supportingParty: isDeselected ? 'Independent / Undecided' : (mapped?.supportingParty || updatedVoter?.supportingParty || partyName),
+          supportingParty: isDeselected ? 'Undecided' : (mapped?.supportingParty || updatedVoter?.supportingParty || partyName),
         },
       });
       toast.success(

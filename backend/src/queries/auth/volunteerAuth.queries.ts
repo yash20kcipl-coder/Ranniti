@@ -188,13 +188,13 @@ export class VolunteerAuthQueries {
       pc_leader: 'PC Leader',
       ac_leader: 'AC Leader',
       sub_leader: 'Sub-Leader',
-      supporter: 'Campaign Supporter',
+      supporter: 'Volunteer',
       leader: 'Assembly Leader',
       tenant_user: 'Tenant Web User',
     };
     const effectiveRoleName =
-      data.roleName && (data.role === 'supporter' || (data.roleName !== 'Campaign Supporter / Volunteer' && data.roleName !== 'Campaign Supporter'))
-        ? data.roleName
+      data.roleName && (data.roleName === 'Campaign Supporter / Volunteer' || data.roleName === 'Campaign Supporter')
+        ? 'Volunteer'
         : (ROLE_NAME_MAP[data.role] || data.roleName || null);
 
     const res = await TenantPoolManager.query(
@@ -244,7 +244,7 @@ export class VolunteerAuthQueries {
       pc_leader: 'PC Leader',
       ac_leader: 'AC Leader',
       sub_leader: 'Sub-Leader',
-      supporter: 'Campaign Supporter',
+      supporter: 'Volunteer',
       leader: 'Assembly Leader',
       tenant_user: 'Tenant Web User',
     };

@@ -28,6 +28,17 @@ export interface VoterFilterState {
   onBoothChange?: (newBoothId: string) => void;
   onAcDraftChange?: (newAcId: string) => void;
   onBoothDraftChange?: (newBoothId: string) => void;
+  onBoothSearch?: (query: string, acId?: string) => Promise<Option[]>;
+}
+
+export function formatBoothOption(b: any): Option {
+  const label = `${b.boothNumber ? `Booth #${b.boothNumber} - ` : ''}${b.name}`;
+  const subtitleParts = [b.acName, b.pcName].filter(Boolean);
+  return {
+    label,
+    value: String(b.id),
+    ...(subtitleParts.length > 0 ? { subtitle: subtitleParts.join(' • ') } : {}),
+  };
 }
 
 export interface VoterFilterMasterData {
@@ -293,8 +304,8 @@ export function buildVoterFilterFields(
         ...filteredAcs,
       ];
     },
-    // For tenant, AC is inside the filter popup drawer; for super_admin, it is primary inline
-    isPrimary: !isTenant,
+    // Kept inside filter drawer; only Polling Booth is shown inline on the bar
+    isPrimary: false,
   });
 
   // Polling Booth
@@ -305,25 +316,14 @@ export function buildVoterFilterFields(
     categoryIcon: <MapPin className="w-4 h-4" />,
     gridSpan: isTenant ? 1 : 2,
     value: boothId,
-    disabled: (draft: Record<string, any>) => {
-      if (isTenant) return isBoothsLoading;
-      const curAc = draft.acId !== undefined ? draft.acId : acId;
-      return !curAc;
-    },
+    disabled: () => isBoothsLoading && booths.length === 0,
     placeholder: (draft: Record<string, any>) => {
-      if (isBoothsLoading) return 'Loading booths...';
+      if (isBoothsLoading && booths.length === 0) return 'Loading booths...';
       const curAc = draft.acId !== undefined ? draft.acId : acId;
-      if (isTenant) {
-        return curAc ? 'All Booths in AC' : 'All Polling Booths';
-      }
-      if (!curAc) return 'Select AC first';
-      return 'All Booths in AC';
+      return curAc ? 'All Booths in AC' : 'All Polling Booths';
     },
-    helperText: (draft: Record<string, any>) => {
-      if (isTenant) return undefined;
-      const curAc = draft.acId !== undefined ? draft.acId : acId;
-      if (!curAc) return 'Select an Assembly Constituency (AC) first to view booths';
-      if (isBoothsLoading) return 'Loading constituency booths...';
+    helperText: () => {
+      if (isBoothsLoading && booths.length === 0) return 'Loading booths...';
       return undefined;
     },
     onChange: (val: string) => {
@@ -349,23 +349,23 @@ export function buildVoterFilterFields(
         state.onBoothDraftChange(boothId || '');
       }
     },
+    onOptionSearch: state.onBoothSearch
+      ? async (query: string, currentValues: Record<string, any>) => {
+          const curAc = currentValues.acId !== undefined ? currentValues.acId : acId;
+          return state.onBoothSearch!(query, curAc || undefined);
+        }
+      : undefined,
     options: (draft: Record<string, any>) => {
       const curAc = draft.acId !== undefined ? draft.acId : acId;
-      if (!isTenant && !curAc) {
-        return [{ label: 'Select AC first', value: '' }];
-      }
-      if (isBoothsLoading) {
+      if (isBoothsLoading && booths.length === 0) {
         return [{ label: 'Loading booths...', value: '' }];
       }
-      const filteredBooths = isTenant && curAc
+      const filteredBooths = curAc
         ? booths.filter((b: any) => !b.acId || String(b.acId) === curAc)
         : booths;
       return [
         { label: curAc ? 'All Booths in AC' : 'All Polling Booths', value: '' },
-        ...filteredBooths.map((b: any) => ({
-          label: `${b.boothNumber ? `Booth #${b.boothNumber} - ` : ''}${b.name}`,
-          value: String(b.id),
-        })),
+        ...filteredBooths.map(formatBoothOption),
       ];
     },
     isPrimary: true,
@@ -385,7 +385,7 @@ export function buildVoterFilterFields(
       value: gender,
       onChange: (val: string) => setFilter('gender', val),
       options: GENDER_OPTIONS,
-      isPrimary: !isTenant,
+      isPrimary: false,
     },
     {
       key: 'ageGroup',
@@ -432,7 +432,7 @@ export function buildVoterFilterFields(
       value: status,
       onChange: (val: string) => setFilter('status', val),
       options: STATUS_OPTIONS,
-      isPrimary: !isTenant,
+      isPrimary: false,
     },
     {
       key: 'isDead',
@@ -832,7 +832,7 @@ export function buildVoterTableColumns(): Column<any>[] {
     },
     {
       key: 'party',
-      header: 'Party / Inclination',
+      header: 'Party Leaning',
       render: (row: any) => {
         const hasParty = Boolean(row.partyName || row.partyAbbreviation);
         const voterType = row.voterType;

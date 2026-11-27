@@ -494,7 +494,7 @@ export const TenantVolunteerRoleFormPage: React.FC = () => {
                           Field Volunteer
                         </span>
                         <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          Mobile app field cadre login
+                          Mobile app field volunteer login
                         </span>
                       </div>
                     </button>

@@ -255,7 +255,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
               />
               <View style={styles.subCardTitleTexts}>
                 <Text style={[styles.subCardTitle, { color: theme.colors.text }]}>
-                  {t('designatedSocialLeader') || 'Community / Social Influencer'}
+                  {t('designatedSocialLeader') || 'Community Leader'}
                 </Text>
                 <Text style={[styles.subCardSubtitle, { color: theme.colors.textSecondary }]}>
                   {t('isSocialLeaderToggle') || 'Mark community leaders and influencers'}
@@ -283,7 +283,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
               >
                 <View style={styles.infoBadgeTop}>
                   <Text style={[styles.badgeLabel, { color: theme.colors.primary }]}>
-                    {t('designatedSocialLeader') || 'Community / Social Leader'}
+                    {t('designatedSocialLeader') || 'Community Leader'}
                   </Text>
                   {isEditMode && voterMeta?.socialInfluencedCount !== undefined && (
                     <View style={[styles.countBadge, { backgroundColor: theme.colors.primary }]}>

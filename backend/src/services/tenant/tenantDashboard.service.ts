@@ -238,7 +238,7 @@ export class TenantDashboardService {
       const partyRes = await tenantPool.query(`
         SELECT 
           v.party_id AS "partyId", 
-          COALESCE(p.name, 'Uncommitted / Swing Base') AS "partyName",
+          COALESCE(p.name, 'Undecided Voters') AS "partyName",
           p.abbreviation AS "abbreviation",
           p.color AS "color",
           COUNT(*)::int AS "count"
@@ -335,7 +335,7 @@ export class TenantDashboardService {
             ('pc_leader', 'PC Leader', 1),
             ('ac_leader', 'AC Leader', 2),
             ('sub_leader', 'Sub-Leader', 3),
-            ('supporter', 'Supporter / Volunteer', 4)
+            ('supporter', 'Volunteer', 4)
         ) AS r(role_key, role_name, sort_order)
         LEFT JOIN (
           SELECT 

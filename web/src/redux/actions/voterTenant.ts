@@ -182,79 +182,124 @@ export const exportTenantVotersData = (params: Record<string, any> = {}) => {
   };
 };
 
-export const fetchTenantInfluencerOptions = (params: { search?: string; boothId?: string; excludeId?: string; type?: string }) => {
-  return async (dispatch: AppDispatch) => {
-    try {
-      const res = await api.get('/tenant/voters/influencer-options', { params });
-      return res.data?.data || res.data || [];
-    } catch (err) {
-      dispatch(errorHandler(err));
-      return [];
-    }
-  };
-};
+  export const exportTenantVotersPdfData = (params: { boothId: string; language?: string; includePhotos?: boolean; boothLabel?: string }) => {
+    return async (dispatch: AppDispatch) => {
+      dispatch(Loading(true));
+      try {
+        const { boothLabel, ...apiParams } = params;
+        const res = await api.get('/tenant/voters/export-pdf', {
+          params: apiParams,
+          responseType: 'blob',
+        });
 
-export const bulkAssignTenantInfluencerAction = (payload: {
-  influencerId: string | null;
-  influencerType: 'family' | 'social';
-  voterIds: string[];
-}) => {
-  return async (dispatch: AppDispatch) => {
-    try {
-      const res = await api.post('/tenant/voters/bulk-assign-influencer', payload);
-      return res.data?.data || res.data;
-    } catch (err) {
-      dispatch(errorHandler(err));
-      throw err;
-    }
-  };
-};
+        let downloadName = '';
+        const disposition = res.headers['content-disposition'];
+        if (disposition && disposition.indexOf('filename=') !== -1) {
+          const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+          if (matches != null && matches[1]) {
+            downloadName = matches[1].replace(/['"]/g, '');
+          }
+        }
+        if (!downloadName) {
+          const cleanLabel = boothLabel
+            ? boothLabel.replace(/[^a-zA-Z0-9_\u0A80-\u0AFF-]/g, '_').replace(/__+/g, '_')
+            : `Booth_${params.boothId}`;
+          downloadName = `${cleanLabel}_Voter_List.pdf`;
+        }
 
-export const fetchFamilyCandidatesAction = (params: Record<string, any>) => {
-  return async (dispatch: AppDispatch) => {
-    try {
-      const res = await api.get('/tenant/voters/family-candidates', { params });
-      return res.data?.data || res.data;
-    } catch (err) {
-      dispatch(errorHandler(err));
-      throw err;
-    }
+        const blob = new Blob([res.data], {
+          type: 'application/pdf',
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', downloadName);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        dispatch(errorHandler(err));
+        throw err;
+      } finally {
+        dispatch(Loading(false));
+      }
+    };
   };
-};
 
-export const fetchSocialCandidatesAction = (params: Record<string, any>) => {
-  return async (dispatch: AppDispatch) => {
-    try {
-      const res = await api.get('/tenant/voters/social-candidates', { params });
-      return res.data?.data || res.data;
-    } catch (err) {
-      dispatch(errorHandler(err));
-      throw err;
-    }
+  export const fetchTenantInfluencerOptions = (params: { search?: string; boothId?: string; excludeId?: string; type?: string }) => {
+    return async (dispatch: AppDispatch) => {
+      try {
+        const res = await api.get('/tenant/voters/influencer-options', { params });
+        return res.data?.data || res.data || [];
+      } catch (err) {
+        dispatch(errorHandler(err));
+        return [];
+      }
+    };
   };
-};
 
-export const fetchTenantBoothOptions = (params: {
-  acId?: string;
-  wardId?: string;
-  search?: string;
-  limit?: number;
-  saveToStore?: boolean;
-}) => {
-  return async (dispatch: AppDispatch) => {
-    const shouldSave = params.saveToStore !== false;
-    if (shouldSave) dispatch(setVoterBoothOptionsLoading(true));
-    try {
-      const res = await api.get('/tenant/geography/booths/options', { params });
-      const options = res.data?.data || res.data || [];
-      if (shouldSave) dispatch(setVoterBoothOptions(options));
-      return options;
-    } catch (err) {
-      dispatch(errorHandler(err));
-      if (shouldSave) dispatch(setVoterBoothOptions([]));
-      return [];
-    } finally {
-      if (shouldSave) dispatch(setVoterBoothOptionsLoading(false));
-    }
+  export const bulkAssignTenantInfluencerAction = (payload: {
+    influencerId: string | null;
+    influencerType: 'family' | 'social';
+    voterIds: string[];
+  }) => {
+    return async (dispatch: AppDispatch) => {
+      try {
+        const res = await api.post('/tenant/voters/bulk-assign-influencer', payload);
+        return res.data?.data || res.data;
+      } catch (err) {
+        dispatch(errorHandler(err));
+        throw err;
+      }
+    };
   };
-};
+
+  export const fetchFamilyCandidatesAction = (params: Record<string, any>) => {
+    return async (dispatch: AppDispatch) => {
+      try {
+        const res = await api.get('/tenant/voters/family-candidates', { params });
+        return res.data?.data || res.data;
+      } catch (err) {
+        dispatch(errorHandler(err));
+        throw err;
+      }
+    };
+  };
+
+  export const fetchSocialCandidatesAction = (params: Record<string, any>) => {
+    return async (dispatch: AppDispatch) => {
+      try {
+        const res = await api.get('/tenant/voters/social-candidates', { params });
+        return res.data?.data || res.data;
+      } catch (err) {
+        dispatch(errorHandler(err));
+        throw err;
+      }
+    };
+  };
+
+  export const fetchTenantBoothOptions = (params: {
+    acId?: string;
+    wardId?: string;
+    search?: string;
+    limit?: number;
+    saveToStore?: boolean;
+  }) => {
+    return async (dispatch: AppDispatch) => {
+      const shouldSave = params.saveToStore !== false;
+      if (shouldSave) dispatch(setVoterBoothOptionsLoading(true));
+      try {
+        const res = await api.get('/tenant/geography/booths/options', { params });
+        const options = res.data?.data || res.data || [];
+        if (shouldSave) dispatch(setVoterBoothOptions(options));
+        return options;
+      } catch (err) {
+        dispatch(errorHandler(err));
+        if (shouldSave) dispatch(setVoterBoothOptions([]));
+        return [];
+      } finally {
+        if (shouldSave) dispatch(setVoterBoothOptionsLoading(false));
+      }
+    };
+  };

@@ -56,7 +56,7 @@ export const VolunteerStatsCards: React.FC<VolunteerStatsCardsProps> = ({
         <div className="flex items-start justify-between">
           <div>
             <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider block">
-              Total Field Cadre
+              Total Field Volunteers
             </span>
             <div className="text-2xl font-bold text-indigo-950 dark:text-white mt-1">
               <CountUp to={totalCadre} duration={1.2} />
@@ -70,7 +70,7 @@ export const VolunteerStatsCards: React.FC<VolunteerStatsCardsProps> = ({
           <span>{leadersCount} leaders • {supportersCount} supporters</span>
           {isTotalActive ? (
             <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-300/80 dark:border-indigo-500/40 font-mono">
-              All Cadres
+              All Volunteers
             </span>
           ) : (
             <span className="text-[10px] text-slate-500 hover:text-indigo-600 font-medium">

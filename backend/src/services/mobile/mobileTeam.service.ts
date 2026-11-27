@@ -399,7 +399,7 @@ export class MobileTeamService {
         pc_leader: 'PC Leader',
         ac_leader: 'AC Leader',
         sub_leader: 'Sub-Leader',
-        supporter: 'Campaign Supporter',
+        supporter: 'Volunteer',
       };
       updateFields.push(`role = $${pIdx++}`);
       updateValues.push(payload.role.trim());

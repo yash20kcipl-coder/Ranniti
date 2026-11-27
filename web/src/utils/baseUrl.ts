@@ -1,8 +1,6 @@
-export const FILE_BASE_URL =
-  import.meta.env.VITE_FILE_BASE_URL || 'http://192.168.1.4:10001';
+export const FILE_BASE_URL = import.meta.env.VITE_FILE_BASE_URL || 'http://192.168.1.4:10001';
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || `${FILE_BASE_URL}/api/v1`;
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${FILE_BASE_URL}/api/v1`;
 
 /**
  * Returns full URL for uploaded file paths

@@ -235,7 +235,7 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
       {/* Standardized PageHeader Component per Rule 18 */}
       <PageHeader
         title="Volunteer Survey & Scoring Leaderboard"
-        subtitle="Track door-to-door survey progress, voter field enrichment points, and cadre rankings"
+        subtitle="Track door-to-door survey progress, voter field enrichment points, and volunteer rankings"
         icon={<Award className="w-5 h-5 text-indigo-500" />}
         actions={
           <div className="flex items-center gap-2.5">

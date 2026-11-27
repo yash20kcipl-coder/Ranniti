@@ -110,6 +110,7 @@ export const FieldCompletenessCard: React.FC<FieldCompletenessCardProps> = ({ da
       <Card
         loading
         skeletonVariant="tiles"
+        skeletonFooter
         title="Important voter details filled"
         subtitle="How complete your voter profiles are"
         icon={<ClipboardCheck size={20} className="text-[#4338CA] dark:text-indigo-400" />}

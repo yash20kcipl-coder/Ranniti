@@ -65,7 +65,7 @@ export const CasteFormModal: React.FC<CasteFormModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <FormInput
-          label="Caste / Subcaste Name"
+          label="Caste Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Kunbi Maratha, Chitpavan Brahmin"

@@ -103,7 +103,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
           />
 
           <FormInput
-            label="Voter Category / Type"
+            label="Voter Category"
             type="select"
             name="voterType"
             value={formData.voterType}
@@ -170,7 +170,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
             />
 
             <FormInput
-              label="Surname / Last"
+              label="Surname"
               name="engSurname"
               value={formData.engSurname}
               onChange={handleChange}

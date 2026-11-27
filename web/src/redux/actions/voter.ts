@@ -60,6 +60,7 @@ export {
   deleteTenantVoterItem as deleteVoterItem,
   importTenantVotersData as importVotersData,
   exportTenantVotersData as exportVotersData,
+  exportTenantVotersPdfData as exportVotersPdfData,
   fetchTenantInfluencerOptions as fetchInfluencerOptions,
   bulkAssignTenantInfluencerAction as bulkAssignInfluencerAction,
   fetchTenantBoothOptions as fetchBoothOptions,

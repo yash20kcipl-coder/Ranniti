@@ -27,4 +27,12 @@ for (const asset of swaggerAssets) {
   }
 }
 
+// Copy assets (fonts, logos) to dist/assets
+const assetsSrcDir = path.join(__dirname, '../src/assets');
+const assetsDistDir = path.join(__dirname, '../dist/assets');
+if (fs.existsSync(assetsSrcDir)) {
+  fs.cpSync(assetsSrcDir, assetsDistDir, { recursive: true });
+  console.log(`✅ Copied assets to dist/assets`);
+}
+
 

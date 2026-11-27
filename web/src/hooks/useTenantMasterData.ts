@@ -61,12 +61,7 @@ export const useTenantMasterData = (
       categories.forEach((cat) => {
         const isLoaded = (master.loadedCategories as any)?.[cat];
         const isFetching = (master.fetchingCategories as any)?.[cat];
-        const isPaginatedPage = Boolean(master.pagination?.[cat]?.page && master.pagination[cat]?.limit);
-        const isPartialPage = Boolean(
-          master.pagination?.[cat]?.total &&
-          (master as any)[cat]?.length < master.pagination[cat].total
-        );
-        if ((!isLoaded || isPartialPage || isPaginatedPage) && !isFetching) {
+        if (!isLoaded && !isFetching) {
           const endpoint = TENANT_MASTER_ENDPOINTS[cat];
           if (endpoint) {
             dispatch(fetchMasterCategoryData(cat, endpoint, false));
