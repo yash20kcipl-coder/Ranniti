@@ -1,8 +1,24 @@
 import { ApiError } from '../../utils/apiError';
 import { RoleQueries } from '../../queries/role.queries';
 import type { TenantRole, TenantUserRole } from '../../models/role.model';
+import {
+  PLATFORM_AVAILABLE_TABS,
+  PLATFORM_AVAILABLE_VOLUNTEER_PERMISSIONS,
+  type AvailableTabsResponse,
+  type AvailableVolunteerPermissionsResponse,
+} from '../../config/platformTabs.config';
 
 export class RoleService {
+  // ─── Platform Available Tabs & Features Catalog ────────────────────────────
+
+  getAvailableTabs(): AvailableTabsResponse {
+    return PLATFORM_AVAILABLE_TABS;
+  }
+
+  getAvailableVolunteerPermissions(): AvailableVolunteerPermissionsResponse {
+    return PLATFORM_AVAILABLE_VOLUNTEER_PERMISSIONS;
+  }
+
   // ─── Super Admin Tenant Role Packages ──────────────────────────────────────
 
   async getAllTenantRoles(): Promise<TenantRole[]> {

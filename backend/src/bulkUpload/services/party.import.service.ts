@@ -3,6 +3,7 @@ import { BulkImporter } from '../../utils/bulkImporter';
 import { MasterQueries } from '../../queries/master.queries';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { formatTitleCase } from '../../utils/textUtils';
 
 export class PartyImportService {
   static async import(
@@ -16,11 +17,18 @@ export class PartyImportService {
       onProgress: progressCallback,
       onBatchInsert: async (batch) => {
         const rowsToInsert = batch
-          .map((row) => ({
-            name: (row.name || row.partyName || '').trim(),
-            abbreviation: (row.abbreviation || row.code || '').trim(),
-            symbol_logo: row.symbolLogo || row.symbol_logo || null,
-          }))
+          .map((row) => {
+            const rawName = (row.name || row.partyName || '').trim();
+            const rawAbbr = (row.abbreviation || row.code || '').trim();
+            const rawAlliance = (row.alliance || '').trim();
+            return {
+              name: rawName ? formatTitleCase(rawName) : '',
+              abbreviation: rawAbbr ? rawAbbr.toUpperCase() : '',
+              symbol_logo: row.symbolLogo || row.symbol_logo || null,
+              alliance: rawAlliance ? formatTitleCase(rawAlliance) : null,
+              color: (row.color || '').trim() || null,
+            };
+          })
           .filter((r) => r.name.length > 0 && r.abbreviation.length > 0);
         const uniqueRowsMap = new Map<string, any>();
         for (const r of rowsToInsert) {
@@ -31,7 +39,7 @@ export class PartyImportService {
         const res = await BatchInsertQuery.executeBatchImport(
           'parties',
           deduplicatedRows,
-          ['name', 'abbreviation', 'symbol_logo'],
+          ['name', 'abbreviation', 'symbol_logo', 'alliance', 'color'],
           { conflictTarget: ['name'], conflictStrategy: 'DO NOTHING' }
         );
         return res.insertedCount;
@@ -48,6 +56,8 @@ export class PartyImportService {
           name: p.name,
           abbreviation: p.abbreviation,
           symbol_logo: p.symbolLogo || null,
+          alliance: p.alliance || null,
+          color: p.color || null,
         }))
       );
     } catch (broadcastErr) {

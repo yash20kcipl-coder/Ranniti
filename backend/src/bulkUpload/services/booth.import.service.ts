@@ -4,6 +4,7 @@ import { MasterQueries } from '../../queries/master.queries';
 import { LookupResolverService } from '../lookupResolver.service';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { formatTitleCase } from '../../utils/textUtils';
 
 export class BoothImportService {
   static async import(
@@ -32,12 +33,13 @@ export class BoothImportService {
           const wardId = wardMap.get(wardRef) || (acId && wardNum ? wardMap.get(`${acId}_${wardNum}`) : null) || context?.wardId || null;
 
           if (name && acId) {
+            const rawLoc = LookupResolverService.extractValue(row, ['Location Building', 'LocationBuilding', 'locationBuilding', 'location_building']);
             rowsToInsert.push({
               ac_id: acId,
               ward_id: wardId || null,
               booth_number: boothNum,
-              name,
-              location_building: LookupResolverService.extractValue(row, ['Location Building', 'LocationBuilding', 'locationBuilding', 'location_building']) || null,
+              name: formatTitleCase(name),
+              location_building: rawLoc ? formatTitleCase(rawLoc) : null,
               total_voters: Number(LookupResolverService.extractValue(row, ['Total Voters', 'TotalVoters', 'totalVoters', 'total_voters']) || 0),
             });
           }

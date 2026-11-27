@@ -40,7 +40,7 @@ export const setMasterFetching = (category: string, isFetching: boolean) => ({
 
 const parseMasterData = (raw: any): any[] => {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    return raw.villages || raw.booths || raw.acs || raw.pcs || raw.wards || raw.talukas || raw.districts || raw.states || raw.castes || raw.religions || raw.parties || raw.records || raw.data || [];
+    return raw.professionCategories || raw.professions || raw.villages || raw.booths || raw.acs || raw.pcs || raw.wards || raw.talukas || raw.districts || raw.states || raw.castes || raw.religions || raw.parties || raw.records || raw.data || [];
   }
   return Array.isArray(raw) ? raw : [];
 };
@@ -54,6 +54,17 @@ const getMasterEndpointData = async (endpoint: string, params?: Record<string, a
 };
 
 // Generic Super Admin Master Category Data Thunk
+export const searchSuperAdminMasterCategory = (_category: string, endpoint: string, query: string, limit = 20) => {
+  return async (_dispatch: AppDispatch) => {
+    try {
+      const { items } = await getMasterEndpointData(endpoint, { search: query, limit });
+      return items;
+    } catch {
+      return [];
+    }
+  };
+};
+
 export const fetchSuperAdminMasterCategoryData = (category: string, endpoint: string, showLoader = true, params?: Record<string, any>) => {
   return async (dispatch: AppDispatch) => {
     dispatch(setMasterFetching(category, true));

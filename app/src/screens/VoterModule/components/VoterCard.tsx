@@ -92,6 +92,16 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
           />
 
           <View style={styles.voterInfo}>
+            {/* Phone Book Contact Name Badge if matched */}
+            {Boolean(voter.phoneContactName) && (
+              <View style={styles.phoneContactBadge}>
+                <Phone {...({ size: 9, color: '#15803D' } as any)} />
+                <Text style={styles.phoneContactText} numberOfLines={1}>
+                  {t('savedInPhone')}: {voter.phoneContactName}
+                </Text>
+              </View>
+            )}
+
             {/* Main Title: Hindi Name */}
             <Text style={styles.voterName} numberOfLines={1}>
               {hindiName}

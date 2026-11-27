@@ -3,7 +3,7 @@ import { MapPin } from 'lucide-react';
 import SectionContainer from '../SectionContainer';
 import FormInput from '@/components/common/FormInput';
 import type { Option } from '@/components/common/FormInput';
-import { useTenantMasterData } from '@/hooks/useTenantMasterData';
+import { useAppSelector } from '@/redux/hooks';
 
 export interface VoterGeographyFormSectionProps {
   formData: any;
@@ -16,6 +16,13 @@ export interface VoterGeographyFormSectionProps {
   errors: Record<string, string>;
   handleChange: (e: any) => void;
   handleSameAddressToggle: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disableGeography?: boolean;
+  talukas?: any[];
+  villages?: any[];
+  onSearchTalukas?: (query: string) => Promise<any[]>;
+  onSearchVillages?: (query: string) => Promise<any[]>;
+  onSelectTaluka?: (taluka: any) => void;
+  onSelectVillage?: (village: any) => void;
 }
 
 export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps> = ({
@@ -29,27 +36,60 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
   boothOptions,
   sameAddress,
   handleSameAddressToggle,
+  disableGeography = false,
+  talukas,
+  villages,
+  onSearchTalukas,
+  onSearchVillages,
+  onSelectTaluka,
+  onSelectVillage,
 }) => {
-  const { talukas, villages } = useTenantMasterData(['talukas', 'villages']);
+  const master = useAppSelector((state) => state.master);
+  const activeTalukas = talukas || master.talukas || [];
+  const activeVillages = villages || master.villages || [];
 
-  // Suggestions: district-matched talukas appear first, then all others — deduplicated so no duplicates appear
+  // Suggestions: district-matched talukas strictly when districtId is set
   const talukaSuggestions = React.useMemo(() => {
     if (!formData.districtId) {
-      return Array.from(new Set(talukas.map((t: any) => t.name).filter(Boolean)));
+      return Array.from(new Set(activeTalukas.map((t: any) => t.name).filter(Boolean)));
     }
-    const districtMatches = talukas.filter((t: any) => t.districtId === formData.districtId).map((t: any) => t.name);
-    const others = talukas.filter((t: any) => t.districtId !== formData.districtId).map((t: any) => t.name);
-    return Array.from(new Set([...districtMatches, ...others].filter(Boolean)));
-  }, [talukas, formData.districtId]);
+    return Array.from(
+      new Set(
+        activeTalukas
+          .filter((t: any) => String(t.districtId) === String(formData.districtId))
+          .map((t: any) => t.name)
+          .filter(Boolean)
+      )
+    );
+  }, [activeTalukas, formData.districtId]);
 
+  // Suggestions: prioritize district/taluka matched villages, but keep all active villages as fallback
   const villageSuggestions = React.useMemo(() => {
-    if (!formData.districtId) {
-      return Array.from(new Set(villages.map((v: any) => v.name).filter(Boolean)));
+    if (formData.taluka) {
+      const trimmedTaluka = String(formData.taluka).trim().toLowerCase();
+      const matchedTaluka = activeTalukas.find(
+        (t: any) => (t.name || '').trim().toLowerCase() === trimmedTaluka
+      );
+      const filtered = activeVillages.filter((v: any) => {
+        if (matchedTaluka && (v.talukaId || v.taluka_id)) {
+          return String(v.talukaId || v.taluka_id) === String(matchedTaluka.id);
+        }
+        return (v.talukaName || v.taluka_name || '').trim().toLowerCase() === trimmedTaluka;
+      });
+      if (filtered.length > 0) {
+        return Array.from(new Set(filtered.map((v: any) => v.name).filter(Boolean)));
+      }
     }
-    const districtMatches = villages.filter((v: any) => v.districtId === formData.districtId).map((v: any) => v.name);
-    const others = villages.filter((v: any) => v.districtId !== formData.districtId).map((v: any) => v.name);
-    return Array.from(new Set([...districtMatches, ...others].filter(Boolean)));
-  }, [villages, formData.districtId]);
+
+    if (formData.districtId) {
+      const filtered = activeVillages.filter((v: any) => String(v.districtId || v.district_id) === String(formData.districtId));
+      if (filtered.length > 0) {
+        return Array.from(new Set(filtered.map((v: any) => v.name).filter(Boolean)));
+      }
+    }
+
+    return Array.from(new Set(activeVillages.map((v: any) => v.name).filter(Boolean)));
+  }, [activeVillages, activeTalukas, formData.taluka, formData.districtId]);
 
   return (
     <SectionContainer
@@ -59,6 +99,15 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
       title="Electoral Geography & Full Addresses"
       subtitle="Booth station, Taluka, Village, and voting addresses"
     >
+      {disableGeography && (
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/50 text-xs text-indigo-700 dark:text-indigo-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+          <span>
+            <strong>Tenant Scope Locked:</strong> State, District, and PC are automatically assigned from your tenant campaign scope.
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         <FormInput
           label="State"
@@ -67,6 +116,8 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           value={formData.stateId}
           onChange={handleChange}
           options={[{ label: 'Select State', value: '' }, ...stateOptions]}
+          disabled={disableGeography}
+          helperText={disableGeography ? 'Locked to tenant state' : undefined}
         />
 
         <FormInput
@@ -76,6 +127,8 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           value={formData.districtId}
           onChange={handleChange}
           options={[{ label: 'Select District', value: '' }, ...districtOptions]}
+          disabled={disableGeography}
+          helperText={disableGeography ? 'Locked to constituency district' : undefined}
         />
 
         <FormInput
@@ -85,6 +138,8 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           value={formData.pcId}
           onChange={handleChange}
           options={[{ label: 'Select PC', value: '' }, ...pcOptions]}
+          disabled={disableGeography}
+          helperText={disableGeography ? 'Locked to assigned PC' : undefined}
         />
       </div>
 
@@ -95,7 +150,7 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           name="acId"
           value={formData.acId}
           onChange={handleChange}
-          options={[{ label: 'Select AC', value: '' }, ...acOptions]}
+          options={[...(acOptions.length === 1 ? [] : [{ label: 'Select AC', value: '' }]), ...acOptions]}
         />
 
         <FormInput
@@ -145,6 +200,8 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           onChange={handleChange}
           placeholder="Select or type Taluka"
           suggestions={talukaSuggestions}
+          onRemoteSearch={onSearchTalukas}
+          onSelectDetailed={onSelectTaluka}
         />
 
         <FormInput
@@ -155,6 +212,8 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           onChange={handleChange}
           placeholder="Select or type Village"
           suggestions={villageSuggestions}
+          onRemoteSearch={onSearchVillages}
+          onSelectDetailed={onSelectVillage}
         />
       </div>
 

@@ -19,6 +19,9 @@ import {
   FlaskConical,
   BarChart3,
   CalendarCheck,
+  Briefcase,
+  Award,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { NavPill } from './NavPill';
 import { logout } from '@/redux/actions/auth';
@@ -27,31 +30,43 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setMasterTab } from '@/redux/actions/masterSuperAdmin';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
+export type NavSection = 'overview' | 'field' | 'administration' | 'system';
+
 export interface NavItem {
   path: string;
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
-  section: 'operations' | 'administration' | 'system';
+  section: NavSection;
 }
 
 export const navItems: NavItem[] = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'operations' },
-  { path: '/dashboard/map-view', label: 'GIS Map View', icon: Map, section: 'operations' },
-  { path: '/dashboard/voters', label: 'Voter Directory', icon: Vote, section: 'operations' },
-  { path: '/dashboard/volunteers', label: 'Volunteers', icon: UserCheck, section: 'operations' },
-  { path: '/dashboard/analytics', label: 'Analytics', icon: BarChart3, section: 'operations' },
-  { path: '/dashboard/tenants', label: 'Tenant Accounts', icon: Users, section: 'operations' },
+  // Overview & Insights
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'overview' },
+  // { path: '/dashboard/map-view', label: 'Constituency Map', icon: Map, section: 'overview' },
+  { path: '/dashboard/analytics', label: 'Analytics & Reports', icon: BarChart3, section: 'overview' },
+
+  // Field & Voters
+  { path: '/dashboard/voters', label: 'Voter Directory', icon: Vote, section: 'field' },
+  { path: '/dashboard/volunteers', label: 'Volunteers & Cadre', icon: UserCheck, section: 'field' },
+  // { path: '/dashboard/surveys', label: 'Surveys & Feedback', icon: Award, section: 'field' },
+
+  // Team & Administration
+  { path: '/dashboard/users', label: 'Team & Staff', icon: Users, section: 'administration' },
+  { path: '/dashboard/tenants', label: 'Campaign Accounts', icon: Users, section: 'administration' },
+
+  // System
+  { path: '/dashboard/imports', label: 'Import Hub', icon: FileSpreadsheet, section: 'system' },
   { path: '/dashboard/settings', label: 'Settings', icon: Settings, section: 'system' },
 ];
 
 export const masterSections = [
   {
     key: 'geography',
-    title: 'Geography & Divisions',
+    title: 'Areas & Polling Booths',
     icon: MapPin,
     items: [
       { key: 'districts', label: 'Districts', icon: Map },
-      { key: 'talukas', label: 'Talukas (Tehsils)', icon: Building },
+      { key: 'talukas', label: 'Talukas', icon: Building },
       { key: 'villages', label: 'Villages', icon: Home },
       { key: 'pcs', label: 'Parliamentary (PC)', icon: Landmark },
       { key: 'acs', label: 'Assembly (AC)', icon: Building2 },
@@ -61,16 +76,18 @@ export const masterSections = [
   },
   {
     key: 'demographics',
-    title: 'Demographics',
+    title: 'Castes & Professions',
     icon: Users,
     items: [
       { key: 'religions', label: 'Religions', icon: HeartHandshake },
       { key: 'castes', label: 'Castes & Subcastes', icon: UserCheck },
+      { key: 'profession-categories', label: 'Profession Categories', icon: Briefcase },
+      { key: 'professions', label: 'Specific Professions', icon: Award },
     ],
   },
   {
     key: 'political',
-    title: 'Political Entities',
+    title: 'Elections & Political',
     icon: Flag,
     items: [
       { key: 'elections', label: 'Elections', icon: CalendarCheck },
@@ -90,28 +107,40 @@ export const masterSections = [
 export const tenantMasterSections = [
   {
     key: 'geography',
-    title: 'Geography & Divisions',
+    title: 'Areas & Polling Booths',
     icon: MapPin,
     items: [
       { key: 'acs', label: 'Assembly (AC)', icon: Building2 },
       { key: 'wards', label: 'Wards (Prabhags)', icon: Layers },
       { key: 'booths', label: 'Polling Booths', icon: Vote },
+      { key: 'talukas', label: 'Talukas (Tehsils)', icon: Map },
+      { key: 'villages', label: 'Villages (Gaon)', icon: Home },
+    ],
+  },
+  {
+    key: 'demographics',
+    title: 'Castes & Professions',
+    icon: Users,
+    items: [
+      { key: 'castes', label: 'Castes & Subcastes', icon: Users },
+      { key: 'profession-categories', label: 'Profession Categories', icon: Briefcase },
+      { key: 'professions', label: 'Specific Professions', icon: Award },
     ],
   },
   {
     key: 'elections',
-    title: 'Election Cycles',
+    title: 'Elections',
     icon: CalendarCheck,
     items: [
-      { key: 'elections', label: 'Election Master', icon: CalendarCheck },
+      { key: 'elections', label: 'Elections', icon: CalendarCheck },
     ],
   },
 ];
 
 export interface SidebarProps {
+  isSidebarCollapsed: boolean;
   isMobileSidebarOpen: boolean;
   onCloseMobileSidebar: () => void;
-  isSidebarCollapsed: boolean;
   onToggleSidebarCollapse: () => void;
 }
 
@@ -135,13 +164,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ? location.pathname.split('/dashboard/tenant-master/')[1]?.split('/')[0]?.split('?')[0] || null
     : null;
 
-  // Track which multi-item category accordion is currently expanded
+  // Track which multi-item category accordion is currently expanded on mobile
   const [openMasterCategory, setOpenMasterCategory] = useState<string | null>(() => {
     if (currentMasterTab) {
       const found = masterSections.find((sec) =>
         sec.items.length > 1 && sec.items.some((item) => item.key === currentMasterTab)
       );
-      return found ? found.key : 'geography';
+      return found ? found.key : null;
     }
     return null;
   });
@@ -271,18 +300,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* SIDEBAR NAVIGATION ITEMS */}
           <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-3 space-y-4 no-scrollbar">
-            {/* GROUP 1: OPERATIONS */}
+            {/* GROUP 1: OVERVIEW & INSIGHTS */}
             <div className="space-y-1">
               {!isSidebarCollapsed && (
                 <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400/90 dark:text-slate-500/90">
-                  Operations
+                  Overview & Insights
                 </div>
               )}
               {navItems
                 .filter((item) => {
-                  if (item.section !== 'operations') return false;
-                  if (item.path === '/dashboard/tenants') return isSuperAdmin;
-                  if (item.path === '/dashboard/volunteers') return !isSuperAdmin;
+                  if (item.section !== 'overview') return false;
                   if (item.path === '/dashboard/analytics') return !isSuperAdmin;
                   return true;
                 })
@@ -307,13 +334,82 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 })}
             </div>
 
-            {/* GROUP 2: ADMINISTRATION */}
+            {/* GROUP 2: FIELD & VOTERS */}
             <div className="space-y-1">
               {!isSidebarCollapsed && (
                 <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400/90 dark:text-slate-500/90">
-                  Administration
+                  Field & Voters
                 </div>
               )}
+              {navItems
+                .filter((item) => {
+                  if (item.section !== 'field') return false;
+                  if (item.path === '/dashboard/volunteers') return !isSuperAdmin;
+                  if (item.path === '/dashboard/surveys') return !isSuperAdmin;
+                  return true;
+                })
+                .map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+
+                  return (
+                    <NavPill
+                      key={item.path}
+                      to={item.path}
+                      onClick={onCloseMobileSidebar}
+                      label={item.label}
+                      icon={Icon}
+                      isActive={isActive}
+                      isCollapsed={isSidebarCollapsed}
+                    />
+                  );
+                })}
+            </div>
+
+            {/* GROUP 3: TEAM & ADMINISTRATION */}
+            <div className="space-y-1">
+              {!isSidebarCollapsed && (
+                <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400/90 dark:text-slate-500/90">
+                  Team & Administration
+                </div>
+              )}
+
+              {/* Top-level Admin Items (Team & Staff / Campaign Accounts) */}
+              {navItems
+                .filter((item) => {
+                  if (item.section !== 'administration') return false;
+                  if (item.path === '/dashboard/tenants') return isSuperAdmin;
+                  if (item.path === '/dashboard/users') {
+                    if (isSuperAdmin) return false;
+                    const allowedWebTabs = (user as any)?.allowedWebTabs as string[] | undefined;
+                    return Boolean(
+                      user?.canCreateWebUsers ||
+                      (user as any)?.allowedTabs?.canCreateWebUsers ||
+                      (user as any)?.allowedTabs?.can_create_web_users ||
+                      allowedWebTabs?.includes('web_users') ||
+                      allowedWebTabs?.includes('users')
+                    );
+                  }
+                  return true;
+                })
+                .map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+
+                  return (
+                    <NavPill
+                      key={item.path}
+                      to={item.path}
+                      onClick={onCloseMobileSidebar}
+                      label={item.label}
+                      icon={Icon}
+                      isActive={isActive}
+                      isCollapsed={isSidebarCollapsed}
+                    />
+                  );
+                })}
 
               {/* SUPER ADMIN MASTER CATEGORIES */}
               {isSuperAdmin &&
@@ -403,7 +499,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   const isTenantAdmin = user?.role === 'tenant_admin';
                   const userAllowedSubTabs = rawAllowed
                     ? (isTenantAdmin && !rawAllowed.includes('elections') ? [...rawAllowed, 'elections'] : rawAllowed)
-                    : ['acs', 'wards', 'booths', 'elections'];
+                    : ['acs', 'wards', 'booths', 'elections', 'talukas', 'villages', 'castes', 'profession-categories', 'professions'];
                   const availableItems = section.items.filter((sub) =>
                     userAllowedSubTabs.includes(sub.key)
                   );
@@ -484,7 +580,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             </div>
 
-            {/* GROUP 3: SYSTEM */}
+            {/* GROUP 4: SYSTEM */}
             <div className="space-y-1">
               {!isSidebarCollapsed && (
                 <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400/90 dark:text-slate-500/90">
@@ -492,13 +588,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               )}
               {navItems
-                .filter((item) => item.section === 'system')
+                .filter((item) => {
+                  if (item.section !== 'system') return false;
+                  // UI Gallery is strictly restricted to Super Admin only
+                  if (item.path === '/dashboard/ui-gallery') return isSuperAdmin;
+                  if (item.path === '/dashboard/imports') {
+                    if (isSuperAdmin) return true;
+                    const allowedWebTabs = (user as any)?.allowedWebTabs as string[] | undefined;
+                    const rawWebTabs = (user as any)?.allowedTabs?.webTabs as string[] | undefined;
+                    return Boolean(
+                      allowedWebTabs?.includes('imports') ||
+                      allowedWebTabs?.includes('bulk_import') ||
+                      rawWebTabs?.includes('imports') ||
+                      rawWebTabs?.includes('bulk_import')
+                    );
+                  }
+                  return true;
+                })
                 .map((item) => {
                   const targetPath = item.path;
                   const Icon = item.icon;
                   const isActive =
-                    location.pathname.startsWith('/dashboard/settings') ||
-                    location.pathname.startsWith('/dashboard/super-admin/settings');
+                    item.path === '/dashboard/imports'
+                      ? location.pathname === '/dashboard/imports' || location.pathname.startsWith('/dashboard/imports/')
+                      : item.path === '/dashboard/ui-gallery'
+                      ? location.pathname === '/dashboard/ui-gallery'
+                      : location.pathname.startsWith('/dashboard/settings') ||
+                      location.pathname.startsWith('/dashboard/super-admin/settings');
 
                   return (
                     <NavPill

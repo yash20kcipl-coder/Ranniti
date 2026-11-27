@@ -15,5 +15,7 @@ router.get('/districts', authenticateMobileUser, mobileMasterController.getDistr
 router.get('/pcs', authenticateMobileUser, mobileMasterController.getPcs);
 router.get('/talukas', authenticateMobileUser, mobileMasterController.getTalukas);
 router.get('/villages', authenticateMobileUser, mobileMasterController.getVillages);
+router.get('/profession-categories', authenticateMobileUser, mobileMasterController.getProfessionCategories);
+router.get('/professions', authenticateMobileUser, mobileMasterController.getProfessions);
 
 export const mobileMasterRoutes = router;

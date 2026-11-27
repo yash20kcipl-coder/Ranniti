@@ -39,7 +39,6 @@ export const TenantBoothsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
-  const [filterPcId, setFilterPcId] = useState('');
   const [filterAcId, setFilterAcId] = useState('');
   const [filterWardId, setFilterWardId] = useState('');
 
@@ -59,7 +58,6 @@ export const TenantBoothsPage: React.FC = () => {
       setLoading(true);
 
       const params: Record<string, any> = { page, limit };
-      if (filterPcId) params.pcId = filterPcId;
       if (filterAcId) params.acId = filterAcId;
       if (filterWardId) params.wardId = filterWardId;
       if (search.trim()) params.search = search.trim();
@@ -73,13 +71,15 @@ export const TenantBoothsPage: React.FC = () => {
       };
     },
     200,
-    [dispatch, page, limit, search, filterPcId, filterAcId, filterWardId]
+    [dispatch, page, limit, search, filterAcId, filterWardId]
   );
 
-  const filteredAcsOptions = useMemo(() => {
-    if (!filterPcId) return acsData;
-    return acsData.filter((a: any) => String(a.pcId) === String(filterPcId));
-  }, [acsData, filterPcId]);
+  // Auto-select AC if single constituency available in tenant scope
+  useDebouncedEffect(() => {
+    if (acsData?.length === 1 && !filterAcId) {
+      setFilterAcId(String(acsData[0].id));
+    }
+  }, 50, [acsData, filterAcId]);
 
   const filteredWardsOptions = useMemo(() => {
     if (!filterAcId) return wardsData;
@@ -88,8 +88,7 @@ export const TenantBoothsPage: React.FC = () => {
 
   const handleResetFilters = () => {
     setSearch('');
-    setFilterPcId('');
-    setFilterAcId('');
+    setFilterAcId(acsData?.length === 1 ? String(acsData[0].id) : '');
     setFilterWardId('');
     setPage(1);
   };
@@ -147,70 +146,71 @@ export const TenantBoothsPage: React.FC = () => {
       key: 'boothNumber',
       header: 'Booth No.',
       sortable: true,
-      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.boothNumber || '-'}</span>,
+      render: (row) => <span className="font-mono font-medium text-[9.5px] text-slate-700 dark:text-slate-300">#{row.boothNumber || '-'}</span>,
     },
     {
       key: 'name',
       header: 'Polling Station Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
-    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.locationBuilding || '-'}</span> },
-    { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.acName || '-'}</span> },
-    { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.wardName || '-'}</span> },
+    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.locationBuilding || '-'}</span> },
+    { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.acName || '-'}</span> },
+    { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.wardName || '-'}</span> },
     {
       key: 'totalVoters',
       header: 'Total Voters',
       sortable: true,
-      render: (row) => <span className="font-mono font-semibold text-xs text-indigo-600 dark:text-indigo-400">{(row.totalVoters ?? 0).toLocaleString()}</span>,
+      render: (row) => <span className="font-mono font-medium text-[9.5px] text-indigo-600 dark:text-indigo-400">{(row.totalVoters ?? 0).toLocaleString()}</span>,
     },
   ];
 
-  const filterFields: FilterField[] = [
-    {
-      key: 'filterPcId',
-      label: 'Parliamentary (PC)',
-      type: 'select',
-      value: filterPcId,
-      onChange: (val) => {
-        setFilterPcId(val);
-        setFilterAcId('');
-        setFilterWardId('');
-        setPage(1);
-      },
-      options: [{ label: 'All PCs', value: '' }, ...pcsData.map((p: any) => ({ label: p.name, value: p.id }))],
-    },
-    {
-      key: 'filterAcId',
-      label: 'Assembly (AC)',
-      type: 'select',
-      value: filterAcId,
-      onChange: (val) => {
-        setFilterAcId(val);
-        setFilterWardId('');
-        setPage(1);
-      },
-      options: [
-        { label: 'All ACs', value: '' },
-        ...filteredAcsOptions.map((a: any) => ({ label: `${a.acNumber ? `#${a.acNumber} - ` : ''}${a.name}`, value: a.id })),
-      ],
-    },
-    {
-      key: 'filterWardId',
-      label: 'Ward / Prabhag',
-      type: 'select',
-      value: filterWardId,
-      onChange: (val) => {
-        setFilterWardId(val);
-        setPage(1);
-      },
-      options: [
-        { label: 'All Wards', value: '' },
-        ...filteredWardsOptions.map((w: any) => ({ label: `${w.wardNumber ? `#${w.wardNumber} - ` : ''}${w.name}`, value: w.id })),
-      ],
-      isPrimary: true,
-    },
-  ];
+  const filterFields: FilterField[] = useMemo(() => {
+    const fields: FilterField[] = [];
+
+    if (acsData.length > 1) {
+      fields.push({
+        key: 'filterAcId',
+        label: 'Assembly (AC)',
+        type: 'select',
+        value: filterAcId,
+        defaultValue: '',
+        excludeFromCount: true,
+        onChange: (val) => {
+          setFilterAcId(val);
+          setFilterWardId('');
+          setPage(1);
+        },
+        options: [
+          { label: 'All ACs', value: '' },
+          ...acsData.map((a: any) => ({ label: `${a.acNumber ? `#${a.acNumber} - ` : ''}${a.name}`, value: a.id })),
+        ],
+        isPrimary: true,
+      });
+    }
+
+    if (filteredWardsOptions.length > 0) {
+      fields.push({
+        key: 'filterWardId',
+        label: 'Ward / Prabhag',
+        type: 'select',
+        value: filterWardId,
+        defaultValue: '',
+        excludeFromCount: true,
+        onChange: (val) => {
+          setFilterWardId(val);
+          setPage(1);
+        },
+        options: [
+          { label: 'All Wards', value: '' },
+          ...filteredWardsOptions.map((w: any) => ({ label: `${w.wardNumber ? `#${w.wardNumber} - ` : ''}${w.name}`, value: w.id })),
+        ],
+        isPrimary: true,
+      });
+    }
+
+    return fields;
+  }, [acsData, filteredWardsOptions, filterAcId, filterWardId]);
 
   return (
     <div className="space-y-4">
@@ -218,11 +218,6 @@ export const TenantBoothsPage: React.FC = () => {
         title="Polling Booths"
         subtitle="Manage individual polling booth locations under Wards and Assembly Constituencies."
         icon={<Vote size={22} />}
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {paginationMeta?.total ?? boothsData.length} {(paginationMeta?.total ?? boothsData.length) === 1 ? 'Record' : 'Records'}
-          </span>
-        }
         onExportClick={handleExportExcel}
         onAddClick={() => {
           setEditingItem(null);
@@ -231,22 +226,27 @@ export const TenantBoothsPage: React.FC = () => {
         addLabel="Add Booth"
       />
 
-      <FilterBar
-        searchPlaceholder="Search polling booths..."
-        searchValue={search}
-        onSearchChange={(val) => {
-          setSearch(val);
-          setPage(1);
-        }}
-        filters={filterFields}
-        onReset={handleResetFilters}
-      />
-
       <DataTable
         columns={columns}
         data={boothsData}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            showDrawerButton={false}
+            showResetButton={false}
+            searchValue={search}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search polling booths..."
+            onSearchChange={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+          />
+        }
         serverPagination={{
           page: paginationMeta?.page || page,
           limit: paginationMeta?.limit || limit,

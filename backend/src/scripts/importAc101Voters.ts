@@ -174,7 +174,7 @@ export const importAc101Voters = async (): Promise<void> => {
         mobile_no: truncateStr(r['Mobile No'], 15),
         status: truncateStr(r['Status'], 20) || 'ACTIVE',
         is_dead: String(r['Is Dead'] || '').trim().toUpperCase() === 'YES',
-        taluka: truncateStr(r['Taluka'], 150) || 'Gariadhar',
+        taluka: truncateStr(r['Taluka'], 150) || 'Gariyadhar',
         village: truncateStr(r['Village'], 150),
         full_address: null,
         voter_address: r['Voter Address'] ? String(r['Voter Address']).trim() : null,

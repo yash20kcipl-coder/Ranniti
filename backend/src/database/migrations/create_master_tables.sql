@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS parties (
     abbreviation VARCHAR(20) NOT NULL,
     symbol_logo VARCHAR(500),
     alliance VARCHAR(100),
+    color VARCHAR(50),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

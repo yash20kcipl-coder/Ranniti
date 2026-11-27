@@ -9,12 +9,19 @@ export interface SyncApiMetadata {
 }
 
 export const REGISTERED_SYNC_APIS: Record<string, SyncApiMetadata> = {
-  religions: { endpoint: '/tenant/religions', reduxAction: 'fetchMasterReligions' },
-  castes: { endpoint: '/tenant/castes', reduxAction: 'fetchMasterCastes' },
   states: { endpoint: '/tenant/states', reduxAction: 'fetchMasterStates' },
   districts: { endpoint: '/tenant/districts', reduxAction: 'fetchMasterDistricts' },
-  acs: { endpoint: '/tenant/acs', reduxAction: 'fetchMasterAcs' },
   pcs: { endpoint: '/tenant/pcs', reduxAction: 'fetchMasterPcs' },
+  acs: { endpoint: '/tenant/acs', reduxAction: 'fetchMasterAcs' },
+  talukas: { endpoint: '/tenant/talukas', reduxAction: 'fetchMasterTalukas' },
+  villages: { endpoint: '/tenant/villages', reduxAction: 'fetchMasterVillages' },
+  wards: { endpoint: '/tenant/wards', reduxAction: 'fetchMasterWards' },
+  booths: { endpoint: '/tenant/booths', reduxAction: 'fetchMasterBooths' },
+  parties: { endpoint: '/tenant/parties', reduxAction: 'fetchMasterParties' },
+  religions: { endpoint: '/tenant/religions', reduxAction: 'fetchMasterReligions' },
+  castes: { endpoint: '/tenant/castes', reduxAction: 'fetchMasterCastes' },
+  professionCategories: { endpoint: '/tenant/profession-categories', reduxAction: 'fetchMasterProfessionCategories' },
+  professions: { endpoint: '/tenant/professions', reduxAction: 'fetchMasterProfessions' },
   tenantSettings: { endpoint: '/tenant/settings', reduxAction: 'fetchTenantSettings' },
   userRoles: { endpoint: '/tenant/user-roles', reduxAction: 'fetchUserRoles' },
 };

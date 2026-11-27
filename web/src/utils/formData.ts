@@ -50,7 +50,11 @@ export function toFormDataOrJson(payload: Record<string, any>): FormData | Recor
   const formData = new FormData();
   for (const key of Object.keys(normalizedPayload)) {
     const val = normalizedPayload[key];
-    if (val === undefined || val === null) {
+    if (val === undefined) {
+      continue;
+    }
+    if (val === null) {
+      formData.append(key, '');
       continue;
     }
     if (val instanceof File || val instanceof Blob) {

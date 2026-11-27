@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, Switch } from 'react-native';
 import { AppTextInput } from '../../../components/AppTextInput';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { AppDropdown, DropdownOption } from '../../../components/AppDropdown';
-import { AppAutocompleteInput } from '../../../components/AppAutocompleteInput';
+import { AppAutocompleteInput, AutocompleteSuggestion } from '../../../components/AppAutocompleteInput';
 import { FontFamily } from '../../../utils/typography';
 
 interface VoterGeographyFormSectionProps {
@@ -22,9 +22,18 @@ interface VoterGeographyFormSectionProps {
   sameAddress: boolean;
   setSameAddress: (same: boolean) => void;
   canEditContact: boolean;
-  talukaSuggestions?: string[];
-  villageSuggestions?: string[];
+  talukaSuggestions?: (string | AutocompleteSuggestion)[];
+  villageSuggestions?: (string | AutocompleteSuggestion)[];
+  onSearchVillages?: (query: string) => Promise<any[]>;
+  onSearchTalukas?: (query: string) => Promise<any[]>;
+  onSelectVillage?: (village: any) => void;
+  onSelectTaluka?: (taluka: any) => void;
   rawAcs?: any[];
+  rawPcs?: any[];
+  rawDistricts?: any[];
+  rawBooths?: any[];
+  rawVillages?: any[];
+  rawTalukas?: any[];
   isFieldLocked?: (key: string) => boolean;
 }
 
@@ -44,8 +53,17 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
   canEditContact,
   talukaSuggestions = [],
   villageSuggestions = [],
+  onSearchVillages,
+  onSearchTalukas,
+  onSelectVillage,
+  onSelectTaluka,
   rawAcs = [],
-  isFieldLocked = () => false,
+  rawPcs = [],
+  rawDistricts = [],
+  rawBooths = [],
+  rawVillages = [],
+  rawTalukas = [],
+  isFieldLocked = (_key: string) => false,
 }) => {
   const isStateLocked = isFieldLocked('stateId');
   const isDistrictLocked = isFieldLocked('districtId');
@@ -118,9 +136,11 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               disabled={isDistrictLocked}
               searchable={true}
               onSelect={(val) => {
+                const matchedDistrict = (rawDistricts || []).find((d: any) => String(d.id) === String(val));
                 setFormData((prev: any) => ({
                   ...prev,
                   districtId: val,
+                  stateId: matchedDistrict?.stateId ? String(matchedDistrict.stateId) : prev.stateId,
                   boothId: '',
                 }));
               }}
@@ -138,9 +158,11 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               disabled={isPcLocked}
               searchable={true}
               onSelect={(val) => {
+                const matchedPc = (rawPcs || []).find((p: any) => String(p.id) === String(val));
                 setFormData((prev: any) => ({
                   ...prev,
                   pcId: val,
+                  stateId: matchedPc?.stateId ? String(matchedPc.stateId) : prev.stateId,
                   acId: '',
                   boothId: '',
                 }));
@@ -181,9 +203,17 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           searchable={true}
           searchPlaceholder={t('searchBoothPlaceholder') || 'Search booth number or name...'}
           onSelect={(val) => {
+            const matchedBooth = (rawBooths || []).find((b: any) => String(b.id) === String(val));
+            const matchedAc = matchedBooth?.acId
+              ? (rawAcs || []).find((a: any) => String(a.id) === String(matchedBooth.acId))
+              : null;
             setFormData((prev: any) => ({
               ...prev,
               boothId: val,
+              acId: matchedBooth?.acId ? String(matchedBooth.acId) : prev.acId,
+              pcId: matchedAc?.pcId ? String(matchedAc.pcId) : prev.pcId,
+              districtId: matchedAc?.districtId ? String(matchedAc.districtId) : prev.districtId,
+              stateId: matchedAc?.stateId ? String(matchedAc.stateId) : prev.stateId,
               familyInfluencerId: '',
               socialInfluencerId: '',
             }));
@@ -238,7 +268,21 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
               value={formData.village || ''}
               suggestions={villageSuggestions}
               placeholder={t('villagePlaceholder') || 'Village / Town'}
-              onChangeText={(val) => setFormData((prev: any) => ({ ...prev, village: val }))}
+              onChangeText={(val) => {
+                setFormData((prev: any) => ({ ...prev, village: val }));
+                const matchingV = (rawVillages || []).find(
+                  (v: any) => (v.name || '').toLowerCase().trim() === val.toLowerCase().trim()
+                );
+                if (matchingV && onSelectVillage) {
+                  onSelectVillage(matchingV);
+                }
+              }}
+              onRemoteSearch={onSearchVillages}
+              onSelectSuggestion={(item) => {
+                if (onSelectVillage) {
+                  onSelectVillage(item);
+                }
+              }}
             />
           </View>
         </View>
@@ -249,7 +293,21 @@ export const VoterGeographyFormSection: React.FC<VoterGeographyFormSectionProps>
           value={formData.taluka || ''}
           suggestions={talukaSuggestions}
           placeholder={t('talukaPlaceholder') || 'Taluka / Tehsil'}
-          onChangeText={(val) => setFormData((prev: any) => ({ ...prev, taluka: val }))}
+          onChangeText={(val) => {
+            setFormData((prev: any) => ({ ...prev, taluka: val }));
+            const matchingT = (rawTalukas || []).find(
+              (t: any) => (t.name || '').toLowerCase().trim() === val.toLowerCase().trim()
+            );
+            if (matchingT && onSelectTaluka) {
+              onSelectTaluka(matchingT);
+            }
+          }}
+          onRemoteSearch={onSearchTalukas}
+          onSelectSuggestion={(item) => {
+            if (onSelectTaluka) {
+              onSelectTaluka(item);
+            }
+          }}
         />
 
         {/* Current Residence Address */}

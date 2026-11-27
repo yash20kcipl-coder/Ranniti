@@ -115,9 +115,11 @@ export class MobileContactSyncService {
       INNER JOIN voters v 
         ON RIGHT(REGEXP_REPLACE(v.mobile_no, '\\D', '', 'g'), 10) = sc.phone
       LEFT JOIN booths b ON b.id = v.booth_id
-      WHERE 1=1 ${additionalWhere}
-      ORDER BY v.eng_first_name ASC
-      LIMIT 2000
+      WHERE v.mobile_no IS NOT NULL 
+        AND LENGTH(REGEXP_REPLACE(v.mobile_no, '\\D', '', 'g')) >= 10
+        ${additionalWhere}
+      ORDER BY b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.eng_first_name ASC, v.id ASC
+      LIMIT 5000
     `;
 
     let rows: MatchedVoterItem[] = [];
@@ -237,7 +239,7 @@ export class MobileContactSyncService {
       INNER JOIN voters v ON v.id = usc.voter_id
       LEFT JOIN booths b ON b.id = v.booth_id
       ${whereClause}
-      ORDER BY usc.synced_at DESC
+      ORDER BY b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, usc.synced_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 

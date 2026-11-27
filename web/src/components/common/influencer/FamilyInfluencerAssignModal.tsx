@@ -13,9 +13,17 @@ import { Modal } from '../Modal';
 import toast from 'react-hot-toast';
 import React, { useState } from 'react';
 import { SafeImage } from '../SafeImage';
-import { useAppDispatch } from '@/redux/hooks';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { fetchFamilyCandidatesAction, bulkAssignInfluencerAction } from '@/redux/actions/voter';
+import {
+  fetchFamilyCandidatesAction,
+  bulkAssignTenantInfluencerAction,
+} from '@/redux/actions/voterTenant';
+import {
+  fetchSuperAdminFamilyCandidatesAction,
+  bulkAssignSuperAdminInfluencerAction,
+} from '@/redux/actions/voterSuperAdmin';
 
 export interface FamilyInfluencerTarget {
   id: string;
@@ -35,6 +43,7 @@ export interface FamilyInfluencerAssignModalProps {
   onClose: () => void;
   influencer: FamilyInfluencerTarget | null;
   onSuccess?: () => void;
+  isSuperAdmin?: boolean;
 }
 
 export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalProps> = ({
@@ -42,8 +51,12 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
   onClose,
   influencer,
   onSuccess,
+  isSuperAdmin,
 }) => {
   const dispatch = useAppDispatch();
+  const currentUser = useAppSelector((state) => state.user.myprofile || state.user.user);
+  const isSuperAdminResolved =
+    isSuperAdmin ?? (currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'super_admin');
 
   // Search & Filter State (Defaulting Unassigned and Same Surname to true per requirements)
   const [search, setSearch] = useState('');
@@ -88,8 +101,12 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
 
       setLoading(true);
 
+      const fetchAction = isSuperAdminResolved
+        ? fetchSuperAdminFamilyCandidatesAction
+        : fetchFamilyCandidatesAction;
+
       dispatch(
-        fetchFamilyCandidatesAction({
+        fetchAction({
           influencerId: influencer.id,
           boothId: influencer.boothId || undefined,
           search: search.trim() || undefined,
@@ -129,6 +146,7 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
       unassignedOnly,
       genderFilter,
       page,
+      isSuperAdminResolved,
     ]
   );
 
@@ -159,8 +177,12 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
     try {
       setSubmitting(true);
 
+      const assignAction = isSuperAdminResolved
+        ? bulkAssignSuperAdminInfluencerAction
+        : bulkAssignTenantInfluencerAction;
+
       await dispatch(
-        bulkAssignInfluencerAction({
+        assignAction({
           influencerId: influencer.id,
           influencerType: 'family',
           voterIds: selectedVoterIds,
@@ -524,7 +546,7 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
                           {voter.age ? ` • ${voter.age} yrs` : ''}
                         </td>
                         <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-mono whitespace-nowrap">
-                          {voter.mobileNo || '-'}
+                          {formatPhoneNumber(voter.mobileNo)}
                         </td>
                         <td className="py-2.5 px-3 text-right whitespace-nowrap">
                           {voter.isAlreadyLinked ? (

@@ -22,12 +22,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {
       // Fallback if localStorage access is denied
     }
-    return 'light'; // Default to dark theme
+    return 'light';
   });
 
   const applyTheme = (targetTheme: Theme) => {
     const root = document.documentElement;
-    if (targetTheme === 'dark') {
+    const isDark = targetTheme === 'dark';
+
+    if (isDark) {
       root.classList.add('dark');
       root.classList.remove('light');
       root.style.colorScheme = 'dark';
@@ -37,10 +39,31 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       root.style.colorScheme = 'light';
     }
 
+    // Sync custom dynamic page background if set in localStorage, otherwise let CSS handle --page-bg
+    try {
+      const savedLightBg = localStorage.getItem('ranniti_page_bg_light');
+      const savedDarkBg = localStorage.getItem('ranniti_page_bg_dark');
+      const customBg = isDark ? savedDarkBg : savedLightBg;
+
+      if (customBg) {
+        root.style.setProperty('--page-bg', customBg);
+        document.body.style.backgroundColor = customBg;
+        const main = document.getElementById('main-content');
+        if (main) main.style.backgroundColor = customBg;
+      } else {
+        root.style.removeProperty('--page-bg');
+        document.body.style.backgroundColor = '';
+        const main = document.getElementById('main-content');
+        if (main) main.style.backgroundColor = '';
+      }
+    } catch {
+      // Ignore storage errors
+    }
+
     // Update meta theme-color and color-scheme tags if present
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', targetTheme === 'dark' ? '#020617' : '#ffffff');
+      metaThemeColor.setAttribute('content', isDark ? '#020617' : '#ffffff');
     }
     const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
     if (metaColorScheme) {

@@ -34,6 +34,11 @@ export const FORM_VOTER_TYPE_OPTIONS: Option[] = [
   { label: 'VIP / Key Person', value: 'VIP' },
 ];
 
+export const USER_STATUS_OPTIONS: Option[] = [
+  { label: 'Active', value: 'active' },
+  { label: 'Inactive', value: 'inactive' },
+];
+
 export const STATUS_OPTIONS: Option[] = [
   { label: 'All Statuses', value: '' },
   { label: 'Active Voter', value: 'ACTIVE' },
@@ -94,7 +99,7 @@ export const USER_ROLE_OPTIONS: Option[] = [
 ];
 
 export const LEADER_CREATABLE_ROLE_OPTIONS: Option[] = [
-  { label: 'Assembly / Sub-Sector Leader', value: 'leader' },
+  { label: 'Assembly Leader', value: 'leader' },
   { label: 'Booth Coordinator (Sub-Leader)', value: 'sub_leader' },
 ];
 
@@ -106,21 +111,32 @@ export const VOLUNTEER_ROLE_OPTIONS: Option[] = [
   { label: 'All Roles', value: '' },
   { label: 'PC Leader', value: 'pc_leader' },
   { label: 'AC Leader', value: 'ac_leader' },
-  { label: 'Sub-Leader / Ward Coordinator', value: 'sub_leader' },
-  { label: 'Campaign Supporter / Volunteer', value: 'supporter' },
+  { label: 'Sub-Leader', value: 'sub_leader' },
+  { label: 'Campaign Supporter', value: 'supporter' },
 ];
 
 export const FORM_VOLUNTEER_ROLE_OPTIONS: Option[] = [
   { label: 'PC Leader', value: 'pc_leader' },
   { label: 'AC Leader', value: 'ac_leader' },
-  { label: 'Sub-Leader / Ward Coordinator', value: 'sub_leader' },
-  { label: 'Campaign Supporter / Volunteer', value: 'supporter' },
+  { label: 'Sub-Leader', value: 'sub_leader' },
+  { label: 'Campaign Supporter', value: 'supporter' },
+];
+
+export const FORM_ROLE_CATEGORY_OPTIONS: Option[] = [
+  { label: 'Campaign Staff', value: 'tenant_user' },
+  { label: 'Campaign Manager', value: 'campaign_manager' },
+  { label: 'Data Operator', value: 'data_operator' },
+  { label: 'Election Coordinator', value: 'election_coordinator' },
+  { label: 'PC Leader', value: 'pc_leader' },
+  { label: 'AC Leader', value: 'ac_leader' },
+  { label: 'Sub-Leader', value: 'sub_leader' },
+  { label: 'Campaign Supporter', value: 'supporter' },
 ];
 
 export const SUBORDINATE_ROLE_DELEGATION_OPTIONS = [
-  { key: 'ac_leader', label: 'AC Leader (Assembly Coordinator)', desc: 'Can manage assembly operations and subordinates' },
-  { key: 'sub_leader', label: 'Sub-Leader / Ward Coordinator', desc: 'Can manage ward clusters and booth volunteers' },
-  { key: 'supporter', label: 'Campaign Supporter / Volunteer', desc: 'Can perform ground surveys and booth voter lookups' },
+  { key: 'ac_leader', label: 'AC Leader', desc: 'Can manage assembly operations and subordinates' },
+  { key: 'sub_leader', label: 'Sub-Leader', desc: 'Can manage ward clusters and booth volunteers' },
+  { key: 'supporter', label: 'Campaign Supporter', desc: 'Can perform ground surveys and booth voter lookups' },
 ];
 
 export const RELATION_OPTIONS: Option[] = [

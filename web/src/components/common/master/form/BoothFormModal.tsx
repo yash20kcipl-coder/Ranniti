@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
+import { formatTitleCase } from '@/utils/textUtils';
 
 interface BoothFormModalProps {
   isOpen: boolean;
@@ -76,11 +77,11 @@ export const BoothFormModal: React.FC<BoothFormModalProps> = ({
     setSubmitting(true);
     try {
       await onSave({
-        name,
+        name: formatTitleCase(name.trim()),
         boothNumber: Number(boothNumber),
         acId,
         wardId,
-        locationBuilding: locationBuilding.trim() || undefined,
+        locationBuilding: locationBuilding.trim() ? formatTitleCase(locationBuilding.trim()) : undefined,
         totalVoters: totalVoters ? Number(totalVoters) : 0,
       });
     } finally {

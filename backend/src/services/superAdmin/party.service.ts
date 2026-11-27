@@ -14,12 +14,12 @@ export class SuperAdminPartyService {
   /**
    * Create a political party in Master DB and broadcast to all active tenant DBs
    */
-  static async createParty(data: { name: string; abbreviation?: string; symbolLogo?: string }): Promise<any> {
+  static async createParty(data: { name: string; abbreviation?: string; symbolLogo?: string; alliance?: string; color?: string }): Promise<any> {
     const res = await query(
-      `INSERT INTO parties (name, abbreviation, symbol_logo, created_at, updated_at)
-       VALUES ($1, $2, $3, NOW(), NOW())
+      `INSERT INTO parties (name, abbreviation, symbol_logo, alliance, color, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        RETURNING *`,
-      [data.name, data.abbreviation || null, data.symbolLogo || null]
+      [data.name, data.abbreviation || null, data.symbolLogo || null, data.alliance || null, data.color || null]
     );
 
     const newParty = res.rows[0];
@@ -35,16 +35,18 @@ export class SuperAdminPartyService {
   /**
    * Update a political party in Master DB and broadcast updates
    */
-  static async updateParty(id: string, data: { name?: string; abbreviation?: string; symbolLogo?: string }): Promise<any> {
+  static async updateParty(id: string, data: { name?: string; abbreviation?: string; symbolLogo?: string; alliance?: string; color?: string }): Promise<any> {
     const res = await query(
       `UPDATE parties
        SET name = COALESCE($1, name),
            abbreviation = COALESCE($2, abbreviation),
            symbol_logo = COALESCE($3, symbol_logo),
+           alliance = COALESCE($4, alliance),
+           color = COALESCE($5, color),
            updated_at = NOW()
-       WHERE id = $4
+       WHERE id = $6
        RETURNING *`,
-      [data.name, data.abbreviation, data.symbolLogo, id]
+      [data.name, data.abbreviation, data.symbolLogo, data.alliance, data.color, id]
     );
 
     if (res.rowCount === 0) return null;

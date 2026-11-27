@@ -90,6 +90,8 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
             options={partyOptions}
             disabled={!canEditInclination}
             searchable={true}
+            clearable={true}
+            onClear={() => setFormData((prev: any) => ({ ...prev, partyId: '' }))}
             onSelect={(val) => {
               setFormData((prev: any) => ({ ...prev, partyId: val }));
             }}

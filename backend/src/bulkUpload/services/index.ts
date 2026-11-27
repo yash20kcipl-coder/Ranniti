@@ -9,5 +9,7 @@ export * from './ac.import.service';
 export * from './ward.import.service';
 export * from './booth.import.service';
 export * from './party.import.service';
+export * from './professionCategory.import.service';
+export * from './profession.import.service';
 export * from './voter.import.service';
 export * from './demo.import.service';

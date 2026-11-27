@@ -17,7 +17,7 @@ const initialState: ImportJobsState = {
   activeJobIds: [],
 };
 
-const getDismissedJobIds = (): string[] => {
+export const getDismissedJobIds = (): string[] => {
   if (typeof window === 'undefined') return [];
   try {
     return JSON.parse(localStorage.getItem('ranniti_dismissed_job_ids') || '[]');
@@ -105,18 +105,25 @@ export default function importJobsReducer(
 
       for (const job of serverJobs) {
         if (!job || !job.jobId) continue;
+
+        const isRunning = job.status === 'processing' || job.status === 'pending';
+        const isRecent = job.startedAt ? new Date(job.startedAt).getTime() > twoHoursAgo : false;
+        const isDismissed = dismissedIds.includes(job.jobId);
+
+        // If the job was dismissed by the user and is not currently running, omit it
+        if (isDismissed && !isRunning) {
+          delete newJobsMap[job.jobId];
+          continue;
+        }
+
         newJobsMap[job.jobId] = {
           ...(newJobsMap[job.jobId] || {}),
           ...job,
           startTimeClient: newJobsMap[job.jobId]?.startTimeClient || Date.now(),
         };
 
-        const isRunning = job.status === 'processing' || job.status === 'pending';
-        const isRecent = job.startedAt ? new Date(job.startedAt).getTime() > twoHoursAgo : false;
-        const isDismissed = dismissedIds.includes(job.jobId);
-
-        // Always show if currently running; if finished, show if recent and not dismissed
-        if (isRunning || (isRecent && !isDismissed)) {
+        // Always show if currently running; if finished, show if recent
+        if (isRunning || isRecent) {
           newActiveIds.add(job.jobId);
         }
       }

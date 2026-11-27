@@ -446,8 +446,8 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
         onSelectParty={handleSelectParty}
         visible={Boolean(partyModalVoterId)}
         onClose={() => setPartyModalVoterId(null)}
-        currentPartyId={currentModalVoter?.partyId}
-        currentPartyName={currentModalVoter?.supportingParty}
+        currentPartyId={currentModalVoter?.partyId || null}
+        currentPartyName={currentModalVoter?.partyId ? (currentModalVoter?.partyName || currentModalVoter?.supportingParty) : ''}
         voterName={currentModalVoter ? (currentModalVoter.name || currentModalVoter.englishName) : undefined}
       />
 

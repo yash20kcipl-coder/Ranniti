@@ -1,4 +1,5 @@
 import { CacheService } from '../../services/cache.service';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { BulkImporter } from '../../utils/bulkImporter';
 import { MasterQueries } from '../../queries/master.queries';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
@@ -35,7 +36,22 @@ export class StateImportService {
       },
     });
 
-    await CacheService.invalidatePattern('ranniti:masters:states*');
+    await MasterCacheInvalidator.invalidate('states');
+    try {
+      const allStates = await MasterQueries.getStates().catch(() => []);
+      const { MasterBroadcastSync } = await import('../../services/sync/masterBroadcastSync.service');
+      await MasterBroadcastSync.broadcastBatchToAllTenants(
+        'states',
+        allStates.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+        }))
+      );
+    } catch (broadcastErr) {
+      const { logger } = await import('../../utils/logger');
+      logger.error('[StateImportService] Failed to broadcast states to tenants:', broadcastErr);
+    }
+
     return result;
   }
 }

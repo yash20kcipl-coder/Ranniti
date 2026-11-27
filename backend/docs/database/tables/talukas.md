@@ -9,3 +9,10 @@ Master table for storing administrative talukas (tehsils/sub-districts) within d
 | `name` | `VARCHAR(150)` | No | *None* | Taluka Name |
 | `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Creation timestamp |
 | `updated_at` | `TIMESTAMPTZ` | No | `NOW()` | Update timestamp |
+
+## Indexes & Constraints
+
+* **`talukas_pkey`**: Primary key on `(id)`
+* **`unq_taluka_district_name`**: Composite unique on `(district_id, name)`
+* **`uq_talukas_district_lower_name`**: Case-insensitive functional unique index on `(district_id, LOWER(TRIM(name)))`
+

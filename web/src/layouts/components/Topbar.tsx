@@ -11,8 +11,10 @@ import {
   Layers,
   Settings,
   CheckCircle2,
+  ShieldAlert,
 } from 'lucide-react';
 import { logout } from '@/redux/actions/auth';
+import { exitTenantImpersonation } from '@/redux/actions/tenant';
 import { Link, useNavigate } from 'react-router-dom';
 import type { BreadcrumbItem } from '../utils/breadcrumbs';
 import React, { useState, useEffect, useRef } from 'react';
@@ -78,6 +80,24 @@ export const Topbar: React.FC<TopbarProps> = ({
     navigate('/login');
   };
 
+  const [isExitingImpersonation, setIsExitingImpersonation] = useState(false);
+  const isImpersonating =
+    Boolean(localStorage.getItem('super_admin_impersonator_token')) ||
+    Boolean(user?.isImpersonated);
+
+  const handleReturnToSuperAdmin = async () => {
+    setIsExitingImpersonation(true);
+    try {
+      await dispatch(exitTenantImpersonation());
+      setShowProfileMenu(false);
+      navigate('/dashboard/tenants');
+    } catch {
+      // Handled by Redux errorHandler
+    } finally {
+      setIsExitingImpersonation(false);
+    }
+  };
+
   const isSuperAdmin = user?.role === 'super_admin';
 
   return (
@@ -126,8 +146,8 @@ export const Topbar: React.FC<TopbarProps> = ({
                   ) : (
                     <span
                       className={`truncate max-w-xs ${i === breadcrumbs.length - 1
-                          ? 'text-slate-700 dark:text-slate-300 font-semibold'
-                          : ''
+                        ? 'text-slate-700 dark:text-slate-300 font-semibold'
+                        : ''
                         }`}
                     >
                       {b.label}
@@ -173,16 +193,11 @@ export const Topbar: React.FC<TopbarProps> = ({
           <Search size={18} />
         </button>
 
-        {/* Live Operations & Background Jobs Status Pill */}
-        {activeJobsCount > 0 ? (
+        {/*  Background Jobs Status Pill */}
+        {activeJobsCount > 0 && (
           <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl text-[10px] font-semibold text-amber-700 dark:text-amber-400">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
             <span>{activeJobsCount} Import Job{activeJobsCount > 1 ? 's' : ''} Active</span>
-          </div>
-        ) : (
-          <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Live Operations</span>
           </div>
         )}
 
@@ -323,6 +338,21 @@ export const Topbar: React.FC<TopbarProps> = ({
               )}
 
               <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+
+              {isImpersonating && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleReturnToSuperAdmin}
+                    disabled={isExitingImpersonation}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
+                  >
+                    <ShieldAlert size={14} />
+                    <span>{isExitingImpersonation ? 'Returning...' : 'Return to Super Admin'}</span>
+                  </button>
+                  <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+                </>
+              )}
 
               <button
                 type="button"

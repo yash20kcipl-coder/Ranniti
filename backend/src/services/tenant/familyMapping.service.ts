@@ -687,7 +687,7 @@ export class FamilyMappingService {
       FROM voters v
       LEFT JOIN parties p ON v.party_id = p.id
       WHERE v.family_influencer_id = $1 AND (v.is_dead IS NOT TRUE)
-      ORDER BY v.age DESC
+      ORDER BY v.serial_no ASC NULLS LAST, v.age DESC
     `;
     const membersRes = await executeFamilyQuery(membersSql, [headId], tenantDbName);
     const members = membersRes.rows;

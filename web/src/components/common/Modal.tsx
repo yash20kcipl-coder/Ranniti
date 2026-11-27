@@ -12,6 +12,9 @@ export interface ModalProps {
   submitText?: string;
   cancelText?: string;
   isLoading?: boolean;
+  isSubmitDisabled?: boolean;
+  footerMessage?: React.ReactNode;
+  contentPadding?: 'none' | 'default';
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | 'full';
   closeOnBackdropClick?: boolean;
 }
@@ -26,6 +29,9 @@ export const Modal: React.FC<ModalProps> = ({
   submitText = 'Save',
   cancelText = 'Cancel',
   isLoading = false,
+  isSubmitDisabled = false,
+  footerMessage,
+  contentPadding = 'default',
   maxWidth = 'lg',
   closeOnBackdropClick = true,
 }) => {
@@ -78,7 +84,7 @@ export const Modal: React.FC<ModalProps> = ({
       }}
     >
       <div
-        className={`relative w-full ${maxWidthClasses} max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-left animate-modalIn`}
+        className={`relative w-full ${maxWidthClasses} max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[var(--modal-radius,1.5rem)] shadow-2xl overflow-hidden text-left animate-modalIn`}
       >
         {/* Modal Header (Fixed at top) */}
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-10">
@@ -100,40 +106,45 @@ export const Modal: React.FC<ModalProps> = ({
         {onSubmit ? (
           <form onSubmit={onSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {/* Scrollable Form Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-              {children}
-            </div>
+              <div className={`flex-1 overflow-y-auto ${contentPadding === 'none' ? 'p-0' : 'px-6 py-4 space-y-4'}`}>
+                {children}
+              </div>
 
-            {/* Modal Actions Sticky Footer */}
-            <div className="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 z-10">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isLoading}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
-              >
-                {cancelText}
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md shadow-indigo-600/25 transition-all cursor-pointer disabled:opacity-50"
-              >
-                {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
-                <span>{submitText}</span>
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            {children}
-          </div>
+              {/* Modal Actions Sticky Footer */}
+                <div className="flex-shrink-0 flex items-center justify-between gap-3 px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 z-10">
+                  <div className="flex-1 min-w-0 text-xs text-slate-500 dark:text-slate-400">
+                    {footerMessage}
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      disabled={isLoading}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                    >
+                      {cancelText}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isLoading || isSubmitDisabled}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#4338CA] hover:bg-[#3730A3] text-white font-semibold text-xs shadow-md shadow-indigo-600/25 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                      <span>{submitText}</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
+              ) : (
+                <div className={`flex-1 overflow-y-auto ${contentPadding === 'none' ? 'p-0' : 'px-6 py-4'}`}>
+                  {children}
+                </div>
         )}
-      </div>
-    </div>
-  );
+              </div>
+            </div>
+            );
 
-  return createPortal(modalContent, document.body);
+            return createPortal(modalContent, document.body);
 };
 
-export default Modal;
+            export default Modal;

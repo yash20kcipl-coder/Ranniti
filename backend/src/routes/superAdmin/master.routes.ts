@@ -16,6 +16,10 @@ import {
   updateWardSchema,
   createPartySchema,
   createBoothSchema,
+  createProfessionCategorySchema,
+  updateProfessionCategorySchema,
+  createProfessionSchema,
+  updateProfessionSchema,
 } from '../../schemas/master.schema';
 import { validate } from '../../middlewares/validate.middleware';
 import { masterController } from '../../controllers/master.controller';
@@ -26,6 +30,7 @@ const router = Router();
 
 // --- BULK IMPORT & SAMPLE TEMPLATES ---
 router.get('/bulk-import/jobs', MasterBulkController.getAllImportJobs);
+router.delete('/bulk-import/jobs/:jobId', MasterBulkController.deleteImportJob);
 router.post('/bulk-import/:category', MasterBulkController.startBulkImport);
 router.get('/bulk-import/status/:jobId', MasterBulkController.getBulkImportStatus);
 router.get('/bulk-import/failed-records/:jobId', MasterBulkController.downloadFailedRecords);
@@ -169,5 +174,29 @@ router
   .route('/booths/:id')
   .put(validate(masterIdParamSchema), masterController.updateBooth)
   .delete(validate(masterIdParamSchema), masterController.deleteBooth);
+
+// --- PROFESSION CATEGORIES ---
+router
+  .route('/profession-categories')
+  .get(masterController.getProfessionCategories)
+  .post(validate(createProfessionCategorySchema), masterController.createProfessionCategory);
+
+router
+  .route('/profession-categories/:id')
+  .get(validate(masterIdParamSchema), masterController.getProfessionCategoryById)
+  .put(validate(updateProfessionCategorySchema), masterController.updateProfessionCategory)
+  .delete(validate(masterIdParamSchema), masterController.deleteProfessionCategory);
+
+// --- SPECIFIC PROFESSIONS ---
+router
+  .route('/professions')
+  .get(masterController.getProfessions)
+  .post(validate(createProfessionSchema), masterController.createProfession);
+
+router
+  .route('/professions/:id')
+  .get(validate(masterIdParamSchema), masterController.getProfessionById)
+  .put(validate(updateProfessionSchema), masterController.updateProfession)
+  .delete(validate(masterIdParamSchema), masterController.deleteProfession);
 
 export const superAdminMasterRoutes = router;

@@ -138,5 +138,24 @@ router.get('/me', authenticateJwt, authController.getProfile);
  */
 router.post('/change-password', authenticateJwt, validate(changePasswordSchema), authController.changePassword);
 
+/**
+ * @openapi
+ * /auth/exit-impersonation:
+ *   post:
+ *     summary: Return to Super Admin account from an impersonated tenant session
+ *     tags:
+ *       - Authentication
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully restored Super Admin session
+ *       400:
+ *         description: Not in an impersonated session
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/exit-impersonation', authenticateJwt, authController.exitImpersonation);
+
 export const authRoutes = router;
 

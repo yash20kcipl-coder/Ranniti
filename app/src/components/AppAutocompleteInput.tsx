@@ -9,6 +9,7 @@ import {
   FlatList,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useLanguage } from '../languages';
 import { rfValue } from '../utils/responsive';
@@ -22,14 +23,16 @@ export interface AutocompleteSuggestion {
   name: string;
   sublabel?: string;
   category?: string;
+  raw?: any;
 }
 
 export interface AppAutocompleteInputProps {
   label?: string;
   value: string;
   onChangeText: (text: string) => void;
-  onSelectSuggestion?: (item: AutocompleteSuggestion | string) => void;
+  onSelectSuggestion?: (item: AutocompleteSuggestion | string | any) => void;
   suggestions: (string | AutocompleteSuggestion)[];
+  onRemoteSearch?: (query: string) => Promise<(string | AutocompleteSuggestion | any)[]>;
   placeholder?: string;
   icon?: string;
   disabled?: boolean;
@@ -47,6 +50,7 @@ export const AppAutocompleteInput: React.FC<AppAutocompleteInputProps> = ({
   onChangeText,
   onSelectSuggestion,
   suggestions = [],
+  onRemoteSearch,
   placeholder = 'Select or type...',
   icon,
   disabled = false,
@@ -61,17 +65,27 @@ export const AppAutocompleteInput: React.FC<AppAutocompleteInputProps> = ({
   const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [remoteResults, setRemoteResults] = useState<AutocompleteSuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<any>(null);
+  const prevQueryRef = useRef<string>('');
   const searchInputRef = useRef<any>(null);
 
   // Synchronize internal search query when opening modal
   const handleOpen = () => {
     if (disabled) return;
     setSearchQuery(value || '');
+    setRemoteResults([]);
+    setIsSearching(false);
+    prevQueryRef.current = '';
     setModalVisible(true);
   };
 
   const handleClose = () => {
     setModalVisible(false);
+    setRemoteResults([]);
+    setIsSearching(false);
+    prevQueryRef.current = '';
   };
 
   // Normalize suggestions into uniform objects
@@ -94,6 +108,7 @@ export const AppAutocompleteInput: React.FC<AppAutocompleteInputProps> = ({
             name,
             sublabel: item.sublabel,
             category: item.category,
+            raw: (item as any).raw || item,
           });
         }
       }
@@ -116,17 +131,71 @@ export const AppAutocompleteInput: React.FC<AppAutocompleteInputProps> = ({
       .slice(0, 30);
   }, [normalizedSuggestions, searchQuery]);
 
+  // Trigger remote search when local list is empty and input has at least 2 chars
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!modalVisible || !onRemoteSearch || q.length < 2) {
+      setRemoteResults([]);
+      setIsSearching(false);
+      prevQueryRef.current = '';
+      return;
+    }
+
+    if (filteredSuggestions.length > 0) {
+      setRemoteResults([]);
+      setIsSearching(false);
+      prevQueryRef.current = '';
+      return;
+    }
+
+    if (q === prevQueryRef.current) return;
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        prevQueryRef.current = q;
+        const res = await onRemoteSearch(q);
+        const mapped: AutocompleteSuggestion[] = (res || []).map((item: any) => {
+          if (typeof item === 'string') return { name: item };
+          const sublabelParts = [item.talukaName, item.districtName, item.stateName].filter(Boolean);
+          return {
+            id: item.id,
+            name: item.name || '',
+            sublabel: item.sublabel || (sublabelParts.length > 0 ? sublabelParts.join(', ') : undefined),
+            category: item.category || item.categoryName,
+            raw: item,
+          };
+        });
+        setRemoteResults(mapped);
+      } catch {
+        setRemoteResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 250);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [modalVisible, searchQuery, filteredSuggestions.length, onRemoteSearch]);
+
   // Check if search query matches an existing suggestion exactly
   const hasExactMatch = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
-    return normalizedSuggestions.some((s) => s.name.toLowerCase() === q);
-  }, [normalizedSuggestions, searchQuery]);
+    if (normalizedSuggestions.some((s) => s.name.toLowerCase() === q)) return true;
+    if (remoteResults.some((s) => s.name.toLowerCase() === q)) return true;
+    return false;
+  }, [normalizedSuggestions, remoteResults, searchQuery]);
 
   // Handle selecting an existing suggestion
   const handleSelect = (item: AutocompleteSuggestion) => {
     onChangeText(item.name);
-    onSelectSuggestion?.(item);
+    onSelectSuggestion?.(item.raw || item);
     setModalVisible(false);
   };
 
@@ -145,6 +214,11 @@ export const AppAutocompleteInput: React.FC<AppAutocompleteInputProps> = ({
     onChangeText('');
     setSearchQuery('');
   };
+
+  const displayList = useMemo(() => {
+    if (filteredSuggestions.length > 0) return filteredSuggestions;
+    return remoteResults;
+  }, [filteredSuggestions, remoteResults]);
 
   // Auto-focus text input when modal opens
   useEffect(() => {
@@ -342,8 +416,26 @@ export const AppAutocompleteInput: React.FC<AppAutocompleteInputProps> = ({
             )}
 
             {/* Suggestions List */}
+            {isSearching && (
+              <View style={styles.searchingRow}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={[styles.searchingText, { color: '#64748B' }]}>
+                  {t('searchingDatabase') || 'Searching database...'}
+                </Text>
+              </View>
+            )}
+
+            {!isSearching && remoteResults.length > 0 && filteredSuggestions.length === 0 && (
+              <View style={styles.remoteHeaderRow}>
+                <MaterialDesignIcons name="database-search" size={14} color={theme.colors.primary} />
+                <Text style={[styles.remoteHeaderText, { color: theme.colors.primary }]}>
+                  {t('databaseResults') || 'Database Results'}
+                </Text>
+              </View>
+            )}
+
             <FlatList
-              data={filteredSuggestions}
+              data={displayList}
               keyExtractor={(item, index) => `${item.name}-${index}`}
               keyboardShouldPersistTaps="handled"
               style={styles.list}
@@ -383,15 +475,59 @@ export const AppAutocompleteInput: React.FC<AppAutocompleteInputProps> = ({
                   </TouchableOpacity>
                 );
               }}
+              ListFooterComponent={
+                filteredSuggestions.length > 0 && onRemoteSearch && searchQuery.trim().length >= 2 && remoteResults.length === 0 && !isSearching ? (
+                  <TouchableOpacity
+                    style={styles.searchMoreBtn}
+                    activeOpacity={0.7}
+                    onPress={async () => {
+                      setIsSearching(true);
+                      try {
+                        const res = await onRemoteSearch(searchQuery.trim());
+                        const mapped: AutocompleteSuggestion[] = (res || []).map((item: any) => {
+                          if (typeof item === 'string') return { name: item };
+                          const sublabelParts = [item.talukaName, item.districtName, item.stateName].filter(Boolean);
+                          return {
+                            id: item.id,
+                            name: item.name || '',
+                            sublabel: item.sublabel || (sublabelParts.length > 0 ? sublabelParts.join(', ') : undefined),
+                            category: item.category || item.categoryName,
+                            raw: item,
+                          };
+                        });
+                        setRemoteResults(mapped);
+                      } catch {
+                        setRemoteResults([]);
+                      } finally {
+                        setIsSearching(false);
+                      }
+                    }}
+                  >
+                    <MaterialDesignIcons name="database-search" size={14} color={theme.colors.primary} />
+                    <Text style={[styles.searchMoreText, { color: theme.colors.primary }]}>
+                      {t('searchDatabaseMore') || 'Search database for more results'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : undefined
+              }
               ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <MaterialDesignIcons name="format-list-bulleted" size={24} color="#94A3B8" />
-                  <Text style={styles.emptyText}>
-                    {searchQuery.trim()
-                      ? (t('noSuggestionsFound') || 'No suggestions found. Tap above to add.')
-                      : (t('selectOrType') || 'Type to search or add new...')}
-                  </Text>
-                </View>
+                isSearching ? (
+                  <View style={styles.emptyContainer}>
+                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                    <Text style={styles.emptyText}>
+                      {t('searchingDatabase') || 'Searching database...'}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.emptyContainer}>
+                    <MaterialDesignIcons name="format-list-bulleted" size={24} color="#94A3B8" />
+                    <Text style={styles.emptyText}>
+                      {searchQuery.trim()
+                        ? (onRemoteSearch ? (t('noDatabaseResults') || 'No matching database records found') : (t('noSuggestionsFound') || 'No suggestions found. Tap above to add.'))
+                        : (t('selectOrType') || 'Type to search or add new...')}
+                    </Text>
+                  </View>
+                )
               }
             />
           </TouchableOpacity>
@@ -589,5 +725,49 @@ const styles = StyleSheet.create({
     fontSize: rfValue(12.5),
     color: '#94A3B8',
     textAlign: 'center',
+  },
+  searchingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  searchingText: {
+    fontFamily: FontFamily.body,
+    fontSize: rfValue(12),
+  },
+  remoteHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F1F5F9',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  remoteHeaderText: {
+    fontFamily: FontFamily.bold,
+    fontSize: rfValue(11),
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  searchMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  searchMoreText: {
+    fontFamily: FontFamily.body,
+    fontSize: rfValue(12),
   },
 });

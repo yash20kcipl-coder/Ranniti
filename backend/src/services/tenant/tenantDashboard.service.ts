@@ -240,10 +240,11 @@ export class TenantDashboardService {
           v.party_id AS "partyId", 
           COALESCE(p.name, 'Uncommitted / Swing Base') AS "partyName",
           p.abbreviation AS "abbreviation",
+          p.color AS "color",
           COUNT(*)::int AS "count"
         FROM voters v
         LEFT JOIN parties p ON p.id = v.party_id
-        GROUP BY v.party_id, p.name, p.abbreviation
+        GROUP BY v.party_id, p.name, p.abbreviation, p.color
         ORDER BY "count" DESC
       `);
 
@@ -266,7 +267,7 @@ export class TenantDashboardService {
           partyId: r.partyId || null,
           partyName: r.partyName,
           count: parseInt(r.count, 10),
-          color: getPartyPaletteColor(r.abbreviation, r.partyName),
+          color: r.color || getPartyPaletteColor(r.abbreviation, r.partyName),
         });
       });
     } catch (err: any) {

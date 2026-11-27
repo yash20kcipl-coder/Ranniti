@@ -10,6 +10,8 @@ import {
   WardImportService,
   BoothImportService,
   PartyImportService,
+  ProfessionCategoryImportService,
+  ProfessionImportService,
   VoterImportService,
   DemoImportService,
 } from './services';
@@ -99,6 +101,18 @@ export class BulkUploadManager {
         case 'political_parties':
         case 'political_party':
           result = await PartyImportService.import(records, progressCallback, context);
+          break;
+
+        case 'profession-categories':
+        case 'profession_categories':
+        case 'professioncategories':
+        case 'profession_category':
+          result = await ProfessionCategoryImportService.import(records, progressCallback, context);
+          break;
+
+        case 'professions':
+        case 'profession':
+          result = await ProfessionImportService.import(records, progressCallback, context);
           break;
 
         case 'voters':

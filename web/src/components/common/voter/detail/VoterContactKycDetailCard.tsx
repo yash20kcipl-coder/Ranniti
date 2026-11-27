@@ -1,5 +1,6 @@
 import React from 'react';
 import { Phone, Mail, ShieldCheck, Briefcase, FileText } from 'lucide-react';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
 
 export interface VoterContactKycDetailCardProps {
   voter: any;
@@ -23,9 +24,9 @@ export const VoterContactKycDetailCard: React.FC<VoterContactKycDetailCardProps>
             {voter.mobileNo ? (
               <a
                 href={`tel:${voter.mobileNo}`}
-                className="font-semibold text-xs text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 truncate block"
+                className="font-semibold text-xs text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 truncate block font-mono"
               >
-                {voter.mobileNo}
+                {formatPhoneNumber(voter.mobileNo)}
               </a>
             ) : (
               <span className="text-xs text-slate-400 dark:text-slate-500">Not provided</span>

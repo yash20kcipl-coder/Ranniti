@@ -1,5 +1,6 @@
 import { TenantAcService } from './ac.service';
 import { ApiError } from '../../utils/apiError';
+import { logger } from '../../utils/logger';
 import { CacheService } from '../cache.service';
 import { TenantWardService } from './ward.service';
 import { TenantBoothService } from './booth.service';
@@ -58,6 +59,20 @@ export interface CreatePartyInput {
   abbreviation: string;
   symbolLogo?: string;
   alliance?: string;
+  color?: string;
+}
+
+export interface CreateProfessionCategoryInput {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface CreateProfessionInput {
+  categoryId: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
 }
 
 export class TenantApiService {
@@ -121,9 +136,9 @@ export class TenantApiService {
 
       const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
 
-      if (params?.page && params?.limit) {
-        const page = Math.max(1, params.page);
-        const limit = Math.max(1, params.limit);
+      if (params?.page || params?.limit) {
+        const page = Math.max(1, params?.page || 1);
+        const limit = Math.max(1, Math.min(500, params?.limit || 25));
         const offset = (page - 1) * limit;
 
         const countRes = await executeTenantQuery(`SELECT COUNT(*) as total ${baseFrom}${whereClause}`, sqlParams, tenantDbName);
@@ -304,9 +319,9 @@ export class TenantApiService {
 
       const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
 
-      if (params?.page && params?.limit) {
-        const page = Math.max(1, params.page);
-        const limit = Math.max(1, params.limit);
+      if (params?.page || params?.limit) {
+        const page = Math.max(1, params?.page || 1);
+        const limit = Math.max(1, Math.min(500, params?.limit || 25));
         const offset = (page - 1) * limit;
 
         const countRes = await executeTenantQuery(`SELECT COUNT(*) as total ${baseFrom}${whereClause}`, sqlParams, tenantDbName);
@@ -600,9 +615,9 @@ export class TenantApiService {
 
       const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
 
-      if (params?.page && params?.limit) {
-        const page = Math.max(1, params.page);
-        const limit = Math.max(1, params.limit);
+      if (params?.page || params?.limit) {
+        const page = Math.max(1, params?.page || 1);
+        const limit = Math.max(1, Math.min(500, params?.limit || 25));
         const offset = (page - 1) * limit;
 
         const countRes = await executeTenantQuery(`SELECT COUNT(*) as total ${baseFrom}${whereClause}`, sqlParams, tenantDbName);
@@ -874,49 +889,80 @@ export class TenantApiService {
     });
   }
 
-  async getTenantTalukas(districtId?: string, tenantDbName?: string | null) {
-    const cacheKey = `ranniti:tenant:${tenantDbName || 'master'}:talukas:${districtId || 'all'}`;
-    return await CacheService.getOrSet(cacheKey, 3600, async () => {
+  async getTenantTalukas(
+    paramsOrDistrictId?: string | { districtId?: string; stateId?: string; search?: string; limit?: number },
+    tenantDbName?: string | null
+  ) {
+    let districtId: string | undefined;
+    let stateId: string | undefined;
+    let search: string | undefined;
+    let limit: number | undefined;
+
+    if (typeof paramsOrDistrictId === 'object' && paramsOrDistrictId !== null) {
+      districtId = paramsOrDistrictId.districtId;
+      stateId = paramsOrDistrictId.stateId;
+      search = paramsOrDistrictId.search;
+      limit = paramsOrDistrictId.limit;
+    } else {
+      districtId = paramsOrDistrictId;
+    }
+
+    const isFiltered = Boolean(search?.trim());
+    const cacheKey = !isFiltered
+      ? `ranniti:tenant:${tenantDbName || 'master'}:talukas:${districtId || 'all'}:${stateId || 'all'}:${limit || 'all'}`
+      : null;
+
+    const fetchTalukas = async () => {
+      const sqlParams: any[] = [];
+      const conditions: string[] = [];
+
       if (districtId) {
-        const res = await executeTenantQuery(
-          `SELECT 
-             t.id, 
-             t.district_id AS "districtId", 
-             d.name AS "districtName",
-             d.state_id AS "stateId",
-             s.name AS "stateName",
-             t.name, 
-             t.created_at AS "createdAt", 
-             t.updated_at AS "updatedAt" 
-           FROM talukas t
-           INNER JOIN districts d ON t.district_id = d.id
-           INNER JOIN states s ON d.state_id = s.id
-           WHERE t.district_id = $1 
-           ORDER BY s.name ASC, d.name ASC, t.name ASC`,
-          [districtId],
-          tenantDbName
-        );
-        return res.rows;
+        sqlParams.push(districtId);
+        conditions.push(`t.district_id = $${sqlParams.length}`);
       }
-      const res = await executeTenantQuery(
-        `SELECT 
-           t.id, 
-           t.district_id AS "districtId", 
-           d.name AS "districtName",
-           d.state_id AS "stateId",
-           s.name AS "stateName",
-           t.name, 
-           t.created_at AS "createdAt", 
-           t.updated_at AS "updatedAt" 
-         FROM talukas t
-         INNER JOIN districts d ON t.district_id = d.id
-         INNER JOIN states s ON d.state_id = s.id
-         ORDER BY s.name ASC, d.name ASC, t.name ASC`,
-        [],
-        tenantDbName
-      );
+
+      if (stateId) {
+        sqlParams.push(stateId);
+        conditions.push(`d.state_id = $${sqlParams.length}`);
+      }
+
+      if (search && search.trim()) {
+        sqlParams.push(`%${search.trim()}%`);
+        conditions.push(`t.name ILIKE $${sqlParams.length}`);
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      let limitClause = '';
+      if (limit) {
+        sqlParams.push(Math.max(1, Math.min(500, Number(limit))));
+        limitClause = `LIMIT $${sqlParams.length}`;
+      }
+
+      const queryStr = `
+        SELECT 
+          t.id, 
+          t.district_id AS "districtId", 
+          d.name AS "districtName",
+          d.state_id AS "stateId",
+          s.name AS "stateName",
+          t.name, 
+          t.created_at AS "createdAt", 
+          t.updated_at AS "updatedAt" 
+        FROM talukas t
+        INNER JOIN districts d ON t.district_id = d.id
+        INNER JOIN states s ON d.state_id = s.id
+        ${whereClause}
+        ORDER BY s.name ASC, d.name ASC, t.name ASC
+        ${limitClause}
+      `;
+      const res = await executeTenantQuery(queryStr, sqlParams, tenantDbName);
       return res.rows;
-    });
+    };
+
+    if (cacheKey) {
+      return await CacheService.getOrSet(cacheKey, 3600, fetchTalukas);
+    }
+    return fetchTalukas();
   }
 
   async createTenantTaluka(input: CreateTalukaInput, tenantDbName?: string | null) {
@@ -934,6 +980,33 @@ export class TenantApiService {
     );
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:talukas*`);
     return res.rows[0];
+  }
+
+  async updateTenantTaluka(id: string, input: Partial<CreateTalukaInput>, tenantDbName?: string | null) {
+    const { districtId, name } = input;
+    const res = await executeTenantQuery(
+      `UPDATE talukas
+       SET district_id = COALESCE($1, district_id),
+           name = COALESCE($2, name),
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, district_id AS "districtId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [districtId || null, name || null, id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Taluka not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:talukas*`);
+    return res.rows[0];
+  }
+
+  async deleteTenantTaluka(id: string, tenantDbName?: string | null) {
+    const res = await executeTenantQuery(
+      `DELETE FROM talukas WHERE id = $1 RETURNING id`,
+      [id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Taluka not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:talukas*`);
   }
 
   async getTenantVillages(
@@ -976,9 +1049,9 @@ export class TenantApiService {
 
       const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
 
-      if (params?.page && params?.limit) {
-        const page = Math.max(1, params.page);
-        const limit = Math.max(1, params.limit);
+      if (params?.page || params?.limit) {
+        const page = Math.max(1, params?.page || 1);
+        const limit = Math.max(1, Math.min(500, params?.limit || 25));
         const offset = (page - 1) * limit;
 
         const countRes = await executeTenantQuery(`SELECT COUNT(*) as total ${baseFrom}${whereClause}`, sqlParams, tenantDbName);
@@ -1047,6 +1120,33 @@ export class TenantApiService {
     return res.rows[0];
   }
 
+  async updateTenantVillage(id: string, input: Partial<CreateVillageInput>, tenantDbName?: string | null) {
+    const { talukaId, name } = input;
+    const res = await executeTenantQuery(
+      `UPDATE villages
+       SET taluka_id = COALESCE($1, taluka_id),
+           name = COALESCE($2, name),
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, taluka_id AS "talukaId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [talukaId || null, name || null, id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Village not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:villages*`);
+    return res.rows[0];
+  }
+
+  async deleteTenantVillage(id: string, tenantDbName?: string | null) {
+    const res = await executeTenantQuery(
+      `DELETE FROM villages WHERE id = $1 RETURNING id`,
+      [id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Village not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:villages*`);
+  }
+
   // --- REFERENCE MASTER DATA (RELIGIONS, CASTES, PARTIES) ---
   async getTenantReligions(tenantDbName?: string | null) {
     const cacheKey = `ranniti:tenant:${tenantDbName || 'master'}:religions`;
@@ -1108,11 +1208,40 @@ export class TenantApiService {
     return res.rows[0];
   }
 
+  async updateTenantCaste(id: string, input: Partial<CreateCasteInput>, tenantDbName?: string | null) {
+    const { name, category, religionId, parentCasteId } = input;
+    const res = await executeTenantQuery(
+      `UPDATE castes
+       SET name = COALESCE($1, name),
+           category = COALESCE($2, category),
+           religion_id = COALESCE($3, religion_id),
+           parent_caste_id = COALESCE($4, parent_caste_id),
+           updated_at = NOW()
+       WHERE id = $5
+       RETURNING id, name, category, religion_id AS "religionId", parent_caste_id AS "parentCasteId", created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [name || null, category || null, religionId || null, parentCasteId || null, id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Caste not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:castes*`);
+    return res.rows[0];
+  }
+
+  async deleteTenantCaste(id: string, tenantDbName?: string | null) {
+    const res = await executeTenantQuery(
+      `DELETE FROM castes WHERE id = $1 RETURNING id`,
+      [id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Caste not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:castes*`);
+  }
+
   async getTenantParties(tenantDbName?: string | null) {
     const cacheKey = `ranniti:tenant:${tenantDbName || 'master'}:parties`;
     return await CacheService.getOrSet(cacheKey, 3600, async () => {
       const res = await executeTenantQuery(
-        `SELECT id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt" 
+        `SELECT id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, color, created_at AS "createdAt", updated_at AS "updatedAt" 
          FROM parties 
          ORDER BY name ASC`,
         [],
@@ -1123,20 +1252,192 @@ export class TenantApiService {
   }
 
   async createTenantParty(input: CreatePartyInput, tenantDbName?: string | null) {
-    const { name, abbreviation, symbolLogo, alliance } = input;
+    const { name, abbreviation, symbolLogo, alliance, color } = input;
     if (!name || !abbreviation) {
       throw ApiError.badRequest('name and abbreviation are required');
     }
 
     const res = await executeTenantQuery(
-      `INSERT INTO parties (name, abbreviation, symbol_logo, alliance)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [name, abbreviation, symbolLogo || null, alliance || null],
+      `INSERT INTO parties (name, abbreviation, symbol_logo, alliance, color)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, color, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [name, abbreviation, symbolLogo || null, alliance || null, color || null],
       tenantDbName
     );
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:parties*`);
     return res.rows[0];
+  }
+
+  async getTenantProfessionCategories(tenantDbName?: string | null) {
+    const cacheKey = `ranniti:tenant:${tenantDbName || 'master'}:profession_categories`;
+    return await CacheService.getOrSet(cacheKey, 3600, async () => {
+      const res = await executeTenantQuery(
+        `SELECT pc.id, pc.name,
+                pc.created_at AS "createdAt", pc.updated_at AS "updatedAt",
+                COUNT(p.id)::int AS "professionCount"
+         FROM profession_categories pc
+         LEFT JOIN professions p ON p.category_id = pc.id
+         GROUP BY pc.id
+         ORDER BY pc.name ASC`,
+        [],
+        tenantDbName
+      );
+      return res.rows;
+    });
+  }
+
+  async createTenantProfessionCategory(input: CreateProfessionCategoryInput, tenantDbName?: string | null) {
+    const { name } = input;
+    if (!name) throw ApiError.badRequest('name is required');
+
+    const res = await executeTenantQuery(
+      `INSERT INTO profession_categories (name)
+       VALUES ($1)
+       RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [name],
+      tenantDbName
+    );
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:profession_categories*`);
+    return res.rows[0];
+  }
+
+  async updateTenantProfessionCategory(id: string, input: Partial<CreateProfessionCategoryInput>, tenantDbName?: string | null) {
+    const { name } = input;
+    const res = await executeTenantQuery(
+      `UPDATE profession_categories
+       SET name = COALESCE($1, name),
+           updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [name || null, id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Profession Category not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:profession_categories*`);
+    return res.rows[0];
+  }
+
+  async deleteTenantProfessionCategory(id: string, tenantDbName?: string | null) {
+    const res = await executeTenantQuery(
+      `DELETE FROM profession_categories WHERE id = $1 RETURNING id`,
+      [id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Profession Category not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:profession_categories*`);
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:professions*`);
+  }
+
+  async getTenantProfessions(
+    paramsOrCategoryId?: string | { categoryId?: string; search?: string; limit?: number },
+    tenantDbNameParam?: string | null
+  ) {
+    let categoryId: string | undefined;
+    let search: string | undefined;
+    let limit: number | undefined;
+    let tenantDbName: string | null | undefined = tenantDbNameParam;
+
+    if (typeof paramsOrCategoryId === 'object' && paramsOrCategoryId !== null) {
+      categoryId = paramsOrCategoryId.categoryId;
+      search = paramsOrCategoryId.search;
+      limit = paramsOrCategoryId.limit;
+    } else {
+      categoryId = paramsOrCategoryId;
+    }
+
+    const isFiltered = Boolean(search?.trim());
+    const cacheKey = !isFiltered
+      ? `ranniti:tenant:${tenantDbName || 'master'}:professions:${categoryId || 'all'}:${limit || 'all'}`
+      : null;
+
+    const fetchProfessions = async () => {
+      let queryStr = `
+        SELECT 
+          p.id, 
+          p.category_id AS "categoryId", 
+          pc.name AS "categoryName",
+          p.name, 
+          p.created_at AS "createdAt", 
+          p.updated_at AS "updatedAt"
+        FROM professions p
+        LEFT JOIN profession_categories pc ON p.category_id = pc.id
+      `;
+      const conditions: string[] = [];
+      const params: any[] = [];
+
+      if (categoryId) {
+        params.push(categoryId);
+        conditions.push(`p.category_id = $${params.length}`);
+      }
+
+      if (search && search.trim()) {
+        params.push(`%${search.trim()}%`);
+        conditions.push(`p.name ILIKE $${params.length}`);
+      }
+
+      if (conditions.length > 0) {
+        queryStr += ` WHERE ${conditions.join(' AND ')}`;
+      }
+
+      queryStr += ` ORDER BY pc.name ASC, p.name ASC`;
+
+      if (limit) {
+        params.push(Math.max(1, Math.min(500, Number(limit))));
+        queryStr += ` LIMIT $${params.length}`;
+      }
+
+      const res = await executeTenantQuery(queryStr, params, tenantDbName);
+      return res.rows;
+    };
+
+    if (cacheKey) {
+      return await CacheService.getOrSet(cacheKey, 3600, fetchProfessions);
+    }
+    return fetchProfessions();
+  }
+
+  async createTenantProfession(input: CreateProfessionInput, tenantDbName?: string | null) {
+    const { categoryId, name } = input;
+    if (!categoryId || !name) throw ApiError.badRequest('categoryId and name are required');
+
+    const res = await executeTenantQuery(
+      `INSERT INTO professions (category_id, name)
+       VALUES ($1, $2)
+       RETURNING id, category_id AS "categoryId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [categoryId, name],
+      tenantDbName
+    );
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:professions*`);
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:profession_categories*`);
+    return res.rows[0];
+  }
+
+  async updateTenantProfession(id: string, input: Partial<CreateProfessionInput>, tenantDbName?: string | null) {
+    const { categoryId, name } = input;
+    const res = await executeTenantQuery(
+      `UPDATE professions
+       SET category_id = COALESCE($1, category_id),
+           name = COALESCE($2, name),
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, category_id AS "categoryId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [categoryId || null, name || null, id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Profession not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:professions*`);
+    return res.rows[0];
+  }
+
+  async deleteTenantProfession(id: string, tenantDbName?: string | null) {
+    const res = await executeTenantQuery(
+      `DELETE FROM professions WHERE id = $1 RETURNING id`,
+      [id],
+      tenantDbName
+    );
+    if (res.rows.length === 0) throw ApiError.notFound('Profession not found');
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:professions*`);
+    await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:profession_categories*`);
   }
 
   // --- VOTERS ---
@@ -1184,7 +1485,7 @@ export class TenantApiService {
       LEFT JOIN booths b ON b.id = v.booth_id
       LEFT JOIN assembly_constituencies a ON a.id = v.ac_id
       ${whereClause}
-      ORDER BY v.voter_name ASC
+      ORDER BY b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.id ASC
       LIMIT $${params.length - 1} OFFSET $${params.length}
     `;
 

@@ -24,7 +24,7 @@ export const tenantAuth = async (req: Request, _res: Response, next: NextFunctio
 
     // Enforce strict administrative role check: Only tenant admins and super admin can access tenant management APIs.
     // Mobile field roles (pc_leader, ac_leader, leader, sub_leader, supporter, volunteer) are forbidden from web tenant APIs.
-    const ALLOWED_TENANT_ADMIN_ROLES = ['tenant_admin', 'super_admin'];
+    const ALLOWED_TENANT_ADMIN_ROLES = ['tenant_admin', 'super_admin', 'tenant_user'];
     if (!ALLOWED_TENANT_ADMIN_ROLES.includes(payload.role)) {
       return next(ApiError.forbidden('Forbidden: Field roles cannot access Tenant Web Portal endpoints. Please use the mobile application.'));
     }

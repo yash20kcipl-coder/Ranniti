@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card } from '@/components/common/Card';
 import { SafeImage } from '@/components/common/SafeImage';
 import { TableActions } from '@/components/common/TableActions';
 import type { RecentTenantRecord } from '@/redux/actions/superAdminDashboard';
@@ -24,32 +25,9 @@ export const RecentTenantsCard: React.FC<RecentTenantsCardProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  return (
-    <div className="p-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60 flex items-center justify-center">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              Recently Provisioned Tenants
-            </h3>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Latest Campaign Accounts & Database Provisioning Pipeline
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => navigate('/dashboard/tenants')}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
-        >
-          <span>View All Tenants</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {loading ? (
+  if (loading) {
+    return (
+      <Card loading className="min-h-[220px]">
         <div className="space-y-3">
           {[1, 2, 3].map((idx) => (
             <div
@@ -58,7 +36,26 @@ export const RecentTenantsCard: React.FC<RecentTenantsCardProps> = ({
             />
           ))}
         </div>
-      ) : tenants.length === 0 ? (
+      </Card>
+    );
+  }
+
+  return (
+    <Card
+      title="Recently Provisioned Tenants"
+      subtitle="Latest Campaign Accounts & Database Provisioning Pipeline"
+      icon={<Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+      action={
+        <button
+          onClick={() => navigate('/dashboard/tenants')}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+        >
+          <span>View All Tenants</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      }
+    >
+      {tenants.length === 0 ? (
         <div className="py-10 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-900/30">
           <Building className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
           <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -167,6 +164,6 @@ export const RecentTenantsCard: React.FC<RecentTenantsCardProps> = ({
           </table>
         </div>
       )}
-    </div>
+    </Card>
   );
 };

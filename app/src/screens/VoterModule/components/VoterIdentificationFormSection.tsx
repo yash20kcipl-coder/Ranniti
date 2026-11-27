@@ -37,7 +37,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
   canEditDemographics,
   canEditVoterStatus,
   canEditInclination,
-  isFieldLocked = () => false,
+  isFieldLocked = (_key: string) => false,
 }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);

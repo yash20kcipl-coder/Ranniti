@@ -19,6 +19,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { FormInput } from '@/components/common/FormInput';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { FailedRecordsModal } from '@/components/common/FailedRecordsModal';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
 import {
   fetchSuperAdminDemoRecords,
   purgeSuperAdminDemoRecords,
@@ -79,7 +80,7 @@ export const BulkUploadTestPage: React.FC = () => {
     if (search.trim()) {
       params.search = search.trim();
     }
-    dispatch(fetchSuperAdminDemoRecords(params, false)).catch(() => {});
+    dispatch(fetchSuperAdminDemoRecords(params, false)).catch(() => { });
   };
 
   // Debounced fetch on search or page change (AGENTS.md Rule #13)
@@ -172,7 +173,6 @@ export const BulkUploadTestPage: React.FC = () => {
         title="Bulk Upload Sandbox & Benchmark"
         subtitle="Evaluate high-volume streaming imports, verify sanitization, inspect throughput (rec/s), and examine database writes."
         icon={<FlaskConical className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
-        badge="Engine Testing Suite"
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
             <button
@@ -231,11 +231,10 @@ export const BulkUploadTestPage: React.FC = () => {
                     key={count}
                     type="button"
                     onClick={() => setBenchmarkRowCount(count)}
-                    className={`py-2 px-1 text-center rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                      benchmarkRowCount === count
+                    className={`py-2 px-1 text-center rounded-xl text-xs font-semibold transition-all cursor-pointer ${benchmarkRowCount === count
                         ? 'bg-indigo-600 text-white shadow-sm'
                         : 'bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-                    }`}
+                      }`}
                   >
                     {count >= 1000 ? `${count / 1000}k` : count}
                   </button>
@@ -366,47 +365,43 @@ export const BulkUploadTestPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span
-                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                      latestDemoJob.status === 'completed'
+                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${latestDemoJob.status === 'completed'
                         ? 'bg-emerald-400'
                         : latestDemoJob.status === 'failed'
-                        ? 'bg-rose-400'
-                        : 'bg-indigo-400'
-                    }`}
+                          ? 'bg-rose-400'
+                          : 'bg-indigo-400'
+                      }`}
                   />
                   <span
-                    className={`relative inline-flex rounded-full h-2 w-2 ${
-                      latestDemoJob.status === 'completed'
+                    className={`relative inline-flex rounded-full h-2 w-2 ${latestDemoJob.status === 'completed'
                         ? 'bg-emerald-500'
                         : latestDemoJob.status === 'failed'
-                        ? 'bg-rose-500'
-                        : 'bg-indigo-500'
-                    }`}
+                          ? 'bg-rose-500'
+                          : 'bg-indigo-500'
+                      }`}
                   />
                 </span>
                 <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">
                   Latest Benchmark Run — Job #{latestDemoJob.jobId.slice(0, 8)}
                 </span>
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                    latestDemoJob.status === 'completed'
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${latestDemoJob.status === 'completed'
                       ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                       : latestDemoJob.status === 'failed'
-                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                      : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
-                  }`}
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                        : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                    }`}
                 >
                   {latestDemoJob.status}
                 </span>
               </div>
               <p className="text-xs text-slate-300">
                 {latestDemoJob.status === 'completed'
-                  ? `Completed in ${((latestDemoJob.durationMs || 0) / 1000).toFixed(2)}s at ${
-                      latestDemoJob.recordsPerSecond || 0
-                    } rec/s throughput.`
+                  ? `Completed in ${((latestDemoJob.durationMs || 0) / 1000).toFixed(2)}s at ${latestDemoJob.recordsPerSecond || 0
+                  } rec/s throughput.`
                   : latestDemoJob.status === 'processing'
-                  ? `Processing ${latestDemoJob.processedRecords?.toLocaleString()} of ${latestDemoJob.totalRecords?.toLocaleString()} rows...`
-                  : latestDemoJob.errorMessage || 'Job failed.'}
+                    ? `Processing ${latestDemoJob.processedRecords?.toLocaleString()} of ${latestDemoJob.totalRecords?.toLocaleString()} rows...`
+                    : latestDemoJob.errorMessage || 'Job failed.'}
               </p>
             </div>
 
@@ -437,15 +432,15 @@ export const BulkUploadTestPage: React.FC = () => {
 
               {((latestDemoJob.failedCount && latestDemoJob.failedCount > 0) ||
                 (latestDemoJob.errors && latestDemoJob.errors.length > 0)) && (
-                <button
-                  type="button"
-                  onClick={() => setFailedModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-colors cursor-pointer"
-                >
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Inspect Missed Rows ({latestDemoJob.failedCount || latestDemoJob.errors.length})</span>
-                </button>
-              )}
+                  <button
+                    type="button"
+                    onClick={() => setFailedModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-colors cursor-pointer"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Inspect Missed Rows ({latestDemoJob.failedCount || latestDemoJob.errors.length})</span>
+                  </button>
+                )}
             </div>
           </div>
         </div>
@@ -556,7 +551,7 @@ export const BulkUploadTestPage: React.FC = () => {
                         {r.gender || '-'} • {r.age || '-'} yrs
                       </td>
                       <td className="py-2.5 px-3 font-mono text-slate-600 dark:text-slate-400">
-                        {r.mobileNumber || '-'}
+                        {formatPhoneNumber(r.mobileNumber)}
                       </td>
                       <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400">
                         {r.boothNumber || '-'}

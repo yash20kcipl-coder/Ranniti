@@ -14,26 +14,40 @@ Comprehensive reference guide of all **Primary Keys**, **Single-Column Unique Ke
 | **`admin_users`** | `admin_users_email_key` | Unique Key | `email` | User login credential; prevents duplicate email registration |
 | **`states`** | `states_pkey` | Primary Key | `id` | State UUID identifier |
 | **`states`** | `unq_state_name` | Unique Key | `name` | Prevents duplicate state records (e.g. "Maharashtra") |
+| **`states`** | `uq_states_lower_name` | Functional Unique | `LOWER(TRIM(name))` | Case-insensitive uniqueness preventing duplicate state names |
 | **`districts`** | `districts_pkey` | Primary Key | `id` | District UUID identifier |
 | **`districts`** | `unq_district_state_name` | Composite Unique | `(state_id, name)` | Prevents duplicate district names within the same state |
+| **`districts`** | `uq_districts_state_lower_name` | Functional Composite Unique | `(state_id, LOWER(TRIM(name)))` | Case-insensitive uniqueness preventing casing duplicates (e.g. "Nicobar" vs "NICOBARS") |
 | **`parliamentary_constituencies`** | `parliamentary_constituencies_pkey` | Primary Key | `id` | PC UUID identifier |
 | **`parliamentary_constituencies`** | `unq_pc_state_number` | Composite Unique | `(state_id, pc_number)` | ECI PC number must be unique within a state |
 | **`assembly_constituencies`** | `assembly_constituencies_pkey` | Primary Key | `id` | AC UUID identifier |
 | **`assembly_constituencies`** | `unq_ac_pc_number` | Composite Unique | `(pc_id, ac_number)` | Assembly constituency number must be unique under its PC |
 | **`talukas`** | `talukas_pkey` | Primary Key | `id` | Taluka UUID identifier |
 | **`talukas`** | `unq_taluka_district_name` | Composite Unique | `(district_id, name)` | Prevents duplicate taluka names within the same district |
+| **`talukas`** | `uq_talukas_district_lower_name` | Functional Composite Unique | `(district_id, LOWER(TRIM(name)))` | Case-insensitive uniqueness preventing duplicate taluka names |
 | **`villages`** | `villages_pkey` | Primary Key | `id` | Village UUID identifier |
 | **`villages`** | `unq_village_taluka_name` | Composite Unique | `(taluka_id, name)` | Prevents duplicate village names within the same taluka |
+| **`villages`** | `uq_villages_taluka_lower_name` | Functional Composite Unique | `(taluka_id, LOWER(TRIM(name)))` | Case-insensitive uniqueness preventing duplicate village names |
 | **`wards`** | `wards_pkey` | Primary Key | `id` | Ward UUID identifier |
 | **`wards`** | `unq_ward_ac_number` | Composite Unique | `(ac_id, ward_number)` | Ward number must be strictly unique within an AC |
 | **`booths`** | `booths_pkey` | Primary Key | `id` | Booth UUID identifier |
 | **`booths`** | `unq_booth_ac_number` | Composite Unique | `(ac_id, booth_number)` | Polling booth number must be strictly unique within an AC |
 | **`religions`** | `religions_pkey` | Primary Key | `id` | Religion UUID identifier |
 | **`religions`** | `religions_name_key` | Unique Key | `name` | Prevents duplicate religion entries |
+| **`religions`** | `uq_religions_lower_name` | Functional Unique | `LOWER(TRIM(name))` | Case-insensitive uniqueness preventing duplicate religion entries |
 | **`castes`** | `castes_pkey` | Primary Key | `id` | Caste UUID identifier |
 | **`castes`** | `castes_name_key` | Unique Key | `name` | Prevents duplicate caste entries |
+| **`castes`** | `uq_castes_lower_name` | Functional Unique | `LOWER(TRIM(name))` | Case-insensitive uniqueness preventing duplicate caste entries |
 | **`parties`** | `parties_pkey` | Primary Key | `id` | Party UUID identifier |
 | **`parties`** | `parties_name_key` | Unique Key | `name` | Prevents duplicate party registration |
+| **`parties`** | `uq_parties_lower_name` | Functional Unique | `LOWER(TRIM(name))` | Case-insensitive uniqueness preventing duplicate party names |
+| **`parties`** | `uq_parties_lower_abbreviation` | Functional Unique | `LOWER(TRIM(abbreviation))` | Case-insensitive uniqueness preventing duplicate party abbreviations |
+| **`profession_categories`** | `profession_categories_pkey` | Primary Key | `id` | Profession category UUID identifier |
+| **`profession_categories`** | `profession_categories_name_key` | Unique Key | `name` | Prevents duplicate profession category registration |
+| **`profession_categories`** | `uq_profession_categories_lower_name` | Functional Unique | `LOWER(TRIM(name))` | Case-insensitive uniqueness preventing duplicate category names |
+| **`professions`** | `professions_pkey` | Primary Key | `id` | Specific profession UUID identifier |
+| **`professions`** | `unq_profession_category_name` | Composite Unique | `(category_id, name)` | Prevents duplicate profession names within the same category |
+| **`professions`** | `uq_professions_category_lower_name` | Functional Composite Unique | `(category_id, LOWER(TRIM(name)))` | Case-insensitive uniqueness preventing duplicate profession names per category |
 
 ---
 

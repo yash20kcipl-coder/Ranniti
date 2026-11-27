@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
+import { formatTitleCase } from '@/utils/textUtils';
 
 interface ReligionFormModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ export const ReligionFormModal: React.FC<ReligionFormModalProps> = ({
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      await onSave({ name });
+      await onSave({ name: formatTitleCase(name.trim()) });
     } finally {
       setSubmitting(false);
     }

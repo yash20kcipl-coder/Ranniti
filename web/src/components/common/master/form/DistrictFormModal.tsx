@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
+import React, { useState, useEffect } from 'react';
+import { formatTitleCase } from '@/utils/textUtils';
 import { FormInput } from '@/components/common/FormInput';
 
 interface DistrictFormModalProps {
@@ -36,7 +37,7 @@ export const DistrictFormModal: React.FC<DistrictFormModalProps> = ({
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      await onSave({ name, stateId });
+      await onSave({ name: formatTitleCase(name.trim()), stateId });
     } finally {
       setSubmitting(false);
     }

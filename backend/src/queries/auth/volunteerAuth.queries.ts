@@ -73,7 +73,7 @@ export class VolunteerAuthQueries {
     }
 
     const tenantRes = await masterQuery(
-      `SELECT tenant_db_name FROM tenants WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`
+      `SELECT tenant_db_name FROM tenants WHERE tenant_db_name IS NOT NULL AND status NOT IN ('suspended', 'failed')`
     );
 
     for (const tRow of tenantRes.rows) {
@@ -132,7 +132,7 @@ export class VolunteerAuthQueries {
     }
 
     const tenantRes = await masterQuery(
-      `SELECT tenant_db_name FROM tenants WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`
+      `SELECT tenant_db_name FROM tenants WHERE tenant_db_name IS NOT NULL AND status NOT IN ('suspended', 'failed')`
     );
 
     for (const tRow of tenantRes.rows) {
@@ -187,12 +187,13 @@ export class VolunteerAuthQueries {
     const ROLE_NAME_MAP: Record<string, string> = {
       pc_leader: 'PC Leader',
       ac_leader: 'AC Leader',
-      sub_leader: 'Sub-Leader / Ward Coordinator',
-      supporter: 'Campaign Supporter / Volunteer',
-      leader: 'Assembly / Sub-Sector Leader',
+      sub_leader: 'Sub-Leader',
+      supporter: 'Campaign Supporter',
+      leader: 'Assembly Leader',
+      tenant_user: 'Tenant Web User',
     };
     const effectiveRoleName =
-      data.roleName && (data.role === 'supporter' || data.roleName !== 'Campaign Supporter / Volunteer')
+      data.roleName && (data.role === 'supporter' || (data.roleName !== 'Campaign Supporter / Volunteer' && data.roleName !== 'Campaign Supporter'))
         ? data.roleName
         : (ROLE_NAME_MAP[data.role] || data.roleName || null);
 
@@ -242,14 +243,27 @@ export class VolunteerAuthQueries {
     const ROLE_NAME_MAP: Record<string, string> = {
       pc_leader: 'PC Leader',
       ac_leader: 'AC Leader',
-      sub_leader: 'Sub-Leader / Ward Coordinator',
-      supporter: 'Campaign Supporter / Volunteer',
-      leader: 'Assembly / Sub-Sector Leader',
+      sub_leader: 'Sub-Leader',
+      supporter: 'Campaign Supporter',
+      leader: 'Assembly Leader',
+      tenant_user: 'Tenant Web User',
     };
 
     if (data.name !== undefined) {
       fields.push(`name = $${paramIdx++}`);
       params.push(data.name);
+    }
+    if ((data as any).email !== undefined) {
+      fields.push(`email = $${paramIdx++}`);
+      params.push((data as any).email.toLowerCase().trim());
+    }
+    if ((data as any).passwordHash !== undefined) {
+      fields.push(`password_hash = $${paramIdx++}`);
+      params.push((data as any).passwordHash);
+    }
+    if ((data as any).accessibleTabs !== undefined) {
+      fields.push(`accessible_tabs = $${paramIdx++}`);
+      params.push(typeof (data as any).accessibleTabs === 'string' ? (data as any).accessibleTabs : JSON.stringify((data as any).accessibleTabs));
     }
     if (data.mobile !== undefined) {
       fields.push(`mobile = $${paramIdx++}`);

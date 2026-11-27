@@ -38,7 +38,7 @@ export const getTenantDbPool = (tenantDbName: string): Pool => {
   } as any);
 
   pool.on('connect', (client) => {
-    client.query('SET idle_in_transaction_session_timeout = 60000;').catch(() => {});
+    client.query('SET idle_in_transaction_session_timeout = 60000;').catch(() => { });
   });
 
   pool.on('error', (err) => {
@@ -162,7 +162,9 @@ export class TenantDbProvisioner {
       'create_campaign_settings_tables.sql',
       'remove_push_triggers_column.sql',
       'remove_tenant_whatsapp_config_and_templates.sql',
+      'add_color_to_parties.sql',
       'create_tenant_whatsapp_templates_table.sql',
+      'allow_tenant_user_role_in_tenant_users.sql',
       'create_tenant_user_roles_table.sql',
       'create_user_synced_contacts_table.sql',
       'create_tenant_sync_outbox_table.sql',
@@ -171,6 +173,12 @@ export class TenantDbProvisioner {
       'create_voter_election_statuses_table.sql',
       'create_election_booth_turnout_table.sql',
       'drop_slip_columns_from_election_tables.sql',
+      'create_case_insensitive_unique_indexes_for_masters.sql',
+      'create_profession_master_tables.sql',
+      'add_survey_field_points_to_campaign_settings.sql',
+      'create_volunteer_field_updates_table.sql',
+      'standardize_gariyadhar_labels.sql',
+      'remove_pincode_village_entry.sql',
     ];
 
     const candidateDirs = [
@@ -206,8 +214,8 @@ export class TenantDbProvisioner {
         VALUES
           ('PC Leader', 'pc_leader', 'Parliamentary Constituency Campaign Lead', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","booth_analytics","gate_meetings","election_polling"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["ac_leader","sub_leader","supporter"]'::jsonb, true),
           ('AC Leader', 'ac_leader', 'Assembly Constituency Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","booth_analytics","gate_meetings","election_polling"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":true,"canEditInclination":true,"canEditVoterStatus":true,"canManageFamily":true,"canExportData":true}'::jsonb, '["sub_leader","supporter"]'::jsonb, true),
-          ('Sub-Leader / Ward Coordinator', 'sub_leader', 'Ward & Prabhag Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","booth_analytics","election_polling"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":true,"canExportData":false}'::jsonb, '["supporter"]'::jsonb, true),
-          ('Campaign Supporter / Volunteer', 'supporter', 'Booth Level Field Worker', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","election_polling"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":false,"canExportData":false}'::jsonb, '[]'::jsonb, true)
+          ('Sub-Leader', 'sub_leader', 'Ward & Prabhag Coordinator', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","booth_analytics","election_polling"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":true,"canExportData":false}'::jsonb, '["supporter"]'::jsonb, true),
+          ('Campaign Supporter', 'supporter', 'Booth Level Field Worker', '{"webTabs":[],"masterSubTabs":[],"mobileScreens":["voter_search","family_tree","election_polling"]}'::jsonb, '{"canViewVoter":true,"canEditContact":true,"canEditDemographics":false,"canEditInclination":true,"canEditVoterStatus":false,"canManageFamily":false,"canExportData":false}'::jsonb, '[]'::jsonb, true)
         ON CONFLICT DO NOTHING;
       `);
       logger.info(`[TenantProvisioner] Seeded default system roles for '${tenantDbName}'`);
@@ -230,7 +238,7 @@ export class TenantDbProvisioner {
       );
       ALTER TABLE tenant_sync_outbox ADD COLUMN IF NOT EXISTS origin VARCHAR(20) NOT NULL DEFAULT 'tenant';
       CREATE INDEX IF NOT EXISTS idx_tenant_sync_outbox_status ON tenant_sync_outbox (status);
-    `).catch(() => {});
+    `).catch(() => { });
 
     // Seed campaign settings & WhatsApp templates for the newly provisioned tenant DB
     await seedSettings(tenantDbName);

@@ -7,6 +7,8 @@ const router = Router();
 // Protect all Tenant User Role routes (Tenant Admin or Super Admin)
 router.use(authenticateJwt, requireAdmin);
 
+router.get('/available-tabs', tenantUserRoleController.getAvailableTabs);
+router.get('/available-permissions', tenantUserRoleController.getAvailableVolunteerPermissions);
 router.get('/', tenantUserRoleController.getTenantUserRoles);
 router.post('/', tenantUserRoleController.createTenantUserRole);
 router.put('/:id', tenantUserRoleController.updateTenantUserRole);

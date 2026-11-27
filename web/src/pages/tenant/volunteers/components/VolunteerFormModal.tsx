@@ -1,15 +1,21 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Vote, Lock, Building, ArrowDown, Search, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import toast from 'react-hot-toast';
+import {
+  Building,
+  Search,
+  Camera,
+  Check,
+  Users,
+  MapPin,
+} from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
-import { FileUploadInput } from '@/components/common/FileUploadInput';
 import type { VolunteerRecord } from '@/redux/reducers/volunteer';
 import { FORM_VOLUNTEER_ROLE_OPTIONS } from '@/constants/dropdownOptions';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchVolunteerBooths } from '@/redux/actions/volunteer';
 
-// ─── Role hierarchy ───────────────────────────────────────────────────────────
-/** Which existing roles can be the parent for each new role */
+// ─── Role Hierarchy & Helper Guidance ─────────────────────────────────────────
 const VALID_PARENT_ROLES: Record<string, string[]> = {
   pc_leader: [],
   ac_leader: ['pc_leader'],
@@ -17,182 +23,15 @@ const VALID_PARENT_ROLES: Record<string, string[]> = {
   supporter: ['sub_leader'],
 };
 
-const ROLE_HIERARCHY_HINT: Record<string, string> = {
-  pc_leader: 'PC Leader has no parent — reports directly to Campaign Admin.',
-  ac_leader: 'AC Leader must report to a PC Leader.',
-  sub_leader: 'Sub-Leader must report to an AC Leader.',
-  supporter: 'Supporter must report to a Sub-Leader.',
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  pc_leader: 'PC Leaders lead the whole constituency and report directly to the Campaign Admin.',
+  ac_leader: 'AC Coordinators look after one assembly area and report to the PC Leader.',
+  sub_leader: 'Sub-Leaders lead and manage polling booths and report to an AC Leader.',
+  supporter: 'Supporters work at assigned polling booths and report to a Sub-Leader.',
 };
 
-// ─── Password preview ─────────────────────────────────────────────────────────
-function getVolunteerPasswordPreview(name: string, mobile: string): string {
-  if (!name.trim()) return '';
-  const cleanName = name.trim().split(/\s+/)[0].replace(/[^a-zA-Z]/g, '');
-  const capitalized =
-    cleanName.length > 0
-      ? cleanName.charAt(0).toUpperCase() + cleanName.slice(1).toLowerCase()
-      : 'Volunteer';
-  const cleanPhone = (mobile || '').replace(/\D/g, '');
-  const last4 = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : '••••';
-  return `${capitalized}${last4}#`;
-}
-
-// ─── Shared booth grid ────────────────────────────────────────────────────────
-interface BoothGridProps {
-  booths: any[];
-  selectedIds: string[];
-  singleSelect?: boolean;
-  onToggle: (id: string) => void;
-  onSelectAll?: (filteredList?: any[]) => void;
-  acs?: any[];
-  wards?: any[];
-  isLoading?: boolean;
-}
-const BoothGrid: React.FC<BoothGridProps> = ({
-  booths, selectedIds, singleSelect, onToggle, onSelectAll, acs = [], wards = [], isLoading = false,
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const acMap = useMemo(() => new Map((acs || []).map((a: any) => [a.id, a.name])), [acs]);
-  const wardMap = useMemo(() => new Map((wards || []).map((w: any) => [w.id, w.name])), [wards]);
-
-  // Real-time search filter
-  const filteredBooths = useMemo(() => {
-    if (!searchQuery.trim()) return booths;
-    const q = searchQuery.trim().toLowerCase();
-    return booths.filter((booth: any) => {
-      const bNum = String(booth.boothNumber ?? booth.booth_number ?? '').toLowerCase();
-      const bName = String(booth.name || '').toLowerCase();
-      const bBuilding = String(booth.locationBuilding || booth.location_building || '').toLowerCase();
-      const bAcId = booth.acId || booth.ac_id;
-      const bWardId = booth.wardId || booth.ward_id;
-      const acName = String(booth.acName || acMap.get(bAcId) || '').toLowerCase();
-      const wardName = String(booth.wardName || wardMap.get(bWardId) || '').toLowerCase();
-
-      return (
-        bNum.includes(q) ||
-        bName.includes(q) ||
-        bBuilding.includes(q) ||
-        acName.includes(q) ||
-        wardName.includes(q)
-      );
-    });
-  }, [booths, searchQuery, acMap, wardMap]);
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-          Available Polling Booths ({filteredBooths.length}{filteredBooths.length !== booths.length ? ` of ${booths.length}` : ''})
-        </span>
-        {!singleSelect && filteredBooths.length > 0 && onSelectAll && (
-          <button
-            type="button"
-            onClick={() => onSelectAll(filteredBooths)}
-            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
-          >
-            {filteredBooths.every((b) => selectedIds.includes(b.id)) ? 'Deselect All' : 'Select All'}
-          </button>
-        )}
-      </div>
-
-      {/* Booth Search Box */}
-      {booths.length > 0 && (
-        <div className="relative mb-2">
-          <FormInput
-            name="boothSearch"
-            placeholder="Search booth number, station name, building, ward..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            icon={<Search size={14} className="text-slate-400" />}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 z-10 transition-colors"
-              title="Clear search"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-h-56 overflow-y-auto gap-2 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-        {isLoading ? (
-          <div className="col-span-1 sm:col-span-2 lg:col-span-3 flex flex-col items-center justify-center py-8 space-y-2 text-slate-400">
-            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs font-medium">Loading polling booths...</span>
-          </div>
-        ) : booths.length === 0 ? (
-          <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-6 text-xs text-slate-400">
-            No polling booths found for this selection.
-          </div>
-        ) : filteredBooths.length === 0 ? (
-          <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-6 text-xs text-slate-400 space-y-1">
-            <p>No polling booths matching "{searchQuery}".</p>
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 underline"
-            >
-              Clear search
-            </button>
-          </div>
-        ) : (
-          filteredBooths.map((booth: any) => {
-            const isSelected = selectedIds.includes(booth.id);
-            const bAcId = booth.acId || booth.ac_id;
-            const bWardId = booth.wardId || booth.ward_id;
-            const acName = booth.acName || acMap.get(bAcId) || '';
-            const wardName = booth.wardName || wardMap.get(bWardId) || '';
-
-            return (
-              <div
-                key={booth.id}
-                onClick={() => onToggle(booth.id)}
-                className={`p-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all flex items-start justify-between gap-2 ${isSelected
-                    ? 'bg-indigo-50/90 dark:bg-indigo-950/70 border-indigo-400 dark:border-indigo-600 text-indigo-900 dark:text-indigo-200 font-semibold shadow-sm'
-                    : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
-                  }`}
-              >
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
-                      Booth {booth.boothNumber ?? booth.booth_number ?? ''}
-                    </span>
-                    {acName && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0">
-                        {acName}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    {booth.name || 'Polling Station'}
-                  </p>
-                  {wardName && (
-                    <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate">
-                      📍 {wardName}
-                    </p>
-                  )}
-                </div>
-                <div
-                  className={`w-4 h-4 rounded${singleSelect ? '-full' : ''} flex items-center justify-center text-white shrink-0 mt-0.5 ${isSelected ? 'bg-indigo-600' : 'border border-slate-300 dark:border-slate-600'
-                    }`}
-                >
-                  {isSelected && <span className="text-[10px] font-bold">✓</span>}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ─── Props ────────────────────────────────────────────────────────────────────
-interface VolunteerFormModalProps {
+// ─── Component Props ──────────────────────────────────────────────────────────
+export interface VolunteerFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   editingVolunteer: Partial<VolunteerRecord> | null;
@@ -213,20 +52,66 @@ interface VolunteerFormModalProps {
   setFormBoothIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
-  isOpen, onClose, editingVolunteer, setEditingVolunteer,
-  onSubmit, isLoading, potentialParentLeaders,
-  pcs, acs, wards,
-  formPcId, setFormPcId,
-  formAcId, setFormAcId,
-  formWardId, setFormWardId,
-  formBoothIds, setFormBoothIds,
+  isOpen,
+  onClose,
+  editingVolunteer,
+  setEditingVolunteer,
+  onSubmit,
+  isLoading,
+  potentialParentLeaders,
+  pcs,
+  acs,
+  wards,
+  formPcId,
+  setFormPcId,
+  formAcId,
+  setFormAcId,
+  formWardId,
+  setFormWardId,
+  formBoothIds,
+  setFormBoothIds,
 }) => {
   const dispatch = useAppDispatch();
   const { availableBooths = [], boothsLoading = false } = useAppSelector((state) => state.volunteer);
+  const [boothSearch, setBoothSearch] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
 
-  // Dynamically fetch booths for the selected AC or PC when modal is opened
+  // Sync preview avatar when editingVolunteer.avatar changes
+  useEffect(() => {
+    if (editingVolunteer?.avatar instanceof File) {
+      const url = URL.createObjectURL(editingVolunteer.avatar);
+      setPreviewAvatar(url);
+      return () => URL.revokeObjectURL(url);
+    } else if (typeof editingVolunteer?.avatar === 'string' && editingVolunteer.avatar) {
+      setPreviewAvatar(editingVolunteer.avatar);
+    } else {
+      setPreviewAvatar(null);
+    }
+  }, [editingVolunteer?.avatar]);
+
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (JPG, PNG, WebP)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+    setEditingVolunteer({ ...editingVolunteer, avatar: file });
+  };
+
+  const handleRemoveAvatar = () => {
+    setEditingVolunteer({ ...editingVolunteer, avatar: null });
+    setPreviewAvatar(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Fetch booths dynamically based on geography selection
   useEffect(() => {
     if (!isOpen) return;
     if (formAcId) {
@@ -238,14 +123,28 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
     }
   }, [dispatch, isOpen, formAcId, formPcId]);
 
+  // Default PC if single PC available and none selected yet
+  useEffect(() => {
+    if (isOpen && pcs.length === 1 && !formPcId) {
+      setFormPcId(pcs[0].id);
+    }
+  }, [isOpen, pcs, formPcId, setFormPcId]);
+
+  // Default AC if single AC available and none selected yet
+  useEffect(() => {
+    if (isOpen && acs.length === 1 && !formAcId) {
+      setFormAcId(acs[0].id);
+    }
+  }, [isOpen, acs, formAcId, setFormAcId]);
+
   const currentRole = (editingVolunteer?.role || 'supporter') as string;
-  const validParentRoles = VALID_PARENT_ROLES[currentRole] ?? [];
   const isPcLeader = currentRole === 'pc_leader';
   const isAcLeader = currentRole === 'ac_leader';
   const isSubLeader = currentRole === 'sub_leader';
   const isSupporter = currentRole === 'supporter';
 
-  // ── Parent leaders filtered by selected role ──────────────────────────────
+  // ── Parent leaders filtered by selected role ────────────────────────────────
+  const validParentRoles = VALID_PARENT_ROLES[currentRole] ?? [];
   const filteredParentLeaders = useMemo(() => {
     if (isPcLeader) return [];
     return potentialParentLeaders.filter(
@@ -253,12 +152,8 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
     );
   }, [potentialParentLeaders, editingVolunteer?.id, validParentRoles, isPcLeader]);
 
-  // ── PC Leader: selected parent (pc_leader itself doesn't need one but
-  //    AC leader picks a pc_leader → derive the pc_id from that leader's assignedAcId is complex;
-  //    simpler: PC leader selection row is still formPcId ──────────────────
-
-  // ── Auto-derive PC / AC when form values or parent leader change ───────────
-  React.useEffect(() => {
+  // Auto-derive PC / AC when parent leader changes
+  useEffect(() => {
     if (formAcId) {
       const matchedAc = acs.find((a: any) => a.id === formAcId);
       const pcId = matchedAc?.pcId || matchedAc?.pc_id;
@@ -278,462 +173,545 @@ export const VolunteerFormModal: React.FC<VolunteerFormModalProps> = ({
     }
   }, [formAcId, editingVolunteer?.parentLeaderId, acs, potentialParentLeaders, formPcId, setFormPcId, setFormAcId]);
 
-  // ── Cascading geography filtered sets ────────────────────────────────────
+  // Cascading ACs & Wards
   const filteredAcs = useMemo(() => {
     if (!formPcId) return acs;
     return acs.filter((a: any) => a.pcId === formPcId || a.pc_id === formPcId);
   }, [acs, formPcId]);
 
-  const filteredWards = useMemo(() => {
-    if (!formAcId) return [];
-    return wards.filter((w: any) => w.acId === formAcId || w.ac_id === formAcId);
-  }, [wards, formAcId]);
+  const acMap = useMemo(() => new Map((acs || []).map((a: any) => [a.id, a.name])), [acs]);
+  const wardMap = useMemo(() => new Map((wards || []).map((w: any) => [w.id, w.name])), [wards]);
 
-  // Booths for PC Leader (all booths in PC if formAcId is empty, or filtered by formAcId)
-  const pcLeaderBooths = useMemo(() => {
-    if (!formPcId) return [];
+  // Candidate booths based on role scope
+  const candidateBooths = useMemo(() => {
+    // 1. If supporter: booths from parent Sub-Leader
+    if (isSupporter) {
+      const parent = potentialParentLeaders.find((l) => l.id === editingVolunteer?.parentLeaderId);
+      if (parent && Array.isArray(parent.assignedBoothIds) && parent.assignedBoothIds.length > 0) {
+        return availableBooths.filter((b: any) => parent.assignedBoothIds!.includes(b.id));
+      }
+    }
+
+    // 2. Filter by formAcId if selected
     if (formAcId) {
-      return availableBooths.filter((b: any) => (b.acId || b.ac_id) === formAcId);
+      return availableBooths.filter((b: any) => {
+        const bAcId = b.acId || b.ac_id;
+        const bWardId = b.wardId || b.ward_id;
+        if (bAcId !== formAcId) return false;
+        if (formWardId && bWardId !== formWardId) return false;
+        return true;
+      });
     }
-    const pcAcIds = acs
-      .filter((a: any) => (a.pcId || a.pc_id) === formPcId)
-      .map((a: any) => a.id);
-    return availableBooths.filter((b: any) => pcAcIds.includes(b.acId || b.ac_id));
-  }, [availableBooths, acs, formPcId, formAcId]);
 
-  // Booths for multi-select roles (ac_leader, sub_leader)
-  const filteredBooths = useMemo(() => {
-    if (!formAcId) return [];
-    return availableBooths.filter((b: any) => {
-      const bAcId = b.acId || b.ac_id;
-      const bWardId = b.wardId || b.ward_id;
-      if (bAcId !== formAcId) return false;
-      if (formWardId && bWardId !== formWardId) return false;
-      return true;
+    // 3. Filter by formPcId if selected
+    if (formPcId) {
+      const pcAcIds = acs
+        .filter((a: any) => (a.pcId || a.pc_id) === formPcId)
+        .map((a: any) => a.id);
+      return availableBooths.filter((b: any) => pcAcIds.includes(b.acId || b.ac_id));
+    }
+
+    return availableBooths;
+  }, [isSupporter, potentialParentLeaders, editingVolunteer?.parentLeaderId, availableBooths, formAcId, formWardId, formPcId, acs]);
+
+  // Filtered candidate booths matching search query
+  const searchedBooths = useMemo(() => {
+    if (!boothSearch.trim()) return candidateBooths;
+    const q = boothSearch.trim().toLowerCase();
+    return candidateBooths.filter((booth: any) => {
+      const bNum = String(booth.boothNumber ?? booth.booth_number ?? '').toLowerCase();
+      const bName = String(booth.name || '').toLowerCase();
+      const bBuilding = String(booth.locationBuilding || booth.location_building || '').toLowerCase();
+      const bAcId = booth.acId || booth.ac_id;
+      const bWardId = booth.wardId || booth.ward_id;
+      const acName = String(booth.acName || acMap.get(bAcId) || '').toLowerCase();
+      const wardName = String(booth.wardName || wardMap.get(bWardId) || '').toLowerCase();
+
+      return (
+        bNum.includes(q) ||
+        bName.includes(q) ||
+        bBuilding.includes(q) ||
+        acName.includes(q) ||
+        wardName.includes(q) ||
+        `booth ${bNum}`.includes(q)
+      );
     });
-  }, [availableBooths, formAcId, formWardId]);
+  }, [candidateBooths, boothSearch, acMap, wardMap]);
 
-  // For supporter — booths from selected parent sub-leader's assigned booths or AC
-  const selectedParent = useMemo(
-    () => potentialParentLeaders.find((l) => l.id === editingVolunteer?.parentLeaderId),
-    [potentialParentLeaders, editingVolunteer?.parentLeaderId]
-  );
-  const supporterBooths = useMemo(() => {
-    if (!selectedParent) return [];
-    const parentBooths = selectedParent.assignedBoothIds;
-    if (Array.isArray(parentBooths) && parentBooths.length > 0) {
-      return availableBooths.filter((b: any) => parentBooths.includes(b.id));
-    }
-    if (selectedParent.assignedAcId) {
-      return availableBooths.filter((b: any) => (b.acId || b.ac_id) === selectedParent.assignedAcId);
-    }
-    return [];
-  }, [availableBooths, selectedParent]);
-
-  // ── Booth toggle helpers ──────────────────────────────────────────────────
+  // ── Booth Toggling Helpers ──────────────────────────────────────────────────
   const handleToggleBooth = (boothId: string) => {
+    if (isSupporter) {
+      setFormBoothIds([boothId]);
+      return;
+    }
     setFormBoothIds((prev) =>
       prev.includes(boothId) ? prev.filter((id) => id !== boothId) : [...prev, boothId]
     );
   };
 
-  const handleSingleBooth = (boothId: string) => {
-    setFormBoothIds([boothId]);
-  };
+  const allFilteredSelected =
+    searchedBooths.length > 0 && searchedBooths.every((b: any) => formBoothIds.includes(b.id));
 
-  const handleSelectAll = (list: any[]) => {
-    const ids = list.map((b: any) => b.id);
-    const allSelected = ids.every((id: string) => formBoothIds.includes(id));
-    if (allSelected) {
-      setFormBoothIds((prev) => prev.filter((id) => !ids.includes(id)));
+  const handleToggleAll = () => {
+    if (isSupporter) return;
+    if (allFilteredSelected) {
+      const unselectIds = searchedBooths.map((b: any) => b.id);
+      setFormBoothIds((prev) => prev.filter((id) => !unselectIds.includes(id)));
     } else {
-      setFormBoothIds(Array.from(new Set([...formBoothIds, ...ids])));
+      const selectIds = searchedBooths.map((b: any) => b.id);
+      setFormBoothIds((prev) => Array.from(new Set([...prev, ...selectIds])));
     }
   };
+
+  // ── Validation & Dynamic Assistance ─────────────────────────────────────────
+  const volunteerName = editingVolunteer?.name || '';
+  const volunteerMobile = editingVolunteer?.mobile || '';
+  const mobileDigits = volunteerMobile.replace(/\D/g, '').slice(0, 10);
+  const nameOk = volunteerName.trim().length > 1;
+  const phoneOk = mobileDigits.length === 10;
+  const boothsOk = formBoothIds.length > 0;
+  const parentOk = isPcLeader || Boolean(editingVolunteer?.parentLeaderId) || filteredParentLeaders.length === 0;
+
+  const isValid = nameOk && phoneOk && boothsOk && parentOk;
+
+  // Validation feedback checklist
+  const missingFields: string[] = [];
+  if (!nameOk) missingFields.push('a name');
+  if (!phoneOk) missingFields.push('a 10-digit mobile number');
+  if (!isPcLeader && filteredParentLeaders.length > 0 && !editingVolunteer?.parentLeaderId) {
+    missingFields.push('a reporting leader');
+  }
+  if (!boothsOk) missingFields.push('at least one booth');
+
+  // Compute initials for avatar preview
+  const nameParts = volunteerName.trim().split(/\s+/).filter(Boolean);
+  const initials = nameParts.length
+    ? (nameParts[0][0] + (nameParts[1] ? nameParts[1][0] : '')).toUpperCase()
+    : 'VT';
 
   if (!editingVolunteer) return null;
 
   return (
     <Modal
+      maxWidth="5xl"
       isOpen={isOpen}
       onClose={onClose}
-      title={editingVolunteer?.id ? 'Edit Volunteer Details' : 'Onboard New Volunteer'}
-      subtitle="Assign fixed role, polling booth territory, and generate mobile login credentials"
       onSubmit={onSubmit}
       isLoading={isLoading}
-      maxWidth="3xl"
-      submitText={editingVolunteer?.id ? 'Update Volunteer' : 'Onboard Volunteer'}
+      contentPadding="none"
+      isSubmitDisabled={!isValid}
+      subtitle="Choose their role and area, and we'll set up their mobile login."
+      submitText={editingVolunteer?.id ? 'Update volunteer' : 'Add volunteer'}
+      title={editingVolunteer?.id ? 'Edit volunteer details' : 'Add a new volunteer'}
+      cancelText="Cancel"
+      footerMessage={
+        isValid ? (
+          <span className="text-[13px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1.5">
+            <Check size={14} className="stroke-[2.5]" />
+            Ready to add. Login: <strong className="font-semibold">+91 {mobileDigits}</strong>
+          </span>
+        ) : (
+          <span className="text-[13px] text-slate-500 dark:text-slate-400">
+            Still needed: <strong className="text-slate-700 dark:text-slate-300 font-medium">{missingFields.join(', ')}</strong>.
+          </span>
+        )
+      }
     >
-      <div className="space-y-5">
-        {/* Profile Avatar Upload */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-            Volunteer Profile Photo
-          </label>
-          <FileUploadInput
-            value={editingVolunteer.avatar || null}
-            onChange={(val) => setEditingVolunteer({ ...editingVolunteer, avatar: val })}
-            variant="avatar"
-            fallbackText={editingVolunteer.name || 'VT'}
-            accept="image/*"
-            category="avatars"
-            placeholder="Upload volunteer photo (JPG, PNG, WebP up to 5MB)"
-          />
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-[400px_minmax(0,1fr)] min-h-[520px] max-h-[90vh] md:max-h-[700px]">
+        {/* ═══════════════════════════════════════════════════════════════════
+            LEFT COLUMN: WHO (Profile & Credentials)
+        ═══════════════════════════════════════════════════════════════════ */}
+        <div className="p-5 sm:p-6 border-b md:border-b-0 md:border-r border-[#EEF1F6] dark:border-slate-800 overflow-y-auto flex flex-col gap-4 bg-white dark:bg-slate-900">
+          {/* 1. Profile photo */}
+          <div className="flex items-center gap-3.5 pb-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarFile}
+            />
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="relative group w-14 h-14 rounded-full bg-[#EEF2FF] dark:bg-indigo-950/60 text-[#3730A3] dark:text-indigo-300 flex items-center justify-center font-bold text-lg shrink-0 border border-indigo-200/60 dark:border-indigo-800/40 overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-400 dark:hover:ring-indigo-500 transition-all shadow-xs"
+              title="Click to choose photo"
+            >
+              {previewAvatar ? (
+                <img
+                  src={previewAvatar}
+                  alt={volunteerName || 'Volunteer'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                initials
+              )}
+              <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                <Camera size={16} />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-semibold text-[#0F172A] dark:text-white">
+                Profile photo
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] border-[.5] border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-[9px] font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                >
+                  <Camera size={13} className="text-slate-500 dark:text-slate-400" />
+                  {previewAvatar ? 'Change photo' : 'Upload photo'}
+                </button>
+                {previewAvatar && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    className="text-[12px] font-medium text-red-600 hover:text-red-700 dark:text-red-400 cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
 
-        {/* Row 1: Full Name & Email */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* 2. Full Name */}
           <FormInput
-            label="Full Name"
-            name="name"
-            value={editingVolunteer.name || ''}
-            onChange={(e) => setEditingVolunteer({ ...editingVolunteer, name: e.target.value })}
+            label="Full name"
+            required
             placeholder="e.g. Rahul Sharma"
-            required
+            value={volunteerName}
+            onChange={(e) => setEditingVolunteer({ ...editingVolunteer, name: e.target.value })}
           />
-          <FormInput
-            label="Email Address"
-            name="email"
-            type="email"
-            value={editingVolunteer.email || ''}
-            onChange={(e) => setEditingVolunteer({ ...editingVolunteer, email: e.target.value })}
-            placeholder="e.g. rahul@example.com (optional)"
-          />
-        </div>
 
-        {/* Row 2: Mobile & Role */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* 3. Mobile Number */}
           <FormInput
-            label="Mobile Number (Login Username)"
-            name="mobile"
-            value={editingVolunteer.mobile || ''}
-            onChange={(e) => setEditingVolunteer({ ...editingVolunteer, mobile: e.target.value })}
-            placeholder="e.g. 9876543210"
+            label="Mobile number"
             required
+            type="tel"
+            placeholder="9876543210"
+            value={mobileDigits}
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+              setEditingVolunteer({ ...editingVolunteer, mobile: cleaned });
+            }}
+            icon={<span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 select-none">+91</span>}
+            helperText={
+              mobileDigits.length === 0
+                ? "They'll use this number to log in to the mobile app."
+                : phoneOk
+                  ? '✓ Looks good. This will be their mobile login.'
+                  : `${10 - mobileDigits.length} more digit${10 - mobileDigits.length === 1 ? '' : 's'} needed.`
+            }
           />
+
+          {/* 4. Email */}
           <FormInput
-            label="Role Category"
-            name="role"
+            label="Email"
+            type="email"
+            placeholder="rahul@example.com"
+            value={editingVolunteer?.email || ''}
+            onChange={(e) => setEditingVolunteer({ ...editingVolunteer, email: e.target.value })}
+          />
+
+          {/* 5. Role Selection */}
+          <FormInput
+            label="Role"
+            required
             type="select"
-            options={FORM_VOLUNTEER_ROLE_OPTIONS}
-            value={editingVolunteer.role || 'supporter'}
+            searchable={false}
+            clearable={false}
+            value={currentRole}
+            options={FORM_VOLUNTEER_ROLE_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
             onChange={(e) => {
               const newRole = e.target.value as VolunteerRecord['role'];
               const roleOption = FORM_VOLUNTEER_ROLE_OPTIONS.find((o) => o.value === newRole);
-              const newRoleName = roleOption ? roleOption.label : 'Campaign Supporter / Volunteer';
-              setEditingVolunteer({ ...editingVolunteer, role: newRole, roleName: newRoleName, parentLeaderId: null });
-              setFormPcId('');
+              const newRoleName = roleOption ? roleOption.label : 'Campaign Supporter';
+              setEditingVolunteer({
+                ...editingVolunteer,
+                role: newRole,
+                roleName: newRoleName,
+                parentLeaderId: null,
+              });
               setFormAcId('');
               setFormWardId('');
               setFormBoothIds([]);
             }}
-            required
+            helperText={ROLE_DESCRIPTIONS[currentRole] || ''}
           />
-        </div>
 
-        {/* Hierarchy hint */}
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-          <ArrowDown size={12} className="text-indigo-400" />
-          <span className="font-medium">{ROLE_HIERARCHY_HINT[currentRole]}</span>
-        </div>
-
-        {/* Auto-Generated Password Preview */}
-        {!editingVolunteer.id && editingVolunteer.name && editingVolunteer.mobile && (
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <Lock size={14} className="text-indigo-600" />
-              <span>
-                Auto-Generated Mobile Password:{' '}
-                <strong className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                  {getVolunteerPasswordPreview(editingVolunteer.name, editingVolunteer.mobile)}
-                </strong>
-              </span>
+          {/* 6. Reporting Leader Selector (when applicable) */}
+          {!isPcLeader && (
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <FormInput
+                label={
+                  isAcLeader
+                    ? 'Reporting PC Leader'
+                    : isSubLeader
+                      ? 'Reporting AC Leader'
+                      : 'Reporting Sub-Leader'
+                }
+                required
+                type="select"
+                searchable={true}
+                clearable={false}
+                placeholder={
+                  filteredParentLeaders.length === 0
+                    ? `No ${isAcLeader ? 'PC Leader' : isSubLeader ? 'AC Leader' : 'Sub-Leader'} found`
+                    : `Select ${isAcLeader ? 'PC Leader' : isSubLeader ? 'AC Leader' : 'Sub-Leader'}`
+                }
+                value={editingVolunteer?.parentLeaderId || ''}
+                options={filteredParentLeaders.map((l) => ({
+                  value: l.id,
+                  label: `${l.name} ${l.mobile ? `(${l.mobile})` : ''}`,
+                }))}
+                onChange={(e) => {
+                  const parentId = e.target.value || null;
+                  const parent = potentialParentLeaders.find((l) => l.id === parentId);
+                  setEditingVolunteer({
+                    ...editingVolunteer,
+                    parentLeaderId: parentId,
+                    assignedAcId: parent?.assignedAcId ?? editingVolunteer.assignedAcId ?? null,
+                  });
+                  if (parent?.assignedAcId) {
+                    setFormAcId(parent.assignedAcId);
+                  }
+                  setFormBoothIds([]);
+                }}
+              />
             </div>
-            <span className="text-[10px] text-slate-400">Formula: Name + PhoneLast4 + #</span>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            ROLE-SPECIFIC TERRITORY SECTION
+            RIGHT COLUMN: WHERE (Territory & Polling Booths)
         ═══════════════════════════════════════════════════════════════════ */}
-        <div className="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/60 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
-              <Vote size={15} /> Territory Assignment
-            </h4>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-600 text-white">
-              {formBoothIds.length} {isSupporter ? 'Booth' : 'Booths'} Selected
+        <div className="p-5 sm:p-6 pb-3 overflow-y-auto flex flex-col bg-white dark:bg-slate-900">
+          {/* Header Row: Where will they work? + count pill */}
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-[15px] leading-[22px] font-bold text-[#0F172A] dark:text-white">
+              Where will they work?
+            </h3>
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors ${formBoothIds.length > 0
+                ? 'bg-[#4338CA] text-white shadow-xs'
+                : 'bg-[#E0E7FF] dark:bg-indigo-950/60 text-[#3730A3] dark:text-indigo-300'
+                }`}
+            >
+              {formBoothIds.length === 1 ? '1 booth' : `${formBoothIds.length} booths`} selected
             </span>
           </div>
 
-          {/* ── PC LEADER: PC → optional AC filter → multi-booth ────────────── */}
-          {isPcLeader && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormInput
-                  label="Parliamentary Constituency (PC)"
-                  name="modalPc"
-                  type="select"
-                  options={[
-                    { label: 'Select PC', value: '' },
-                    ...pcs.map((p: any) => ({ label: p.name, value: p.id })),
-                  ]}
-                  value={formPcId}
-                  onChange={(e) => {
-                    setFormPcId(e.target.value);
-                    setFormAcId('');
-                    setFormWardId('');
-                    setFormBoothIds([]);
-                    setEditingVolunteer({ ...editingVolunteer, assignedAcId: null });
-                  }}
-                  required
-                />
-                <FormInput
-                  label="Assembly Constituency (AC) (Optional)"
-                  name="modalAc"
-                  type="select"
-                  options={[
-                    { label: formPcId ? 'All ACs in PC' : 'Select PC first', value: '' },
-                    ...filteredAcs.map((a: any) => ({ label: a.name, value: a.id })),
-                  ]}
-                  value={formAcId}
-                  disabled={!formPcId}
-                  onChange={(e) => {
-                    setFormAcId(e.target.value);
-                    setFormWardId('');
-                    setEditingVolunteer({ ...editingVolunteer, assignedAcId: e.target.value || null });
-                  }}
-                />
+          {/* Territory Selectors (PC & AC) */}
+          <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormInput
+              label="Parliamentary constituency"
+              required
+              type="select"
+              searchable={true}
+              clearable={false}
+              placeholder="Select constituency"
+              value={formPcId}
+              options={pcs.map((p: any) => ({
+                value: p.id,
+                label: `${p.name} ${p.pcNumber ? `(#${p.pcNumber})` : ''}`,
+              }))}
+              onChange={(e) => {
+                setFormPcId(e.target.value);
+                setFormAcId('');
+                setFormWardId('');
+                setFormBoothIds([]);
+              }}
+            />
+
+            <FormInput
+              label="Assembly area"
+              type="select"
+              searchable={true}
+              clearable={true}
+              disabled={!formPcId && pcs.length > 1}
+              placeholder="All assembly areas"
+              value={formAcId}
+              options={filteredAcs.map((a: any) => ({
+                value: a.id,
+                label: `${a.name} ${a.acNumber ? `(#${a.acNumber})` : ''}`,
+              }))}
+              onChange={(e) => {
+                setFormAcId(e.target.value || '');
+                setFormWardId('');
+                setFormBoothIds([]);
+                setEditingVolunteer({
+                  ...editingVolunteer,
+                  assignedAcId: e.target.value || null,
+                });
+              }}
+              onClear={() => {
+                setFormAcId('');
+                setFormWardId('');
+                setFormBoothIds([]);
+                setEditingVolunteer({
+                  ...editingVolunteer,
+                  assignedAcId: null,
+                });
+              }}
+            />
+          </div>
+
+          {/* Polling Booths Header Row */}
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <span className="text-[13px] font-semibold text-[#0F172A] dark:text-white">
+              Polling booths{' '}
+              <span className="font-medium text-slate-500 dark:text-slate-400 tabular-nums">
+                ({candidateBooths.length} available)
+              </span>
+            </span>
+            {!isSupporter && searchedBooths.length > 0 && (
+              <button
+                type="button"
+                onClick={handleToggleAll}
+                className="min-h-[32px] px-2.5 rounded-lg text-[13px] font-semibold text-[#4338CA] dark:text-indigo-400 hover:bg-[#EEF2FF] dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                {allFilteredSelected
+                  ? 'Clear selection'
+                  : boothSearch.trim()
+                    ? `Select these ${searchedBooths.length}`
+                    : 'Select all'}
+              </button>
+            )}
+          </div>
+
+          {/* Booth Search Bar */}
+          <FormInput
+            type="text"
+            placeholder="Search by booth number, station, building or ward"
+            value={boothSearch}
+            onChange={(e) => setBoothSearch(e.target.value)}
+            icon={<Search size={15} className="text-slate-400" />}
+            clearable={true}
+            onClear={() => setBoothSearch('')}
+            className="mt-2"
+          />
+
+          {/* Scrollable Booths Grid */}
+          <div className="flex-1 min-h-[220px] max-h-[350px] overflow-y-auto mt-3 pr-1 space-y-2">
+            {boothsLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 space-y-2">
+                <div className="w-5 h-5 border-2 border-[#4338CA] border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs font-medium">Loading polling booths...</span>
               </div>
-              {formPcId ? (
-                <BoothGrid
-                  booths={pcLeaderBooths}
-                  selectedIds={formBoothIds}
-                  onToggle={handleToggleBooth}
-                  onSelectAll={(list) => handleSelectAll(list || pcLeaderBooths)}
-                  acs={acs}
-                  wards={wards}
-                  isLoading={boothsLoading}
-                />
-              ) : (
-                <div className="p-4 text-center rounded-xl bg-white/70 dark:bg-slate-900/60 border border-dashed border-indigo-200 dark:border-indigo-900/60 text-xs text-slate-400">
-                  <Building size={20} className="mx-auto mb-1 text-indigo-300" />
-                  Select a PC to see booths
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── AC LEADER: parent PC Leader → AC → multi-booth ───────────── */}
-          {isAcLeader && (
-            <div className="space-y-3">
-              <FormInput
-                label="Reporting PC Leader"
-                name="parentLeaderId"
-                type="select"
-                options={[
-                  {
-                    label: filteredParentLeaders.length === 0
-                      ? 'No PC Leader found — add one first'
-                      : 'Select PC Leader',
-                    value: '',
-                  },
-                  ...filteredParentLeaders.map((l) => ({
-                    label: `${l.name}`,
-                    value: l.id,
-                  })),
-                ]}
-                value={editingVolunteer.parentLeaderId || ''}
-                onChange={(e) =>
-                  setEditingVolunteer({ ...editingVolunteer, parentLeaderId: e.target.value || null })
-                }
-                required
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormInput
-                  label="Parliamentary Constituency (PC)"
-                  name="modalPc"
-                  type="select"
-                  options={[
-                    { label: 'Select PC', value: '' },
-                    ...pcs.map((p: any) => ({ label: p.name, value: p.id })),
-                  ]}
-                  value={formPcId}
-                  onChange={(e) => {
-                    setFormPcId(e.target.value);
-                    setFormAcId('');
-                    setFormWardId('');
-                    setFormBoothIds([]);
-                    setEditingVolunteer({ ...editingVolunteer, assignedAcId: null });
-                  }}
-                  required
-                />
-                <FormInput
-                  label="Assembly Constituency (AC)"
-                  name="modalAc"
-                  type="select"
-                  options={[
-                    { label: formPcId ? 'Select AC' : 'Select PC first', value: '' },
-                    ...filteredAcs.map((a: any) => ({ label: a.name, value: a.id })),
-                  ]}
-                  value={formAcId}
-                  disabled={!formPcId}
-                  onChange={(e) => {
-                    setFormAcId(e.target.value);
-                    setFormWardId('');
-                    setFormBoothIds([]);
-                    setEditingVolunteer({ ...editingVolunteer, assignedAcId: e.target.value || null });
-                  }}
-                  required
-                />
+            ) : candidateBooths.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400 space-y-1">
+                <Building size={26} className="text-slate-300 dark:text-slate-600 mb-1" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  No booths available
+                </p>
+                <p className="text-xs max-w-xs text-slate-500">
+                  {isSupporter && !editingVolunteer?.parentLeaderId
+                    ? 'Select a Sub-Leader first to see their assigned booths.'
+                    : !formPcId
+                      ? 'Select a constituency above to see its polling booths.'
+                      : 'No polling booths found for this selection.'}
+                </p>
               </div>
-              {formPcId && formAcId && (
-                <BoothGrid
-                  booths={filteredBooths}
-                  selectedIds={formBoothIds}
-                  onToggle={handleToggleBooth}
-                  onSelectAll={(list) => handleSelectAll(list || filteredBooths)}
-                  acs={acs}
-                  wards={wards}
-                  isLoading={boothsLoading}
-                />
-              )}
-              {(!formPcId || !formAcId) && (
-                <div className="p-4 text-center rounded-xl bg-white/70 dark:bg-slate-900/60 border border-dashed border-indigo-200 dark:border-indigo-900/60 text-xs text-slate-400">
-                  <Building size={20} className="mx-auto mb-1 text-indigo-300" />
-                  {!formPcId ? 'Select a PC to continue' : 'Select an AC to see booths'}
-                </div>
-              )}
-            </div>
-          )}
+            ) : searchedBooths.length === 0 ? (
+              <div className="py-10 text-center text-slate-500 dark:text-slate-400 text-xs space-y-1">
+                <p>No booths match "{boothSearch}". Try a booth number or station name.</p>
+                <button
+                  type="button"
+                  onClick={() => setBoothSearch('')}
+                  className="text-[12px] font-semibold text-[#4338CA] dark:text-indigo-400 hover:underline cursor-pointer"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {searchedBooths.map((booth: any) => {
+                  const isChecked = formBoothIds.includes(booth.id);
+                  const boothNo = booth.boothNumber ?? booth.booth_number ?? '';
+                  const stationName = booth.name || booth.locationBuilding || booth.location_building || 'Polling Station';
+                  const bAcId = booth.acId || booth.ac_id;
+                  const acLabel = booth.acName || acMap.get(bAcId);
+                  const bWardId = booth.wardId || booth.ward_id;
+                  const wardLabel = booth.wardName || wardMap.get(bWardId) || (booth.wardNumber || booth.ward_number ? `Ward ${booth.wardNumber || booth.ward_number}` : null);
+                  const totalVoters = booth.totalVoters ?? booth.total_voters ?? booth.voterCount;
 
-          {/* ── SUB-LEADER: parent AC Leader → booths from that AC ────────── */}
-          {isSubLeader && (
-            <div className="space-y-3">
-              <FormInput
-                label="Reporting AC Leader"
-                name="parentLeaderId"
-                type="select"
-                options={[
-                  {
-                    label: filteredParentLeaders.length === 0
-                      ? 'No AC Leader found — add one first'
-                      : 'Select AC Leader',
-                    value: '',
-                  },
-                  ...filteredParentLeaders.map((l) => ({
-                    label: `${l.name}${l.assignedAcId ? '' : ''}`,
-                    value: l.id,
-                  })),
-                ]}
-                value={editingVolunteer.parentLeaderId || ''}
-                onChange={(e) => {
-                  const parentId = e.target.value || null;
-                  const parent = potentialParentLeaders.find((l) => l.id === parentId);
-                  setEditingVolunteer({
-                    ...editingVolunteer,
-                    parentLeaderId: parentId,
-                    assignedAcId: parent?.assignedAcId ?? null,
-                  });
-                  // Auto-set AC from the parent AC leader
-                  setFormAcId(parent?.assignedAcId || '');
-                  setFormBoothIds([]);
-                }}
-                required
-              />
-              {editingVolunteer.parentLeaderId && (
-                <>
-                  <div className="max-w-xs">
-                    <FormInput
-                      label="Filter by Ward (Optional)"
-                      name="modalWard"
-                      type="select"
-                      options={[
-                        { label: 'All Wards in AC', value: '' },
-                        ...filteredWards.map((w: any) => ({ label: w.name, value: w.id })),
-                      ]}
-                      value={formWardId}
-                      onChange={(e) => setFormWardId(e.target.value)}
-                    />
-                  </div>
-                  <BoothGrid
-                    booths={filteredBooths}
-                    selectedIds={formBoothIds}
-                    onToggle={handleToggleBooth}
-                    onSelectAll={(list) => handleSelectAll(list || filteredBooths)}
-                    acs={acs}
-                    wards={wards}
-                    isLoading={boothsLoading}
-                  />
-                </>
-              )}
-              {!editingVolunteer.parentLeaderId && (
-                <div className="p-4 text-center rounded-xl bg-white/70 dark:bg-slate-900/60 border border-dashed border-indigo-200 dark:border-indigo-900/60 text-xs text-slate-400">
-                  <Building size={20} className="mx-auto mb-1 text-indigo-300" />
-                  Select an AC Leader — their AC booths will appear here
-                </div>
-              )}
-            </div>
-          )}
+                  return (
+                    <div
+                      key={booth.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleToggleBooth(booth.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          handleToggleBooth(booth.id);
+                        }
+                      }}
+                      className={`group relative flex items-start gap-3 p-3.5 rounded-[14px] border cursor-pointer select-none transition-all ${isChecked
+                        ? 'border-[#4338CA] bg-gradient-to-r from-indigo-50/80 to-white dark:from-indigo-950/40 dark:to-slate-800/90 dark:border-indigo-500 shadow-xs ring-1 ring-indigo-500/20'
+                        : 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/70 hover:border-indigo-300 dark:hover:border-slate-600 hover:bg-slate-50/50 dark:hover:bg-slate-800/90'
+                        }`}
+                    >
+                      {/* Custom Circular Checkbox */}
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${isChecked
+                          ? 'bg-[#4338CA] text-white border border-[#4338CA] shadow-2xs'
+                          : 'border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 group-hover:border-indigo-400'
+                          }`}
+                      >
+                        {isChecked && <Check size={12} strokeWidth={3} className="text-white" />}
+                      </div>
 
-          {/* ── SUPPORTER: parent Sub-Leader → single booth ───────────────── */}
-          {isSupporter && (
-            <div className="space-y-3">
-              <FormInput
-                label="Reporting Sub-Leader"
-                name="parentLeaderId"
-                type="select"
-                options={[
-                  {
-                    label: filteredParentLeaders.length === 0
-                      ? 'No Sub-Leader found — add one first'
-                      : 'Select Sub-Leader',
-                    value: '',
-                  },
-                  ...filteredParentLeaders.map((l) => ({
-                    label: l.name,
-                    value: l.id,
-                  })),
-                ]}
-                value={editingVolunteer.parentLeaderId || ''}
-                onChange={(e) => {
-                  const parentId = e.target.value || null;
-                  const parent = potentialParentLeaders.find((l) => l.id === parentId);
-                  setEditingVolunteer({
-                    ...editingVolunteer,
-                    parentLeaderId: parentId,
-                    assignedAcId: parent?.assignedAcId ?? null,
-                  });
-                  setFormBoothIds([]);
-                }}
-                required
-              />
-              {editingVolunteer.parentLeaderId && (
-                <div className="space-y-1.5">
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                    Select <strong>one</strong> polling booth for this supporter
-                  </p>
-                  <BoothGrid
-                    booths={supporterBooths}
-                    selectedIds={formBoothIds}
-                    singleSelect
-                    onToggle={handleSingleBooth}
-                    acs={acs}
-                    wards={wards}
-                    isLoading={boothsLoading}
-                  />
-                </div>
-              )}
-              {!editingVolunteer.parentLeaderId && (
-                <div className="p-4 text-center rounded-xl bg-white/70 dark:bg-slate-900/60 border border-dashed border-indigo-200 dark:border-indigo-900/60 text-xs text-slate-400">
-                  <Building size={20} className="mx-auto mb-1 text-indigo-300" />
-                  Select a Sub-Leader — their assigned booths will appear here
-                </div>
-              )}
-            </div>
-          )}
+                      <div className="min-w-0 flex-1">
+                        {/* Title & AC Badge */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`text-[14px] font-bold ${isChecked
+                              ? 'text-[#4338CA] dark:text-indigo-300'
+                              : 'text-[#0F172A] dark:text-white'
+                              }`}
+                          >
+                            Booth {boothNo}
+                          </span>
+                          {acLabel && (
+                            <span className="px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-800/50">
+                              {acLabel}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Station / Location Name */}
+                        <p className="text-[12.5px] text-slate-600 dark:text-slate-400 truncate mt-1">
+                          {stationName}
+                        </p>
+
+                        {/* Colorful Metadata Chips: Ward & Voter Count */}
+                        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                          {wardLabel && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-purple-50 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200/70 dark:border-purple-800/40">
+                              <MapPin size={11} className="shrink-0 text-purple-600 dark:text-purple-400" />
+                              <span className="truncate max-w-[140px]">{wardLabel}</span>
+                            </span>
+                          )}
+                          {totalVoters !== null && totalVoters !== undefined && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/40 tabular-nums">
+                              <Users size={11} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                              <span>{Number(totalVoters).toLocaleString()} voters</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </Modal>
+    </Modal >
   );
 };
+
+export default VolunteerFormModal;

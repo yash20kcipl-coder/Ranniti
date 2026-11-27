@@ -32,3 +32,4 @@ export { default as ScrollableFilterPills } from './ScrollableFilterPills';
 export { default as SearchHeaderWithFilter } from './SearchHeaderWithFilter';
 export { PartySelectModal, type PartySelectModalProps } from './PartySelectModal';
 export { AppAutocompleteInput, type AutocompleteSuggestion } from './AppAutocompleteInput';
+export { Card, type CardProps } from './Card';

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { refreshMyProfile } from '@/redux/actions/auth';
 import { resolveBreadcrumbs } from './utils/breadcrumbs';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { Sidebar, Topbar, CommandPalette } from './components';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { checkAndSyncTenantDatasets } from '@/redux/actions/syncActions';
+import { ImpersonationBanner } from '@/components/common/ImpersonationBanner';
 import { BackgroundImportWidget } from '@/components/common/BackgroundImportWidget';
 
 export const DashboardLayout: React.FC = () => {
@@ -22,8 +24,36 @@ export const DashboardLayout: React.FC = () => {
     }
   });
 
-  // Sync manifest check on layout mount (strictly for tenant accounts)
+  // Initialize custom user overrides from localStorage (if any exist)
+  useEffect(() => {
+    try {
+      const isDark = document.documentElement.classList.contains('dark');
+      const savedLightBg = localStorage.getItem('ranniti_page_bg_light');
+      const savedDarkBg = localStorage.getItem('ranniti_page_bg_dark');
+      const customBg = isDark ? savedDarkBg : savedLightBg;
+      if (customBg) {
+        document.documentElement.style.setProperty('--page-bg', customBg);
+        document.body.style.backgroundColor = customBg;
+        const main = document.getElementById('main-content');
+        if (main) main.style.backgroundColor = customBg;
+      }
+      const savedRadius = localStorage.getItem('ranniti_card_radius');
+      if (savedRadius) {
+        document.documentElement.style.setProperty('--card-radius', savedRadius);
+        document.documentElement.style.setProperty('--radius-base', savedRadius);
+      }
+      const savedBorderWidth = localStorage.getItem('ranniti_card_border_width');
+      if (savedBorderWidth) {
+        document.documentElement.style.setProperty('--card-border-width', savedBorderWidth);
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // Refresh user profile/permissions and check dataset sync on layout mount
   useDebouncedEffect(() => {
+    dispatch(refreshMyProfile());
     if (isTenantUser) {
       dispatch(checkAndSyncTenantDatasets());
     }
@@ -69,7 +99,7 @@ export const DashboardLayout: React.FC = () => {
   const { title, breadcrumbs } = resolveBreadcrumbs(location.pathname);
 
   return (
-    <div className="h-screen w-full bg-[#eef4fa] dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 flex overflow-hidden antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-200 font-slab">
+    <div className="h-screen w-full bg-[var(--page-bg,#f4f6f9)] text-slate-900 dark:text-slate-100 flex overflow-hidden antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-200 font-slab">
       {/* Accessibility Skip Link */}
       <a
         href="#main-content"
@@ -88,6 +118,9 @@ export const DashboardLayout: React.FC = () => {
 
       {/* MAIN CONTENT WRAPPER */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* IMPERSONATION BANNER (SUPER ADMIN DIRECT LOGIN ACTIVE) */}
+        <ImpersonationBanner />
+
         {/* TOPBAR */}
         <Topbar
           title={title}
@@ -103,7 +136,7 @@ export const DashboardLayout: React.FC = () => {
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 outline-none bg-[#F4F6F9] dark:bg-[#0a0f1d]"
+          className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 outline-none bg-[var(--page-bg,#f4f6f9)]"
         >
           <div key={location.pathname} className="mx-auto w-full animate-tab-fade">
             <Outlet />

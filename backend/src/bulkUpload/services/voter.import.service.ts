@@ -3,9 +3,11 @@ import { query } from '../../queries/dbPool';
 import { BulkImporter } from '../../utils/bulkImporter';
 import { VoterQueries } from '../../queries/voter.queries';
 import { CacheService } from '../../services/cache.service';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { LookupResolverService } from '../lookupResolver.service';
 import { normalizeRelation } from '../../utils/relationNormalizer';
 import { calculateAge, formatDateForDb } from '../../utils/dateUtils';
+import { formatTitleCase } from '../../utils/textUtils';
 import { FamilyMappingService } from '../../services/tenant/familyMapping.service';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
 
@@ -27,8 +29,9 @@ export class VoterImportService {
       return false;
     };
 
-    // Keep track of all affected booth IDs throughout import
+    // Keep track of all affected booth and AC IDs throughout import
     const allAffectedBoothIds = new Set<string>();
+    const allAffectedAcIds = new Set<string>();
 
     const result = await BulkImporter.processArray(records, {
       batchSize: 2500,
@@ -120,6 +123,10 @@ export class VoterImportService {
             if (!acId && resolvedBooth.ac_id) {
               acId = resolvedBooth.ac_id;
             }
+          }
+
+          if (acId) {
+            allAffectedAcIds.add(acId);
           }
 
           // 3. Resolve PC, District, State with O(1) lookups
@@ -284,24 +291,30 @@ export class VoterImportService {
           const voterAddress = LookupResolverService.extractValue(row, ['Voter Address', 'voterAddress', 'voter_address']) || null;
           const fullAddress = address || voterAddress || null;
 
+          const cleanEngFirst = engFirstName ? formatTitleCase(engFirstName) : null;
+          const cleanEngMiddle = engMiddleName ? formatTitleCase(engMiddleName) : null;
+          const cleanEngSurname = engSurname ? formatTitleCase(engSurname) : null;
+          const cleanGuardian = relativeName ? formatTitleCase(relativeName) : null;
+          const cleanNameEn = nameEn ? formatTitleCase(nameEn) : [cleanEngFirst, cleanEngMiddle, cleanEngSurname].filter(Boolean).join(' ') || null;
+
           votersToInsert.push({
             epicNo,
             firstName: firstName || null,
             middleName: middleName || null,
             surname: surname || null,
-            engFirstName: engFirstName || null,
-            engMiddleName: engMiddleName || null,
-            engSurname: engSurname || null,
-            guardianName: relativeName,
+            engFirstName: cleanEngFirst,
+            engMiddleName: cleanEngMiddle,
+            engSurname: cleanEngSurname,
+            guardianName: cleanGuardian,
             relation: relativeType,
             mobileNo: mobileNumber,
             houseNo: houseNumber,
             sectionNo,
             serialNo,
             fullName: fullName || [firstName, middleName, surname].filter(Boolean).join(' ') || 'Unknown Voter',
-            nameEn: nameEn || [engFirstName, engMiddleName, engSurname].filter(Boolean).join(' ') || null,
+            nameEn: cleanNameEn,
             nameHi,
-            relativeName,
+            relativeName: cleanGuardian,
             relativeType,
             age: computedAge,
             dob: dobFormatted,
@@ -311,6 +324,16 @@ export class VoterImportService {
             voterAddress,
             status: voterStatus,
             voterCategory,
+            taluka: (() => {
+              const rawT = LookupResolverService.extractValue(row, ['Taluka', 'taluka', 'Tehsil', 'tehsil']);
+              if (rawT && rawT.toLowerCase().trim() === 'gariadhar') return 'Gariyadhar';
+              return rawT || null;
+            })(),
+            village: (() => {
+              const rawV = LookupResolverService.extractValue(row, ['Village', 'village', 'Village Name', 'villageName']);
+              if (rawV && rawV.toLowerCase().trim() === 'gariadhar') return 'Gariyadhar';
+              return rawV || null;
+            })(),
             boothId,
             acId,
             pcId,
@@ -368,8 +391,7 @@ export class VoterImportService {
         } else {
           await query(updateCountSql, [boothIdList]);
         }
-        await CacheService.invalidatePattern('ranniti:masters:booths*');
-        await CacheService.invalidatePattern('ranniti:tenant:stats*');
+        await MasterCacheInvalidator.invalidate(['booths', 'voters'], context?.tenantDbName);
         logger.info(`[VoterImportService] Successfully updated total_voters count for affected booths.`);
       } catch (err: any) {
         logger.error(`[VoterImportService] Failed to update total_voters count on affected booths:`, err);
@@ -391,6 +413,19 @@ export class VoterImportService {
         } catch (familyErr: any) {
           logger.error(`[VoterImportService] Post-import background family mapping error:`, familyErr);
         }
+      });
+    }
+
+    // Auto-enqueue voter sync to assigned tenants if this was a Master DB import
+    if (!context?.tenantDbName && allAffectedAcIds.size > 0 && result.insertedCount > 0) {
+      const acIdList = Array.from(allAffectedAcIds);
+      logger.info(`[VoterImportService] Auto-enqueuing voter sync to assigned tenants for ${acIdList.length} ACs...`);
+      const { MasterVoterSyncQueueService } = await import('../../services/sync/masterVoterSyncQueue.service');
+      MasterVoterSyncQueueService.enqueueVoterSyncForAcs({
+        acIds: acIdList,
+        source: 'bulk_import',
+      }).catch((syncErr) => {
+        logger.error('[VoterImportService] Error auto-enqueuing voter sync:', syncErr);
       });
     }
 

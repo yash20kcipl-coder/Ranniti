@@ -4,6 +4,7 @@ import { Request, Response } from 'express';
 import { ApiError } from '../../utils/apiError';
 import { hashPassword } from '../../utils/password';
 import { attachFileUrls } from '../../utils/fileUrl';
+import { generateJwtToken } from '../../utils/jwt';
 import { ApiResponse } from '../../utils/apiResponse';
 import { sendWelcomeEmail } from '../../utils/mailer';
 import { asyncHandler } from '../../utils/asyncHandler';
@@ -12,6 +13,7 @@ import { query as masterQuery } from '../../queries/dbPool';
 import { TenantQueries } from '../../queries/tenant.queries';
 import { generateTenantPassword } from '../../utils/password';
 import { getTenantDbPool } from '../../utils/tenantDbProvisioner';
+import { TenantAdminAuthQueries } from '../../queries/auth/tenantAdminAuth.queries';
 import { superAdminElectionQueries } from '../../queries/superAdminElection.queries';
 import { ElectionSyncService } from '../../services/superAdmin/electionSync.service';
 import { tenantProvisioningService } from '../../provisioning/services/tenantProvisioning.service';
@@ -348,6 +350,44 @@ export class TenantController {
 
     await TenantQueries.deleteTenant(id);
     const response = ApiResponse.success({ id }, 'Tenant account deleted successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  /**
+   * Directly log in / impersonate a tenant account as Super Admin
+   */
+  impersonateTenantUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantId = req.params.id as string;
+    const superAdminId = req.user!.userId;
+
+    const tenantUser = await TenantAdminAuthQueries.findTenantAdminById(tenantId);
+    if (!tenantUser) {
+      throw ApiError.notFound('Tenant account not found');
+    }
+
+    const tenantRecord = await TenantQueries.getById(tenantId);
+    const status = tenantRecord?.status || tenantUser.status;
+    if (status === 'suspended') {
+      throw ApiError.forbidden(`Cannot log in: Tenant '${tenantUser.organizationName}' is currently suspended`);
+    }
+
+    const token = generateJwtToken({
+      userId: tenantUser.id,
+      email: tenantUser.email,
+      role: 'tenant_admin',
+      tenantDbName: tenantUser.tenantDbName,
+      assignedAcIds: tenantUser.acIds || null,
+      isImpersonated: true,
+      impersonatedBy: superAdminId,
+    });
+
+    const { passwordHash: _, ...userWithoutPassword } = tenantUser;
+    const formattedUser = attachFileUrls(userWithoutPassword, ['avatar'], req);
+
+    const response = ApiResponse.success(
+      { user: formattedUser, token },
+      `Direct login to tenant '${tenantUser.organizationName}' successful`
+    );
     res.status(response.statusCode).json(response.body);
   });
 }

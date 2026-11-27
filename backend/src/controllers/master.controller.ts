@@ -141,7 +141,9 @@ export class MasterController {
   getTalukas = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const districtId = req.query.districtId as string | undefined;
     const stateId = req.query.stateId as string | undefined;
-    const talukas = await masterService.getTalukas(districtId, stateId);
+    const search = req.query.search as string | undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const talukas = await masterService.getTalukas({ districtId, stateId, search, limit });
     const response = ApiResponse.success(talukas, 'Talukas retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
@@ -289,8 +291,8 @@ export class MasterController {
   });
 
   createParty = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { name, abbreviation, symbolLogo, alliance } = req.body;
-    const party = await masterService.createParty(name, abbreviation, symbolLogo, alliance);
+    const { name, abbreviation, symbolLogo, alliance, color } = req.body;
+    const party = await masterService.createParty(name, abbreviation, symbolLogo, alliance, color);
     const formattedParty = attachFileUrls(party, ['symbolLogo'], req);
     const response = ApiResponse.success(formattedParty, 'Party created successfully', 201);
     res.status(response.statusCode).json(response.body);
@@ -298,8 +300,8 @@ export class MasterController {
 
   updateParty = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const { name, abbreviation, symbolLogo, alliance } = req.body;
-    const party = await masterService.updateParty(id, name, abbreviation, symbolLogo, alliance);
+    const { name, abbreviation, symbolLogo, alliance, color } = req.body;
+    const party = await masterService.updateParty(id, name, abbreviation, symbolLogo, alliance, color);
     const formattedParty = attachFileUrls(party, ['symbolLogo'], req);
     const response = ApiResponse.success(formattedParty, 'Party updated successfully');
     res.status(response.statusCode).json(response.body);
@@ -404,6 +406,81 @@ export class MasterController {
     const id = req.params.id as string;
     await masterService.deleteBooth(id);
     const response = ApiResponse.success(null, 'Booth deleted successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  // PROFESSION CATEGORIES
+  getProfessionCategories = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const search = req.query.search as string | undefined;
+    const categories = await masterService.getProfessionCategories(search);
+    const response = ApiResponse.success(categories, 'Profession categories retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getProfessionCategoryById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const category = await masterService.getProfessionCategoryById(id);
+    const response = ApiResponse.success(category, 'Profession category retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  createProfessionCategory = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { name } = req.body;
+    const category = await masterService.createProfessionCategory(name);
+    const response = ApiResponse.success(category, 'Profession category created successfully', 201);
+    res.status(response.statusCode).json(response.body);
+  });
+
+  updateProfessionCategory = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const { name } = req.body;
+    const category = await masterService.updateProfessionCategory(id, name);
+    const response = ApiResponse.success(category, 'Profession category updated successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  deleteProfessionCategory = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    await masterService.deleteProfessionCategory(id);
+    const response = ApiResponse.success(null, 'Profession category deleted successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  // SPECIFIC PROFESSIONS
+  getProfessions = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const categoryId = req.query.categoryId as string | undefined;
+    const search = req.query.search as string | undefined;
+    const professions = await masterService.getProfessions(categoryId, search);
+    const response = ApiResponse.success(professions, 'Professions retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getProfessionById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const profession = await masterService.getProfessionById(id);
+    const response = ApiResponse.success(profession, 'Profession retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  createProfession = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { categoryId, name } = req.body;
+    const profession = await masterService.createProfession(categoryId, name);
+    const response = ApiResponse.success(profession, 'Profession created successfully', 201);
+    res.status(response.statusCode).json(response.body);
+  });
+
+  updateProfession = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const { categoryId, name } = req.body;
+    const profession = await masterService.updateProfession(id, categoryId, name);
+    const response = ApiResponse.success(profession, 'Profession updated successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  deleteProfession = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    await masterService.deleteProfession(id);
+    const response = ApiResponse.success(null, 'Profession deleted successfully');
     res.status(response.statusCode).json(response.body);
   });
 }

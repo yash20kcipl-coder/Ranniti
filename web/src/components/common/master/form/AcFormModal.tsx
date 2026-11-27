@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
+import { formatTitleCase } from '@/utils/textUtils';
 
 interface AcFormModalProps {
   isOpen: boolean;
@@ -59,7 +60,7 @@ export const AcFormModal: React.FC<AcFormModalProps> = ({
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      await onSave({ name, acNumber: Number(acNumber), pcId, districtId, stateId });
+      await onSave({ name: formatTitleCase(name.trim()), acNumber: Number(acNumber), pcId, districtId, stateId });
     } finally {
       setSubmitting(false);
     }

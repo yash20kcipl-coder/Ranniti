@@ -11,13 +11,11 @@ import React, { useState, useMemo } from 'react';
 import { exportToExcel } from '@/utils/exportImport';
 import { FilterBar } from '@/components/common/FilterBar';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ImportModal } from '@/components/common/ImportModal';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { ReligionFormModal } from '@/components/common/master/form';
-import { startBulkImportFileJob } from '@/redux/actions/importJobs';
 import { DataTable, type Column } from '@/components/common/DataTable';
 
 export const ReligionsPage: React.FC = () => {
@@ -36,7 +34,6 @@ export const ReligionsPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Debounced backend fetch for religions data with filter parameters
   useDebouncedEffect(() => {
@@ -74,7 +71,7 @@ export const ReligionsPage: React.FC = () => {
       key: 'name',
       header: 'Religion Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
   ];
 
@@ -138,22 +135,6 @@ export const ReligionsPage: React.FC = () => {
     toast.success('Religions exported successfully');
   };
 
-  const handleImport = async (file: File) => {
-    try {
-      await dispatch(
-        startBulkImportFileJob('religions', file, () => {
-          const params: Record<string, string> = {};
-          if (search.trim()) params.search = search.trim();
-          dispatch(fetchSuperAdminMasterCategoryData('religions', '/masters/religions', false, params));
-        })
-      );
-      toast.success('Bulk import job started for Religions!');
-      setIsImportModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start import');
-    }
-  };
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -172,24 +153,11 @@ export const ReligionsPage: React.FC = () => {
         title="Religions"
         icon={<HeartHandshake className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage religious demographic classification categories."
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {filteredReligions.length} {filteredReligions.length === 1 ? 'Record' : 'Records'}
-          </span>
-        }
         onAddClick={handleOpenAdd}
         addLabel="Add Religion"
-        onImportClick={() => setIsImportModalOpen(true)}
         onExportClick={handleExport}
         onSyncClick={handleSync}
         isSyncing={isSyncing}
-      />
-
-      <FilterBar
-        searchPlaceholder="Search Religions..."
-        searchValue={search}
-        onSearchChange={setSearch}
-        onReset={handleResetFilters}
       />
 
       <DataTable
@@ -197,6 +165,18 @@ export const ReligionsPage: React.FC = () => {
         data={filteredReligions}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            searchPlaceholder="Search Religions..."
+            searchValue={search}
+            showDrawerButton={false}
+            showResetButton={false}
+            onSearchChange={setSearch}
+            onReset={handleResetFilters}
+          />
+        }
         actions={(row) => (
           <TableActions
             onEdit={() => handleOpenEdit(row)}
@@ -223,13 +203,6 @@ export const ReligionsPage: React.FC = () => {
         loading={isDeleting}
       />
 
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImport}
-        title="Import Religions"
-        categoryKey="religions"
-      />
     </div>
   );
 };

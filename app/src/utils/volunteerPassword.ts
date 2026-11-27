@@ -1,7 +1,7 @@
 /**
  * Generates the standardized default mobile credential password preview
- * Formula: CapitalizedFirstName + Last4DigitsOfMobile + #
- * Example: Ramesh Chandra (9876543210) -> Ramesh3210#
+ * Unified Formula: CapitalizedFirstName + "@" + Last4DigitsOfMobile
+ * Example: Ramesh Chandra (9876543210) -> Ramesh@3210
  */
 export function getVolunteerPasswordPreview(name: string, mobile: string): string {
   if (!name || !name.trim()) return '';
@@ -12,5 +12,5 @@ export function getVolunteerPasswordPreview(name: string, mobile: string): strin
       : 'Volunteer';
   const cleanPhone = (mobile || '').replace(/\D/g, '');
   const last4 = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : '••••';
-  return `${capitalized}${last4}#`;
+  return `${capitalized}@${last4}`;
 }

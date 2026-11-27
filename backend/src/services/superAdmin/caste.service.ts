@@ -1,6 +1,7 @@
 import { logger } from '../../utils/logger';
 import { query } from '../../queries/dbPool';
 import { CacheService } from '../cache.service';
+import { MasterCacheInvalidator } from '../cacheInvalidation.service';
 import { MasterBroadcastSync } from '../sync/masterBroadcastSync.service';
 
 export class SuperAdminCasteService {
@@ -84,7 +85,7 @@ export class SuperAdminCasteService {
       logger.error(`[SuperAdminCasteService] Broadcast error for caste '${newCaste.id}':`, err);
     });
 
-    await CacheService.invalidatePattern('ranniti:masters:castes*');
+    await MasterCacheInvalidator.invalidate('castes');
     return newCaste;
   }
 
@@ -110,7 +111,7 @@ export class SuperAdminCasteService {
       logger.error(`[SuperAdminCasteService] Broadcast error on update for caste '${id}':`, err);
     });
 
-    await CacheService.invalidatePattern('ranniti:masters:castes*');
+    await MasterCacheInvalidator.invalidate('castes');
     return updated;
   }
 
@@ -119,7 +120,7 @@ export class SuperAdminCasteService {
    */
   static async deleteCaste(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM castes WHERE id = $1`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:castes*');
+    await MasterCacheInvalidator.invalidate('castes');
     return (res.rowCount || 0) > 0;
   }
 }

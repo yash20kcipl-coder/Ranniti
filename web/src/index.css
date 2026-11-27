@@ -6,6 +6,18 @@
 @theme {
   --font-slab: 'Roboto Slab', 'Noto Sans Gujarati', 'Noto Sans Devanagari', Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-3xl: var(--radius-3xl);
+  --radius-full: var(--radius-full);
+
+  --color-page-bg: var(--page-bg);
+  --shadow-card-master: var(--card-shadow);
 }
 
 @utility font-slab {
@@ -105,6 +117,7 @@
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+
   &::-webkit-scrollbar {
     display: none;
     width: 0;
@@ -129,6 +142,7 @@
     opacity: 0;
     transform: translateY(6px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -148,6 +162,7 @@
   0% {
     opacity: 0;
   }
+
   100% {
     opacity: 1;
   }
@@ -167,6 +182,7 @@
     opacity: 0;
     transform: translateX(100%);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -187,6 +203,7 @@
     opacity: 0;
     transform: scale(0.95) translateY(10px);
   }
+
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -201,4 +218,128 @@
   animation: modalIn 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   RANNITI DESIGN SYSTEM — TABLE COMMON UTILITIES
+   Single source of truth for table header, cell, typography, and status badges.
+   ───────────────────────────────────────────────────────────────────────────── */
 
+@layer components {
+
+  /* Table Header */
+  .table-header {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #e2e8f0;
+  }
+
+  /* Table Cell Base */
+  .table-cell {
+    padding: 0.625rem 1rem;
+    font-size: 10.5px;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+
+  /* Table Primary Cell Text (Names, Main Titles) */
+  .table-primary {
+    font-size: 10.5px;
+    line-height: 1.25;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .dark .table-primary {
+    color: #f1f5f9;
+  }
+
+  /* Table Secondary Subtext (Geography, Role, Subtitles) */
+  .table-secondary {
+    font-size: 10px;
+    line-height: 1.25;
+    font-weight: 500;
+    color: #475569;
+  }
+
+  .dark .table-secondary {
+    color: #94a3b8;
+  }
+
+  /* Table Monospace Meta Text (IDs, Codes, Numbers) */
+  .table-mono {
+    font-family: var(--font-mono, monospace);
+    font-size: 9.5px;
+    font-weight: 500;
+    color: #334155;
+  }
+
+  .dark .table-mono {
+    color: #cbd5e1;
+  }
+
+  /* Table Badge Chip Base */
+  .table-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 9.5px;
+    font-weight: 600;
+    border-width: 1px;
+    line-height: 1.25;
+  }
+
+  .table-badge-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+    color: #059669;
+  }
+
+  .dark .table-badge-success {
+    color: #34d399;
+  }
+
+  .table-badge-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: #d97706;
+  }
+
+  .dark .table-badge-warning {
+    color: #fbbf24;
+  }
+
+  .table-badge-info {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.2);
+    color: #2563eb;
+  }
+
+  .dark .table-badge-info {
+    color: #60a5fa;
+  }
+
+  .table-badge-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #dc2626;
+  }
+
+  .dark .table-badge-danger {
+    color: #f87171;
+  }
+
+  .table-badge-neutral {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #334155;
+  }
+
+  .dark .table-badge-neutral {
+    background-color: #1e293b;
+    border-color: rgba(51, 65, 85, 0.6);
+    color: #cbd5e1;
+  }
+}

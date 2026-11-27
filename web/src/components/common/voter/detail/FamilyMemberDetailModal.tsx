@@ -15,6 +15,7 @@ import React, { useState } from 'react';
 import { useAppDispatch } from '@/redux/hooks';
 import { Modal } from '@/components/common/Modal';
 import { SafeImage } from '@/components/common/SafeImage';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
 
 export interface FamilyMemberDetailModalProps {
   isOpen: boolean;
@@ -144,7 +145,7 @@ export const FamilyMemberDetailModal: React.FC<FamilyMemberDetailModalProps> = (
                       <span>•</span>
                       <span className="flex items-center gap-1 font-mono">
                         <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        {head.mobileNo}
+                        {formatPhoneNumber(head.mobileNo)}
                       </span>
                     </>
                   )}
@@ -257,7 +258,7 @@ export const FamilyMemberDetailModal: React.FC<FamilyMemberDetailModalProps> = (
                           {member.mobileNo && (
                             <>
                               <span>•</span>
-                              <span className="font-mono">{member.mobileNo}</span>
+                              <span className="font-mono">{formatPhoneNumber(member.mobileNo)}</span>
                             </>
                           )}
                         </div>

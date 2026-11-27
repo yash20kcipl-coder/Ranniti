@@ -8,6 +8,10 @@ import {
   fetchMasterPartiesAction,
   fetchMasterReligionsAction,
   fetchMasterCastesAction,
+  fetchMasterTalukasAction,
+  fetchMasterVillagesAction,
+  fetchMasterProfessionCategoriesAction,
+  fetchMasterProfessionsAction,
 } from './master';
 import { AppDispatch } from '../store';
 import apiClient from '../../api/apiClient';
@@ -68,6 +72,23 @@ export const checkAndSyncDatasetsAction = () => {
               break;
             case 'castes':
               await (fetchMasterCastesAction() as any)(dispatch);
+              success = true;
+              break;
+            case 'talukas':
+              await (fetchMasterTalukasAction() as any)(dispatch);
+              success = true;
+              break;
+            case 'villages':
+              await (fetchMasterVillagesAction() as any)(dispatch);
+              success = true;
+              break;
+            case 'profession-categories':
+            case 'professionCategories':
+              await (fetchMasterProfessionCategoriesAction() as any)(dispatch);
+              success = true;
+              break;
+            case 'professions':
+              await (fetchMasterProfessionsAction() as any)(dispatch);
               success = true;
               break;
           }

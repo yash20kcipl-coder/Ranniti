@@ -11,13 +11,11 @@ import React, { useState, useMemo } from 'react';
 import { exportToExcel } from '@/utils/exportImport';
 import { useMasterData } from '@/hooks/useMasterData';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ImportModal } from '@/components/common/ImportModal';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { WardFormModal } from '@/components/common/master/form';
-import { startBulkImportFileJob } from '@/redux/actions/importJobs';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
@@ -35,19 +33,16 @@ export const WardsPage: React.FC = () => {
 
   // Pagination & Filter States
   const [page, setPage] = useState(1);
-  const [pcId, setPcId] = useState('');
+  const [districtId, setDistrictId] = useState('');
   const [acId, setAcId] = useState('');
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
-  const [stateId, setStateId] = useState('');
-  const [districtId, setDistrictId] = useState('');
 
   // Modal States
   const [isDeleting, setIsDeleting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
 
   // Debounced backend fetch for wards data with filter parameters
@@ -56,9 +51,7 @@ export const WardsPage: React.FC = () => {
     setLoading(true);
 
     const params: Record<string, any> = { page, limit };
-    if (stateId) params.stateId = stateId;
     if (districtId) params.districtId = districtId;
-    if (pcId) params.pcId = pcId;
     if (acId) params.acId = acId;
     if (search.trim()) params.search = search.trim();
 
@@ -69,38 +62,23 @@ export const WardsPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, 250, [dispatch, page, limit, search, stateId, districtId, pcId, acId]);
+  }, 250, [dispatch, page, limit, search, districtId, acId]);
 
-  // Options with cascading dependencies
-  const stateOptions = useMemo(() => statesData.map((s: any) => ({ label: s.name, value: s.id })), [statesData]);
-
-  const filteredDistrictOptions = useMemo(() => {
-    const raw = stateId ? districtsData.filter((d: any) => String(d.stateId) === String(stateId)) : districtsData;
-    return raw.map((d: any) => ({ label: d.name, value: d.id }));
-  }, [districtsData, stateId]);
-
-  const filteredPcOptions = useMemo(() => {
-    const raw = stateId ? pcsData.filter((p: any) => String(p.stateId) === String(stateId)) : pcsData;
-    return raw.map((p: any) => ({ label: p.name, value: p.id }));
-  }, [pcsData, stateId]);
+  const districtOptions = useMemo(() => {
+    return districtsData.map((d: any) => ({ label: d.name, value: d.id }));
+  }, [districtsData]);
 
   const filteredAcOptions = useMemo(() => {
     const raw = districtId
       ? acsData.filter((a: any) => String(a.districtId) === String(districtId))
-      : pcId
-        ? acsData.filter((a: any) => String(a.pcId) === String(pcId))
-        : stateId
-          ? acsData.filter((a: any) => String(a.stateId) === String(stateId))
-          : acsData;
-    return raw.map((a: any) => ({ label: a.name, value: a.id }));
-  }, [acsData, districtId, pcId, stateId]);
+      : acsData;
+    return raw.map((a: any) => ({ label: `${a.acNumber ? `#${a.acNumber} - ` : ''}${a.name}`, value: a.id }));
+  }, [acsData, districtId]);
 
   // Client-side filtering
   const filteredWards = useMemo(() => {
     return wardsData.filter((item: any) => {
-      if (stateId && String(item.stateId) !== String(stateId)) return false;
       if (districtId && String(item.districtId) !== String(districtId)) return false;
-      if (pcId && String(item.pcId) !== String(pcId)) return false;
       if (acId && String(item.acId) !== String(acId)) return false;
       if (search.trim()) {
         const query = search.toLowerCase();
@@ -111,7 +89,7 @@ export const WardsPage: React.FC = () => {
       }
       return true;
     });
-  }, [wardsData, search, stateId, districtId, pcId, acId]);
+  }, [wardsData, search, districtId, acId]);
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -120,66 +98,40 @@ export const WardsPage: React.FC = () => {
 
   const handleResetFilters = () => {
     setSearch('');
-    setStateId('');
     setDistrictId('');
-    setPcId('');
     setAcId('');
     setPage(1);
   };
 
   const filterFields: FilterField[] = [
     {
-      key: 'stateId',
-      label: 'State',
-      type: 'select',
-      value: stateId,
-      onChange: (val) => {
-        setStateId(val);
-        setDistrictId('');
-        setPcId('');
-        setAcId('');
-        setPage(1);
-      },
-      options: stateOptions,
-      placeholder: 'All States',
-    },
-    {
       key: 'districtId',
       label: 'District',
       type: 'select',
       value: districtId,
+      defaultValue: '',
+      excludeFromCount: true,
       onChange: (val) => {
         setDistrictId(val);
         setAcId('');
         setPage(1);
       },
-      options: filteredDistrictOptions,
-      placeholder: 'All Districts',
-    },
-    {
-      key: 'pcId',
-      label: 'PC',
-      type: 'select',
-      value: pcId,
-      onChange: (val) => {
-        setPcId(val);
-        setAcId('');
-        setPage(1);
-      },
-      options: filteredPcOptions,
-      placeholder: 'All PCs',
+      options: [{ label: 'All Districts', value: '' }, ...districtOptions],
+      isPrimary: true,
     },
     {
       key: 'acId',
-      label: 'AC',
+      label: 'Assembly (AC)',
       type: 'select',
       value: acId,
+      defaultValue: '',
+      excludeFromCount: true,
       onChange: (val) => {
         setAcId(val);
         setPage(1);
       },
-      options: filteredAcOptions,
-      placeholder: 'All ACs',
+      options: [{ label: 'All ACs', value: '' }, ...filteredAcOptions],
+      isPrimary: true,
     },
   ];
 
@@ -189,15 +141,15 @@ export const WardsPage: React.FC = () => {
       key: 'wardNumber',
       header: 'Ward No.',
       sortable: true,
-      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.wardNumber || '-'}</span>,
+      render: (row) => <span className="font-mono font-medium text-[9.5px] text-slate-700 dark:text-slate-300">#{row.wardNumber || '-'}</span>,
     },
     {
       key: 'name',
       header: 'Ward / Prabhag Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
-    { key: 'acName', header: 'Assembly Constituency (AC)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.acName || '-'}</span> },
+    { key: 'acName', header: 'Assembly Constituency (AC)', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.acName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -259,31 +211,6 @@ export const WardsPage: React.FC = () => {
     toast.success('Wards exported successfully');
   };
 
-  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
-    try {
-      await dispatch(
-        startBulkImportFileJob(
-          'wards',
-          file,
-          () => {
-            const params: Record<string, any> = { page, limit };
-            if (stateId) params.stateId = stateId;
-            if (districtId) params.districtId = districtId;
-            if (pcId) params.pcId = pcId;
-            if (acId) params.acId = acId;
-            if (search.trim()) params.search = search.trim();
-            dispatch(fetchSuperAdminMasterCategoryData('wards', '/masters/wards', false, params));
-          },
-          context || { stateId, districtId, pcId, acId }
-        )
-      );
-      toast.success('Bulk import job started for Wards!');
-      setIsImportModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start import');
-    }
-  };
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -302,25 +229,11 @@ export const WardsPage: React.FC = () => {
         title="Wards (Prabhags)"
         icon={<Layers className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage electoral wards / prabhags under Assembly Constituencies."
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {wardsPagination?.total ?? wardsData.length} {(wardsPagination?.total ?? wardsData.length) === 1 ? 'Record' : 'Records'}
-          </span>
-        }
         onAddClick={handleOpenAdd}
         addLabel="Add Ward"
-        onImportClick={() => setIsImportModalOpen(true)}
         onExportClick={handleExport}
         onSyncClick={handleSync}
         isSyncing={isSyncing}
-      />
-
-      <FilterBar
-        searchPlaceholder="Search Ward No, Prabhag Name, AC..."
-        searchValue={search}
-        onSearchChange={handleSearchChange}
-        filters={filterFields}
-        onReset={handleResetFilters}
       />
 
       <DataTable
@@ -328,6 +241,19 @@ export const WardsPage: React.FC = () => {
         data={wardsData}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            showDrawerButton={false}
+            showResetButton={false}
+            searchValue={search}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search Ward No, Prabhag Name, AC..."
+            onSearchChange={handleSearchChange}
+          />
+        }
         serverPagination={
           wardsPagination
             ? {
@@ -373,14 +299,6 @@ export const WardsPage: React.FC = () => {
         loading={isDeleting}
       />
 
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImport}
-        title="Import Wards"
-        categoryKey="wards"
-        sampleParams={{ stateId, districtId, pcId, acId }}
-      />
     </div>
   );
 };

@@ -11,6 +11,7 @@ import {
   Sun,
   Moon,
   MapPin,
+  Map,
   Building,
   Home,
   Landmark,
@@ -21,6 +22,8 @@ import {
   ArrowRight,
   Command,
   X,
+  Briefcase,
+  Award,
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setMasterTab } from '@/redux/actions/masterSuperAdmin';
@@ -93,27 +96,27 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     },
     ...(isSuperAdmin
       ? [
-          {
-            id: 'nav-tenants',
-            title: 'Tenant Accounts',
-            subtitle: 'Multi-tenant political client instances',
-            category: 'Navigation' as const,
-            icon: Users,
-            action: () => navigate('/dashboard/tenants'),
-            keywords: ['clients', 'tenants', 'organizations', 'campaigns'],
-          },
-        ]
+        {
+          id: 'nav-tenants',
+          title: 'Tenant Accounts',
+          subtitle: 'Multi-tenant political client instances',
+          category: 'Navigation' as const,
+          icon: Users,
+          action: () => navigate('/dashboard/tenants'),
+          keywords: ['clients', 'tenants', 'organizations', 'campaigns'],
+        },
+      ]
       : [
-          {
-            id: 'nav-volunteers',
-            title: 'Campaign Volunteers',
-            subtitle: 'Field agents, booth karyakartas and team',
-            category: 'Navigation' as const,
-            icon: UserCheck,
-            action: () => navigate('/dashboard/volunteers'),
-            keywords: ['volunteers', 'workers', 'agents', 'field'],
-          },
-        ]),
+        {
+          id: 'nav-volunteers',
+          title: 'Campaign Volunteers',
+          subtitle: 'Field agents, booth karyakartas and team',
+          category: 'Navigation' as const,
+          icon: UserCheck,
+          action: () => navigate('/dashboard/volunteers'),
+          keywords: ['volunteers', 'workers', 'agents', 'field'],
+        },
+      ]),
     {
       id: 'nav-settings',
       title: 'Settings & Preferences',
@@ -136,16 +139,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     },
     ...(isSuperAdmin
       ? [
-          {
-            id: 'act-new-tenant',
-            title: 'Provision New Tenant',
-            subtitle: 'Create a new multi-tenant campaign workspace',
-            category: 'Quick Actions' as const,
-            icon: PlusCircle,
-            action: () => navigate('/dashboard/tenants/new'),
-            keywords: ['create tenant', 'onboard client', 'new workspace'],
-          },
-        ]
+        {
+          id: 'act-new-tenant',
+          title: 'Provision New Tenant',
+          subtitle: 'Create a new multi-tenant campaign workspace',
+          category: 'Quick Actions' as const,
+          icon: PlusCircle,
+          action: () => navigate('/dashboard/tenants/new'),
+          keywords: ['create tenant', 'onboard client', 'new workspace'],
+        },
+      ]
       : []),
     {
       id: 'act-toggle-theme',
@@ -160,156 +163,225 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     // ── Master Intelligence (Super Admin or Tenant Master) ────────────────
     ...(isSuperAdmin
       ? [
-          {
-            id: 'master-districts',
-            title: 'Master Districts',
-            subtitle: 'Administrative district boundaries',
-            category: 'Master Intelligence' as const,
-            icon: MapPin,
-            action: () => {
-              dispatch(setMasterTab('districts'));
-              navigate('/dashboard/master/districts');
-            },
-            keywords: ['geography', 'districts', 'region'],
+        {
+          id: 'master-districts',
+          title: 'Master Districts',
+          subtitle: 'Administrative district boundaries',
+          category: 'Master Intelligence' as const,
+          icon: MapPin,
+          action: () => {
+            dispatch(setMasterTab('districts'));
+            navigate('/dashboard/master/districts');
           },
-          {
-            id: 'master-talukas',
-            title: 'Master Talukas (Tehsils)',
-            subtitle: 'Tehsil and block level divisions',
-            category: 'Master Intelligence' as const,
-            icon: Building,
-            action: () => {
-              dispatch(setMasterTab('talukas'));
-              navigate('/dashboard/master/talukas');
-            },
-            keywords: ['taluka', 'tehsil', 'block'],
+          keywords: ['geography', 'districts', 'region'],
+        },
+        {
+          id: 'master-talukas',
+          title: 'Master Talukas',
+          subtitle: 'Tehsil and block level divisions',
+          category: 'Master Intelligence' as const,
+          icon: Building,
+          action: () => {
+            dispatch(setMasterTab('talukas'));
+            navigate('/dashboard/master/talukas');
           },
-          {
-            id: 'master-villages',
-            title: 'Master Villages',
-            subtitle: 'Rural and local village demarcations',
-            category: 'Master Intelligence' as const,
-            icon: Home,
-            action: () => {
-              dispatch(setMasterTab('villages'));
-              navigate('/dashboard/master/villages');
-            },
-            keywords: ['village', 'gram', 'settlement'],
+          keywords: ['taluka', 'tehsil', 'block'],
+        },
+        {
+          id: 'master-villages',
+          title: 'Master Villages',
+          subtitle: 'Rural and local village demarcations',
+          category: 'Master Intelligence' as const,
+          icon: Home,
+          action: () => {
+            dispatch(setMasterTab('villages'));
+            navigate('/dashboard/master/villages');
           },
-          {
-            id: 'master-pcs',
-            title: 'Parliamentary Constituencies (PC)',
-            subtitle: 'Lok Sabha election divisions',
-            category: 'Master Intelligence' as const,
-            icon: Landmark,
-            action: () => {
-              dispatch(setMasterTab('pcs'));
-              navigate('/dashboard/master/pcs');
-            },
-            keywords: ['pc', 'parliamentary', 'lok sabha', 'mp'],
+          keywords: ['village', 'gram', 'settlement'],
+        },
+        {
+          id: 'master-pcs',
+          title: 'Parliamentary Constituencies (PC)',
+          subtitle: 'Lok Sabha election divisions',
+          category: 'Master Intelligence' as const,
+          icon: Landmark,
+          action: () => {
+            dispatch(setMasterTab('pcs'));
+            navigate('/dashboard/master/pcs');
           },
-          {
-            id: 'master-acs',
-            title: 'Assembly Constituencies (AC)',
-            subtitle: 'Vidhan Sabha election divisions',
-            category: 'Master Intelligence' as const,
-            icon: Building2,
-            action: () => {
-              dispatch(setMasterTab('acs'));
-              navigate('/dashboard/master/acs');
-            },
-            keywords: ['ac', 'assembly', 'vidhan sabha', 'mla'],
+          keywords: ['pc', 'parliamentary', 'lok sabha', 'mp'],
+        },
+        {
+          id: 'master-acs',
+          title: 'Assembly Constituencies (AC)',
+          subtitle: 'Vidhan Sabha election divisions',
+          category: 'Master Intelligence' as const,
+          icon: Building2,
+          action: () => {
+            dispatch(setMasterTab('acs'));
+            navigate('/dashboard/master/acs');
           },
-          {
-            id: 'master-wards',
-            title: 'Wards & Prabhags',
-            subtitle: 'Municipal and municipal council wards',
-            category: 'Master Intelligence' as const,
-            icon: Layers,
-            action: () => {
-              dispatch(setMasterTab('wards'));
-              navigate('/dashboard/master/wards');
-            },
-            keywords: ['ward', 'prabhag', 'corporation'],
+          keywords: ['ac', 'assembly', 'vidhan sabha', 'mla'],
+        },
+        {
+          id: 'master-wards',
+          title: 'Wards & Prabhags',
+          subtitle: 'Municipal and municipal council wards',
+          category: 'Master Intelligence' as const,
+          icon: Layers,
+          action: () => {
+            dispatch(setMasterTab('wards'));
+            navigate('/dashboard/master/wards');
           },
-          {
-            id: 'master-booths',
-            title: 'Polling Booths',
-            subtitle: 'Booth centers and physical polling stations',
-            category: 'Master Intelligence' as const,
-            icon: Vote,
-            action: () => {
-              dispatch(setMasterTab('booths'));
-              navigate('/dashboard/master/booths');
-            },
-            keywords: ['booth', 'polling station', 'karyakarta'],
+          keywords: ['ward', 'prabhag', 'corporation'],
+        },
+        {
+          id: 'master-booths',
+          title: 'Polling Booths',
+          subtitle: 'Booth centers and physical polling stations',
+          category: 'Master Intelligence' as const,
+          icon: Vote,
+          action: () => {
+            dispatch(setMasterTab('booths'));
+            navigate('/dashboard/master/booths');
           },
-          {
-            id: 'master-religions',
-            title: 'Religions Demographics',
-            subtitle: 'Master religion demographic definitions',
-            category: 'Master Intelligence' as const,
-            icon: HeartHandshake,
-            action: () => {
-              dispatch(setMasterTab('religions'));
-              navigate('/dashboard/master/religions');
-            },
-            keywords: ['religion', 'faith', 'demographics'],
+          keywords: ['booth', 'polling station', 'karyakarta'],
+        },
+        {
+          id: 'master-religions',
+          title: 'Religions Demographics',
+          subtitle: 'Master religion demographic definitions',
+          category: 'Master Intelligence' as const,
+          icon: HeartHandshake,
+          action: () => {
+            dispatch(setMasterTab('religions'));
+            navigate('/dashboard/master/religions');
           },
-          {
-            id: 'master-castes',
-            title: 'Castes & Subcastes',
-            subtitle: 'Social caste structure classifications',
-            category: 'Master Intelligence' as const,
-            icon: Users,
-            action: () => {
-              dispatch(setMasterTab('castes'));
-              navigate('/dashboard/master/castes');
-            },
-            keywords: ['caste', 'subcaste', 'community'],
+          keywords: ['religion', 'faith', 'demographics'],
+        },
+        {
+          id: 'master-castes',
+          title: 'Castes & Subcastes',
+          subtitle: 'Social caste structure classifications',
+          category: 'Master Intelligence' as const,
+          icon: Users,
+          action: () => {
+            dispatch(setMasterTab('castes'));
+            navigate('/dashboard/master/castes');
           },
-          {
-            id: 'master-parties',
-            title: 'Political Parties',
-            subtitle: 'Recognized political party entities & symbols',
-            category: 'Master Intelligence' as const,
-            icon: Flag,
-            action: () => {
-              dispatch(setMasterTab('parties'));
-              navigate('/dashboard/master/parties');
-            },
-            keywords: ['party', 'parties', 'bjp', 'inc', 'symbol'],
+          keywords: ['caste', 'subcaste', 'community'],
+        },
+        {
+          id: 'master-profession-categories',
+          title: 'Profession Categories',
+          subtitle: 'Broad occupational demographic categories',
+          category: 'Master Intelligence' as const,
+          icon: Briefcase,
+          action: () => {
+            dispatch(setMasterTab('profession-categories'));
+            navigate('/dashboard/master/profession-categories');
           },
-        ]
+          keywords: ['profession', 'occupation', 'category', 'job', 'work'],
+        },
+        {
+          id: 'master-professions',
+          title: 'Specific Professions',
+          subtitle: 'Specific professions and job roles classified under categories',
+          category: 'Master Intelligence' as const,
+          icon: Award,
+          action: () => {
+            dispatch(setMasterTab('professions'));
+            navigate('/dashboard/master/professions');
+          },
+          keywords: ['profession', 'occupation', 'job', 'work', 'doctor', 'teacher', 'engineer'],
+        },
+        {
+          id: 'master-parties',
+          title: 'Political Parties',
+          subtitle: 'Recognized political party entities & symbols',
+          category: 'Master Intelligence' as const,
+          icon: Flag,
+          action: () => {
+            dispatch(setMasterTab('parties'));
+            navigate('/dashboard/master/parties');
+          },
+          keywords: ['party', 'parties', 'bjp', 'inc', 'symbol'],
+        },
+      ]
       : [
-          {
-            id: 'tenant-master-acs',
-            title: 'Assembly Constituencies (AC)',
-            subtitle: 'Assigned Vidhan Sabha boundaries',
-            category: 'Master Intelligence' as const,
-            icon: Building2,
-            action: () => navigate('/dashboard/tenant-master/acs'),
-            keywords: ['ac', 'assembly', 'vidhan sabha'],
-          },
-          {
-            id: 'tenant-master-wards',
-            title: 'Wards & Prabhags',
-            subtitle: 'Assigned municipal ward sectors',
-            category: 'Master Intelligence' as const,
-            icon: Layers,
-            action: () => navigate('/dashboard/tenant-master/wards'),
-            keywords: ['ward', 'prabhag'],
-          },
-          {
-            id: 'tenant-master-booths',
-            title: 'Polling Booths',
-            subtitle: 'Assigned voting booth stations',
-            category: 'Master Intelligence' as const,
-            icon: Vote,
-            action: () => navigate('/dashboard/tenant-master/booths'),
-            keywords: ['booth', 'polling station'],
-          },
-        ]),
+        {
+          id: 'tenant-master-acs',
+          title: 'Assembly Constituencies (AC)',
+          subtitle: 'Assigned Vidhan Sabha boundaries',
+          category: 'Master Intelligence' as const,
+          icon: Building2,
+          action: () => navigate('/dashboard/tenant-master/acs'),
+          keywords: ['ac', 'assembly', 'vidhan sabha'],
+        },
+        {
+          id: 'tenant-master-wards',
+          title: 'Wards & Prabhags',
+          subtitle: 'Assigned municipal ward sectors',
+          category: 'Master Intelligence' as const,
+          icon: Layers,
+          action: () => navigate('/dashboard/tenant-master/wards'),
+          keywords: ['ward', 'prabhag'],
+        },
+        {
+          id: 'tenant-master-booths',
+          title: 'Polling Booths',
+          subtitle: 'Assigned voting booth stations',
+          category: 'Master Intelligence' as const,
+          icon: Vote,
+          action: () => navigate('/dashboard/tenant-master/booths'),
+          keywords: ['booth', 'polling station'],
+        },
+        {
+          id: 'tenant-master-talukas',
+          title: 'Talukas (Tehsils)',
+          subtitle: 'Administrative taluka subdivisions',
+          category: 'Master Intelligence' as const,
+          icon: Map,
+          action: () => navigate('/dashboard/tenant-master/talukas'),
+          keywords: ['taluka', 'tehsil', 'division'],
+        },
+        {
+          id: 'tenant-master-villages',
+          title: 'Villages (Gaon)',
+          subtitle: 'Revenue villages and rural clusters',
+          category: 'Master Intelligence' as const,
+          icon: Home,
+          action: () => navigate('/dashboard/tenant-master/villages'),
+          keywords: ['village', 'gaon', 'rural'],
+        },
+        {
+          id: 'tenant-master-castes',
+          title: 'Castes & Subcastes',
+          subtitle: 'Social caste demographics and categories',
+          category: 'Master Intelligence' as const,
+          icon: Users,
+          action: () => navigate('/dashboard/tenant-master/castes'),
+          keywords: ['caste', 'subcaste', 'community', 'obc', 'sc', 'st'],
+        },
+        {
+          id: 'tenant-master-profession-categories',
+          title: 'Profession Categories',
+          subtitle: 'Occupational categories and demographic sectors',
+          category: 'Master Intelligence' as const,
+          icon: Briefcase,
+          action: () => navigate('/dashboard/tenant-master/profession-categories'),
+          keywords: ['profession', 'occupation', 'category', 'job'],
+        },
+        {
+          id: 'tenant-master-professions',
+          title: 'Specific Professions',
+          subtitle: 'Designated professions and vocational roles',
+          category: 'Master Intelligence' as const,
+          icon: Award,
+          action: () => navigate('/dashboard/tenant-master/professions'),
+          keywords: ['profession', 'occupation', 'job', 'work'],
+        },
+      ]),
   ];
 
   // Filter commands by search term
@@ -419,19 +491,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                     onClose();
                   }}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-100 cursor-pointer ${
-                    isSelected
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-100 cursor-pointer ${isSelected
                       ? 'bg-indigo-50 dark:bg-indigo-950/40 text-slate-900 dark:text-white border border-indigo-200/70 dark:border-indigo-500/30 shadow-xs'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-800/50 border border-transparent'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                        isSelected
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isSelected
                           ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-600/30'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                      }`}
+                        }`}
                     >
                       <Icon size={16} />
                     </div>

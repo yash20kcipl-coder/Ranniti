@@ -4,6 +4,7 @@ import { ApiResponse } from '../../utils/apiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { TenantQueries } from '../../queries/tenant.queries';
 import { getTenantDbPool } from '../../utils/tenantDbProvisioner';
+import { resolveConstituencyScope } from '../helpers/scopeResolver';
 import { TalukaProvisionService } from '../services/taluka.provision.service';
 
 export class TalukaProvisionController {
@@ -31,13 +32,15 @@ export class TalukaProvisionController {
     const tenant = await TenantQueries.getById(tenantId);
     if (!tenant) throw new ApiError(404, 'Tenant not found');
 
+    const { resolvedAcIds, resolvedDistrictIds } = await resolveConstituencyScope(tenant.acIds || [], tenant.pcIds || []);
+
     const pool = getTenantDbPool(tenant.tenantDbName);
     try {
-      const stats = await TalukaProvisionService.getStats(pool);
+      const stats = await TalukaProvisionService.getStats(pool, resolvedDistrictIds, resolvedAcIds);
       const response = ApiResponse.success(stats, 'Talukas table stats retrieved');
       res.status(response.statusCode).json(response.body);
     } finally {
-      await pool.end().catch(() => {});
+      await pool.end().catch(() => { });
     }
   });
 }

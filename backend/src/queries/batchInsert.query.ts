@@ -79,7 +79,9 @@ export class BatchInsertQuery {
     let sql = `INSERT INTO ${quotedTable} (${quotedCols}) VALUES ${valueRows.join(', ')}`;
 
     if (options.conflictTarget && options.conflictTarget.length > 0) {
-      const targetCols = options.conflictTarget.map((c) => `"${c}"`).join(', ');
+      const targetCols = options.conflictTarget
+        .map((c) => (c.includes('(') ? c : `"${c}"`))
+        .join(', ');
 
       if (options.conflictStrategy === 'DO UPDATE' && options.updateColumns && options.updateColumns.length > 0) {
         // coalesceUpdate defaults to TRUE — never overwrite existing data with nulls from import
@@ -96,6 +98,8 @@ export class BatchInsertQuery {
       } else {
         sql += ` ON CONFLICT (${targetCols}) DO NOTHING`;
       }
+    } else if (options.conflictStrategy === 'DO NOTHING') {
+      sql += ` ON CONFLICT DO NOTHING`;
     }
 
     return { sql, params };

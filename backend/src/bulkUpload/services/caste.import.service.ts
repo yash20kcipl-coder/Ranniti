@@ -2,10 +2,12 @@ import { query } from '../../queries/dbPool';
 import { logger } from '../../utils/logger';
 import { BulkImporter } from '../../utils/bulkImporter';
 import { CacheService } from '../../services/cache.service';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { MasterQueries } from '../../queries/master.queries';
 import { LookupResolverService } from '../lookupResolver.service';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { formatTitleCase } from '../../utils/textUtils';
 
 export class CasteImportService {
   static async import(
@@ -14,12 +16,84 @@ export class CasteImportService {
     _context?: BulkImportContext
   ): Promise<BulkImportServiceResult> {
 
-    const religionMap = await LookupResolverService.ensureReligionsExist(records);
-    const casteNameToIdMap = await LookupResolverService.ensureCastesExist(records, religionMap);
+    // Fill-down carry-forward for missing parent caste on grouped rows
+    let currentParentCaste = '';
+    const normalizedRecords: Record<string, any>[] = [];
+
+    for (const row of records) {
+      let castVal = LookupResolverService.extractValue(row, [
+        'Cast', 'Caste', 'casteName', 'Caste Name', 'parentCasteName', 'Parent Caste', 'name'
+      ]);
+      const subCastVal = LookupResolverService.extractValue(row, [
+        'Sub Cast', 'SubCast', 'Sub Caste', 'subcasteName', 'Subcaste Name'
+      ]);
+      const explicitParent = LookupResolverService.extractValue(row, [
+        'parentCasteName', 'parent_caste_name', 'Parent Caste'
+      ]);
+
+      // If castVal is present, track it as current parent caste
+      if (castVal) {
+        currentParentCaste = castVal;
+      } else if (subCastVal && !castVal && currentParentCaste) {
+        // Carry forward missing parent caste from preceding row
+        castVal = currentParentCaste;
+      }
+
+      let name = '';
+      let parentCasteName = '';
+
+      if (subCastVal && castVal && subCastVal.toLowerCase() !== castVal.toLowerCase()) {
+        if (subCastVal.toLowerCase() === 'others' || subCastVal.toLowerCase() === 'other') {
+          name = `${castVal} (Others)`;
+        } else {
+          name = subCastVal;
+        }
+        parentCasteName = castVal;
+      } else if (explicitParent) {
+        name = castVal;
+        parentCasteName = explicitParent;
+      } else {
+        name = castVal || subCastVal;
+        parentCasteName = '';
+      }
+
+      const category = LookupResolverService.extractValue(row, ['category', 'Category']) || 'General';
+      const religionName = LookupResolverService.extractValue(row, [
+        'religionName', 'Religion', 'religion', 'religionId', 'religion_id', 'Religion Name'
+      ]);
+
+      if (name) {
+        normalizedRecords.push({
+          ...row,
+          name,
+          category,
+          religionName,
+          parentCasteName,
+        });
+      }
+    }
+
+    const religionMap = await LookupResolverService.ensureReligionsExist(normalizedRecords);
+    const casteNameToIdMap = await LookupResolverService.ensureCastesExist(normalizedRecords, religionMap);
 
     // Separate parent castes (no parentCasteName) from subcastes
-    const parentRows = records.filter((r) => !r.parentCasteName && !r.parent_caste_id && !r.parentCasteId);
-    const subcasteRows = records.filter((r) => r.parentCasteName || r.parent_caste_id || r.parentCasteId);
+    const parentRows = normalizedRecords.filter((r) => !r.parentCasteName && !r.parent_caste_id && !r.parentCasteId);
+    const subcasteRows = normalizedRecords.filter((r) => r.parentCasteName || r.parent_caste_id || r.parentCasteId);
+
+    // Ensure all referenced parent castes are present in parentRows for Pass 1
+    const seenParentNames = new Set(parentRows.map((r) => r.name.toLowerCase().trim()));
+    for (const sub of subcasteRows) {
+      const pName = (sub.parentCasteName || '').trim();
+      if (pName && !seenParentNames.has(pName.toLowerCase())) {
+        seenParentNames.add(pName.toLowerCase());
+        parentRows.push({
+          name: pName,
+          category: sub.category,
+          religionName: sub.religionName,
+          parentCasteName: '',
+        });
+      }
+    }
 
     let totalProcessed = 0;
     let totalInserted = 0;
@@ -35,8 +109,11 @@ export class CasteImportService {
       onBatchInsert: async (batch) => {
         const rowsToInsert: any[] = [];
         for (const row of batch) {
-          const name = (row.name || row.casteName || '').trim();
-          const categoryName = (row.category || 'General').trim();
+          const rawName = (row.name || row.casteName || '').trim();
+          const name = rawName ? formatTitleCase(rawName) : '';
+          const rawCat = (row.category || 'General').trim();
+          const upperCat = rawCat.toUpperCase();
+          const categoryName = upperCat === 'OBC' ? 'OBC' : upperCat === 'SC' ? 'SC' : upperCat === 'ST' ? 'ST' : formatTitleCase(rawCat);
           const religionRef = String(row.religionName || row.religion || row.religionId || row.religion_id || '').toLowerCase().trim();
           const religionId = religionMap.get(religionRef) || null;
 
@@ -107,8 +184,11 @@ export class CasteImportService {
         onBatchInsert: async (batch) => {
           const rowsToInsert: any[] = [];
           for (const row of batch) {
-            const name = (row.name || row.casteName || '').trim();
-            const categoryName = (row.category || 'General').trim();
+            const rawName = (row.name || row.casteName || '').trim();
+            const name = rawName ? formatTitleCase(rawName) : '';
+            const rawCat = (row.category || 'General').trim();
+            const upperCat = rawCat.toUpperCase();
+            const categoryName = upperCat === 'OBC' ? 'OBC' : upperCat === 'SC' ? 'SC' : upperCat === 'ST' ? 'ST' : formatTitleCase(rawCat);
             const religionRef = String(row.religionName || row.religion || row.religionId || row.religion_id || '').toLowerCase().trim();
             const religionId = religionMap.get(religionRef) || null;
 
@@ -141,7 +221,7 @@ export class CasteImportService {
       totalFailed += pass2Result.failedCount;
     }
 
-    await CacheService.invalidatePattern('ranniti:masters:castes*');
+    await MasterCacheInvalidator.invalidate('castes');
     try {
       const allCastes = await MasterQueries.getCastes().catch(() => []);
       const { MasterBroadcastSync } = await import('../../services/sync/masterBroadcastSync.service');

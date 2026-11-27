@@ -103,7 +103,10 @@ export class MobileMasterController {
   getTalukas = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const user = req.mobileUser!;
     const districtId = req.query.districtId as string | undefined;
-    const talukas = await tenantApiService.getTenantTalukas(districtId, user.tenantDbName);
+    const stateId = req.query.stateId as string | undefined;
+    const search = req.query.search as string | undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const talukas = await tenantApiService.getTenantTalukas({ districtId, stateId, search, limit }, user.tenantDbName);
     const response = ApiResponse.success(talukas, 'Talukas retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
@@ -121,6 +124,23 @@ export class MobileMasterController {
     const result = await tenantApiService.getTenantVillages(params, user.tenantDbName);
     const data = typeof result === 'object' && 'villages' in result ? (result as any).villages : result;
     const response = ApiResponse.success(data, 'Villages retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getProfessionCategories = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const user = req.mobileUser!;
+    const categories = await tenantApiService.getTenantProfessionCategories(user.tenantDbName);
+    const response = ApiResponse.success(categories, 'Profession categories retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getProfessions = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const user = req.mobileUser!;
+    const categoryId = req.query.categoryId as string | undefined;
+    const search = req.query.search as string | undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const professions = await tenantApiService.getTenantProfessions({ categoryId, search, limit }, user.tenantDbName);
+    const response = ApiResponse.success(professions, 'Professions retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
 }

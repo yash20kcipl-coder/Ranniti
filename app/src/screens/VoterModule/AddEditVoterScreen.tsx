@@ -16,7 +16,12 @@ import {
   fetchMasterCastesAction,
   fetchMasterTalukasAction,
   fetchMasterVillagesAction,
+  fetchMasterProfessionCategoriesAction,
+  fetchMasterProfessionsAction,
   fetchMasterInfluencerOptionsAction,
+  searchMasterVillagesAction,
+  searchMasterTalukasAction,
+  searchMasterProfessionsAction,
 } from '../../store/actions/master';
 import toast from '../../utils/toast';
 import { RootState } from '../../store/store';
@@ -78,7 +83,7 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
   const canEditDemographics = !isEditing || hasVoterPermission(access, 'canEditDemographics');
 
   // Master data from Redux store
-  const { states, districts, pcs, acs, booths, parties, religions, castes, talukas, villages } = useSelector((state: RootState) => state.master);
+  const { states, districts, pcs, acs, booths, parties, religions, castes, talukas, villages, professionCategories, professions } = useSelector((state: RootState) => state.master);
 
   const initialAc = existingVoter?.acId && acs?.length ? acs.find((a: any) => String(a.id) === String(existingVoter.acId)) : undefined;
 
@@ -178,6 +183,8 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
     dispatch(fetchMasterCastesAction());
     dispatch(fetchMasterTalukasAction());
     dispatch(fetchMasterVillagesAction());
+    dispatch(fetchMasterProfessionCategoriesAction());
+    dispatch(fetchMasterProfessionsAction());
 
     // If editing, fetch complete profile from backend
     if (isEditing && existingVoter?.id) {
@@ -208,9 +215,9 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
               districtId: resolvedDistrictId || prev.districtId,
               pcId: resolvedPcId || prev.pcId,
               acId: resolvedAcId || prev.acId,
-              partyId: freshVoter.partyId ? String(freshVoter.partyId) : prev.partyId,
-              religionId: freshVoter.religionId ? String(freshVoter.religionId) : prev.religionId,
-              casteId: freshVoter.casteId ? String(freshVoter.casteId) : prev.casteId,
+              partyId: freshVoter.partyId ? String(freshVoter.partyId) : '',
+              religionId: freshVoter.religionId ? String(freshVoter.religionId) : '',
+              casteId: freshVoter.casteId ? String(freshVoter.casteId) : '',
               familyInfluencerId: freshVoter.familyInfluencerId ? String(freshVoter.familyInfluencerId) : '',
               socialInfluencerId: freshVoter.socialInfluencerId ? String(freshVoter.socialInfluencerId) : '',
               guardianName: freshVoter.guardianName || freshVoter.relativeName || prev.guardianName,
@@ -481,45 +488,130 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
 
   // Autocomplete suggestion lists matching web pattern
   const talukaSuggestions = useMemo(() => {
-    if (!formData.districtId) {
-      return Array.from(new Set((talukas || []).map((t: any) => t.name).filter(Boolean)));
-    }
-    const districtMatches = (talukas || [])
-      .filter((t: any) => t.districtId === formData.districtId)
-      .map((t: any) => t.name);
-    const others = (talukas || [])
-      .filter((t: any) => t.districtId !== formData.districtId)
-      .map((t: any) => t.name);
-    return Array.from(new Set([...districtMatches, ...others].filter(Boolean)));
-  }, [talukas, formData.districtId]);
+    return (talukas || []).map((t: any) => {
+      const sublabelParts = [t.districtName, t.stateName].filter(Boolean);
+      return {
+        id: String(t.id),
+        name: t.name,
+        sublabel: sublabelParts.length > 0 ? sublabelParts.join(', ') : undefined,
+        category: t.districtName,
+        raw: t,
+      };
+    });
+  }, [talukas]);
 
   const villageSuggestions = useMemo(() => {
-    if (!formData.districtId) {
-      return Array.from(new Set((villages || []).map((v: any) => v.name).filter(Boolean)));
-    }
-    const districtMatches = (villages || [])
-      .filter((v: any) => v.districtId === formData.districtId)
-      .map((v: any) => v.name);
-    const others = (villages || [])
-      .filter((v: any) => v.districtId !== formData.districtId)
-      .map((v: any) => v.name);
-    return Array.from(new Set([...districtMatches, ...others].filter(Boolean)));
-  }, [villages, formData.districtId]);
+    return (villages || []).map((v: any) => {
+      const matchedTaluka = v.talukaId
+        ? (talukas || []).find((t: any) => String(t.id) === String(v.talukaId))
+        : null;
+      const talukaName = v.talukaName || matchedTaluka?.name;
+      const districtName = v.districtName || matchedTaluka?.districtName;
+      const stateName = v.stateName || matchedTaluka?.stateName;
+      const sublabelParts = [talukaName, districtName, stateName].filter(Boolean);
+
+      return {
+        id: String(v.id),
+        name: v.name,
+        sublabel: sublabelParts.length > 0 ? sublabelParts.join(', ') : undefined,
+        category: talukaName,
+        raw: {
+          ...v,
+          talukaName,
+          districtId: v.districtId || matchedTaluka?.districtId,
+          districtName,
+          stateId: v.stateId || matchedTaluka?.stateId,
+          stateName,
+        },
+      };
+    });
+  }, [villages, talukas]);
 
   const subcasteSuggestions = useMemo(() => {
     const subcastes = (castes || []).filter((c: any) => Boolean(c.parentCasteId));
-    if (!formData.casteId && !formData.casteName) {
-      return Array.from(new Set(subcastes.map((c: any) => c.name).filter(Boolean)));
+    return subcastes.map((c: any) => {
+      const parentCaste = (castes || []).find((p: any) => String(p.id) === String(c.parentCasteId));
+      return {
+        id: String(c.id),
+        name: c.name,
+        sublabel: parentCaste ? `Caste: ${parentCaste.name}` : undefined,
+        category: parentCaste?.name,
+        raw: {
+          ...c,
+          parentCasteName: parentCaste?.name,
+          religionId: c.religionId || parentCaste?.religionId,
+        },
+      };
+    });
+  }, [castes]);
+
+  const handleSearchVillages = React.useCallback(async (query: string) => {
+    return (dispatch as any)(searchMasterVillagesAction(query, 20));
+  }, [dispatch]);
+
+  const handleSearchTalukas = React.useCallback(async (query: string) => {
+    return (dispatch as any)(searchMasterTalukasAction(query, 20));
+  }, [dispatch]);
+
+  const handleSearchProfessions = React.useCallback(async (query: string) => {
+    return (dispatch as any)(searchMasterProfessionsAction(query, 20));
+  }, [dispatch]);
+
+  const handleSelectVillage = React.useCallback((village: any) => {
+    const vName = typeof village === 'string' ? village : (village?.name || village?.villageName || '');
+    let vObj: any = null;
+
+    if (typeof village === 'object' && village !== null && (village.talukaName || village.talukaId || village.districtId)) {
+      vObj = village;
+    } else if (vName && vName.trim()) {
+      vObj = (villages || []).find(
+        (v: any) => (v.name || '').toLowerCase().trim() === vName.toLowerCase().trim()
+      );
     }
-    const targetCasteId = formData.casteId;
-    const casteMatches = subcastes
-      .filter((c: any) => targetCasteId && String(c.parentCasteId) === String(targetCasteId))
-      .map((c: any) => c.name);
-    const others = subcastes
-      .filter((c: any) => !targetCasteId || String(c.parentCasteId) !== String(targetCasteId))
-      .map((c: any) => c.name);
-    return Array.from(new Set([...casteMatches, ...others].filter(Boolean)));
-  }, [castes, formData.casteId, formData.casteName]);
+
+    const matchedTaluka = (vObj?.talukaId ? (talukas || []).find((t: any) => String(t.id) === String(vObj.talukaId)) : null)
+      || (vObj?.talukaName ? (talukas || []).find((t: any) => (t.name || '').toLowerCase().trim() === String(vObj.talukaName).toLowerCase().trim()) : null);
+
+    const talukaName = vObj?.talukaName || matchedTaluka?.name;
+    const districtId = vObj?.districtId || matchedTaluka?.districtId;
+    const matchedDist = districtId
+      ? (districts || []).find((d: any) => String(d.id) === String(districtId))
+      : null;
+    const stateId = vObj?.stateId || matchedTaluka?.stateId || matchedDist?.stateId;
+
+    setFormData((prev: any) => ({
+      ...prev,
+      village: vObj?.name || vName || prev.village,
+      taluka: talukaName || prev.taluka,
+      districtId: districtId ? String(districtId) : prev.districtId,
+      stateId: stateId ? String(stateId) : prev.stateId,
+    }));
+  }, [villages, talukas, districts]);
+
+  const handleSelectTaluka = React.useCallback((taluka: any) => {
+    const tName = typeof taluka === 'string' ? taluka : (taluka?.name || taluka?.talukaName || '');
+    let tObj: any = null;
+
+    if (typeof taluka === 'object' && taluka !== null && (taluka.districtId || taluka.stateId)) {
+      tObj = taluka;
+    } else if (tName && tName.trim()) {
+      tObj = (talukas || []).find(
+        (t: any) => (t.name || '').toLowerCase().trim() === tName.toLowerCase().trim()
+      );
+    }
+
+    const matchedDist = tObj?.districtId
+      ? (districts || []).find((d: any) => String(d.id) === String(tObj.districtId))
+      : null;
+    const stateId = tObj?.stateId || matchedDist?.stateId;
+
+    setFormData((prev: any) => ({
+      ...prev,
+      taluka: tObj?.name || tName || prev.taluka,
+      districtId: tObj?.districtId ? String(tObj.districtId) : prev.districtId,
+      stateId: stateId ? String(stateId) : prev.stateId,
+    }));
+  }, [talukas, districts]);
 
   const familyInfluencerOptions: DropdownOption[] = useMemo(() => {
     const list = (familyInfluencers || []).map((inf: any) => {
@@ -826,6 +918,11 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
           <VoterGeographyFormSection
             t={t}
             rawAcs={acs}
+            rawPcs={pcs}
+            rawDistricts={districts}
+            rawBooths={booths}
+            rawVillages={villages}
+            rawTalukas={talukas}
             theme={theme}
             errors={errors}
             formData={formData}
@@ -841,6 +938,10 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
             districtOptions={districtOptions}
             talukaSuggestions={talukaSuggestions}
             villageSuggestions={villageSuggestions}
+            onSearchVillages={handleSearchVillages}
+            onSearchTalukas={handleSearchTalukas}
+            onSelectVillage={handleSelectVillage}
+            onSelectTaluka={handleSelectTaluka}
           />
         )}
 
@@ -882,6 +983,9 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
             religionOptions={religionOptions}
             canEditDemographics={canEditDemographics}
             subcasteSuggestions={subcasteSuggestions}
+            professionCategories={professionCategories}
+            professions={professions}
+            onSearchProfessions={handleSearchProfessions}
           />
         )}
 

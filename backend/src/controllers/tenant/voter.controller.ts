@@ -75,7 +75,13 @@ export class VoterController {
 
   static updateVoter = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const updatedVoter = await VoterService.updateVoter(id, req.body, (req.tenantDbName || req.user?.tenantDbName));
+    const volunteerId = (req.user as any)?.id || null;
+    const updatedVoter = await VoterService.updateVoter(
+      id,
+      req.body,
+      (req.tenantDbName || req.user?.tenantDbName),
+      volunteerId
+    );
     if (!updatedVoter) {
       const errRes = ApiResponse.error('Voter not found or update failed', 404);
       res.status(errRes.statusCode).json(errRes.body);

@@ -1,0 +1,57 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "source": "Election Commission of India / Survey of India Delimitation 2008-2024",
+    "vintage": 2024,
+    "crs": "EPSG:4326",
+    "coverage": "India Parliamentary and Assembly Constituencies"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "state_code": "MP",
+        "state_name": "Madhya Pradesh",
+        "pc_code": 29,
+        "pc_name": "Betul",
+        "ac_code": 131,
+        "ac_name": "Betul",
+        "party": "BJP",
+        "candidate": "Jyoti Dhurve",
+        "votes": 124500,
+        "vote_share": 58.4,
+        "turnout": 72.5,
+        "margin": 14.8,
+        "election_year": 2024,
+        "election_type": "LS"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.85,
+              21.9
+            ],
+            [
+              77.95,
+              21.9
+            ],
+            [
+              77.95,
+              22.0
+            ],
+            [
+              77.85,
+              22.0
+            ],
+            [
+              77.85,
+              21.9
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

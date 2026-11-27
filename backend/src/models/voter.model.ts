@@ -35,6 +35,7 @@ export interface Voter {
 
   professionType?: string | null;
   profession?: string | null;
+  phoneContactName?: string | null;
   religionId?: string | null;
   religionName?: string | null;
   casteId?: string | null;
@@ -146,6 +147,7 @@ export interface VoterFilterParams {
   influencerRole?: string;
   cachedTotal?: number;
   society?: string;
+  userId?: string;
 }
 
 export interface SocietyGroupItem {

@@ -1,8 +1,10 @@
 import { BulkImporter } from '../../utils/bulkImporter';
 import { CacheService } from '../../services/cache.service';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { LookupResolverService } from '../lookupResolver.service';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { formatTitleCase } from '../../utils/textUtils';
 
 export class TalukaImportService {
   static async import(
@@ -30,7 +32,7 @@ export class TalukaImportService {
           if (name && districtId) {
             rowsToInsert.push({
               district_id: districtId,
-              name,
+              name: formatTitleCase(name),
             });
           }
         }
@@ -45,7 +47,24 @@ export class TalukaImportService {
       },
     });
 
-    await CacheService.invalidatePattern('ranniti:masters:talukas*');
+    await MasterCacheInvalidator.invalidate('talukas');
+    try {
+      const { MasterQueries } = await import('../../queries/master.queries');
+      const allTalukas = await MasterQueries.getTalukas().catch(() => []);
+      const { MasterBroadcastSync } = await import('../../services/sync/masterBroadcastSync.service');
+      await MasterBroadcastSync.broadcastBatchToAllTenants(
+        'talukas',
+        allTalukas.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          district_id: t.districtId || t.district_id,
+        }))
+      );
+    } catch (broadcastErr) {
+      const { logger } = await import('../../utils/logger');
+      logger.error('[TalukaImportService] Failed to broadcast talukas to tenants:', broadcastErr);
+    }
+
     return result;
   }
 }

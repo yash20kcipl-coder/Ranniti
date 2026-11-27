@@ -4,6 +4,7 @@ import { logger } from '../../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../../queries/dbPool';
 import { ApiResponse } from '../../utils/apiResponse';
+import { readRecordsFromExcel } from '../../utils/excelReader';
 import { importJobTracker } from '../../services/importJobTracker';
 import { MasterBulkService } from '../../services/superAdmin/masterBulk.service';
 
@@ -90,54 +91,7 @@ export class MasterBulkController {
       // Stream and process in background (fire-and-forget)
       setImmediate(async () => {
         try {
-          const records: Record<string, any>[] = [];
-
-          const workbookReader = new ExcelJS.stream.xlsx.WorkbookReader(uploadedPath, {
-            sharedStrings: 'cache',
-            hyperlinks: 'ignore',
-            styles: 'ignore',
-            worksheets: 'emit',
-          });
-
-          let headers: string[] = [];
-          let firstRow = true;
-          let sheetFound = false;
-          let currentRowNumber = 1;
-
-          for await (const worksheetReader of workbookReader) {
-            if (sheetFound) break;
-            sheetFound = true; // Use the first sheet with data
-
-            for await (const row of worksheetReader) {
-              currentRowNumber++;
-              const values = (row as ExcelJS.Row).values as any[];
-              const cells = Array.isArray(values) ? values.slice(1) : [];
-
-              if (firstRow) {
-                headers = cells.map((v) => (v != null ? String(v).trim() : ''));
-                firstRow = false;
-                continue;
-              }
-
-              const rowObj: Record<string, any> = { __rowIndex: currentRowNumber };
-              for (let i = 0; i < headers.length; i++) {
-                const key = headers[i];
-                if (!key) continue;
-                const val = cells[i];
-                if (val && typeof val === 'object' && val.richText) {
-                  rowObj[key] = val.richText.map((rt: any) => rt.text).join('');
-                } else if (val && typeof val === 'object' && val.text != null) {
-                  rowObj[key] = val.text;
-                } else {
-                  rowObj[key] = val != null ? val : '';
-                }
-              }
-
-              // Skip entirely empty rows
-              const hasData = Object.entries(rowObj).some(([k, v]) => k !== '__rowIndex' && v !== '' && v != null);
-              if (hasData) records.push(rowObj);
-            }
-          }
+          const records = await readRecordsFromExcel(uploadedPath);
 
           // Update total now that we know it
           job.totalRecords = records.length;
@@ -210,6 +164,25 @@ export class MasterBulkController {
       res.status(response.statusCode).json(response.body);
     } catch (err: any) {
       const errResp = ApiResponse.error(err.message || 'Failed to fetch import jobs', 500);
+      res.status(errResp.statusCode).json(errResp.body);
+    }
+  }
+
+  /**
+   * DELETE /api/v1/masters/bulk-import/jobs/:jobId
+   * Dismiss/delete an import job from memory
+   */
+  static async deleteImportJob(req: Request, res: Response): Promise<void> {
+    try {
+      const jobIdStr = Array.isArray(req.params.jobId) ? req.params.jobId[0] : req.params.jobId;
+      const deleted = importJobTracker.deleteJob(jobIdStr);
+      if (!deleted) {
+        res.status(404).json(ApiResponse.error(`Import job '${jobIdStr}' not found.`, 404));
+        return;
+      }
+      res.status(200).json(ApiResponse.success(null, 'Import job dismissed successfully.'));
+    } catch (err: any) {
+      const errResp = ApiResponse.error(err.message || 'Failed to delete import job', 500);
       res.status(errResp.statusCode).json(errResp.body);
     }
   }

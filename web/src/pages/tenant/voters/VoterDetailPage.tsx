@@ -372,6 +372,7 @@ export const VoterDetailPage: React.FC = () => {
           isOpen={linkModalOpen}
           onClose={() => setLinkModalOpen(false)}
           voterIds={[voter.id]}
+          boothId={voter.boothId}
           type={linkInfluencerType}
           onSuccess={() => {
             setLinkModalOpen(false);

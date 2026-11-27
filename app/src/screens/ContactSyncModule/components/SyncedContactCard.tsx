@@ -39,8 +39,11 @@ export const SyncedContactCard: React.FC<SyncedContactCardProps> = ({
 
         <View style={styles.infoCol}>
           <View style={styles.nameRow}>
+            <View style={styles.phoneBadge}>
+              <Text style={styles.phoneBadgeLabel}>{t('phoneBookName')}</Text>
+            </View>
             <Text style={styles.contactName} numberOfLines={1}>
-              {item.deviceContactName}
+              {item.deviceContactName || item.devicePhone}
             </Text>
             {Boolean(item.voterType) && (
               <View style={styles.voterTypeBadge}>
@@ -49,9 +52,12 @@ export const SyncedContactCard: React.FC<SyncedContactCardProps> = ({
             )}
           </View>
 
-          <Text style={styles.voterName} numberOfLines={1}>
-            {item.hindiName || item.englishName || item.name}
-          </Text>
+          <View style={styles.voterRollRow}>
+            <Text style={styles.voterRollLabel}>{t('voterRollName')}:</Text>
+            <Text style={styles.voterName} numberOfLines={1}>
+              {item.hindiName || item.englishName || item.name}
+            </Text>
+          </View>
 
           <Text style={styles.voterSub} numberOfLines={1}>
             {item.devicePhone} | EPIC: {item.epicNo}
@@ -139,6 +145,29 @@ const getStyles = (theme: Theme) =>
       fontSize: rfValue(14),
       color: theme.colors.text || '#0F172A',
       flex: 1,
+    },
+    phoneBadge: {
+      backgroundColor: '#F0FDF4',
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: '#BBF7D0',
+    },
+    phoneBadgeLabel: {
+      fontFamily: FontFamily.bodyBold,
+      fontSize: rfValue(9),
+      color: '#15803D',
+    },
+    voterRollRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    voterRollLabel: {
+      fontFamily: FontFamily.body,
+      fontSize: rfValue(11),
+      color: theme.colors.textSecondary || '#64748B',
     },
     voterTypeBadge: {
       backgroundColor: '#EFF6FF',

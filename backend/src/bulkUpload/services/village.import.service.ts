@@ -1,8 +1,10 @@
 import { CacheService } from '../../services/cache.service';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { BulkImporter } from '../../utils/bulkImporter';
 import { LookupResolverService } from '../lookupResolver.service';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { formatTitleCase } from '../../utils/textUtils';
 
 export class VillageImportService {
   static async import(
@@ -28,10 +30,11 @@ export class VillageImportService {
 
           const talukaId = talukaMap.get(`${rawDistrict}_${rawTaluka}`) || talukaMap.get(rawTaluka) || context?.talukaId;
 
-          if (name && talukaId) {
+          // Reject empty names, pure numeric strings (like 6-digit postal PIN codes), or invalid entries
+          if (name && talukaId && !/^\d{4,8}$/.test(name.trim())) {
             rowsToInsert.push({
               taluka_id: talukaId,
-              name,
+              name: formatTitleCase(name),
             });
           }
         }
@@ -46,7 +49,24 @@ export class VillageImportService {
       },
     });
 
-    await CacheService.invalidatePattern('ranniti:masters:villages*');
+    await MasterCacheInvalidator.invalidate('villages');
+    try {
+      const { MasterQueries } = await import('../../queries/master.queries');
+      const allVillages = await MasterQueries.getVillages().catch(() => []);
+      const { MasterBroadcastSync } = await import('../../services/sync/masterBroadcastSync.service');
+      await MasterBroadcastSync.broadcastBatchToAllTenants(
+        'villages',
+        allVillages.map((v: any) => ({
+          id: v.id,
+          name: v.name,
+          taluka_id: v.talukaId || v.taluka_id,
+        }))
+      );
+    } catch (broadcastErr) {
+      const { logger } = await import('../../utils/logger');
+      logger.error('[VillageImportService] Failed to broadcast villages to tenants:', broadcastErr);
+    }
+
     return result;
   }
 }

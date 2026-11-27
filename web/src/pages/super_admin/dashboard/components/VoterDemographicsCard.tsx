@@ -1,5 +1,6 @@
 import React from 'react';
 import { Vote } from 'lucide-react';
+import { Card } from '@/components/common/Card';
 import { CountUp } from '@/components/common/CountUp';
 import type {
   VoterDemographicMetrics,
@@ -19,14 +20,13 @@ export const VoterDemographicsCard: React.FC<VoterDemographicsCardProps> = ({
 }) => {
   if (loading || !voters || !infrastructure) {
     return (
-      <div className="p-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs animate-pulse h-full">
-        <div className="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded mb-4" />
+      <Card loading className="h-full min-h-[350px]">
         <div className="space-y-4">
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-lg" />
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-lg" />
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-lg" />
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -47,27 +47,40 @@ export const VoterDemographicsCard: React.FC<VoterDemographicsCardProps> = ({
   ];
 
   return (
-    <div className="p-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between h-full">
-      <div>
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60 flex items-center justify-center">
-              <Vote className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-[12px] font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                <span>Voter Repository Demographics</span>
-              </h3>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                Master Database Distribution & Electoral Scope
-              </p>
-            </div>
+    <Card
+      title="Voter Repository Demographics"
+      subtitle="Master Database Distribution & Electoral Scope"
+      icon={<Vote className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+      badge={
+        <span className="font-mono text-[10px] font-semibold px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+          <CountUp to={voters.totalVoters} duration={1.5} /> Voters
+        </span>
+      }
+      footer={
+        <div className="w-full">
+          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+            Master Electoral Master Directory
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {scopeMetrics.map((item) => (
+              <div
+                key={item.label}
+                className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-center hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+              >
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                  {item.label}
+                </p>
+                <p className="text-xs font-extrabold text-slate-900 dark:text-white mt-0.5 font-mono">
+                  {item.count.toLocaleString()}
+                </p>
+              </div>
+            ))}
           </div>
-          <span className="font-mono text-[10px] font-semibold px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
-            <CountUp to={voters.totalVoters} duration={1.5} /> Voters
-          </span>
         </div>
-
+      }
+      className="h-full flex flex-col justify-between"
+    >
+      <div>
         {/* Demographic Ratio Bars */}
         <div className="space-y-4">
           {/* Male Ratio */}
@@ -128,28 +141,6 @@ export const VoterDemographicsCard: React.FC<VoterDemographicsCardProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Electoral Scope Breakdown Pills */}
-      <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
-        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-          Master Electoral Master Directory
-        </p>
-        <div className="grid grid-cols-4 gap-2">
-          {scopeMetrics.map((item) => (
-            <div
-              key={item.label}
-              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-center hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
-            >
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
-                {item.label}
-              </p>
-              <p className="text-xs font-extrabold text-slate-900 dark:text-white mt-0.5 font-mono">
-                {item.count.toLocaleString()}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    </Card>
   );
 };

@@ -18,6 +18,8 @@ export interface MasterState {
   wards: any[];
   parties: any[];
   booths: any[];
+  professionCategories: any[];
+  professions: any[];
   demoRecords: any[];
 }
 
@@ -39,6 +41,8 @@ const initialState: MasterState = {
   wards: [],
   parties: [],
   booths: [],
+  professionCategories: [],
+  professions: [],
   demoRecords: [],
 };
 

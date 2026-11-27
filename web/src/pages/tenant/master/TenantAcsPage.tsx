@@ -124,62 +124,51 @@ export const TenantAcsPage: React.FC = () => {
       key: 'acNumber',
       header: 'AC No.',
       sortable: true,
-      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.acNumber || '-'}</span>,
+      render: (row) => <span className="font-mono font-medium text-[9.5px] text-slate-700 dark:text-slate-300">#{row.acNumber || '-'}</span>,
     },
     {
       key: 'name',
       header: 'Assembly Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
-    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.districtName || '-'}</span> },
-    { key: 'pcName', header: 'PC', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.pcName || '-'}</span> },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.stateName || '-'}</span> },
+    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.districtName || '-'}</span> },
+    { key: 'pcName', header: 'PC', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.pcName || '-'}</span> },
   ];
 
   const pcOptions = useMemo(() => pcsData.map((p: any) => ({ label: p.name, value: p.id })), [pcsData]);
 
-  const filterFields: FilterField[] = [
-    {
-      key: 'filterPcId',
-      label: 'Parliamentary (PC)',
-      type: 'select',
-      value: filterPcId,
-      onChange: (val) => {
-        setFilterPcId(val);
-      },
-      options: [{ label: 'All PCs', value: '' }, ...pcOptions],
-      isPrimary: true,
-    },
-  ];
+  const filterFields: FilterField[] = useMemo(() => {
+    const fields: FilterField[] = [];
+    if (pcsData.length > 1) {
+      fields.push({
+        key: 'filterPcId',
+        label: 'Parliamentary (PC)',
+        type: 'select',
+        value: filterPcId,
+        defaultValue: '',
+        excludeFromCount: true,
+        onChange: (val) => setFilterPcId(val),
+        options: [{ label: 'All PCs', value: '' }, ...pcOptions],
+        isPrimary: true,
+      });
+    }
+    return fields;
+  }, [pcsData.length, filterPcId, pcOptions]);
 
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Assembly Constituencies (AC)"
-        subtitle="Manage Vidhan Sabha assembly constituencies scoped to your tenant."
-        icon={<Landmark size={22} />}
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {acsData.length} {acsData.length === 1 ? 'Record' : 'Records'}
-          </span>
-        }
-        onExportClick={handleExportExcel}
+        addLabel="Add AC"
         onAddClick={() => {
           setEditingItem(null);
           setIsModalOpen(true);
         }}
-        addLabel="Add AC"
-      />
-
-      <FilterBar
-        searchPlaceholder="Search assembly constituencies..."
-        searchValue={search}
-        onSearchChange={(val) => {
-          setSearch(val);
-        }}
-        filters={filterFields}
-        onReset={handleResetFilters}
+        icon={<Landmark size={22} />}
+        onExportClick={handleExportExcel}
+        title="Assembly Constituencies (AC)"
+        subtitle="Manage Vidhan Sabha assembly constituencies scoped to your tenant."
       />
 
       <DataTable
@@ -187,6 +176,21 @@ export const TenantAcsPage: React.FC = () => {
         data={acsData}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            showDrawerButton={false}
+            showResetButton={false}
+            searchValue={search}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search assembly constituencies..."
+            onSearchChange={(val) => {
+              setSearch(val);
+            }}
+          />
+        }
         actions={(row) => (
           <TableActions
             onEdit={() => {

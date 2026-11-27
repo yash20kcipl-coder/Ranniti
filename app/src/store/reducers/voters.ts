@@ -83,6 +83,7 @@ export interface Voter {
   partyName?: string;
   partyAbbreviation?: string;
   partySymbol?: string;
+  partyColor?: string;
   politicalView: 'Favorable' | 'Neutral' | 'Unfavorable' | 'Opposite' | 'Pending';
   status?: string;
   isVoted: boolean;
@@ -245,20 +246,25 @@ const voterReducer = (state = initialVoterState, action: any): VoterState => {
           v.id === action.payload ? { ...v, isVoted: !v.isVoted } : v
         ),
       };
-    case UPDATE_VOTER_PARTY:
+    case UPDATE_VOTER_PARTY: {
+      const isDeselected = !action.payload.partyId;
       return {
         ...state,
         voters: state.voters.map((v) =>
           v.id === action.payload.voterId
             ? {
                 ...v,
-                supportingParty: action.payload.party,
-                partyName: action.payload.party,
-                partyId: action.payload.partyId !== undefined ? action.payload.partyId : v.partyId,
+                supportingParty: action.payload.supportingParty ?? (isDeselected ? 'Independent / Undecided' : action.payload.party),
+                partyName: action.payload.partyName ?? (isDeselected ? '' : action.payload.party),
+                partyId: action.payload.partyId ? String(action.payload.partyId) : '',
+                partyAbbreviation: action.payload.partyAbbreviation ?? (isDeselected ? '' : v.partyAbbreviation),
+                partySymbol: action.payload.partySymbol ?? (isDeselected ? '' : v.partySymbol),
+                partyColor: action.payload.partyColor ?? (isDeselected ? '' : v.partyColor),
               }
             : v
         ),
       };
+    }
     case ADD_NEW_VOTER:
       return {
         ...state,

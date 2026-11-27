@@ -87,14 +87,38 @@ export function resolveBreadcrumbs(pathname: string): { title: string; breadcrum
     };
   }
 
-  // ── 3b. Campaign Analytics ──────────────────────────────────────────────────
-  if (path === '/dashboard/analytics') {
+  // ── 3a. Volunteer Survey Scores ───────────────────────────────────────────
+  if (path.startsWith('/dashboard/surveys')) {
     return {
-      title: 'Campaign Analytics',
+      title: 'Voter Surveys & Feedback',
       breadcrumbs: [
         { label: 'Platform', href: '/dashboard' },
-        { label: 'Campaign Intelligence', href: '/dashboard/analytics' },
-        { label: 'Outreach & Analytics' },
+        { label: 'Field & Voters', href: '/dashboard/surveys' },
+        { label: 'Surveys & Feedback' },
+      ],
+    };
+  }
+
+  // ── 3b. Web Users (Tenant Web Portal Users) ──────────────────────────────────
+  if (path === '/dashboard/users') {
+    return {
+      title: 'Team & Staff Directory',
+      breadcrumbs: [
+        { label: 'Platform', href: '/dashboard' },
+        { label: 'Team & Administration', href: '/dashboard/users' },
+        { label: 'Team & Staff' },
+      ],
+    };
+  }
+
+  // ── 3c. Campaign Analytics ──────────────────────────────────────────────────
+  if (path === '/dashboard/analytics') {
+    return {
+      title: 'Campaign Analytics & Reports',
+      breadcrumbs: [
+        { label: 'Platform', href: '/dashboard' },
+        { label: 'Overview & Insights', href: '/dashboard/analytics' },
+        { label: 'Analytics & Reports' },
       ],
     };
   }
@@ -132,12 +156,32 @@ export function resolveBreadcrumbs(pathname: string): { title: string; breadcrum
   }
 
   // ── 5. Roles & Access Control ───────────────────────────────────────────────
+  if (path === '/dashboard/roles/new' || path === '/dashboard/settings/roles/new') {
+    return {
+      title: 'Create Role',
+      breadcrumbs: [
+        { label: 'Platform', href: '/dashboard' },
+        { label: 'Roles & Permissions', href: '/dashboard/settings?tab=tenant-roles' },
+        { label: 'Create Role' },
+      ],
+    };
+  }
+  if (path.match(/\/dashboard\/(settings\/)?roles\/[^/]+\/edit/)) {
+    return {
+      title: 'Edit Role',
+      breadcrumbs: [
+        { label: 'Platform', href: '/dashboard' },
+        { label: 'Roles & Permissions', href: '/dashboard/settings?tab=tenant-roles' },
+        { label: 'Edit Role' },
+      ],
+    };
+  }
   if (path.startsWith('/dashboard/roles')) {
     return {
       title: 'Role Packages',
       breadcrumbs: [
         { label: 'Platform', href: '/dashboard' },
-        { label: 'Access Control', href: '/dashboard/roles' },
+        { label: 'Access Control', href: '/dashboard/settings?tab=tenant-roles' },
         { label: 'Roles' },
       ],
     };
@@ -152,10 +196,10 @@ export function resolveBreadcrumbs(pathname: string): { title: string; breadcrum
       ['districts', 'talukas', 'villages', 'pcs', 'acs', 'wards', 'booths'].includes(tabKey)
         ? 'Geography & Divisions'
         : ['religions', 'castes'].includes(tabKey)
-        ? 'Demographics'
-        : tabKey === 'parties'
-        ? 'Political Entities'
-        : 'Testing & Tools';
+          ? 'Demographics'
+          : tabKey === 'parties'
+            ? 'Political Entities'
+            : 'Testing & Tools';
 
     return {
       title: tabLabel,

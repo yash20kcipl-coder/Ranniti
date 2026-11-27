@@ -64,6 +64,8 @@ export const API_ENDPOINTS = {
       RELIGIONS: `${API_TIERS.TENANT}/religions`,
       CASTES: `${API_TIERS.TENANT}/castes`,
       PARTIES: `${API_TIERS.TENANT}/parties`,
+      PROFESSION_CATEGORIES: `${API_TIERS.TENANT}/profession-categories`,
+      PROFESSIONS: `${API_TIERS.TENANT}/professions`,
     },
   },
 

@@ -4,7 +4,6 @@ import {
   SocialInfluencerAssignModal,
   LinkToInfluencerModal,
 } from '@/components/common/influencer';
-import { ImportModal } from '@/components/common/ImportModal';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import type { FamilyInfluencerTarget, SocialInfluencerTarget } from '@/components/common/influencer';
 
@@ -13,9 +12,6 @@ interface VoterModalsProps {
   setIsDeleteModalOpen: (open: boolean) => void;
   selectedVoter: any;
   onDeleteConfirm: () => Promise<void>;
-  isImportModalOpen: boolean;
-  setIsImportModalOpen: (open: boolean) => void;
-  onBulkImport: (records: Record<string, any>[]) => Promise<void>;
   familyModalOpen: boolean;
   setFamilyModalOpen: (open: boolean) => void;
   targetFamilyInfluencer: FamilyInfluencerTarget | null;
@@ -30,7 +26,7 @@ interface VoterModalsProps {
   setLinkTargetVoterIds: (ids: string[]) => void;
   linkInfluencerType: 'family' | 'social';
   onInfluencerSuccess: () => void;
-  sampleParams?: Record<string, any>;
+  isSuperAdmin?: boolean;
 }
 
 export const VoterModals: React.FC<VoterModalsProps> = ({
@@ -38,9 +34,6 @@ export const VoterModals: React.FC<VoterModalsProps> = ({
   setIsDeleteModalOpen,
   selectedVoter,
   onDeleteConfirm,
-  isImportModalOpen,
-  setIsImportModalOpen,
-  onBulkImport,
   familyModalOpen,
   setFamilyModalOpen,
   targetFamilyInfluencer,
@@ -55,7 +48,7 @@ export const VoterModals: React.FC<VoterModalsProps> = ({
   setLinkTargetVoterIds,
   linkInfluencerType,
   onInfluencerSuccess,
-  sampleParams,
+  isSuperAdmin,
 }) => {
   return (
     <>
@@ -70,17 +63,6 @@ export const VoterModals: React.FC<VoterModalsProps> = ({
         variant="danger"
       />
 
-      {/* EXCEL IMPORT MODAL */}
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        title="Bulk Import Voters from Excel"
-        categoryKey="voters"
-        sampleParams={sampleParams}
-        fields={[]}
-        onImport={onBulkImport}
-      />
-
       {/* DEDICATED INFLUENCER MODALS */}
       <FamilyInfluencerAssignModal
         isOpen={familyModalOpen}
@@ -89,6 +71,7 @@ export const VoterModals: React.FC<VoterModalsProps> = ({
           setTargetFamilyInfluencer(null);
         }}
         influencer={targetFamilyInfluencer}
+        isSuperAdmin={isSuperAdmin}
         onSuccess={() => {
           setFamilyModalOpen(false);
           setTargetFamilyInfluencer(null);
@@ -103,6 +86,7 @@ export const VoterModals: React.FC<VoterModalsProps> = ({
           setTargetSocialInfluencer(null);
         }}
         influencer={targetSocialInfluencer}
+        isSuperAdmin={isSuperAdmin}
         onSuccess={() => {
           setSocialModalOpen(false);
           setTargetSocialInfluencer(null);
@@ -118,6 +102,7 @@ export const VoterModals: React.FC<VoterModalsProps> = ({
         }}
         voterIds={linkTargetVoterIds}
         type={linkInfluencerType}
+        isSuperAdmin={isSuperAdmin}
         onSuccess={() => {
           setLinkModalOpen(false);
           setLinkTargetVoterIds([]);

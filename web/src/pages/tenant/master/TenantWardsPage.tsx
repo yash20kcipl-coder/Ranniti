@@ -38,7 +38,6 @@ export const TenantWardsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState('');
-  const [filterPcId, setFilterPcId] = useState('');
   const [filterAcId, setFilterAcId] = useState('');
 
   // Modal States
@@ -57,7 +56,6 @@ export const TenantWardsPage: React.FC = () => {
       setLoading(true);
 
       const params: Record<string, any> = { page, limit };
-      if (filterPcId) params.pcId = filterPcId;
       if (filterAcId) params.acId = filterAcId;
       if (search.trim()) params.search = search.trim();
 
@@ -70,18 +68,19 @@ export const TenantWardsPage: React.FC = () => {
       };
     },
     200,
-    [dispatch, page, limit, search, filterPcId, filterAcId]
+    [dispatch, page, limit, search, filterAcId]
   );
 
-  const filteredAcsOptions = useMemo(() => {
-    if (!filterPcId) return acsData;
-    return acsData.filter((a: any) => String(a.pcId) === String(filterPcId));
-  }, [acsData, filterPcId]);
+  // Auto-select AC if single constituency available in tenant scope
+  useDebouncedEffect(() => {
+    if (acsData?.length === 1 && !filterAcId) {
+      setFilterAcId(String(acsData[0].id));
+    }
+  }, 50, [acsData, filterAcId]);
 
   const handleResetFilters = () => {
     setSearch('');
-    setFilterPcId('');
-    setFilterAcId('');
+    setFilterAcId(acsData?.length === 1 ? String(acsData[0].id) : '');
     setPage(1);
   };
 
@@ -135,46 +134,42 @@ export const TenantWardsPage: React.FC = () => {
       key: 'wardNumber',
       header: 'Ward No.',
       sortable: true,
-      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.wardNumber || '-'}</span>,
+      render: (row) => <span className="font-mono font-medium text-[9.5px] text-slate-700 dark:text-slate-300">#{row.wardNumber || '-'}</span>,
     },
     {
       key: 'name',
       header: 'Ward / Prabhag Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
-    { key: 'acName', header: 'Assembly Constituency (AC)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.acName || '-'}</span> },
+    { key: 'acName', header: 'Assembly Constituency (AC)', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.acName || '-'}</span> },
   ];
 
-  const filterFields: FilterField[] = [
-    {
-      key: 'filterPcId',
-      label: 'Parliamentary (PC)',
-      type: 'select',
-      value: filterPcId,
-      onChange: (val) => {
-        setFilterPcId(val);
-        setFilterAcId('');
-        setPage(1);
-      },
-      options: [{ label: 'All PCs', value: '' }, ...pcsData.map((p: any) => ({ label: p.name, value: p.id }))],
-    },
-    {
-      key: 'filterAcId',
-      label: 'Assembly (AC)',
-      type: 'select',
-      value: filterAcId,
-      onChange: (val) => {
-        setFilterAcId(val);
-        setPage(1);
-      },
-      options: [
-        { label: 'All ACs', value: '' },
-        ...filteredAcsOptions.map((a: any) => ({ label: `${a.acNumber ? `#${a.acNumber} - ` : ''}${a.name}`, value: a.id })),
-      ],
-      isPrimary: true,
-    },
-  ];
+  const filterFields: FilterField[] = useMemo(() => {
+    const fields: FilterField[] = [];
+
+    if (acsData.length > 1) {
+      fields.push({
+        key: 'filterAcId',
+        label: 'Assembly (AC)',
+        type: 'select',
+        value: filterAcId,
+        defaultValue: '',
+        excludeFromCount: true,
+        onChange: (val) => {
+          setFilterAcId(val);
+          setPage(1);
+        },
+        options: [
+          { label: 'All ACs', value: '' },
+          ...acsData.map((a: any) => ({ label: `${a.acNumber ? `#${a.acNumber} - ` : ''}${a.name}`, value: a.id })),
+        ],
+        isPrimary: true,
+      });
+    }
+
+    return fields;
+  }, [acsData, filterAcId]);
 
   return (
     <div className="space-y-4">
@@ -182,11 +177,6 @@ export const TenantWardsPage: React.FC = () => {
         title="Wards (Prabhags)"
         subtitle="Manage electoral wards and prabhags under Assembly Constituencies."
         icon={<Layers size={22} />}
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {paginationMeta?.total ?? wardsData.length} {(paginationMeta?.total ?? wardsData.length) === 1 ? 'Record' : 'Records'}
-          </span>
-        }
         onExportClick={handleExportExcel}
         onAddClick={() => {
           setEditingItem(null);
@@ -195,22 +185,27 @@ export const TenantWardsPage: React.FC = () => {
         addLabel="Add Ward"
       />
 
-      <FilterBar
-        searchPlaceholder="Search wards..."
-        searchValue={search}
-        onSearchChange={(val) => {
-          setSearch(val);
-          setPage(1);
-        }}
-        filters={filterFields}
-        onReset={handleResetFilters}
-      />
-
       <DataTable
         columns={columns}
         data={wardsData}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            showDrawerButton={false}
+            showResetButton={false}
+            searchValue={search}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search wards..."
+            onSearchChange={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+          />
+        }
         serverPagination={{
           page: paginationMeta?.page || page,
           limit: paginationMeta?.limit || limit,

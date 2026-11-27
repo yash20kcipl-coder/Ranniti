@@ -1,5 +1,7 @@
 import { query } from './dbPool';
 import { CacheService } from '../services/cache.service';
+import { MasterCacheInvalidator } from '../services/cacheInvalidation.service';
+import { formatTitleCase } from '../utils/textUtils';
 import {
   Religion,
   Caste,
@@ -12,6 +14,8 @@ import {
   Ward,
   Booth,
   Party,
+  ProfessionCategory,
+  Profession,
 } from '../models/master.model';
 
 export class MasterQueries {
@@ -38,31 +42,43 @@ export class MasterQueries {
   }
 
   static async createReligion(name: string): Promise<Religion> {
+    const cleanName = formatTitleCase(name);
+    const existing = await query(
+      `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM religions
+       WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))
+       LIMIT 1`,
+      [cleanName]
+    );
+    if (existing.rows.length > 0) {
+      return existing.rows[0];
+    }
     const res = await query(
       `INSERT INTO religions (name) 
        VALUES ($1) 
        RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [name]
+      [cleanName]
     );
-    await CacheService.invalidatePattern('ranniti:masters:religions*');
+    await MasterCacheInvalidator.invalidate('religions');
     return res.rows[0];
   }
 
   static async updateReligion(id: string, name?: string): Promise<Religion | null> {
+    const cleanName = name ? formatTitleCase(name) : undefined;
     const res = await query(
       `UPDATE religions 
        SET name = COALESCE($2, name), updated_at = NOW() 
        WHERE id = $1 
        RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [id, name || null]
+      [id, cleanName || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:religions*');
+    await MasterCacheInvalidator.invalidate('religions');
     return res.rows[0] || null;
   }
 
   static async deleteReligion(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM religions WHERE id = $1`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:religions*');
+    await MasterCacheInvalidator.invalidate('religions');
     return (res.rowCount || 0) > 0;
   }
 
@@ -109,7 +125,7 @@ export class MasterQueries {
           [cleanRelName]
         );
         targetReligionId = newRel.rows[0].id;
-        await CacheService.invalidatePattern('ranniti:masters:religions*');
+        await MasterCacheInvalidator.invalidate('religions');
       }
     }
 
@@ -139,7 +155,7 @@ export class MasterQueries {
        RETURNING id, name, category, religion_id AS "religionId", parent_caste_id AS "parentCasteId", created_at AS "createdAt", updated_at AS "updatedAt"`,
       [name, category || 'General', targetReligionId, targetParentCasteId]
     );
-    await CacheService.invalidatePattern('ranniti:masters:castes*');
+    await MasterCacheInvalidator.invalidate('castes');
     return res.rows[0];
   }
 
@@ -160,7 +176,7 @@ export class MasterQueries {
         `INSERT INTO religions (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET updated_at = NOW() RETURNING id`,
         [cleanName]
       );
-      await CacheService.invalidatePattern('ranniti:masters:religions*');
+      await MasterCacheInvalidator.invalidate('religions');
       return inserted.rows[0]?.id || null;
     } catch {
       const fallback = await query(
@@ -187,7 +203,7 @@ export class MasterQueries {
     if (existing.rows[0]) {
       if (!existing.rows[0].religion_id && religionId) {
         await query(`UPDATE castes SET religion_id = $1, updated_at = NOW() WHERE id = $2`, [religionId, existing.rows[0].id]);
-        await CacheService.invalidatePattern('ranniti:masters:castes*');
+        await MasterCacheInvalidator.invalidate('castes');
       }
       return existing.rows[0].id;
     }
@@ -202,7 +218,7 @@ export class MasterQueries {
          RETURNING id`,
         [cleanName, category || 'General', religionId || null]
       );
-      await CacheService.invalidatePattern('ranniti:masters:castes*');
+      await MasterCacheInvalidator.invalidate('castes');
       return inserted.rows[0]?.id || null;
     } catch {
       const fallback = await query(
@@ -250,7 +266,7 @@ export class MasterQueries {
          RETURNING id`,
         [cleanName, 'General', religionId || null, parentCasteId || null]
       );
-      await CacheService.invalidatePattern('ranniti:masters:castes*');
+      await MasterCacheInvalidator.invalidate('castes');
       return inserted.rows[0]?.id || null;
     } catch {
       const fallback = await query(
@@ -274,13 +290,24 @@ export class MasterQueries {
   }
 
   static async createState(name: string): Promise<State> {
+    const cleanName = formatTitleCase(name);
+    const existing = await query(
+      `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM states
+       WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))
+       LIMIT 1`,
+      [cleanName]
+    );
+    if (existing.rows.length > 0) {
+      return existing.rows[0];
+    }
     const res = await query(
       `INSERT INTO states (name) 
        VALUES ($1) 
        RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [name]
+      [cleanName]
     );
-    await CacheService.invalidatePattern('ranniti:masters:states*');
+    await MasterCacheInvalidator.invalidate('states');
     return res.rows[0];
   }
 
@@ -316,20 +343,50 @@ export class MasterQueries {
   }
 
   static async createDistrict(stateId: string, name: string): Promise<District> {
+    const cleanName = formatTitleCase(name);
+    const existing = await query(
+      `SELECT id, state_id AS "stateId", name, created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM districts
+       WHERE state_id = $1 AND LOWER(TRIM(name)) = LOWER(TRIM($2))
+       LIMIT 1`,
+      [stateId, cleanName]
+    );
+    if (existing.rows.length > 0) {
+      return existing.rows[0];
+    }
     const res = await query(
       `INSERT INTO districts (state_id, name) 
        VALUES ($1, $2) 
        RETURNING id, state_id AS "stateId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [stateId, name]
+      [stateId, cleanName]
     );
-    await CacheService.invalidatePattern('ranniti:masters:districts*');
+    await MasterCacheInvalidator.invalidate('districts');
     return res.rows[0];
   }
 
   // --- TALUKAS ---
-  static async getTalukas(districtId?: string, stateId?: string): Promise<Taluka[]> {
-    const key = `ranniti:masters:talukas:${districtId || 'all'}:${stateId || 'all'}`;
-    return CacheService.getOrSet(key, 86400, async () => {
+  static async getTalukas(
+    filterOrDistrictId?: string | { districtId?: string; stateId?: string; search?: string; limit?: number },
+    stateIdParam?: string
+  ): Promise<Taluka[]> {
+    let districtId: string | undefined;
+    let stateId: string | undefined = stateIdParam;
+    let search: string | undefined;
+    let limit: number | undefined;
+
+    if (typeof filterOrDistrictId === 'object' && filterOrDistrictId !== null) {
+      districtId = filterOrDistrictId.districtId;
+      stateId = filterOrDistrictId.stateId;
+      search = filterOrDistrictId.search;
+      limit = filterOrDistrictId.limit;
+    } else {
+      districtId = filterOrDistrictId as string | undefined;
+    }
+
+    const isFiltered = Boolean(search?.trim());
+    const key = !isFiltered ? `ranniti:masters:talukas:${districtId || 'all'}:${stateId || 'all'}:${limit || 'all'}` : null;
+
+    const fetchTalukas = async () => {
       const params: any[] = [];
       const conditions: string[] = [];
 
@@ -343,7 +400,17 @@ export class MasterQueries {
         conditions.push(`d.state_id = $${params.length}`);
       }
 
+      if (search && search.trim()) {
+        params.push(`%${search.trim()}%`);
+        conditions.push(`t.name ILIKE $${params.length}`);
+      }
+
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      let limitClause = '';
+      if (limit) {
+        params.push(Math.max(1, Math.min(500, Number(limit))));
+        limitClause = `LIMIT $${params.length}`;
+      }
 
       const sql = `
         SELECT 
@@ -360,11 +427,17 @@ export class MasterQueries {
         INNER JOIN states s ON d.state_id = s.id
         ${whereClause}
         ORDER BY s.name ASC, d.name ASC, t.name ASC
+        ${limitClause}
       `;
 
       const res = await query(sql, params);
       return res.rows;
-    });
+    };
+
+    if (key) {
+      return CacheService.getOrSet(key, 86400, fetchTalukas);
+    }
+    return fetchTalukas();
   }
 
   static async getTalukaById(id: string): Promise<Taluka | null> {
@@ -388,31 +461,43 @@ export class MasterQueries {
   }
 
   static async createTaluka(districtId: string, name: string): Promise<Taluka> {
+    const cleanName = formatTitleCase(name);
+    const existing = await query(
+      `SELECT id, district_id AS "districtId", name, created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM talukas
+       WHERE district_id = $1 AND LOWER(TRIM(name)) = LOWER(TRIM($2))
+       LIMIT 1`,
+      [districtId, cleanName]
+    );
+    if (existing.rows.length > 0) {
+      return existing.rows[0];
+    }
     const res = await query(
       `INSERT INTO talukas (district_id, name) 
        VALUES ($1, $2) 
        RETURNING id, district_id AS "districtId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [districtId, name]
+      [districtId, cleanName]
     );
-    await CacheService.invalidatePattern('ranniti:masters:talukas*');
+    await MasterCacheInvalidator.invalidate('talukas');
     return res.rows[0];
   }
 
   static async updateTaluka(id: string, districtId?: string, name?: string): Promise<Taluka | null> {
+    const cleanName = name ? formatTitleCase(name) : undefined;
     const res = await query(
       `UPDATE talukas 
        SET district_id = COALESCE($2, district_id), name = COALESCE($3, name), updated_at = NOW() 
        WHERE id = $1 
        RETURNING id, district_id AS "districtId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [id, districtId || null, name || null]
+      [id, districtId || null, cleanName || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:talukas*');
+    await MasterCacheInvalidator.invalidate('talukas');
     return res.rows[0] || null;
   }
 
   static async deleteTaluka(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM talukas WHERE id = $1`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:talukas*');
+    await MasterCacheInvalidator.invalidate('talukas');
     return (res.rowCount || 0) > 0;
   }
 
@@ -523,7 +608,7 @@ export class MasterQueries {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    if (page && limit) {
+    if (page || limit) {
       const pageNum = Math.max(1, Number(page) || 1);
       const limitNum = Math.max(1, Math.min(500, Number(limit) || 25));
       const offsetNum = (pageNum - 1) * limitNum;
@@ -531,9 +616,9 @@ export class MasterQueries {
       const countSql = `
         SELECT COUNT(*)::int AS total
         FROM villages v
-        INNER JOIN talukas t ON v.taluka_id = t.id
-        INNER JOIN districts d ON t.district_id = d.id
-        INNER JOIN states s ON d.state_id = s.id
+        LEFT JOIN talukas t ON v.taluka_id = t.id
+        LEFT JOIN districts d ON t.district_id = d.id
+        LEFT JOIN states s ON d.state_id = s.id
         ${whereClause}
       `;
       const countRes = await query(countSql, params);
@@ -553,9 +638,9 @@ export class MasterQueries {
           v.created_at AS "createdAt", 
           v.updated_at AS "updatedAt" 
         FROM villages v
-        INNER JOIN talukas t ON v.taluka_id = t.id
-        INNER JOIN districts d ON t.district_id = d.id
-        INNER JOIN states s ON d.state_id = s.id
+        LEFT JOIN talukas t ON v.taluka_id = t.id
+        LEFT JOIN districts d ON t.district_id = d.id
+        LEFT JOIN states s ON d.state_id = s.id
         ${whereClause}
         ORDER BY s.name ASC, d.name ASC, t.name ASC, v.name ASC
         LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}
@@ -589,9 +674,9 @@ export class MasterQueries {
           v.created_at AS "createdAt", 
           v.updated_at AS "updatedAt" 
         FROM villages v
-        INNER JOIN talukas t ON v.taluka_id = t.id
-        INNER JOIN districts d ON t.district_id = d.id
-        INNER JOIN states s ON d.state_id = s.id
+        LEFT JOIN talukas t ON v.taluka_id = t.id
+        LEFT JOIN districts d ON t.district_id = d.id
+        LEFT JOIN states s ON d.state_id = s.id
         ${whereClause}
         ORDER BY s.name ASC, d.name ASC, t.name ASC, v.name ASC
       `;
@@ -615,9 +700,9 @@ export class MasterQueries {
         v.created_at AS "createdAt", 
         v.updated_at AS "updatedAt" 
       FROM villages v
-      INNER JOIN talukas t ON v.taluka_id = t.id
-      INNER JOIN districts d ON t.district_id = d.id
-      INNER JOIN states s ON d.state_id = s.id
+      LEFT JOIN talukas t ON v.taluka_id = t.id
+      LEFT JOIN districts d ON t.district_id = d.id
+      LEFT JOIN states s ON d.state_id = s.id
       WHERE v.id = $1
     `;
     const res = await query(sql, [id]);
@@ -625,13 +710,16 @@ export class MasterQueries {
   }
 
   static async createVillage(talukaId: string, name: string): Promise<Village> {
+    if (!name || /^\d{4,8}$/.test(name.trim())) {
+      throw new Error('Invalid village name: village name cannot be a postal PIN code or pure number.');
+    }
     const res = await query(
       `INSERT INTO villages (taluka_id, name) 
        VALUES ($1, $2) 
        RETURNING id, taluka_id AS "talukaId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [talukaId, name]
     );
-    await CacheService.invalidatePattern('ranniti:masters:villages*');
+    await MasterCacheInvalidator.invalidate('villages');
     return res.rows[0];
   }
 
@@ -643,13 +731,13 @@ export class MasterQueries {
        RETURNING id, taluka_id AS "talukaId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, talukaId || null, name || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:villages*');
+    await MasterCacheInvalidator.invalidate('villages');
     return res.rows[0] || null;
   }
 
   static async deleteVillage(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM villages WHERE id = $1`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:villages*');
+    await MasterCacheInvalidator.invalidate('villages');
     return (res.rowCount || 0) > 0;
   }
 
@@ -692,7 +780,7 @@ export class MasterQueries {
        RETURNING id, state_id AS "stateId", pc_number AS "pcNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [stateId, pcNumber, name]
     );
-    await CacheService.invalidatePattern('ranniti:masters:pcs*');
+    await MasterCacheInvalidator.invalidate('pcs');
     return res.rows[0];
   }
 
@@ -752,7 +840,7 @@ export class MasterQueries {
        RETURNING id, pc_id AS "pcId", district_id AS "districtId", ac_number AS "acNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [pcId, acNumber, name, districtId || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:acs*');
+    await MasterCacheInvalidator.invalidate('acs');
     return res.rows[0];
   }
 
@@ -760,7 +848,7 @@ export class MasterQueries {
   static async getParties(): Promise<Party[]> {
     return CacheService.getOrSet('ranniti:masters:parties', 86400, async () => {
       const res = await query(
-        `SELECT id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt" 
+        `SELECT id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, color, created_at AS "createdAt", updated_at AS "updatedAt" 
          FROM parties 
          ORDER BY name ASC`
       );
@@ -770,43 +858,44 @@ export class MasterQueries {
 
   static async getPartyById(id: string): Promise<Party | null> {
     const res = await query(
-      `SELECT id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt" 
+      `SELECT id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, color, created_at AS "createdAt", updated_at AS "updatedAt" 
        FROM parties WHERE id = $1`,
       [id]
     );
     return res.rows[0] || null;
   }
 
-  static async createParty(name: string, abbreviation: string, symbolLogo?: string, alliance?: string): Promise<Party> {
+  static async createParty(name: string, abbreviation: string, symbolLogo?: string, alliance?: string, color?: string): Promise<Party> {
     const res = await query(
-      `INSERT INTO parties (name, abbreviation, symbol_logo, alliance) 
-       VALUES ($1, $2, $3, $4) 
-       RETURNING id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [name, abbreviation, symbolLogo || null, alliance || null]
+      `INSERT INTO parties (name, abbreviation, symbol_logo, alliance, color) 
+       VALUES ($1, $2, $3, $4, $5) 
+       RETURNING id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, color, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [name, abbreviation, symbolLogo || null, alliance || null, color || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:parties*');
+    await MasterCacheInvalidator.invalidate('parties');
     return res.rows[0];
   }
 
-  static async updateParty(id: string, name?: string, abbreviation?: string, symbolLogo?: string, alliance?: string): Promise<Party | null> {
+  static async updateParty(id: string, name?: string, abbreviation?: string, symbolLogo?: string, alliance?: string, color?: string): Promise<Party | null> {
     const res = await query(
       `UPDATE parties 
        SET name = COALESCE($2, name), 
            abbreviation = COALESCE($3, abbreviation), 
            symbol_logo = COALESCE($4, symbol_logo),
            alliance = COALESCE($5, alliance),
+           color = COALESCE($6, color),
            updated_at = NOW() 
        WHERE id = $1 
-       RETURNING id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [id, name || null, abbreviation || null, symbolLogo || null, alliance || null]
+       RETURNING id, name, abbreviation, symbol_logo AS "symbolLogo", alliance, color, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [id, name || null, abbreviation || null, symbolLogo || null, alliance || null, color || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:parties*');
+    await MasterCacheInvalidator.invalidate('parties');
     return res.rows[0] || null;
   }
 
   static async deleteParty(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM parties WHERE id = $1 RETURNING id`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:parties*');
+    await MasterCacheInvalidator.invalidate('parties');
     return (res.rowCount || 0) > 0;
   }
 
@@ -865,7 +954,7 @@ export class MasterQueries {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    if (page && limit) {
+    if (page || limit) {
       const pageNum = Math.max(1, Number(page) || 1);
       const limitNum = Math.max(1, Math.min(500, Number(limit) || 25));
       const offsetNum = (pageNum - 1) * limitNum;
@@ -989,6 +1078,7 @@ export class MasterQueries {
        RETURNING id, ac_id AS "acId", ward_number AS "wardNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [data.acId, data.wardNumber, data.name]
     );
+    await MasterCacheInvalidator.invalidate('wards');
     return res.rows[0];
   }
 
@@ -1003,11 +1093,13 @@ export class MasterQueries {
        RETURNING id, ac_id AS "acId", ward_number AS "wardNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, data.acId || null, data.wardNumber || null, data.name || null]
     );
+    await MasterCacheInvalidator.invalidate('wards');
     return res.rows[0] || null;
   }
 
   static async deleteWard(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM wards WHERE id = $1 RETURNING id`, [id]);
+    await MasterCacheInvalidator.invalidate('wards');
     return (res.rowCount || 0) > 0;
   }
 
@@ -1123,7 +1215,7 @@ export class MasterQueries {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    if (page && limit) {
+    if (page || limit) {
       const pageNum = Math.max(1, Number(page) || 1);
       const limitNum = Math.max(1, Math.min(500, Number(limit) || 25));
       const offsetNum = (pageNum - 1) * limitNum;
@@ -1232,6 +1324,7 @@ export class MasterQueries {
        RETURNING id, ac_id AS "acId", ward_id AS "wardId", booth_number AS "boothNumber", name, location_building AS "locationBuilding", total_voters AS "totalVoters", created_at AS "createdAt", updated_at AS "updatedAt"`,
       [data.acId, data.wardId || null, data.boothNumber, data.name, data.locationBuilding || null, data.totalVoters || 0]
     );
+    await MasterCacheInvalidator.invalidate('booths');
     return res.rows[0];
   }
 
@@ -1249,11 +1342,13 @@ export class MasterQueries {
        RETURNING id, ac_id AS "acId", ward_id AS "wardId", booth_number AS "boothNumber", name, location_building AS "locationBuilding", total_voters AS "totalVoters", created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, data.acId || null, data.wardId || null, data.boothNumber || null, data.name || null, data.locationBuilding || null, data.totalVoters || null]
     );
+    await MasterCacheInvalidator.invalidate('booths');
     return res.rows[0] || null;
   }
 
   static async deleteBooth(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM booths WHERE id = $1 RETURNING id`, [id]);
+    await MasterCacheInvalidator.invalidate('booths');
     return (res.rowCount || 0) > 0;
   }
 
@@ -1271,18 +1366,19 @@ export class MasterQueries {
        RETURNING id, name, category, religion_id AS "religionId", parent_caste_id AS "parentCasteId", created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null, category || null, religionId || null, parentCasteId || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:castes*');
+    await MasterCacheInvalidator.invalidate('castes');
     return res.rows[0] || null;
   }
 
   static async deleteCaste(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM castes WHERE id = $1 RETURNING id`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:castes*');
+    await MasterCacheInvalidator.invalidate('castes');
     return (res.rowCount || 0) > 0;
   }
 
   // --- STATES UPDATE & DELETE ---
   static async updateState(id: string, name?: string, code?: string): Promise<State | null> {
+    const cleanName = name ? formatTitleCase(name) : undefined;
     const res = await query(
       `UPDATE states 
        SET name = COALESCE($2, name), 
@@ -1290,20 +1386,21 @@ export class MasterQueries {
            updated_at = NOW() 
        WHERE id = $1 
        RETURNING id, name, code, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [id, name || null, code || null]
+      [id, cleanName || null, code || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:states*');
+    await MasterCacheInvalidator.invalidate('states');
     return res.rows[0] || null;
   }
 
   static async deleteState(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM states WHERE id = $1 RETURNING id`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:states*');
+    await MasterCacheInvalidator.invalidate('states');
     return (res.rowCount || 0) > 0;
   }
 
   // --- DISTRICTS UPDATE & DELETE ---
   static async updateDistrict(id: string, name?: string, stateId?: string): Promise<District | null> {
+    const cleanName = name ? formatTitleCase(name) : undefined;
     const res = await query(
       `UPDATE districts 
        SET name = COALESCE($2, name), 
@@ -1311,15 +1408,15 @@ export class MasterQueries {
            updated_at = NOW() 
        WHERE id = $1 
        RETURNING id, state_id AS "stateId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [id, name || null, stateId || null]
+      [id, cleanName || null, stateId || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:districts*');
+    await MasterCacheInvalidator.invalidate('districts');
     return res.rows[0] || null;
   }
 
   static async deleteDistrict(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM districts WHERE id = $1 RETURNING id`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:districts*');
+    await MasterCacheInvalidator.invalidate('districts');
     return (res.rowCount || 0) > 0;
   }
 
@@ -1335,13 +1432,13 @@ export class MasterQueries {
        RETURNING id, state_id AS "stateId", pc_number AS "pcNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null, pcNumber || null, stateId || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:pcs*');
+    await MasterCacheInvalidator.invalidate('pcs');
     return res.rows[0] || null;
   }
 
   static async deletePc(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM parliamentary_constituencies WHERE id = $1 RETURNING id`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:pcs*');
+    await MasterCacheInvalidator.invalidate('pcs');
     return (res.rowCount || 0) > 0;
   }
 
@@ -1358,13 +1455,208 @@ export class MasterQueries {
        RETURNING id, pc_id AS "pcId", district_id AS "districtId", ac_number AS "acNumber", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
       [id, name || null, acNumber || null, pcId || null, districtId || null]
     );
-    await CacheService.invalidatePattern('ranniti:masters:acs*');
+    await MasterCacheInvalidator.invalidate('acs');
     return res.rows[0] || null;
   }
 
   static async deleteAc(id: string): Promise<boolean> {
     const res = await query(`DELETE FROM assembly_constituencies WHERE id = $1 RETURNING id`, [id]);
-    await CacheService.invalidatePattern('ranniti:masters:acs*');
+    await MasterCacheInvalidator.invalidate('acs');
+    return (res.rowCount || 0) > 0;
+  }
+
+  // --- PROFESSION CATEGORIES ---
+  static async getProfessionCategories(search?: string): Promise<ProfessionCategory[]> {
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
+      const res = await query(
+        `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt"
+         FROM profession_categories
+         WHERE name ILIKE '%' || $1 || '%'
+         ORDER BY name ASC`,
+        [cleanSearch]
+      );
+      return res.rows;
+    }
+
+    return CacheService.getOrSet('ranniti:masters:profession_categories', 604800, async () => {
+      const res = await query(
+        `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt"
+         FROM profession_categories
+         ORDER BY name ASC`
+      );
+      return res.rows;
+    });
+  }
+
+  static async getProfessionCategoryById(id: string): Promise<ProfessionCategory | null> {
+    const res = await query(
+      `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM profession_categories
+       WHERE id = $1`,
+      [id]
+    );
+    return res.rows[0] || null;
+  }
+
+  static async createProfessionCategory(name: string): Promise<ProfessionCategory> {
+    const cleanName = formatTitleCase(name);
+    const existing = await query(
+      `SELECT id, name, created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM profession_categories
+       WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))
+       LIMIT 1`,
+      [cleanName]
+    );
+    if (existing.rows.length > 0) {
+      return existing.rows[0];
+    }
+    const res = await query(
+      `INSERT INTO profession_categories (name)
+       VALUES ($1)
+       RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [cleanName]
+    );
+    await MasterCacheInvalidator.invalidate(['professionCategories', 'professions']);
+    return res.rows[0];
+  }
+
+  static async updateProfessionCategory(id: string, name?: string): Promise<ProfessionCategory | null> {
+    const cleanName = name ? formatTitleCase(name) : undefined;
+    const res = await query(
+      `UPDATE profession_categories
+       SET name = COALESCE($2, name), updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [id, cleanName || null]
+    );
+    await MasterCacheInvalidator.invalidate(['professionCategories', 'professions']);
+    return res.rows[0] || null;
+  }
+
+  static async deleteProfessionCategory(id: string): Promise<boolean> {
+    const res = await query(`DELETE FROM profession_categories WHERE id = $1 RETURNING id`, [id]);
+    await MasterCacheInvalidator.invalidate(['professionCategories', 'professions']);
+    return (res.rowCount || 0) > 0;
+  }
+
+  // --- SPECIFIC PROFESSIONS ---
+  static async getProfessions(categoryId?: string, search?: string): Promise<Profession[]> {
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
+      const res = await query(
+        `SELECT 
+          p.id, 
+          p.category_id AS "categoryId", 
+          pc.name AS "categoryName",
+          p.name, 
+          p.created_at AS "createdAt", 
+          p.updated_at AS "updatedAt"
+         FROM professions p
+         LEFT JOIN profession_categories pc ON p.category_id = pc.id
+         WHERE ($1::uuid IS NULL OR p.category_id = $1::uuid)
+           AND p.name ILIKE '%' || $2 || '%'
+         ORDER BY pc.name ASC, p.name ASC`,
+        [categoryId || null, cleanSearch]
+      );
+      return res.rows;
+    }
+
+    const cacheKey = `ranniti:masters:professions:${categoryId || 'all'}`;
+    return CacheService.getOrSet(cacheKey, 86400, async () => {
+      const res = await query(
+        `SELECT 
+          p.id, 
+          p.category_id AS "categoryId", 
+          pc.name AS "categoryName",
+          p.name, 
+          p.created_at AS "createdAt", 
+          p.updated_at AS "updatedAt"
+         FROM professions p
+         LEFT JOIN profession_categories pc ON p.category_id = pc.id
+         WHERE ($1::uuid IS NULL OR p.category_id = $1::uuid)
+         ORDER BY pc.name ASC, p.name ASC`,
+        [categoryId || null]
+      );
+      return res.rows;
+    });
+  }
+
+  static async getProfessionById(id: string): Promise<Profession | null> {
+    const res = await query(
+      `SELECT 
+        p.id, 
+        p.category_id AS "categoryId", 
+        pc.name AS "categoryName",
+        p.name, 
+        p.created_at AS "createdAt", 
+        p.updated_at AS "updatedAt"
+       FROM professions p
+       LEFT JOIN profession_categories pc ON p.category_id = pc.id
+       WHERE p.id = $1`,
+      [id]
+    );
+    return res.rows[0] || null;
+  }
+
+  static async createProfession(categoryId: string, name: string): Promise<Profession> {
+    const cleanName = formatTitleCase(name);
+    const existing = await query(
+      `SELECT 
+        p.id, 
+        p.category_id AS "categoryId", 
+        pc.name AS "categoryName",
+        p.name, 
+        p.created_at AS "createdAt", 
+        p.updated_at AS "updatedAt"
+       FROM professions p
+       LEFT JOIN profession_categories pc ON p.category_id = pc.id
+       WHERE p.category_id = $1 AND LOWER(TRIM(p.name)) = LOWER(TRIM($2))
+       LIMIT 1`,
+      [categoryId, cleanName]
+    );
+    if (existing.rows.length > 0) {
+      return existing.rows[0];
+    }
+    const res = await query(
+      `INSERT INTO professions (category_id, name)
+       VALUES ($1, $2)
+       RETURNING id, category_id AS "categoryId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [categoryId, cleanName]
+    );
+    await MasterCacheInvalidator.invalidate('professions');
+    const created = res.rows[0];
+    const cat = await this.getProfessionCategoryById(categoryId);
+    return {
+      ...created,
+      categoryName: cat?.name,
+    };
+  }
+
+  static async updateProfession(id: string, categoryId?: string, name?: string): Promise<Profession | null> {
+    const cleanName = name ? formatTitleCase(name) : undefined;
+    const res = await query(
+      `UPDATE professions
+       SET category_id = COALESCE($2, category_id),
+           name = COALESCE($3, name),
+           updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, category_id AS "categoryId", name, created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [id, categoryId || null, cleanName || null]
+    );
+    await MasterCacheInvalidator.invalidate('professions');
+    if (!res.rows[0]) return null;
+    const updated = res.rows[0];
+    const cat = await this.getProfessionCategoryById(updated.categoryId);
+    return {
+      ...updated,
+      categoryName: cat?.name,
+    };
+  }
+
+  static async deleteProfession(id: string): Promise<boolean> {
+    const res = await query(`DELETE FROM professions WHERE id = $1 RETURNING id`, [id]);
+    await MasterCacheInvalidator.invalidate('professions');
     return (res.rowCount || 0) > 0;
   }
 }

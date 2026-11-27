@@ -271,11 +271,19 @@ export class VoterQueries {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    let uscJoin = '';
+    let uscSelect = 'NULL::text AS "phoneContactName",';
+    const extraDataParams: any[] = [];
+    if (params.userId && params.userId.trim()) {
+      const userParamIndex = paramIndex + 2;
+      uscJoin = `LEFT JOIN user_synced_contacts usc ON usc.voter_id = v.id AND usc.user_id = $${userParamIndex}::uuid`;
+      uscSelect = `usc.contact_name AS "phoneContactName",`;
+      extraDataParams.push(params.userId.trim());
+    }
+
     // Fetch Data using Late Row Fetching (Deferred Joins)
     // The CTE filters and sorts IDs only, ensuring 11 joins and lateral counts run only on the paged 25 rows
-    const sortClause = params.boothId
-      ? 'v.serial_no ASC NULLS LAST, v.created_at DESC'
-      : 'v.created_at DESC, v.serial_no ASC NULLS LAST, v.id DESC';
+    const sortClause = 'b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, b.name ASC NULLS LAST, v.id ASC';
 
     const countSql = `SELECT COUNT(*)::int AS total FROM voters v ${whereClause}`;
 
@@ -283,6 +291,7 @@ export class VoterQueries {
       WITH paged_voters AS (
         SELECT v.id
         FROM voters v
+        LEFT JOIN booths b ON v.booth_id = b.id
         ${whereClause}
         ORDER BY ${sortClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -340,6 +349,7 @@ export class VoterQueries {
         p.name AS "partyName",
         p.abbreviation AS "partyAbbreviation",
         p.symbol_logo AS "partySymbol",
+        p.color AS "partyColor",
         v.family_influencer_id AS "familyInfluencerId",
         CONCAT_WS(' ', NULLIF(fi.eng_first_name, ''), NULLIF(fi.eng_middle_name, ''), NULLIF(fi.eng_surname, '')) AS "familyInfluencerName",
         fi.epic_no AS "familyInfluencerEpic",
@@ -351,12 +361,14 @@ export class VoterQueries {
         COALESCE(sic.cnt, 0) AS "socialInfluencedCount",
         (COALESCE(v.is_social_influencer, FALSE) OR COALESCE(sic.cnt, 0) > 0) AS "isSocialInfluencer",
 
+        ${uscSelect}
         v.family_id AS "familyId",
 
         v.created_at AS "createdAt",
         v.updated_at AS "updatedAt"
       FROM paged_voters pv
       JOIN voters v ON pv.id = v.id
+      ${uscJoin}
       LEFT JOIN states st ON v.state_id = st.id
       LEFT JOIN districts dt ON v.district_id = dt.id
       LEFT JOIN parliamentary_constituencies pc ON v.pc_id = pc.id
@@ -377,7 +389,7 @@ export class VoterQueries {
       ORDER BY ${sortClause}
     `;
 
-    const dataParams = [...values, limit, offset];
+    const dataParams = [...values, limit, offset, ...extraDataParams];
     let total: number;
     let dataRes: any;
 
@@ -457,12 +469,14 @@ export class VoterQueries {
         p.name AS "partyName",
         p.abbreviation AS "partyAbbreviation",
         p.symbol_logo AS "partySymbol",
+        p.color AS "partyColor",
         v.family_influencer_id AS "familyInfluencerId",
-        CONCAT_WS(' ', NULLIF(fi.eng_first_name, ''), NULLIF(fi.eng_middle_name, ''), NULLIF(fi.eng_surname, '')) AS "familyInfluencerName",
+        COALESCE(NULLIF(CONCAT_WS(' ', NULLIF(fi.eng_first_name, ''), NULLIF(fi.eng_middle_name, ''), NULLIF(fi.eng_surname, '')), ''), CONCAT_WS(' ', NULLIF(fi.first_name, ''), NULLIF(fi.middle_name, ''), NULLIF(fi.surname, ''))) AS "familyInfluencerName",
+        fi.epic_no AS "familyInfluencerEpic",
         COALESCE(fic.cnt, 0) AS "familyInfluencedCount",
         (COALESCE(v.is_family_influencer, FALSE) OR COALESCE(fic.cnt, 0) > 0) AS "isFamilyInfluencer",
         v.social_influencer_id AS "socialInfluencerId",
-        CONCAT_WS(' ', NULLIF(si.eng_first_name, ''), NULLIF(si.eng_middle_name, ''), NULLIF(si.eng_surname, '')) AS "socialInfluencerName",
+        COALESCE(NULLIF(CONCAT_WS(' ', NULLIF(si.eng_first_name, ''), NULLIF(si.eng_middle_name, ''), NULLIF(si.eng_surname, '')), ''), CONCAT_WS(' ', NULLIF(si.first_name, ''), NULLIF(si.middle_name, ''), NULLIF(si.surname, ''))) AS "socialInfluencerName",
         si.epic_no AS "socialInfluencerEpic",
         COALESCE(sic.cnt, 0) AS "socialInfluencedCount",
         (COALESCE(v.is_social_influencer, FALSE) OR COALESCE(sic.cnt, 0) > 0) AS "isSocialInfluencer",
@@ -591,6 +605,15 @@ export class VoterQueries {
         voterAddress: data.voterAddress,
       }).catch((err) => {
         logger.error(`[VoterQueries] AutoSync error for voter create '${created.id}':`, err);
+      });
+    } else if (created && (!tenantDbName || !tenantDbName.trim()) && data.acId) {
+      import('../services/sync/masterVoterSyncQueue.service').then(({ MasterVoterSyncQueueService }) => {
+        MasterVoterSyncQueueService.enqueueVoterSyncForAcs({
+          acIds: [data.acId!],
+          source: 'single_create',
+        }).catch((err) => {
+          logger.error(`[VoterQueries] Master auto-sync queue error for voter create '${created.id}':`, err);
+        });
       });
     }
 
@@ -977,115 +1000,81 @@ export class VoterQueries {
   }
 
   static async updateVoter(id: string, data: Partial<Voter>, tenantDbName?: string | null): Promise<Voter | null> {
-    const res = await executeVoterQuery(
-      `UPDATE voters SET
-        epic_no = COALESCE($2, epic_no),
-        state_id = COALESCE($3, state_id),
-        district_id = COALESCE($4, district_id),
-        pc_id = COALESCE($5, pc_id),
-        ac_id = COALESCE($6, ac_id),
-        booth_id = COALESCE($7, booth_id),
-        serial_no = COALESCE($8, serial_no),
-        section_no = COALESCE($9, section_no),
-        house_no = COALESCE($10, house_no),
-        first_name = COALESCE($11, first_name),
-        eng_first_name = COALESCE($12, eng_first_name),
-        middle_name = COALESCE($13, middle_name),
-        eng_middle_name = COALESCE($14, eng_middle_name),
-        surname = COALESCE($15, surname),
-        eng_surname = COALESCE($16, eng_surname),
-        gender = COALESCE($17, gender),
-        dob = COALESCE($18, dob),
-        age = COALESCE($19, age),
-        mobile_no = COALESCE($20, mobile_no),
-        email = COALESCE($21, email),
-        aadhaar_no = COALESCE($22, aadhaar_no),
-        pan_no = COALESCE($23, pan_no),
-        profession_type = COALESCE($24, profession_type),
-        profession = COALESCE($25, profession),
-        religion_id = COALESCE($26, religion_id),
-        caste_id = COALESCE($27, caste_id),
-        subcaste_name = COALESCE($28, subcaste_name),
-        status = COALESCE($29, status),
-        is_dead = COALESCE($30, is_dead),
-        blood_group = COALESCE($31, blood_group),
-        avatar = COALESCE($32, avatar),
-        taluka = COALESCE($33, taluka),
-        village = COALESCE($34, village),
-        full_address = COALESCE($35, full_address),
-        voter_address = COALESCE($36, voter_address),
-        relation = COALESCE($37, relation),
-        guardian_name = COALESCE($38, guardian_name),
-        party_id = CASE WHEN $46 = TRUE THEN $39 ELSE party_id END,
-        family_influencer_id = CASE 
-          WHEN COALESCE($42, is_family_influencer) = TRUE THEN NULL 
-          WHEN $44 = TRUE THEN $40 
-          ELSE family_influencer_id 
-        END,
-        social_influencer_id = CASE 
-          WHEN $45 = TRUE THEN $41 
-          ELSE social_influencer_id 
-        END,
-        is_family_influencer = CASE 
-          WHEN $40 IS NOT NULL AND ($42 IS NULL OR $42 = FALSE) THEN FALSE 
-          ELSE COALESCE($42, is_family_influencer) 
-        END,
-        is_social_influencer = COALESCE($43, is_social_influencer),
-        updated_at = NOW()
-      WHERE id = $1
-      RETURNING id, epic_no AS "epicNo", updated_at AS "updatedAt"`,
-      [
-        id,
-        toNullableString(data.epicNo),
-        toNullableUuid(data.stateId),
-        toNullableUuid(data.districtId),
-        toNullableUuid(data.pcId),
-        toNullableUuid(data.acId),
-        toNullableUuid(data.boothId),
-        toNullableInt(data.serialNo),
-        toNullableInt(data.sectionNo),
-        toNullableString(data.houseNo),
-        toNullableString(data.firstName),
-        toNullableString(data.engFirstName),
-        toNullableString(data.middleName),
-        toNullableString(data.engMiddleName),
-        toNullableString(data.surname),
-        toNullableString(data.engSurname),
-        toNullableString(data.gender),
-        toNullableDate(data.dob),
-        toNullableInt(data.age),
-        toNullableString(data.mobileNo),
-        toNullableString(data.email),
-        toNullableString(data.aadhaarNo),
-        toNullableString(data.panNo),
-        toNullableString(data.professionType),
-        toNullableString(data.profession),
-        toNullableUuid(data.religionId),
-        toNullableUuid(data.casteId),
-        toNullableString(data.subcasteName),
-        toNullableString(data.status),
-        toNullableBool(data.isDead),
-        toNullableString(data.bloodGroup),
-        toNullableString(data.avatar),
-        toNullableString(data.taluka),
-        toNullableString(data.village),
-        toNullableString(data.fullAddress),
-        toNullableString(data.voterAddress),
-        toNullableString(data.relation ? normalizeRelation(data.relation) : null),
-        toNullableString(data.guardianName),
-        toNullableUuid(data.partyId),
-        toNullableUuid(data.familyInfluencerId),
-        toNullableUuid(data.socialInfluencerId),
-        toNullableBool(data.isFamilyInfluencer),
-        toNullableBool(data.isSocialInfluencer),
-        data.familyInfluencerId !== undefined,
-        data.socialInfluencerId !== undefined,
-        data.partyId !== undefined,
-      ],
-      tenantDbName
-    );
+    const fields: string[] = [];
+    const values: any[] = [id];
 
-    if (!res.rows[0]) return null;
+    const addField = (colName: string, val: any) => {
+      values.push(val);
+      fields.push(`${colName} = $${values.length}`);
+    };
+
+    if (data.epicNo !== undefined) addField('epic_no', toNullableString(data.epicNo));
+    if (data.stateId !== undefined) addField('state_id', toNullableUuid(data.stateId));
+    if (data.districtId !== undefined) addField('district_id', toNullableUuid(data.districtId));
+    if (data.pcId !== undefined) addField('pc_id', toNullableUuid(data.pcId));
+    if (data.acId !== undefined) addField('ac_id', toNullableUuid(data.acId));
+    if (data.boothId !== undefined) addField('booth_id', toNullableUuid(data.boothId));
+    if (data.serialNo !== undefined) addField('serial_no', toNullableInt(data.serialNo));
+    if (data.sectionNo !== undefined) addField('section_no', toNullableInt(data.sectionNo));
+    if (data.houseNo !== undefined) addField('house_no', toNullableString(data.houseNo));
+    if (data.firstName !== undefined) addField('first_name', toNullableString(data.firstName));
+    if (data.engFirstName !== undefined) addField('eng_first_name', toNullableString(data.engFirstName));
+    if (data.middleName !== undefined) addField('middle_name', toNullableString(data.middleName));
+    if (data.engMiddleName !== undefined) addField('eng_middle_name', toNullableString(data.engMiddleName));
+    if (data.surname !== undefined) addField('surname', toNullableString(data.surname));
+    if (data.engSurname !== undefined) addField('eng_surname', toNullableString(data.engSurname));
+    if (data.gender !== undefined) addField('gender', toNullableString(data.gender));
+    if (data.dob !== undefined) addField('dob', toNullableDate(data.dob));
+    if (data.age !== undefined) addField('age', toNullableInt(data.age));
+    if (data.mobileNo !== undefined) addField('mobile_no', toNullableString(data.mobileNo));
+    if (data.email !== undefined) addField('email', toNullableString(data.email));
+    if (data.aadhaarNo !== undefined) addField('aadhaar_no', toNullableString(data.aadhaarNo));
+    if (data.panNo !== undefined) addField('pan_no', toNullableString(data.panNo));
+    if (data.professionType !== undefined) addField('profession_type', toNullableString(data.professionType));
+    if (data.profession !== undefined) addField('profession', toNullableString(data.profession));
+    if (data.religionId !== undefined) addField('religion_id', toNullableUuid(data.religionId));
+    if (data.casteId !== undefined) addField('caste_id', toNullableUuid(data.casteId));
+    if (data.subcasteName !== undefined) addField('subcaste_name', toNullableString(data.subcasteName));
+    if (data.status !== undefined) addField('status', toNullableString(data.status));
+    if (data.isDead !== undefined) addField('is_dead', toNullableBool(data.isDead));
+    if (data.bloodGroup !== undefined) addField('blood_group', toNullableString(data.bloodGroup));
+    if (data.avatar !== undefined) addField('avatar', toNullableString(data.avatar));
+    if (data.taluka !== undefined) addField('taluka', toNullableString(data.taluka));
+    if (data.village !== undefined) addField('village', toNullableString(data.village));
+    if (data.fullAddress !== undefined) addField('full_address', toNullableString(data.fullAddress));
+    if (data.voterAddress !== undefined) addField('voter_address', toNullableString(data.voterAddress));
+    if (data.relation !== undefined) addField('relation', toNullableString(data.relation ? normalizeRelation(data.relation) : null));
+    if (data.guardianName !== undefined) addField('guardian_name', toNullableString(data.guardianName));
+    if (data.partyId !== undefined) addField('party_id', toNullableUuid(data.partyId));
+
+    if (data.isFamilyInfluencer === true) {
+      addField('family_influencer_id', null);
+      addField('is_family_influencer', true);
+    } else {
+      if (data.familyInfluencerId !== undefined) {
+        addField('family_influencer_id', toNullableUuid(data.familyInfluencerId));
+        if (data.familyInfluencerId) {
+          addField('is_family_influencer', false);
+        } else if (data.isFamilyInfluencer !== undefined) {
+          addField('is_family_influencer', toNullableBool(data.isFamilyInfluencer));
+        }
+      } else if (data.isFamilyInfluencer !== undefined) {
+        addField('is_family_influencer', toNullableBool(data.isFamilyInfluencer));
+      }
+    }
+
+    if (data.socialInfluencerId !== undefined) addField('social_influencer_id', toNullableUuid(data.socialInfluencerId));
+    if (data.isSocialInfluencer !== undefined) addField('is_social_influencer', toNullableBool(data.isSocialInfluencer));
+
+    if (fields.length > 0) {
+      fields.push('updated_at = NOW()');
+      const res = await executeVoterQuery(
+        `UPDATE voters SET ${fields.join(', ')} WHERE id = $1 RETURNING id, epic_no AS "epicNo", updated_at AS "updatedAt"`,
+        values,
+        tenantDbName
+      );
+      if (!res.rows[0]) return null;
+    }
 
     if (data.isFamilyInfluencer === false) {
       await executeVoterQuery(`UPDATE voters SET family_influencer_id = NULL WHERE family_influencer_id = $1`, [id], tenantDbName);
@@ -1100,6 +1089,15 @@ export class VoterQueries {
       const tenantPool = getTenantDbPool(tenantDbName.trim());
       MasterAutoSyncService.syncEntityToMaster(tenantPool, 'voter', id, 'UPDATE', updatedVoter).catch((err) => {
         logger.error(`[VoterQueries] AutoSync error for voter update '${id}':`, err);
+      });
+    } else if (updatedVoter && (!tenantDbName || !tenantDbName.trim()) && updatedVoter.acId) {
+      import('../services/sync/masterVoterSyncQueue.service').then(({ MasterVoterSyncQueueService }) => {
+        MasterVoterSyncQueueService.enqueueVoterSyncForAcs({
+          acIds: [updatedVoter.acId as string],
+          source: 'single_update',
+        }).catch((err) => {
+          logger.error(`[VoterQueries] Master auto-sync queue error for voter update '${id}':`, err);
+        });
       });
     }
 
@@ -1163,7 +1161,7 @@ export class VoterQueries {
       FROM voters v
       LEFT JOIN booths b ON v.booth_id = b.id
       ${whereClause}
-      ORDER BY v.eng_first_name ASC, v.eng_middle_name ASC, v.eng_surname ASC
+      ORDER BY b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.eng_first_name ASC, v.id ASC
       LIMIT 50
     `;
 
@@ -1765,8 +1763,9 @@ export class VoterQueries {
       ORDER BY 
         ${sameHouseCase} ASC,
         ${sameSurnameCase} ASC,
+        b.booth_number ASC NULLS LAST,
         v.serial_no ASC NULLS LAST,
-        v.created_at DESC
+        v.id ASC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -1905,8 +1904,9 @@ export class VoterQueries {
       ${whereClause}
       ORDER BY 
         ${sameSectionCase} ASC,
+        b.booth_number ASC NULLS LAST,
         v.serial_no ASC NULLS LAST,
-        v.created_at DESC
+        v.id ASC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -2018,7 +2018,6 @@ export class VoterQueries {
     `;
 
     const dataParams = [...values, limit, offset];
-
     const [countRes, queryRes] = await Promise.all([
       executeVoterQuery(countSql, values, tenantDbName),
       executeVoterQuery(dataSql, dataParams, tenantDbName),

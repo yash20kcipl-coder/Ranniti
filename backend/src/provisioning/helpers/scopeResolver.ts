@@ -3,6 +3,7 @@ import { query as masterQuery } from '../../queries/dbPool';
 export interface ConstituencyScope {
   resolvedAcIds: string[];
   resolvedPcIds: string[];
+  resolvedDistrictIds: string[];
 }
 
 /**
@@ -41,8 +42,21 @@ export async function resolveConstituencyScope(
 
   const resolvedPcIds = Array.from(pcIdSet);
 
+  const districtIdSet = new Set<string>();
+  if (resolvedAcIds.length > 0) {
+    const distRes = await masterQuery(
+      `SELECT DISTINCT district_id FROM assembly_constituencies WHERE id = ANY($1::uuid[]) AND district_id IS NOT NULL`,
+      [resolvedAcIds]
+    );
+    for (const r of distRes.rows) {
+      if (r.district_id) districtIdSet.add(r.district_id);
+    }
+  }
+  const resolvedDistrictIds = Array.from(districtIdSet);
+
   return {
     resolvedAcIds,
     resolvedPcIds,
+    resolvedDistrictIds,
   };
 }

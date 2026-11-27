@@ -11,7 +11,7 @@ export interface MasterField {
   fullWidth?: boolean;
   rows?: number;
   options?: { label: string; value: string | number }[];
-  optionsSource?: 'religions' | 'states' | 'districts' | 'talukas' | 'villages' | 'pcs' | 'acs' | 'wards' | 'castes';
+  optionsSource?: 'religions' | 'states' | 'districts' | 'talukas' | 'villages' | 'pcs' | 'acs' | 'wards' | 'castes' | 'professionCategories';
   placeholder?: string;
 }
 
@@ -105,6 +105,43 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
       },
     ],
   },
+  'profession-categories': {
+    key: 'profession-categories',
+    label: 'Profession Categories',
+    singularLabel: 'Profession Category',
+    addLabel: 'Add Category',
+    apiEndpoint: '/masters/profession-categories',
+    description: 'Manage broad profession and occupational demographic categories.',
+    columns: [
+      { key: 'name', header: 'Category Name', sortable: true },
+    ],
+    fields: [
+      { name: 'name', label: 'Category Name', type: 'text', required: true, placeholder: 'e.g. Healthcare & Medical, Government' },
+    ],
+  },
+  professions: {
+    key: 'professions',
+    label: 'Specific Professions',
+    singularLabel: 'Specific Profession',
+    addLabel: 'Add Profession',
+    apiEndpoint: '/masters/professions',
+    description: 'Manage specific occupations and professions classified under categories.',
+    columns: [
+      { key: 'name', header: 'Profession Name', sortable: true },
+      { key: 'categoryName', header: 'Profession Category', sortable: true, render: (row) => row.categoryName || '-' },
+    ],
+    fields: [
+      {
+        name: 'categoryId',
+        label: 'Profession Category',
+        type: 'select',
+        required: true,
+        optionsSource: 'professionCategories',
+        placeholder: 'Select Category',
+      },
+      { name: 'name', label: 'Profession Name', type: 'text', required: true, placeholder: 'e.g. Doctor, High School Teacher, Civil Engineer' },
+    ],
+  },
   districts: {
     key: 'districts',
     label: 'Districts',
@@ -135,7 +172,7 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
   },
   talukas: {
     key: 'talukas',
-    label: 'Talukas (Tehsils)',
+    label: 'Talukas',
     singularLabel: 'Taluka',
     addLabel: 'Add Taluka',
     apiEndpoint: '/masters/talukas',
@@ -185,7 +222,7 @@ export const masterConfig: Record<string, MasterCategoryConfig> = {
       { key: 'name', header: 'Village Name', sortable: true },
       {
         key: 'talukaName',
-        header: 'Taluka (Tehsil)',
+        header: 'Taluka',
         sortable: true,
         render: (row) => row.talukaName || '-'
       },
@@ -482,5 +519,25 @@ export const tenantMasterConfig: Record<string, MasterCategoryConfig> = {
   booths: {
     ...masterConfig.booths,
     apiEndpoint: API_ENDPOINTS.TENANT.MASTERS.BOOTHS,
+  },
+  talukas: {
+    ...masterConfig.talukas,
+    apiEndpoint: API_ENDPOINTS.TENANT.MASTERS.TALUKAS,
+  },
+  villages: {
+    ...masterConfig.villages,
+    apiEndpoint: API_ENDPOINTS.TENANT.MASTERS.VILLAGES,
+  },
+  castes: {
+    ...masterConfig.castes,
+    apiEndpoint: API_ENDPOINTS.TENANT.MASTERS.CASTES,
+  },
+  'profession-categories': {
+    ...masterConfig['profession-categories'],
+    apiEndpoint: API_ENDPOINTS.TENANT.MASTERS.PROFESSION_CATEGORIES,
+  },
+  professions: {
+    ...masterConfig.professions,
+    apiEndpoint: API_ENDPOINTS.TENANT.MASTERS.PROFESSIONS,
   },
 };

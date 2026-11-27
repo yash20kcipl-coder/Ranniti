@@ -19,6 +19,7 @@
   /* ── Canvas / Page ──────────────────────────────────────────── */
   --color-canvas:          #f8fafc;   /* slate-50  — page background      */
   --color-canvas-subtle:   #f1f5f9;   /* slate-100 — hover / stripe bg    */
+  --page-bg:               #f4f6f9;   /* Configurable dynamic page background */
 
   /* ── Surface (cards, panels, modals, sidebars) ───────────────── */
   --color-surface:         #ffffff;   /* pure white card                  */
@@ -78,11 +79,37 @@
   --color-topbar-bg:       rgba(255, 255, 255, 0.85);
   --color-topbar-border:   #e2e8f0;
 
-  /* ── Shadows ────────────────────────────────────────────────── */
-  --shadow-card:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-raised:  0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-overlay: 0 20px 40px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.06);
-  --shadow-accent:  0 8px 24px rgba(99, 102, 241, 0.25);
+  /* ── Shadows (Airy, Multi-Layer Ambient Occlusion) ──────────── */
+  --shadow-card:           0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+  --shadow-card-nice:      0 4px 16px -2px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-card-elevated:  0 10px 25px -4px rgba(0, 0, 0, 0.06), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
+  --shadow-raised:         0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-overlay:        0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04);
+  --shadow-accent:         0 8px 24px rgba(99, 102, 241, 0.18);
+  --card-shadow:           0 4px 16px -2px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+
+  /* ── Global Border Radius System (Single Source of Truth) ───── */
+  --radius-base:           16px;      /* Master scale base */
+  --radius-xs:             calc(var(--radius-base) * 0.375);  /* ~6px */
+  --radius-sm:             calc(var(--radius-base) * 0.5);    /* ~8px */
+  --radius-md:             calc(var(--radius-base) * 0.75);   /* ~12px */
+  --radius-lg:             var(--radius-base);                /* ~16px */
+  --radius-xl:             calc(var(--radius-base) * 1.25);   /* ~20px */
+  --radius-2xl:            calc(var(--radius-base) * 1.5);    /* ~24px */
+  --radius-3xl:            calc(var(--radius-base) * 2);      /* ~32px */
+  --radius-full:           9999px;
+
+  /* Form & Component Radius Aliases */
+  --input-radius:          var(--radius-md);
+  --button-radius:         var(--radius-md);
+  --modal-radius:          var(--radius-2xl);
+  --badge-radius:          var(--radius-full);
+
+  /* ── Card Design Tokens (Single Source of Truth) ────────────── */
+  --card-radius:           var(--radius-base);      /* Master corner radius for all cards */
+  --card-radius-sm:        var(--radius-sm);
+  --card-radius-lg:        var(--radius-2xl);
+  --card-border-width:     1px;       /* Master border width for all cards */
 
   /* ── Scrollbar ──────────────────────────────────────────────── */
   --scrollbar-thumb:       rgba(100, 116, 139, 0.25);
@@ -98,6 +125,7 @@
   /* ── Canvas / Page ──────────────────────────────────────────── */
   --color-canvas:          #020617;   /* slate-950 — page background      */
   --color-canvas-subtle:   #0f172a;   /* slate-900 — hover / stripe bg    */
+  --page-bg:               #0a0f1d;   /* Configurable dynamic page background */
 
   /* ── Surface (cards, panels, modals, sidebars) ───────────────── */
   --color-surface:         #0f172a;   /* slate-900                        */
@@ -157,11 +185,37 @@
   --color-topbar-bg:       rgba(15, 23, 42, 0.85);
   --color-topbar-border:   rgba(30, 41, 59, 0.80);
 
-  /* ── Shadows ────────────────────────────────────────────────── */
-  --shadow-card:    0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
-  --shadow-raised:  0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.25);
-  --shadow-overlay: 0 20px 60px rgba(0,0,0,0.70), 0 8px 20px rgba(0,0,0,0.40);
-  --shadow-accent:  0 8px 24px rgba(99, 102, 241, 0.35);
+  /* ── Shadows (Refined Ambient Occlusion for Dark Canvas) ────── */
+  --shadow-card:           0 2px 8px 0 rgba(0, 0, 0, 0.25);
+  --shadow-card-nice:      0 4px 20px -2px rgba(0, 0, 0, 0.35), 0 2px 6px -1px rgba(0, 0, 0, 0.20);
+  --shadow-card-elevated:  0 12px 30px -4px rgba(0, 0, 0, 0.45), 0 4px 10px -2px rgba(0, 0, 0, 0.25);
+  --shadow-raised:         0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-overlay:        0 20px 50px rgba(0, 0, 0, 0.60);
+  --shadow-accent:         0 8px 24px rgba(99, 102, 241, 0.25);
+  --card-shadow:           0 4px 20px -2px rgba(0, 0, 0, 0.35), 0 2px 6px -1px rgba(0, 0, 0, 0.20);
+
+  /* ── Global Border Radius System (Single Source of Truth) ───── */
+  --radius-base:           16px;
+  --radius-xs:             calc(var(--radius-base) * 0.375);
+  --radius-sm:             calc(var(--radius-base) * 0.5);
+  --radius-md:             calc(var(--radius-base) * 0.75);
+  --radius-lg:             var(--radius-base);
+  --radius-xl:             calc(var(--radius-base) * 1.25);
+  --radius-2xl:            calc(var(--radius-base) * 1.5);
+  --radius-3xl:            calc(var(--radius-base) * 2);
+  --radius-full:           9999px;
+
+  /* Form & Component Radius Aliases */
+  --input-radius:          var(--radius-md);
+  --button-radius:         var(--radius-md);
+  --modal-radius:          var(--radius-2xl);
+  --badge-radius:          var(--radius-full);
+
+  /* ── Card Design Tokens (Single Source of Truth) ────────────── */
+  --card-radius:           var(--radius-base);
+  --card-radius-sm:        var(--radius-sm);
+  --card-radius-lg:        var(--radius-2xl);
+  --card-border-width:     1px;
 
   /* ── Scrollbar ──────────────────────────────────────────────── */
   --scrollbar-thumb:       rgba(148, 163, 184, 0.20);

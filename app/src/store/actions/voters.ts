@@ -104,6 +104,7 @@ export const mapApiVoterToVoter = (item: any): Voter => {
     partyName: item.partyName || '',
     partyAbbreviation: item.partyAbbreviation || '',
     partySymbol: item.partySymbol || '',
+    partyColor: item.partyColor || '',
     politicalView: (item.politicalView || item.voterType || 'Pending') as any,
     status: item.status || (item.isVoted ? 'Voted' : 'Not Voted'),
     isVoted: item.status === 'Voted' || Boolean(item.isVoted),
@@ -371,14 +372,32 @@ export const updateVoterPartyAction = (
 ) => {
   return async (dispatch: Dispatch) => {
     try {
-      await apiClient.put(`/mobile/voters/${voterId}`, {
-        partyId: partyId || null,
+      const isDeselected = !partyId || partyId === 'null' || partyId === 'undefined';
+      const cleanPartyId = isDeselected ? null : partyId;
+      const response = await apiClient.put(`/mobile/voters/${voterId}`, {
+        partyId: cleanPartyId,
       });
+      const updatedVoter = response?.data?.data || response?.data;
+      const mapped = updatedVoter ? mapApiVoterToVoter(updatedVoter) : null;
+
       dispatch({
         type: UPDATE_VOTER_PARTY,
-        payload: { voterId, party: partyName, partyId: partyId || null },
+        payload: {
+          voterId,
+          party: isDeselected ? 'Independent / Undecided' : partyName,
+          partyId: cleanPartyId,
+          partyName: isDeselected ? '' : (mapped?.partyName || updatedVoter?.partyName || partyName),
+          partyAbbreviation: isDeselected ? '' : (mapped?.partyAbbreviation || updatedVoter?.partyAbbreviation || ''),
+          partySymbol: isDeselected ? '' : (mapped?.partySymbol || updatedVoter?.partySymbol || ''),
+          partyColor: isDeselected ? '' : (mapped?.partyColor || updatedVoter?.partyColor || ''),
+          supportingParty: isDeselected ? 'Independent / Undecided' : (mapped?.supportingParty || updatedVoter?.supportingParty || partyName),
+        },
       });
-      toast.success(`Supporting party updated to ${partyName}`);
+      toast.success(
+        isDeselected
+          ? 'Party selection cleared'
+          : `Supporting party updated to ${partyName}`
+      );
     } catch (e: any) {
       console.error('Update voter party error:', e);
       toast.error(e?.response?.data?.message || "Failed to update supporting party.");

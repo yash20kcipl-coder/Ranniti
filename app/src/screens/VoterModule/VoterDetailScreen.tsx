@@ -103,11 +103,15 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
 
   const handleSelectParty = (partyId: string | null, partyName: string) => {
     dispatch(updateVoterPartyAction(voter.id, partyId, partyName));
+    const isDeselected = !partyId || partyId === 'null' || partyId === 'undefined';
     setVoter((prev) => ({
       ...prev,
-      partyId: partyId || undefined,
-      partyName,
-      supportingParty: partyName,
+      partyId: isDeselected ? '' : (partyId || ''),
+      partyName: isDeselected ? '' : partyName,
+      supportingParty: isDeselected ? (t('undecidedIndependent') || 'Independent / Undecided') : partyName,
+      partyAbbreviation: isDeselected ? '' : prev.partyAbbreviation,
+      partySymbol: isDeselected ? '' : prev.partySymbol,
+      partyColor: isDeselected ? '' : prev.partyColor,
     }));
   };
 
@@ -195,8 +199,8 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
       <PartySelectModal
         visible={partyModalVisible}
         onClose={() => setPartyModalVisible(false)}
-        currentPartyId={voter.partyId}
-        currentPartyName={voter.partyName || voter.supportingParty}
+        currentPartyId={voter.partyId || null}
+        currentPartyName={voter.partyId ? (voter.partyName || voter.supportingParty) : ''}
         voterName={hindiName || voter.englishName}
         canEdit={canEditInclination}
         onSelectParty={handleSelectParty}

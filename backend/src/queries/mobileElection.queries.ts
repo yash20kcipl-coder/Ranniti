@@ -201,9 +201,10 @@ export class MobileElectionQueries {
         COALESCE(ves.has_voted, false) AS "hasVoted",
         ves.voted_at AS "votedAt"
       FROM voters v
+      LEFT JOIN booths b ON v.booth_id = b.id
       ${electionId ? `LEFT JOIN voter_election_statuses ves ON ves.voter_id = v.id AND ves.election_id = '${electionId}'` : 'LEFT JOIN (SELECT NULL::uuid AS voter_id, NULL::boolean AS has_voted, NULL::timestamptz AS voted_at) ves ON false'}
       ${whereClause}
-      ORDER BY v.serial_no ASC NULLS LAST, v.id ASC
+      ORDER BY b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.id ASC
       LIMIT $${paramIdx} OFFSET $${paramIdx + 1};
     `;
     values.push(limit, offset);

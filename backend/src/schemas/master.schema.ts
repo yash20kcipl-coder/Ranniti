@@ -74,7 +74,12 @@ export const updateTalukaSchema = z.object({
 export const createVillageSchema = z.object({
   body: z.object({
     talukaId: z.string().uuid('Taluka ID must be a valid UUID'),
-    name: z.string().min(2, 'Village name required'),
+    name: z
+      .string()
+      .min(2, 'Village name required')
+      .refine((val) => !/^\d{4,8}$/.test(val.trim()), {
+        message: 'Village name cannot be a postal PIN code or numeric string',
+      }),
   }),
 });
 
@@ -82,7 +87,13 @@ export const updateVillageSchema = z.object({
   params: z.object({ id: z.string().min(1) }),
   body: z.object({
     talukaId: z.string().uuid().optional(),
-    name: z.string().min(2).optional(),
+    name: z
+      .string()
+      .min(2)
+      .refine((val) => !/^\d{4,8}$/.test(val.trim()), {
+        message: 'Village name cannot be a postal PIN code or numeric string',
+      })
+      .optional(),
   }),
 });
 
@@ -134,7 +145,9 @@ export const createPartySchema = z.object({
   body: z.object({
     name: z.string().min(2, 'Party name required'),
     abbreviation: z.string().min(1, 'Abbreviation required (e.g. BJP, INC, AAP)'),
-    symbolLogo: z.string().optional(),
+    symbolLogo: z.string().optional().nullable(),
+    alliance: z.string().optional().nullable(),
+    color: z.string().optional().nullable(),
   }),
 });
 
@@ -150,5 +163,35 @@ export const createBoothSchema = z.object({
     stateId: z.string().uuid().optional().nullable(),
     districtId: z.string().uuid().optional().nullable(),
     pcId: z.string().uuid().optional().nullable(),
+  }),
+});
+
+// Profession Category Schemas
+export const createProfessionCategorySchema = z.object({
+  body: z.object({
+    name: z.string().min(2, 'Profession category name must be at least 2 characters'),
+  }),
+});
+
+export const updateProfessionCategorySchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    name: z.string().min(2, 'Profession category name must be at least 2 characters').optional(),
+  }),
+});
+
+// Specific Profession Schemas
+export const createProfessionSchema = z.object({
+  body: z.object({
+    categoryId: z.string().uuid('Category ID must be a valid UUID'),
+    name: z.string().min(2, 'Profession name must be at least 2 characters'),
+  }),
+});
+
+export const updateProfessionSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    categoryId: z.string().uuid('Category ID must be a valid UUID').optional(),
+    name: z.string().min(2, 'Profession name must be at least 2 characters').optional(),
   }),
 });

@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticateJwt, requireAdmin);
 
 router.get('/stats', tenantDataController.getStats);
+router.get('/overview', tenantDataController.getOverview);
 router.get('/booths', tenantDataController.getBooths);
 router.get('/profile', tenantDataController.getProfile);
 router.post('/stats/sync', tenantDataController.syncStats);

@@ -3,6 +3,7 @@ import { Modal } from './Modal';
 import { useAppDispatch } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { fetchVotersData, fetchInfluencerOptions, bulkAssignInfluencerAction } from '@/redux/actions/voter';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
 import { Crown, Sparkles, Search, X, AlertCircle } from 'lucide-react';
 
 export interface InfluencerAssignModalProps {
@@ -205,11 +206,10 @@ export const InfluencerAssignModal: React.FC<InfluencerAssignModalProps> = ({
           <button
             type="button"
             onClick={() => setInfluencerType('family')}
-            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
-              influencerType === 'family'
-                ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${influencerType === 'family'
+              ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200'
+              }`}
           >
             <Crown className="w-3.5 h-3.5 text-purple-400" />
             <span>Family Influencer</span>
@@ -217,11 +217,10 @@ export const InfluencerAssignModal: React.FC<InfluencerAssignModalProps> = ({
           <button
             type="button"
             onClick={() => setInfluencerType('social')}
-            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
-              influencerType === 'social'
-                ? 'bg-amber-600/30 text-amber-200 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${influencerType === 'social'
+              ? 'bg-amber-600/30 text-amber-200 border border-amber-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200'
+              }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Social Influencer</span>
@@ -303,9 +302,8 @@ export const InfluencerAssignModal: React.FC<InfluencerAssignModalProps> = ({
                         <tr
                           key={voter.id}
                           onClick={() => toggleSelectVoter(voter.id)}
-                          className={`cursor-pointer transition-colors ${
-                            isSelected ? 'bg-indigo-950/40 text-indigo-100' : 'hover:bg-slate-900/50'
-                          }`}
+                          className={`cursor-pointer transition-colors ${isSelected ? 'bg-indigo-950/40 text-indigo-100' : 'hover:bg-slate-900/50'
+                            }`}
                         >
                           <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
                             <input
@@ -328,7 +326,7 @@ export const InfluencerAssignModal: React.FC<InfluencerAssignModalProps> = ({
                             {voter.houseNo || '-'}
                           </td>
                           <td className="py-2.5 px-3 text-slate-300 font-mono">
-                            {voter.mobileNo || voter.mobile || '-'}
+                            {formatPhoneNumber(voter.mobileNo || voter.mobile)}
                           </td>
                         </tr>
                       );
@@ -366,11 +364,10 @@ export const InfluencerAssignModal: React.FC<InfluencerAssignModalProps> = ({
                       key={pNum}
                       type="button"
                       onClick={() => setPage(pNum)}
-                      className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors ${
-                        page === pNum
-                          ? 'bg-indigo-600 text-white border-indigo-500'
-                          : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors ${page === pNum
+                        ? 'bg-indigo-600 text-white border-indigo-500'
+                        : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
                     >
                       {pNum}
                     </button>

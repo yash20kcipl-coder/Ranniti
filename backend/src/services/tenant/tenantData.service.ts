@@ -41,9 +41,14 @@ export class TenantDataService {
   /**
    * Retrieves profile details and assigned scope for the logged-in tenant user
    */
-  async getTenantProfile(userId: string): Promise<TenantProfile> {
-    return CacheService.getOrSet(`ranniti:tenant:profile:${userId}`, 3600, async () => {
-      const userRes = await mainQuery(
+  async getTenantProfile(userId: string, tenantDbName?: string | null): Promise<TenantProfile> {
+    const cacheKey = tenantDbName
+      ? `ranniti:tenant:profile:${userId}:${tenantDbName}`
+      : `ranniti:tenant:profile:${userId}`;
+
+    return CacheService.getOrSet(cacheKey, 3600, async () => {
+      // 1. Try finding tenant by userId directly
+      let userRes = await mainQuery(
         `SELECT t.id, t.name, t.email, 'tenant_admin' AS role, t.status, t.tenant_db_name,
                 t.organization_name, t.pc_ids, t.ac_ids
          FROM tenants t
@@ -51,8 +56,31 @@ export class TenantDataService {
         [userId]
       );
 
+      // 2. If not found by ID (e.g. logged in as tenant user or superadmin), look up by tenant_db_name
+      if (userRes.rows.length === 0 && tenantDbName) {
+        userRes = await mainQuery(
+          `SELECT t.id, t.name, t.email, 'tenant_admin' AS role, t.status, t.tenant_db_name,
+                  t.organization_name, t.pc_ids, t.ac_ids
+           FROM tenants t
+           WHERE t.tenant_db_name = $1
+           LIMIT 1`,
+          [tenantDbName]
+        );
+      }
+
       if (userRes.rows.length === 0) {
-        throw ApiError.notFound('Tenant user profile not found');
+        // Fallback profile if record not found in master tenants table
+        return {
+          userId,
+          name: 'Campaign HQ',
+          email: '',
+          role: 'tenant_admin',
+          status: 'active',
+          tenantDbName: tenantDbName || null,
+          organizationName: 'Ranniti Tenant Campaign',
+          assignedPcIds: [],
+          assignedAcIds: [],
+        };
       }
 
       const row = userRes.rows[0];
@@ -227,10 +255,10 @@ export class TenantDataService {
    * Retrieves assigned constituencies (PCs and ACs) for the tenant
    */
   async getTenantConstituencies(userId: string, tenantDbName?: string | null): Promise<any> {
-    const profile = await this.getTenantProfile(userId);
-    const targetDbName = tenantDbName || profile.tenantDbName;
-    const pcIds = profile.assignedPcIds || [];
-    const acIds = profile.assignedAcIds || [];
+    const profile = await this.getTenantProfile(userId, tenantDbName).catch(() => null);
+    const targetDbName = tenantDbName || profile?.tenantDbName;
+    const pcIds = profile?.assignedPcIds || [];
+    const acIds = profile?.assignedAcIds || [];
 
     let pcs: any[] = [];
     let acs: any[] = [];
@@ -253,6 +281,21 @@ export class TenantDataService {
         [pcIds]
       );
       pcs = pcsRes.rows;
+    } else if (targetDbName) {
+      // In isolated tenant DB, all PCs present belong to this tenant's campaign
+      try {
+        const pcsRes = await executeQuery(
+          `SELECT p.id, p.name, p.pc_number as "pcNumber", p.state_id as "stateId", s.name as "stateName",
+                  p.created_at as "createdAt", p.updated_at as "updatedAt"
+           FROM parliamentary_constituencies p
+           LEFT JOIN states s ON s.id = p.state_id
+           ORDER BY p.pc_number ASC`,
+          []
+        );
+        pcs = pcsRes.rows;
+      } catch (err: any) {
+        logger.warn(`[TenantDataService] Error querying PCs for ${targetDbName}: ${err.message}`);
+      }
     }
 
     if (acIds.length > 0) {
@@ -271,6 +314,26 @@ export class TenantDataService {
         [acIds]
       );
       acs = acsRes.rows;
+    } else if (targetDbName) {
+      // In isolated tenant DB, all ACs present belong to this tenant's campaign
+      try {
+        const acsRes = await executeQuery(
+          `SELECT a.id, a.name, a.ac_number as "acNumber", a.pc_id as "pcId", pc.name as "pcName",
+                  a.district_id as "districtId", d.name as "districtName",
+                  COALESCE(sp.id, sd.id) as "stateId", COALESCE(sp.name, sd.name) as "stateName",
+                  a.created_at as "createdAt", a.updated_at as "updatedAt"
+           FROM assembly_constituencies a
+           LEFT JOIN parliamentary_constituencies pc ON pc.id = a.pc_id
+           LEFT JOIN states sp ON pc.state_id = sp.id
+           LEFT JOIN districts d ON d.id = a.district_id
+           LEFT JOIN states sd ON d.state_id = sd.id
+           ORDER BY a.ac_number ASC`,
+          []
+        );
+        acs = acsRes.rows;
+      } catch (err: any) {
+        logger.warn(`[TenantDataService] Error querying ACs for ${targetDbName}: ${err.message}`);
+      }
     }
 
     return {

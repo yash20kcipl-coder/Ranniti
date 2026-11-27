@@ -53,6 +53,13 @@ function MdFlatlistInner<T>(
   const [refreshing, setRefreshing] = useState(false);
   const [paginationState, setPaginationState] = useState({ count: parcount, loading: false });
 
+  // Reset pagination state when incoming dataset changes
+  React.useEffect(() => {
+    if (paginationProps) {
+      setPaginationState({ count: parcount, loading: false });
+    }
+  }, [data, parcount, paginationProps]);
+
   const listData = React.useMemo(() => {
     if (isLoading) {
       return Array.from({ length: 10 }).map((_, i) => ({ id: `skeleton-${i}` })) as unknown as T[];

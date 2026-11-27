@@ -206,6 +206,30 @@ export const bulkAssignSuperAdminInfluencerAction = (payload: {
   };
 };
 
+export const fetchSuperAdminFamilyCandidatesAction = (params: Record<string, any>) => {
+  return async (dispatch: AppDispatch) => {
+    try {
+      const res = await api.get('/super-admin/voters/family-candidates', { params });
+      return res.data?.data || res.data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    }
+  };
+};
+
+export const fetchSuperAdminSocialCandidatesAction = (params: Record<string, any>) => {
+  return async (dispatch: AppDispatch) => {
+    try {
+      const res = await api.get('/super-admin/voters/social-candidates', { params });
+      return res.data?.data || res.data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    }
+  };
+};
+
 export const fetchSuperAdminBoothOptions = (params: {
   acId?: string;
   wardId?: string;

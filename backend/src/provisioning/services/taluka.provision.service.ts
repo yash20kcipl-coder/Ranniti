@@ -4,18 +4,51 @@ import { bulkUpsert } from '../helpers/bulkUpsert';
 import { query as masterQuery } from '../../queries/dbPool';
 import { TenantQueries } from '../../queries/tenant.queries';
 import { getTenantDbPool } from '../../utils/tenantDbProvisioner';
+import { resolveConstituencyScope } from '../helpers/scopeResolver';
 
 export class TalukaProvisionService {
   static readonly TABLE_NAME = 'talukas';
   static readonly COLUMNS = ['id', 'district_id', 'name', 'created_at', 'updated_at'];
 
   /**
-   * Syncs all taluka records from master DB into the tenant database.
+   * Syncs taluka records from master DB into the tenant database.
+   * If districtIds are provided, syncs talukas belonging to those districts,
+   * plus any talukas required by villages linked to booths/voters in acIds.
    */
-  static async sync(tenantPool: Pool): Promise<{ count: number }> {
-    const res = await masterQuery(
-      `SELECT id, district_id, name, created_at, updated_at FROM ${this.TABLE_NAME}`
-    );
+  static async sync(tenantPool: Pool, districtIds?: string[], acIds?: string[]): Promise<{ count: number }> {
+    let queryStr = `SELECT id, district_id, name, created_at, updated_at FROM ${this.TABLE_NAME}`;
+    const params: any[] = [];
+
+    const hasDistricts = districtIds && districtIds.length > 0;
+    const hasAcs = acIds && acIds.length > 0;
+
+    if (hasDistricts && hasAcs) {
+      queryStr += ` WHERE district_id = ANY($1::uuid[])
+         OR id IN (
+           SELECT DISTINCT taluka_id FROM villages
+           WHERE id IN (
+             SELECT DISTINCT village_id FROM booths WHERE ac_id = ANY($2::uuid[]) AND village_id IS NOT NULL
+             UNION
+             SELECT DISTINCT village_id FROM voters WHERE ac_id = ANY($2::uuid[]) AND village_id IS NOT NULL
+           )
+         )`;
+      params.push(districtIds, acIds);
+    } else if (hasDistricts) {
+      queryStr += ` WHERE district_id = ANY($1::uuid[])`;
+      params.push(districtIds);
+    } else if (hasAcs) {
+      queryStr += ` WHERE id IN (
+         SELECT DISTINCT taluka_id FROM villages
+         WHERE id IN (
+           SELECT DISTINCT village_id FROM booths WHERE ac_id = ANY($1::uuid[]) AND village_id IS NOT NULL
+           UNION
+           SELECT DISTINCT village_id FROM voters WHERE ac_id = ANY($1::uuid[]) AND village_id IS NOT NULL
+         )
+       )`;
+      params.push(acIds);
+    }
+
+    const res = await masterQuery(queryStr, params);
     const rows = res.rows;
 
     await bulkUpsert(tenantPool, this.TABLE_NAME, this.COLUMNS, rows);
@@ -31,9 +64,11 @@ export class TalukaProvisionService {
     const tenant = await TenantQueries.getById(tenantId);
     if (!tenant) throw new Error(`Tenant '${tenantId}' not found`);
 
+    const { resolvedAcIds, resolvedDistrictIds } = await resolveConstituencyScope(tenant.acIds || [], tenant.pcIds || []);
+
     const pool = getTenantDbPool(tenant.tenantDbName);
     try {
-      return await this.sync(pool);
+      return await this.sync(pool, resolvedDistrictIds, resolvedAcIds);
     } finally {
       await pool.end().catch(() => { });
     }
@@ -42,8 +77,40 @@ export class TalukaProvisionService {
   /**
    * Compare master vs tenant record counts for talukas.
    */
-  static async getStats(tenantPool: Pool): Promise<{ masterCount: number; tenantCount: number; synced: boolean }> {
-    const mRes = await masterQuery(`SELECT COUNT(*)::int AS total FROM ${this.TABLE_NAME}`);
+  static async getStats(tenantPool: Pool, districtIds?: string[], acIds?: string[]): Promise<{ masterCount: number; tenantCount: number; synced: boolean }> {
+    let masterQueryStr = `SELECT COUNT(*)::int AS total FROM ${this.TABLE_NAME}`;
+    const params: any[] = [];
+
+    const hasDistricts = districtIds && districtIds.length > 0;
+    const hasAcs = acIds && acIds.length > 0;
+
+    if (hasDistricts && hasAcs) {
+      masterQueryStr += ` WHERE district_id = ANY($1::uuid[])
+         OR id IN (
+           SELECT DISTINCT taluka_id FROM villages
+           WHERE id IN (
+             SELECT DISTINCT village_id FROM booths WHERE ac_id = ANY($2::uuid[]) AND village_id IS NOT NULL
+             UNION
+             SELECT DISTINCT village_id FROM voters WHERE ac_id = ANY($2::uuid[]) AND village_id IS NOT NULL
+           )
+         )`;
+      params.push(districtIds, acIds);
+    } else if (hasDistricts) {
+      masterQueryStr += ` WHERE district_id = ANY($1::uuid[])`;
+      params.push(districtIds);
+    } else if (hasAcs) {
+      masterQueryStr += ` WHERE id IN (
+         SELECT DISTINCT taluka_id FROM villages
+         WHERE id IN (
+           SELECT DISTINCT village_id FROM booths WHERE ac_id = ANY($1::uuid[]) AND village_id IS NOT NULL
+           UNION
+           SELECT DISTINCT village_id FROM voters WHERE ac_id = ANY($1::uuid[]) AND village_id IS NOT NULL
+         )
+       )`;
+      params.push(acIds);
+    }
+
+    const mRes = await masterQuery(masterQueryStr, params);
     const masterCount = mRes.rows[0]?.total || 0;
 
     const tRes = await tenantPool.query(`SELECT COUNT(*)::int AS total FROM ${this.TABLE_NAME}`);

@@ -14,7 +14,9 @@ export type MasterCategoryKey =
   | 'booths'
   | 'religions'
   | 'castes'
-  | 'parties';
+  | 'parties'
+  | 'professionCategories'
+  | 'professions';
 
 export const MASTER_ENDPOINTS: Record<MasterCategoryKey, string> = {
   states: '/masters/states',
@@ -28,6 +30,8 @@ export const MASTER_ENDPOINTS: Record<MasterCategoryKey, string> = {
   religions: '/masters/religions',
   castes: '/masters/castes',
   parties: '/masters/parties',
+  professionCategories: '/masters/profession-categories',
+  professions: '/masters/professions',
 };
 
 export const DEFAULT_MASTER_CATEGORIES: MasterCategoryKey[] = [
@@ -72,7 +76,12 @@ export const useMasterData = (
       categories.forEach((cat) => {
         const isLoaded = master.loadedCategories?.[cat];
         const isFetching = master.fetchingCategories?.[cat];
-        if (!isLoaded && !isFetching) {
+        const isPaginatedPage = Boolean(master.pagination?.[cat]?.page && master.pagination[cat]?.limit);
+        const isPartialPage = Boolean(
+          master.pagination?.[cat]?.total &&
+          (master as any)[cat]?.length < master.pagination[cat].total
+        );
+        if ((!isLoaded || isPartialPage || isPaginatedPage) && !isFetching) {
           const endpoint = MASTER_ENDPOINTS[cat];
           if (endpoint) {
             dispatch(fetchMasterCategoryData(cat, endpoint, false));

@@ -28,4 +28,9 @@ router
   .put(tenantSettingsController.updateTenantWhatsAppTemplate)
   .delete(tenantSettingsController.deleteTenantWhatsAppTemplate);
 
+// Read-only Survey Field Points for tenant reference (rules managed strictly by Super Admin)
+router
+  .route('/survey-field-points')
+  .get(tenantSettingsController.getSurveyFieldPoints);
+
 export const tenantSettingsRoutes = router;

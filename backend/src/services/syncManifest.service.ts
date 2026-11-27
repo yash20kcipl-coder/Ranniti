@@ -8,15 +8,26 @@ export class SyncManifestService {
 
   /**
    * Fetch all registered dataset versions for a tenant in O(1) from Redis.
+   * Merges global versions with tenant-specific versions (taking Math.max)
+   * so that updates to master tables immediately reflect for all tenants.
    */
   static async getManifestVersions(tenantId?: string): Promise<Record<string, number>> {
     if (!redisClient || redisClient.status !== 'ready') return {};
     try {
-      const raw = await redisClient.hgetall(this.getKey(tenantId));
+      const globalRaw = await redisClient.hgetall(this.getKey());
+      const tenantRaw = tenantId ? await redisClient.hgetall(this.getKey(tenantId)) : {};
+
       const versions: Record<string, number> = {};
-      for (const [field, val] of Object.entries(raw)) {
+
+      for (const [field, val] of Object.entries(globalRaw)) {
         versions[field] = parseInt(val, 10) || 1;
       }
+
+      for (const [field, val] of Object.entries(tenantRaw)) {
+        const tenantNum = parseInt(val, 10) || 1;
+        versions[field] = Math.max(versions[field] || 1, tenantNum);
+      }
+
       return versions;
     } catch (error) {
       logger.error('Failed to read sync manifest from Redis', { error });

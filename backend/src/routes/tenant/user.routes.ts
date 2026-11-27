@@ -19,6 +19,23 @@ router.get('/volunteers/coverage', requireAdmin, adminUserController.getVoluntee
 
 router.get('/team', requireAdmin, adminUserController.getTeamMembers);
 
+// Dedicated Tenant Web Portal Users routes
+router.get('/web-users', requireAdmin, adminUserController.getTenantWebUsers);
+router.post(
+  '/web-users',
+  requireAdmin,
+  optionalUpload('avatar', 'avatars'),
+  adminUserController.createTenantWebUser
+);
+router.put(
+  '/web-users/:id',
+  requireAdmin,
+  optionalUpload('avatar', 'avatars'),
+  adminUserController.updateTenantWebUser
+);
+router.delete('/web-users/:id', requireAdmin, adminUserController.deleteTenantWebUser);
+router.patch('/web-users/:id/status', requireAdmin, adminUserController.toggleTenantWebUserStatus);
+
 // Dedicated status toggle / update routes
 router.patch(
   '/volunteers/:id/status',

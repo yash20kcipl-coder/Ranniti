@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Modal } from '../Modal';
-import { useAppDispatch } from '@/redux/hooks';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { fetchInfluencerOptions, bulkAssignInfluencerAction } from '@/redux/actions/voter';
+import {
+  fetchTenantInfluencerOptions,
+  bulkAssignTenantInfluencerAction,
+} from '@/redux/actions/voterTenant';
+import {
+  fetchSuperAdminInfluencerOptions,
+  bulkAssignSuperAdminInfluencerAction,
+} from '@/redux/actions/voterSuperAdmin';
 import { Crown, Sparkles, Search, X, UserCheck, Check } from 'lucide-react';
 import { SafeImage } from '../SafeImage';
 
@@ -11,18 +18,25 @@ export interface LinkToInfluencerModalProps {
   isOpen: boolean;
   onClose: () => void;
   voterIds: string[];
+  boothId?: string;
   type?: 'family' | 'social';
   onSuccess?: () => void;
+  isSuperAdmin?: boolean;
 }
 
 export const LinkToInfluencerModal: React.FC<LinkToInfluencerModalProps> = ({
   isOpen,
   onClose,
   voterIds,
+  boothId,
   type = 'family',
   onSuccess,
+  isSuperAdmin,
 }) => {
   const dispatch = useAppDispatch();
+  const currentUser = useAppSelector((state) => state.user.myprofile || state.user.user);
+  const isSuperAdminResolved =
+    isSuperAdmin ?? (currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'super_admin');
 
   // Search & Influencer state
   const [search, setSearch] = useState('');
@@ -40,9 +54,14 @@ export const LinkToInfluencerModal: React.FC<LinkToInfluencerModalProps> = ({
 
       setLoading(true);
 
+      const fetchAction = isSuperAdminResolved
+        ? fetchSuperAdminInfluencerOptions
+        : fetchTenantInfluencerOptions;
+
       dispatch(
-        fetchInfluencerOptions({
+        fetchAction({
           search: search.trim() || undefined,
+          boothId,
           type,
           excludeId: voterIds.length === 1 ? voterIds[0] : undefined,
         })
@@ -54,7 +73,7 @@ export const LinkToInfluencerModal: React.FC<LinkToInfluencerModalProps> = ({
         .finally(() => setLoading(false));
     },
     200,
-    [isOpen, search, type, voterIds]
+    [isOpen, search, type, voterIds, boothId, isSuperAdminResolved]
   );
 
   const handleSubmit = async () => {
@@ -71,8 +90,12 @@ export const LinkToInfluencerModal: React.FC<LinkToInfluencerModalProps> = ({
     try {
       setSubmitting(true);
 
+      const assignAction = isSuperAdminResolved
+        ? bulkAssignSuperAdminInfluencerAction
+        : bulkAssignTenantInfluencerAction;
+
       await dispatch(
-        bulkAssignInfluencerAction({
+        assignAction({
           influencerId: selectedInfluencerId,
           influencerType: type,
           voterIds,

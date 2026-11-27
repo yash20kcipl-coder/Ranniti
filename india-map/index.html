@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>India Interactive Map — States & Cities</title>
+
+  <!-- MapLibre GL JS & CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <!-- Local Vector GeoJSON and Geographic Reference Metadata -->
+  <script src="./data/india_states_data.js"></script>
+  <script src="./data/mapGeoData.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #dbeafe;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Top Navigation Header */
+    .header-bar {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(8px);
+      padding: 12px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .title-group h1 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+
+    .title-group p {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    /* Search Bar */
+    .search-box {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 280px;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 2px 10px;
+    }
+
+    .search-input-wrapper input {
+      width: 100%;
+      padding: 8px 6px;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 13px;
+      color: #1e293b;
+    }
+
+    .search-results {
+      max-height: 220px;
+      overflow-y: auto;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+      border: 1px solid #e2e8f0;
+      display: none;
+    }
+
+    .search-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .search-item:hover {
+      background-color: #f0f9ff;
+    }
+
+    .search-item .item-type {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    /* Control Panel */
+    .map-controls {
+      position: absolute;
+      bottom: 24px;
+      left: 20px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-btn-group {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .control-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #334155;
+      transition: background 0.15s;
+    }
+
+    .control-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .control-btn:not(:last-child) {
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .toggle-bar {
+      display: flex;
+      gap: 6px;
+    }
+
+    .toggle-pill {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #475569;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+
+    .toggle-pill.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+
+    /* Selected State Card */
+    .state-info-card {
+      position: absolute;
+      bottom: 24px;
+      right: 20px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+      border: 1px solid #e2e8f0;
+      width: 280px;
+      display: none;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .state-info-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .state-info-card .code-tag {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .state-meta-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .state-meta-row strong {
+      color: #1e293b;
+    }
+
+    .card-actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .zoom-btn {
+      flex: 1;
+      padding: 8px 12px;
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .zoom-btn:hover {
+      background: #0369a1;
+    }
+
+    .close-btn {
+      padding: 8px 12px;
+      background: #f1f5f9;
+      color: #475569;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      background: #e2e8f0;
+    }
+
+    /* MapLibre City Markers */
+    .city-marker {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .city-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #2563eb;
+      border: 1.5px solid #ffffff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .city-dot.capital {
+      width: 9px;
+      height: 9px;
+      background-color: #dc2626;
+    }
+
+    .city-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #1e293b;
+      text-shadow: 0 0 3px #ffffff, 0 0 3px #ffffff, 0 0 5px #ffffff;
+      white-space: nowrap;
+    }
+
+    /* State Label Centroids */
+    .state-centroid-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #475569;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      text-shadow: 0 0 3px #ffffff, 0 0 4px #ffffff;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* Surrounding Water Bodies & Neighbor Country Labels */
+    .water-label {
+      font-style: italic;
+      color: #0284c7;
+      opacity: 0.65;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      pointer-events: none;
+      text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+    }
+
+    .neighbor-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      pointer-events: none;
+      text-shadow: 0 0 3px #ffffff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top Navigation Header -->
+  <div class="header-bar">
+    <div class="title-group">
+      <h1>Republic of India</h1>
+      <p>State Boundaries & Major Cities Map</p>
+    </div>
+    <span class="badge">28 States & 8 UTs • 100% Offline Vector</span>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-box">
+    <div class="search-input-wrapper">
+      <input type="text" id="searchInput" placeholder="Search state or city..." autocomplete="off" />
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <!-- Map Container -->
+  <div id="map"></div>
+
+  <!-- Bottom Map Controls -->
+  <div class="map-controls">
+    <div class="toggle-bar">
+      <button class="toggle-pill active" id="btnToggleCities" onclick="toggleCities()">
+        🏙️ Cities
+      </button>
+      <button class="toggle-pill active" id="btnToggleLabels" onclick="toggleLabels()">
+        🏷️ State Names
+      </button>
+      <button class="toggle-pill active" id="btnToggleSurroundings" onclick="toggleSurroundings()">
+        🌊 Sea & Borders
+      </button>
+    </div>
+
+    <div class="control-btn-group" style="width: 36px;">
+      <button class="control-btn" title="Zoom In" onclick="map.zoomIn()">+</button>
+      <button class="control-btn" title="Zoom Out" onclick="map.zoomOut()">−</button>
+      <button class="control-btn" title="Reset View" onclick="resetView()">↺</button>
+      <button class="control-btn" title="Toggle 3D Pitch" onclick="togglePitch()">⟁</button>
+    </div>
+  </div>
+
+  <!-- State Info Card -->
+  <div class="state-info-card" id="stateCard">
+    <h3>
+      <span id="cardStateName">Gujarat</span>
+      <span class="code-tag" id="cardStateCode">GJ</span>
+    </h3>
+    <div class="state-meta-row">
+      <span>Capital:</span>
+      <strong id="cardCapital">Gandhinagar</strong>
+    </div>
+    <div class="state-meta-row">
+      <span>Zone:</span>
+      <strong id="cardZone">Western</strong>
+    </div>
+    <div class="card-actions">
+      <button class="zoom-btn" onclick="zoomToActiveState()">Zoom In</button>
+      <button class="close-btn" onclick="closeStateCard()">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // 1. Initial State & Configuration
+    let activeStateFeature = null;
+    let isPitch3D = false;
+    let showCities = true;
+    let showLabels = true;
+    let showSurroundings = true;
+
+    const cityMarkers = [];
+    const stateLabelMarkers = [];
+    const surroundingMarkers = [];
+
+    // Distinct soft pastel colors per Indian state for clean visual hierarchy
+    const STATE_COLORS = {
+      'GJ': '#fed7aa', // Gujarat - soft peach
+      'MH': '#bbf7d0', // Maharashtra - soft mint
+      'RJ': '#fef08a', // Rajasthan - soft gold
+      'MP': '#e9d5ff', // Madhya Pradesh - soft lavender
+      'UP': '#fbcfe8', // Uttar Pradesh - soft rose
+      'BR': '#c7d2fe', // Bihar - soft indigo
+      'WB': '#fed7aa', // West Bengal - soft amber
+      'OD': '#bbf7d0', // Odisha - soft sage
+      'KA': '#fef08a', // Karnataka - soft sand
+      'TN': '#fbcfe8', // Tamil Nadu - soft coral
+      'KL': '#bae6fd', // Kerala - soft sky
+      'AP': '#e9d5ff', // Andhra Pradesh - soft violet
+      'TG': '#fed7aa', // Telangana - soft wheat
+      'PB': '#c7d2fe', // Punjab - soft slate
+      'HR': '#bbf7d0', // Haryana - soft meadow
+      'CG': '#fef08a', // Chhattisgarh - soft butter
+      'JH': '#fbcfe8', // Jharkhand - soft blush
+      'AS': '#bae6fd', // Assam - soft cyan
+      'HP': '#e9d5ff', // Himachal Pradesh - soft lilac
+      'UK': '#fed7aa', // Uttarakhand - soft apricot
+      'JK': '#c7d2fe', // Jammu & Kashmir - soft periwinkle
+      'LA': '#f1f5f9', // Ladakh - soft snow
+      'AR': '#bbf7d0', // Arunachal Pradesh - soft emerald
+      'GA': '#fef08a', // Goa - soft sunshine
+      'SK': '#fbcfe8', // Sikkim - soft tea
+      'TR': '#bae6fd', // Tripura - soft azure
+      'ML': '#e9d5ff', // Meghalaya - soft orchid
+      'MN': '#fed7aa', // Manipur - soft melon
+      'NL': '#c7d2fe', // Nagaland - soft iris
+      'MZ': '#bbf7d0', // Mizoram - soft jade
+      'PY': '#fef08a', // Puducherry
+      'AN': '#bae6fd', // Andaman & Nicobar
+      'LD': '#bae6fd', // Lakshadweep
+      'DL': '#f87171', // Delhi
+      'CH': '#a7f3d0', // Chandigarh
+      'DH': '#fde047', // Dadra & Nagar Haveli and Daman & Diu
+      'CT': '#fef08a', // Chhattisgarh alias
+      'OR': '#bbf7d0', // Odisha alias
+      'UT': '#fed7aa', // Uttarakhand alias
+      'TS': '#fed7aa', // Telangana alias
+      'DD': '#fde047', // Daman & Diu alias
+      'DN': '#fde047'  // Dadra & Nagar Haveli alias
+    };
+
+    // 2. Initialize MapLibre GL
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {},
+        layers: [
+          {
+            id: 'background',
+            type: 'background',
+            paint: {
+              'background-color': '#dbeafe' // Soft oceanic blue
+            }
+          }
+        ]
+      },
+      center: [78.9629, 22.5937], // Center of India
+      zoom: 4.2,
+      minZoom: 3.5,
+      maxZoom: 14,
+      attributionControl: false
+    });
+
+    // 3. Map Load Handler
+    map.on('load', () => {
+      setupNeighboringCountries();
+      setupIndiaStates();
+      setupCityMarkers();
+      setupStateLabels();
+      setupWaterBodies();
+      setupSearch();
+    });
+
+    // 4. Neighboring Countries Vector Layers
+    function setupNeighboringCountries() {
+      if (!window.MAP_GEO_DATA || !window.MAP_GEO_DATA.NEIGHBORING_COUNTRIES) return;
+
+      const neighborFeatures = window.MAP_GEO_DATA.NEIGHBORING_COUNTRIES.map(nc => ({
+        type: 'Feature',
+        properties: { name: nc.name },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [nc.polygon]
+        }
+      }));
+
+      map.addSource('neighbor-countries', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: neighborFeatures
+        }
+      });
+
+      map.addLayer({
+        id: 'neighbor-fill',
+        type: 'fill',
+        source: 'neighbor-countries',
+        paint: {
+          'fill-color': '#f1efe9',
+          'fill-opacity': 0.88
+        }
+      });
+
+      map.addLayer({
+        id: 'neighbor-border',
+        type: 'line',
+        source: 'neighbor-countries',
+        paint: {
+          'line-color': '#cbd5e1',
+          'line-width': 1.2,
+          'line-dasharray': [2, 2]
+        }
+      });
+    }
+
+    // 5. Indian States Vector Layers
+    function setupIndiaStates() {
+      if (!window.INDIA_STATES_GEOJSON) return;
+
+      map.addSource('india-states', {
+        type: 'geojson',
+        data: window.INDIA_STATES_GEOJSON
+      });
+
+      // Build fill color expression based on STATE_COLORS
+      const colorExpr = ['match', ['get', 'state_code']];
+      for (const [code, hex] of Object.entries(STATE_COLORS)) {
+        colorExpr.push(code, hex);
+      }
+      colorExpr.push('#e2e8f0'); // fallback
+
+      // State Fill
+      map.addLayer({
+        id: 'states-fill',
+        type: 'fill',
+        source: 'india-states',
+        paint: {
+          'fill-color': colorExpr,
+          'fill-opacity': 0.85
+        }
+      });
+
+      // State Boundary Lines (Crisp white borders)
+      map.addLayer({
+        id: 'states-border',
+        type: 'line',
+        source: 'india-states',
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 1.2
+        }
+      });
+
+      // Hover / Selection Highlight Border
+      map.addLayer({
+        id: 'states-highlight',
+        type: 'line',
+        source: 'india-states',
+        filter: ['==', 'state_code', ''],
+        paint: {
+          'line-color': '#0284c7',
+          'line-width': 2.5
+        }
+      });
+
+      // Interaction Events
+      map.on('mousemove', 'states-fill', (e) => {
+        map.getCanvas().style.cursor = 'pointer';
+        if (e.features.length > 0) {
+          const code = e.features[0].properties.state_code;
+          map.setFilter('states-highlight', ['==', 'state_code', code]);
+        }
+      });
+
+      map.on('mouseleave', 'states-fill', () => {
+        map.getCanvas().style.cursor = '';
+        if (!activeStateFeature) {
+          map.setFilter('states-highlight', ['==', 'state_code', '']);
+        } else {
+          map.setFilter('states-highlight', ['==', 'state_code', activeStateFeature.properties.state_code]);
+        }
+      });
+
+      map.on('click', 'states-fill', (e) => {
+        if (e.features.length > 0) {
+          selectState(e.features[0]);
+        }
+      });
+    }
+
+    // 6. City Markers with Zoom Filtering
+    function setupCityMarkers() {
+      if (!window.MAP_GEO_DATA || !window.MAP_GEO_DATA.INDIAN_CITIES) return;
+
+      window.MAP_GEO_DATA.INDIAN_CITIES.forEach(city => {
+        const el = document.createElement('div');
+        el.className = 'city-marker';
+        el.title = `${city.name}, ${city.state}`;
+
+        const dot = document.createElement('div');
+        dot.className = city.isCapital ? 'city-dot capital' : 'city-dot';
+
+        const name = document.createElement('span');
+        name.className = 'city-name';
+        name.innerText = city.name;
+
+        el.appendChild(dot);
+        el.appendChild(name);
+
+        el.onclick = (e) => {
+          e.stopPropagation();
+          map.flyTo({
+            center: [city.lng, city.lat],
+            zoom: 8.5,
+            essential: true
+          });
+        };
+
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([city.lng, city.lat])
+          .addTo(map);
+
+        cityMarkers.push({
+          marker,
+          tier: city.tier,
+          element: el
+        });
+      });
+
+      // Update visibility on zoom
+      map.on('zoom', updateCityVisibility);
+      updateCityVisibility();
+    }
+
+    function updateCityVisibility() {
+      const zoom = map.getZoom();
+      cityMarkers.forEach(item => {
+        if (!showCities) {
+          item.element.style.display = 'none';
+          return;
+        }
+
+        // Tier 1: Visible at all zooms
+        // Tier 2: Visible zoom >= 5.0
+        // Tier 3: Visible zoom >= 6.5
+        if (item.tier === 1) {
+          item.element.style.display = 'flex';
+        } else if (item.tier === 2 && zoom >= 5.0) {
+          item.element.style.display = 'flex';
+        } else if (item.tier === 3 && zoom >= 6.5) {
+          item.element.style.display = 'flex';
+        } else {
+          item.element.style.display = 'none';
+        }
+      });
+    }
+
+    // 7. State Centroid Labels
+    function setupStateLabels() {
+      if (!window.MAP_GEO_DATA || !window.MAP_GEO_DATA.INDIAN_STATES) return;
+
+      window.MAP_GEO_DATA.INDIAN_STATES.forEach(st => {
+        const el = document.createElement('div');
+        el.className = 'state-centroid-label';
+        el.innerText = st.name;
+        el.style.fontSize = `${st.fontSize}px`;
+
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([st.lng, st.lat])
+          .addTo(map);
+
+        stateLabelMarkers.push({
+          marker,
+          minZoom: st.minZoom || 3.5,
+          element: el
+        });
+      });
+
+      map.on('zoom', updateStateLabelVisibility);
+      updateStateLabelVisibility();
+    }
+
+    function updateStateLabelVisibility() {
+      const zoom = map.getZoom();
+      stateLabelMarkers.forEach(item => {
+        if (!showLabels) {
+          item.element.style.display = 'none';
+          return;
+        }
+        item.element.style.display = (zoom >= item.minZoom) ? 'block' : 'none';
+      });
+    }
+
+    // 8. Water Bodies & Neighbor Labels
+    function setupWaterBodies() {
+      if (!window.MAP_GEO_DATA) return;
+
+      // Water Bodies
+      if (window.MAP_GEO_DATA.WATER_BODIES) {
+        window.MAP_GEO_DATA.WATER_BODIES.forEach(wb => {
+          const el = document.createElement('div');
+          el.className = 'water-label';
+          el.innerText = wb.name;
+          el.style.fontSize = `${wb.fontSize}px`;
+
+          const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([wb.lng, wb.lat])
+            .addTo(map);
+
+          surroundingMarkers.push({ marker, element: el, minZoom: wb.minZoom || 3.5 });
+        });
+      }
+
+      // Neighbor Country Labels
+      if (window.MAP_GEO_DATA.NEIGHBORING_COUNTRIES) {
+        window.MAP_GEO_DATA.NEIGHBORING_COUNTRIES.forEach(nc => {
+          const el = document.createElement('div');
+          el.className = 'neighbor-label';
+          el.innerText = nc.name;
+
+          const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+            .setLngLat(nc.labelCoord)
+            .addTo(map);
+
+          surroundingMarkers.push({ marker, element: el, minZoom: 3.5 });
+        });
+      }
+
+      map.on('zoom', updateSurroundingsVisibility);
+      updateSurroundingsVisibility();
+    }
+
+    function updateSurroundingsVisibility() {
+      const zoom = map.getZoom();
+      surroundingMarkers.forEach(item => {
+        if (!showSurroundings) {
+          item.element.style.display = 'none';
+          return;
+        }
+        item.element.style.display = (zoom >= item.minZoom) ? 'block' : 'none';
+      });
+    }
+
+    // 9. State Selection & Card Display
+    function selectState(feature) {
+      activeStateFeature = feature;
+      const props = feature.properties;
+
+      document.getElementById('cardStateName').innerText = props.state_name;
+      document.getElementById('cardStateCode').innerText = props.state_code;
+      document.getElementById('cardCapital').innerText = props.capital || '—';
+      document.getElementById('cardZone').innerText = props.zone || '—';
+      document.getElementById('stateCard').style.display = 'block';
+
+      map.setFilter('states-highlight', ['==', 'state_code', props.state_code]);
+    }
+
+    function closeStateCard() {
+      document.getElementById('stateCard').style.display = 'none';
+      activeStateFeature = null;
+      map.setFilter('states-highlight', ['==', 'state_code', '']);
+    }
+
+    function zoomToActiveState() {
+      if (!activeStateFeature) return;
+      zoomToGeometry(activeStateFeature.geometry);
+    }
+
+    function zoomToGeometry(geometry) {
+      const bounds = new maplibregl.LngLatBounds();
+
+      const addCoords = (coords) => {
+        if (typeof coords[0] === 'number') {
+          bounds.extend(coords);
+        } else {
+          coords.forEach(addCoords);
+        }
+      };
+
+      addCoords(geometry.coordinates);
+      map.fitBounds(bounds, { padding: 40, duration: 1200 });
+    }
+
+    // 10. Controls & Toggles
+    function resetView() {
+      closeStateCard();
+      map.flyTo({
+        center: [78.9629, 22.5937],
+        zoom: 4.2,
+        pitch: 0,
+        bearing: 0,
+        essential: true
+      });
+      isPitch3D = false;
+    }
+
+    function togglePitch() {
+      isPitch3D = !isPitch3D;
+      map.easeTo({
+        pitch: isPitch3D ? 40 : 0,
+        duration: 800
+      });
+    }
+
+    function toggleCities() {
+      showCities = !showCities;
+      document.getElementById('btnToggleCities').classList.toggle('active', showCities);
+      updateCityVisibility();
+    }
+
+    function toggleLabels() {
+      showLabels = !showLabels;
+      document.getElementById('btnToggleLabels').classList.toggle('active', showLabels);
+      updateStateLabelVisibility();
+    }
+
+    function toggleSurroundings() {
+      showSurroundings = !showSurroundings;
+      document.getElementById('btnToggleSurroundings').classList.toggle('active', showSurroundings);
+
+      const opacity = showSurroundings ? 0.88 : 0;
+      if (map.getLayer('neighbor-fill')) {
+        map.setPaintProperty('neighbor-fill', 'fill-opacity', opacity);
+      }
+      if (map.getLayer('neighbor-border')) {
+        map.setPaintProperty('neighbor-border', 'line-opacity', showSurroundings ? 1 : 0);
+      }
+      updateSurroundingsVisibility();
+    }
+
+    // 11. Search Box
+    function setupSearch() {
+      const input = document.getElementById('searchInput');
+      const results = document.getElementById('searchResults');
+
+      input.addEventListener('input', (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        if (q.length === 0) {
+          results.style.display = 'none';
+          results.innerHTML = '';
+          return;
+        }
+
+        const hits = [];
+
+        // Search states
+        if (window.INDIA_STATES_GEOJSON) {
+          window.INDIA_STATES_GEOJSON.features.forEach(f => {
+            if (f.properties.state_name.toLowerCase().includes(q)) {
+              hits.push({
+                type: 'State',
+                name: f.properties.state_name,
+                feature: f
+              });
+            }
+          });
+        }
+
+        // Search cities
+        if (window.MAP_GEO_DATA && window.MAP_GEO_DATA.INDIAN_CITIES) {
+          window.MAP_GEO_DATA.INDIAN_CITIES.forEach(c => {
+            if (c.name.toLowerCase().includes(q)) {
+              hits.push({
+                type: `City (${c.state})`,
+                name: c.name,
+                lng: c.lng,
+                lat: c.lat
+              });
+            }
+          });
+        }
+
+        if (hits.length === 0) {
+          results.innerHTML = '<div style="padding: 10px; font-size: 12px; color: #94a3b8;">No matches found</div>';
+          results.style.display = 'block';
+          return;
+        }
+
+        results.innerHTML = '';
+        hits.slice(0, 8).forEach(hit => {
+          const item = document.createElement('div');
+          item.className = 'search-item';
+          item.innerHTML = `<span>${hit.name}</span><span class="item-type">${hit.type}</span>`;
+
+          item.onclick = () => {
+            input.value = hit.name;
+            results.style.display = 'none';
+
+            if (hit.feature) {
+              selectState(hit.feature);
+              zoomToGeometry(hit.feature.geometry);
+            } else {
+              map.flyTo({
+                center: [hit.lng, hit.lat],
+                zoom: 8.5,
+                essential: true
+              });
+            }
+          };
+
+          results.appendChild(item);
+        });
+
+        results.style.display = 'block';
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-box')) {
+          results.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>

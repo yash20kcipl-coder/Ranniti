@@ -45,10 +45,10 @@ export const seedTenantRoles = async (): Promise<void> => {
        RETURNING id`,
       [
         'Full Political Campaign Suite',
-        'Complete access to all web tabs (incl. settings), tenant master sub-tabs (AC, Ward, Booth), voter directory, and mobile field capabilities.',
+        'Complete access to all web tabs (incl. settings), tenant master sub-tabs (AC, Ward, Booth, Talukas, Villages, Castes, Professions), voter directory, and mobile field capabilities.',
         JSON.stringify({
           webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
-          masterSubTabs: ['acs', 'wards', 'booths'],
+          masterSubTabs: ['acs', 'wards', 'booths', 'elections', 'talukas', 'villages', 'castes', 'profession-categories', 'professions'],
         }),
         true,
         true,

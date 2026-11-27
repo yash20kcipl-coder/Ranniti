@@ -1,8 +1,10 @@
 import { BulkImporter } from '../../utils/bulkImporter';
 import { CacheService } from '../../services/cache.service';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { LookupResolverService } from '../lookupResolver.service';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { formatTitleCase } from '../../utils/textUtils';
 
 export class AcImportService {
   static async import(
@@ -35,7 +37,7 @@ export class AcImportService {
             rowsToInsert.push({
               pc_id: pcId,
               ac_number: acNum,
-              name,
+              name: formatTitleCase(name),
               district_id: districtId,
             });
           }
@@ -55,7 +57,27 @@ export class AcImportService {
       },
     });
 
-    await CacheService.invalidatePattern('ranniti:masters:acs*');
+    await MasterCacheInvalidator.invalidate('acs');
+
+    try {
+      const { MasterQueries } = await import('../../queries/master.queries');
+      const allAcs = await MasterQueries.getAcs().catch(() => []);
+      const { MasterBroadcastSync } = await import('../../services/sync/masterBroadcastSync.service');
+      await MasterBroadcastSync.broadcastBatchToAllTenants(
+        'assembly_constituencies',
+        allAcs.map((a: any) => ({
+          id: a.id,
+          pc_id: a.pcId || a.pc_id,
+          ac_number: a.acNumber ?? a.ac_number,
+          name: a.name,
+          district_id: a.districtId || a.district_id,
+        }))
+      );
+    } catch (broadcastErr) {
+      const { logger } = await import('../../utils/logger');
+      logger.error('[AcImportService] Failed to broadcast assembly constituencies to tenants:', broadcastErr);
+    }
+
     return result;
   }
 }

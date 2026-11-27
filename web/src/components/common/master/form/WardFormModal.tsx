@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
+import { formatTitleCase } from '@/utils/textUtils';
 
 interface WardFormModalProps {
   isOpen: boolean;
@@ -64,7 +65,7 @@ export const WardFormModal: React.FC<WardFormModalProps> = ({
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      await onSave({ name, wardNumber: Number(wardNumber), acId });
+      await onSave({ name: formatTitleCase(name.trim()), wardNumber: Number(wardNumber), acId });
     } finally {
       setSubmitting(false);
     }

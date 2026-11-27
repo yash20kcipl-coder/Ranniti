@@ -180,7 +180,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   }, [acsData, pcId, districtId, stateId]);
 
   const acOptions = useMemo(() => [
-    { value: '', label: 'All ACs (Generic)' },
+    ...(filteredAcs.length === 1 ? [] : [{ value: '', label: 'All ACs (Generic)' }]),
     ...filteredAcs.map((a: any) => ({ value: String(a.id), label: a.name })),
   ], [filteredAcs]);
 
@@ -260,6 +260,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       }
     }
   };
+
+  // Auto-select AC if single AC available in scope
+  useEffect(() => {
+    if (isOpen && filteredAcs.length === 1 && !acId) {
+      handleAcChange(String(filteredAcs[0].id));
+    }
+  }, [isOpen, filteredAcs, acId]);
 
   const handleWardChange = (val: string) => {
     setWardId(val);

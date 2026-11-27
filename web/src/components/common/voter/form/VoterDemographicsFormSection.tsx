@@ -4,6 +4,7 @@ import SectionContainer from '../SectionContainer';
 import FormInput from '@/components/common/FormInput';
 import type { Option } from '@/components/common/FormInput';
 import { FORM_RELATION_OPTIONS } from '@/constants/dropdownOptions';
+import { useAppSelector } from '@/redux/hooks';
 
 export interface VoterDemographicsFormSectionProps {
   formData: any;
@@ -13,8 +14,12 @@ export interface VoterDemographicsFormSectionProps {
   casteOptions?: Option[];
   religionOptions?: Option[];
   relationOptions?: Option[];
+  professionCategories?: any[];
+  professions?: any[];
   errors: Record<string, string>;
   handleChange: (e: any) => void;
+  onSearchProfessions?: (query: string) => Promise<any[]>;
+  onSearchSubcastes?: (query: string) => Promise<any[]>;
 }
 
 export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSectionProps> = ({
@@ -27,6 +32,10 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
   religionOptions = [],
   casteOptions = [],
   relationOptions = FORM_RELATION_OPTIONS,
+  professionCategories,
+  professions,
+  onSearchProfessions,
+  onSearchSubcastes,
 }) => {
   // Resolve unique autocomplete suggestion lists
   const resolvedReligionSuggestions = React.useMemo(() => {
@@ -53,16 +62,39 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
 
   // Current display values with fallbacks to mapped labels
   const religionDisplayValue =
-    formData.religionName ||
     formData.religion ||
+    formData.religionName ||
     religionOptions.find((r) => String(r.value) === String(formData.religionId))?.label ||
     '';
 
   const casteDisplayValue =
-    formData.casteName ||
     formData.caste ||
+    formData.casteName ||
     casteOptions.find((c) => String(c.value) === String(formData.casteId))?.label ||
     '';
+
+  const master = useAppSelector((state) => state.master);
+  const rawCategories = professionCategories || master.professionCategories || [];
+  const rawProfessions = professions || master.professions || [];
+
+  const professionCategorySuggestions = React.useMemo(() => {
+    return rawCategories.map((c: any) => c.name).filter(Boolean);
+  }, [rawCategories]);
+
+  const specificProfessionSuggestions = React.useMemo(() => {
+    if (formData.professionType) {
+      const selectedCat = rawCategories.find(
+        (c: any) => (c.name || '').toLowerCase() === String(formData.professionType).toLowerCase()
+      );
+      if (selectedCat) {
+        return rawProfessions
+          .filter((p: any) => String(p.categoryId) === String(selectedCat.id))
+          .map((p: any) => p.name)
+          .filter(Boolean);
+      }
+    }
+    return rawProfessions.map((p: any) => p.name).filter(Boolean);
+  }, [rawProfessions, rawCategories, formData.professionType]);
 
   return (
     <SectionContainer
@@ -146,24 +178,30 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
           placeholder="Select or type Subcaste"
           suggestions={resolvedSubcasteSuggestions}
           error={errors.subcasteName}
+          onRemoteSearch={onSearchSubcastes}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         <FormInput
           label="Profession Category"
+          type="autocomplete"
           name="professionType"
-          value={formData.professionType}
+          value={formData.professionType || ''}
           onChange={handleChange}
-          placeholder="e.g. Government, Business, Student, Retired"
+          placeholder="e.g. Government, Healthcare, Education"
+          suggestions={professionCategorySuggestions}
         />
 
         <FormInput
           label="Specific Profession / Occupation"
+          type="autocomplete"
           name="profession"
-          value={formData.profession}
+          value={formData.profession || ''}
           onChange={handleChange}
           placeholder="e.g. High School Teacher, Civil Engineer"
+          suggestions={specificProfessionSuggestions}
+          onRemoteSearch={onSearchProfessions}
         />
       </div>
     </SectionContainer>

@@ -11,13 +11,11 @@ import React, { useState, useMemo } from 'react';
 import { exportToExcel } from '@/utils/exportImport';
 import { useMasterData } from '@/hooks/useMasterData';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ImportModal } from '@/components/common/ImportModal';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { TalukaFormModal } from '@/components/common/master/form';
-import { startBulkImportFileJob } from '@/redux/actions/importJobs';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
@@ -31,9 +29,8 @@ export const TalukasPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Filter States (2 filters -> inline)
+  // Filter States
   const [search, setSearch] = useState('');
-  const [stateId, setStateId] = useState('');
   const [districtId, setDistrictId] = useState('');
 
   // Modal States
@@ -42,7 +39,6 @@ export const TalukasPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Debounced backend fetch for talukas data with filter parameters
   useDebouncedEffect(() => {
@@ -50,7 +46,6 @@ export const TalukasPage: React.FC = () => {
     setLoading(true);
 
     const params: Record<string, string> = {};
-    if (stateId) params.stateId = stateId;
     if (districtId) params.districtId = districtId;
     if (search.trim()) params.search = search.trim();
 
@@ -61,20 +56,13 @@ export const TalukasPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, 250, [dispatch, search, stateId, districtId]);
+  }, 250, [dispatch, search, districtId]);
 
-  // Options with cascading dependencies
-  const stateOptions = useMemo(() => statesData.map((s: any) => ({ label: s.name, value: s.id })), [statesData]);
-
-  const filteredDistrictOptions = useMemo(() => {
-    const raw = stateId ? districtsData.filter((d: any) => String(d.stateId) === String(stateId)) : districtsData;
-    return raw.map((d: any) => ({ label: d.name, value: d.id }));
-  }, [districtsData, stateId]);
+  const districtOptions = useMemo(() => districtsData.map((d: any) => ({ label: d.name, value: d.id })), [districtsData]);
 
   // Client-side filtering
   const filteredTalukas = useMemo(() => {
     return talukasData.filter((item: any) => {
-      if (stateId && String(item.stateId) !== String(stateId)) return false;
       if (districtId && String(item.districtId) !== String(districtId)) return false;
       if (search.trim()) {
         const query = search.toLowerCase();
@@ -85,35 +73,24 @@ export const TalukasPage: React.FC = () => {
       }
       return true;
     });
-  }, [talukasData, search, stateId, districtId]);
+  }, [talukasData, search, districtId]);
 
   const handleResetFilters = () => {
     setSearch('');
-    setStateId('');
     setDistrictId('');
   };
 
   const filterFields: FilterField[] = [
     {
-      key: 'stateId',
-      label: 'State',
-      type: 'select',
-      value: stateId,
-      onChange: (val) => {
-        setStateId(val);
-        setDistrictId('');
-      },
-      options: stateOptions,
-      placeholder: 'All States',
-    },
-    {
       key: 'districtId',
       label: 'District',
       type: 'select',
       value: districtId,
+      defaultValue: '',
+      excludeFromCount: true,
       onChange: setDistrictId,
-      options: filteredDistrictOptions,
-      placeholder: 'All Districts',
+      options: [{ label: 'All Districts', value: '' }, ...districtOptions],
+      isPrimary: true,
     },
   ];
 
@@ -123,10 +100,10 @@ export const TalukasPage: React.FC = () => {
       key: 'name',
       header: 'Taluka Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
-    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.districtName || '-'}</span> },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
+    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.districtName || '-'}</span> },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.stateName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -188,29 +165,6 @@ export const TalukasPage: React.FC = () => {
     toast.success('Talukas exported successfully');
   };
 
-  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
-    try {
-      await dispatch(
-        startBulkImportFileJob(
-          'talukas',
-          file,
-          () => {
-            const params: Record<string, string> = {};
-            if (stateId) params.stateId = stateId;
-            if (districtId) params.districtId = districtId;
-            if (search.trim()) params.search = search.trim();
-            dispatch(fetchSuperAdminMasterCategoryData('talukas', '/masters/talukas', false, params));
-          },
-          context || { stateId, districtId }
-        )
-      );
-      toast.success('Bulk import job started for Talukas!');
-      setIsImportModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start import');
-    }
-  };
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -226,28 +180,14 @@ export const TalukasPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Talukas (Tehsils)"
+        title="Talukas"
         icon={<Map className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage administrative taluka / tehsil divisions within districts."
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {filteredTalukas.length} {filteredTalukas.length === 1 ? 'Record' : 'Records'}
-          </span>
-        }
         onAddClick={handleOpenAdd}
         addLabel="Add Taluka"
-        onImportClick={() => setIsImportModalOpen(true)}
         onExportClick={handleExport}
         onSyncClick={handleSync}
         isSyncing={isSyncing}
-      />
-
-      <FilterBar
-        searchPlaceholder="Search Taluka Name, District, State..."
-        searchValue={search}
-        onSearchChange={setSearch}
-        filters={filterFields}
-        onReset={handleResetFilters}
       />
 
       <DataTable
@@ -255,6 +195,19 @@ export const TalukasPage: React.FC = () => {
         data={filteredTalukas}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            showDrawerButton={false}
+            showResetButton={false}
+            searchValue={search}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search Taluka Name, District, State..."
+            onSearchChange={setSearch}
+          />
+        }
         actions={(row) => (
           <TableActions
             onEdit={() => handleOpenEdit(row)}
@@ -283,14 +236,6 @@ export const TalukasPage: React.FC = () => {
         loading={isDeleting}
       />
 
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImport}
-        title="Import Talukas"
-        categoryKey="talukas"
-        sampleParams={{ stateId, districtId }}
-      />
     </div>
   );
 };

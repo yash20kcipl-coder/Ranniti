@@ -11,13 +11,11 @@ import React, { useState, useMemo } from 'react';
 import { exportToExcel } from '@/utils/exportImport';
 import { useMasterData } from '@/hooks/useMasterData';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ImportModal } from '@/components/common/ImportModal';
 import { AcFormModal } from '@/components/common/master/form';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { startBulkImportFileJob } from '@/redux/actions/importJobs';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
@@ -31,10 +29,9 @@ export const AcsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Filter States (3 filters -> inline)
+  // Filter States (District & PC inline filters)
   const [pcId, setPcId] = useState('');
   const [search, setSearch] = useState('');
-  const [stateId, setStateId] = useState('');
   const [districtId, setDistrictId] = useState('');
 
   // Modal States
@@ -42,7 +39,6 @@ export const AcsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
 
   // Debounced backend fetch for acs data with filter parameters
@@ -51,7 +47,6 @@ export const AcsPage: React.FC = () => {
     setLoading(true);
 
     const params: Record<string, string> = {};
-    if (stateId) params.stateId = stateId;
     if (districtId) params.districtId = districtId;
     if (pcId) params.pcId = pcId;
     if (search.trim()) params.search = search.trim();
@@ -63,25 +58,19 @@ export const AcsPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, 250, [dispatch, search, stateId, districtId, pcId]);
+  }, 250, [dispatch, search, districtId, pcId]);
 
-  // Options with cascading dependencies
-  const stateOptions = useMemo(() => statesData.map((s: any) => ({ label: s.name, value: s.id })), [statesData]);
+  const districtOptions = useMemo(() => {
+    return districtsData.map((d: any) => ({ label: d.name, value: d.id }));
+  }, [districtsData]);
 
-  const filteredDistrictOptions = useMemo(() => {
-    const raw = stateId ? districtsData.filter((d: any) => String(d.stateId) === String(stateId)) : districtsData;
-    return raw.map((d: any) => ({ label: d.name, value: d.id }));
-  }, [districtsData, stateId]);
-
-  const filteredPcOptions = useMemo(() => {
-    const raw = stateId ? pcsData.filter((p: any) => String(p.stateId) === String(stateId)) : pcsData;
-    return raw.map((p: any) => ({ label: p.name, value: p.id }));
-  }, [pcsData, stateId]);
+  const pcOptions = useMemo(() => {
+    return pcsData.map((p: any) => ({ label: p.name, value: p.id }));
+  }, [pcsData]);
 
   // Client-side filtering
   const filteredAcs = useMemo(() => {
     return acsData.filter((item: any) => {
-      if (stateId && String(item.stateId) !== String(stateId)) return false;
       if (districtId && String(item.districtId) !== String(districtId)) return false;
       if (pcId && String(item.pcId) !== String(pcId)) return false;
       if (search.trim()) {
@@ -94,48 +83,41 @@ export const AcsPage: React.FC = () => {
       }
       return true;
     });
-  }, [acsData, search, stateId, districtId, pcId]);
+  }, [acsData, search, districtId, pcId]);
 
   const handleResetFilters = () => {
     setSearch('');
-    setStateId('');
     setDistrictId('');
     setPcId('');
   };
 
-  const filterFields: FilterField[] = [
-    {
-      key: 'stateId',
-      label: 'State',
-      type: 'select',
-      value: stateId,
-      onChange: (val) => {
-        setStateId(val);
-        setDistrictId('');
-        setPcId('');
+  const filterFields: FilterField[] = useMemo(
+    () => [
+      {
+        key: 'districtId',
+        label: 'District',
+        type: 'select',
+        value: districtId,
+        defaultValue: '',
+        excludeFromCount: true,
+        onChange: setDistrictId,
+        options: [{ label: 'All Districts', value: '' }, ...districtOptions],
+        isPrimary: true,
       },
-      options: stateOptions,
-      placeholder: 'All States',
-    },
-    {
-      key: 'districtId',
-      label: 'District',
-      type: 'select',
-      value: districtId,
-      onChange: setDistrictId,
-      options: filteredDistrictOptions,
-      placeholder: 'All Districts',
-    },
-    {
-      key: 'pcId',
-      label: 'Parliamentary Constituency (PC)',
-      type: 'select',
-      value: pcId,
-      onChange: setPcId,
-      options: filteredPcOptions,
-      placeholder: 'All PCs',
-    },
-  ];
+      {
+        key: 'pcId',
+        label: 'Parliamentary (PC)',
+        type: 'select',
+        value: pcId,
+        defaultValue: '',
+        excludeFromCount: true,
+        onChange: setPcId,
+        options: [{ label: 'All PCs', value: '' }, ...pcOptions],
+        isPrimary: true,
+      },
+    ],
+    [districtId, pcId, districtOptions, pcOptions]
+  );
 
   // Columns Definition
   const columns: Column<any>[] = [
@@ -143,17 +125,17 @@ export const AcsPage: React.FC = () => {
       key: 'acNumber',
       header: 'AC No.',
       sortable: true,
-      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.acNumber || '-'}</span>,
+      render: (row) => <span className="font-mono font-medium text-[9.5px] text-slate-700 dark:text-slate-300">#{row.acNumber || '-'}</span>,
     },
     {
       key: 'name',
       header: 'Assembly Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
-    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.districtName || '-'}</span> },
-    { key: 'pcName', header: 'PC', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.pcName || '-'}</span> },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.stateName || '-'}</span> },
+    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.districtName || '-'}</span> },
+    { key: 'pcName', header: 'PC', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.pcName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -215,30 +197,6 @@ export const AcsPage: React.FC = () => {
     toast.success('ACs exported successfully');
   };
 
-  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
-    try {
-      await dispatch(
-        startBulkImportFileJob(
-          'acs',
-          file,
-          () => {
-            const params: Record<string, string> = {};
-            if (stateId) params.stateId = stateId;
-            if (districtId) params.districtId = districtId;
-            if (pcId) params.pcId = pcId;
-            if (search.trim()) params.search = search.trim();
-            dispatch(fetchSuperAdminMasterCategoryData('acs', '/masters/acs', false, params));
-          },
-          context || { stateId, districtId, pcId }
-        )
-      );
-      toast.success('Bulk import job started for ACs!');
-      setIsImportModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start import');
-    }
-  };
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -254,28 +212,14 @@ export const AcsPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <PageHeader
+        addLabel="Add AC"
+        isSyncing={isSyncing}
+        onSyncClick={handleSync}
+        onAddClick={handleOpenAdd}
+        onExportClick={handleExport}
         title="Assembly Constituencies (AC)"
         icon={<Landmark className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage Vidhan Sabha assembly constituencies."
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {filteredAcs.length} {filteredAcs.length === 1 ? 'Record' : 'Records'}
-          </span>
-        }
-        onAddClick={handleOpenAdd}
-        addLabel="Add AC"
-        onImportClick={() => setIsImportModalOpen(true)}
-        onExportClick={handleExport}
-        onSyncClick={handleSync}
-        isSyncing={isSyncing}
-      />
-
-      <FilterBar
-        searchPlaceholder="Search AC No, Assembly Name, District, PC..."
-        searchValue={search}
-        onSearchChange={setSearch}
-        filters={filterFields}
-        onReset={handleResetFilters}
       />
 
       <DataTable
@@ -283,6 +227,19 @@ export const AcsPage: React.FC = () => {
         data={filteredAcs}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            showDrawerButton={false}
+            showResetButton={false}
+            searchValue={search}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search AC No, Assembly Name, District, PC..."
+            onSearchChange={setSearch}
+          />
+        }
         actions={(row) => (
           <TableActions
             onEdit={() => handleOpenEdit(row)}
@@ -292,33 +249,24 @@ export const AcsPage: React.FC = () => {
       />
 
       <AcFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        editingItem={editingItem}
-        states={statesData}
-        districts={districtsData}
         pcs={pcsData}
         onSave={handleSave}
+        states={statesData}
+        isOpen={isModalOpen}
+        districts={districtsData}
+        editingItem={editingItem}
+        onClose={() => setIsModalOpen(false)}
       />
 
       <ConfirmModal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleDeleteConfirm}
         title="Delete AC"
-        message={`Are you sure you want to delete "${itemToDelete?.name || ''}"?`}
         confirmText="Delete"
-        confirmVariant="danger"
         loading={isDeleting}
-      />
-
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImport}
-        title="Import ACs"
-        categoryKey="acs"
-        sampleParams={{ stateId, districtId, pcId }}
+        confirmVariant="danger"
+        isOpen={deleteModalOpen}
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setDeleteModalOpen(false)}
+        message={`Are you sure you want to delete "${itemToDelete?.name || ''}"?`}
       />
     </div>
   );

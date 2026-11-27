@@ -8,3 +8,5 @@ export * from './WardFormModal';
 export * from './BoothFormModal';
 export * from './CasteFormModal';
 export * from './PartyFormModal';
+export * from './ProfessionCategoryFormModal';
+export * from './ProfessionFormModal';

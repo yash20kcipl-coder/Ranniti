@@ -10,4 +10,6 @@ export * from './WardsPage';
 export * from './BoothsPage';
 export * from './BulkUploadTestPage';
 export * from './SuperAdminElectionsPage';
+export * from './ProfessionCategoriesPage';
+export * from './ProfessionsPage';
 

@@ -4,10 +4,35 @@ import { Building2 } from 'lucide-react';
 import { TenantAcsPage } from './TenantAcsPage';
 import { TenantWardsPage } from './TenantWardsPage';
 import { TenantBoothsPage } from './TenantBoothsPage';
+import { TenantTalukasPage } from './TenantTalukasPage';
+import { TenantVillagesPage } from './TenantVillagesPage';
+import { TenantCastesPage } from './TenantCastesPage';
+import { TenantProfessionCategoriesPage } from './TenantProfessionCategoriesPage';
+import { TenantProfessionsPage } from './TenantProfessionsPage';
 import { TenantElectionsPage } from './TenantElectionsPage';
 
-type TenantMasterTabKey = 'acs' | 'wards' | 'booths' | 'elections';
-const TENANT_ALLOWED_KEYS: TenantMasterTabKey[] = ['acs', 'wards', 'booths', 'elections'];
+type TenantMasterTabKey =
+  | 'acs'
+  | 'wards'
+  | 'booths'
+  | 'elections'
+  | 'talukas'
+  | 'villages'
+  | 'castes'
+  | 'profession-categories'
+  | 'professions';
+
+const TENANT_ALLOWED_KEYS: TenantMasterTabKey[] = [
+  'acs',
+  'wards',
+  'booths',
+  'elections',
+  'talukas',
+  'villages',
+  'castes',
+  'profession-categories',
+  'professions',
+];
 
 interface TenantMasterPageProps {
   defaultTab?: TenantMasterTabKey;
@@ -52,6 +77,16 @@ export const TenantMasterPage: React.FC<TenantMasterPageProps> = ({ defaultTab }
       return <TenantWardsPage />;
     case 'booths':
       return <TenantBoothsPage />;
+    case 'talukas':
+      return <TenantTalukasPage />;
+    case 'villages':
+      return <TenantVillagesPage />;
+    case 'castes':
+      return <TenantCastesPage />;
+    case 'profession-categories':
+      return <TenantProfessionCategoriesPage />;
+    case 'professions':
+      return <TenantProfessionsPage />;
     case 'elections':
       return <TenantElectionsPage />;
     case 'acs':

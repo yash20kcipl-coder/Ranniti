@@ -18,13 +18,14 @@ import { useAppSelector } from '@/redux/hooks';
 import { CountUp } from '@/components/common/CountUp';
 import { SafeImage } from '@/components/common/SafeImage';
 import { FormInput } from '@/components/common/FormInput';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import type { VolunteerLeaderboardItem } from '@/redux/reducers/volunteer';
 
 const ROLE_BADGES: Record<string, { label: string; color: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
   pc_leader: { label: 'PC Leader', color: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800', icon: Shield },
   ac_leader: { label: 'AC Leader', color: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800', icon: Award },
-  sub_leader: { label: 'Ward Coordinator', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800', icon: Users },
+  sub_leader: { label: 'Sub-Leader', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800', icon: Users },
   supporter: { label: 'Volunteer', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', icon: UserCheck },
 };
 
@@ -344,7 +345,7 @@ export const VolunteerOutreachCard: React.FC<VolunteerOutreachCardProps> = ({ vo
                   { value: 'all', label: 'All Roles' },
                   { value: 'pc_leader', label: 'PC Leader' },
                   { value: 'ac_leader', label: 'AC Leader' },
-                  { value: 'sub_leader', label: 'Ward Coordinator' },
+                  { value: 'sub_leader', label: 'Sub-Leader' },
                   { value: 'supporter', label: 'Volunteer' },
                 ]}
                 className="text-xs"
@@ -449,7 +450,7 @@ export const VolunteerOutreachCard: React.FC<VolunteerOutreachCardProps> = ({ vo
                               {item.name}
                             </span>
                             <span className="text-[11px] text-slate-400 font-mono block">
-                              {item.mobile || '—'}
+                              {formatPhoneNumber(item.mobile)}
                             </span>
                           </div>
                         </div>

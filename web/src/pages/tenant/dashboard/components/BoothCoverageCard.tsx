@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card } from '@/components/common/Card';
 import type { TenantDashboardPayload } from '@/redux/actions/tenantDashboard';
 
 interface BoothCoverageCardProps {
@@ -41,7 +42,7 @@ const ROLE_CONFIG: Record<
     iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   },
   sub_leader: {
-    label: 'Sub-Leader / Ward Coordinator',
+    label: 'Sub-Leader',
     icon: Users,
     gradient: 'from-amber-500 to-orange-500',
     iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
@@ -59,13 +60,12 @@ export const BoothCoverageCard: React.FC<BoothCoverageCardProps> = ({ data, load
 
   if (loading || !data) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-800 shadow-xs animate-pulse">
-        <div className="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded mb-4" />
+      <Card loading className="h-full min-h-[350px]">
         <div className="space-y-3">
           <div className="h-12 bg-slate-200 dark:bg-slate-800 rounded-lg" />
           <div className="h-12 bg-slate-200 dark:bg-slate-800 rounded-lg" />
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -93,22 +93,11 @@ export const BoothCoverageCard: React.FC<BoothCoverageCardProps> = ({ data, load
     boothCoverageByRole && boothCoverageByRole.length > 0 ? boothCoverageByRole : defaultRolesList;
 
   return (
-    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-lg p-5 border border-slate-200/80 dark:border-slate-800/80 shadow-xs h-full flex flex-col justify-between space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/60">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-            <Building2 size={18} />
-          </div>
-          <div>
-            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-              Electoral Infrastructure & Booths
-            </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Assembly constituencies and polling booth readiness
-            </p>
-          </div>
-        </div>
+    <Card
+      title="Electoral Infrastructure & Booths"
+      subtitle="Assembly constituencies and polling booth readiness"
+      icon={<Building2 size={18} className="text-purple-600 dark:text-purple-400" />}
+      action={
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -126,8 +115,23 @@ export const BoothCoverageCard: React.FC<BoothCoverageCardProps> = ({ data, load
             Manage <ChevronRight size={14} />
           </button>
         </div>
-      </div>
-
+      }
+      footer={
+        <div className="flex items-center justify-between text-xs w-full">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+            Polling Infrastructure: <strong className="text-emerald-600 font-mono">100% Operational</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/tenant-master')}
+            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+          >
+            View All {totalBooths} Booths <ChevronRight size={13} />
+          </button>
+        </div>
+      }
+      className="h-full flex flex-col justify-between"
+    >
       {/* Main Content Area */}
       <div className="space-y-3.5 flex-1">
         {/* Booth Coverage Readiness Banner */}
@@ -306,20 +310,6 @@ export const BoothCoverageCard: React.FC<BoothCoverageCardProps> = ({ data, load
           </div>
         </div>
       </div>
-
-      {/* Infrastructure Readiness Footer */}
-      <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-xs">
-        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-          Polling Infrastructure: <strong className="text-emerald-600 font-mono">100% Operational</strong>
-        </span>
-        <button
-          type="button"
-          onClick={() => navigate('/dashboard/tenant-master')}
-          className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
-        >
-          View All {totalBooths} Booths <ChevronRight size={13} />
-        </button>
-      </div>
-    </div>
+    </Card>
   );
 };

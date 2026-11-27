@@ -59,7 +59,6 @@ export interface WhatsAppTemplateBuilderPageProps {
 const CATEGORY_OPTIONS = [
   { label: 'Utility (Voter Slips, Polling Alerts, Logistics)', value: 'UTILITY' },
   { label: 'Marketing (Broadcasts, Rally Invites, Appeals)', value: 'MARKETING' },
-  { label: 'Authentication (Staff OTP, Security Verification)', value: 'AUTHENTICATION' },
 ];
 
 const LANGUAGE_OPTIONS = [
@@ -77,7 +76,7 @@ const LANGUAGE_OPTIONS = [
 const HEADER_TYPE_OPTIONS = [
   { label: 'None', value: 'NONE' },
   { label: 'Text Header (Bold Title)', value: 'TEXT' },
-  { label: 'Image Header (Banner / Symbol)', value: 'IMAGE' },
+  { label: 'Image Header (Banner, Symbol)', value: 'IMAGE' },
   { label: 'Document Header (PDF Slip)', value: 'DOCUMENT' },
   { label: 'Video Header (Campaign Clip)', value: 'VIDEO' },
 ];

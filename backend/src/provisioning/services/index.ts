@@ -5,6 +5,7 @@ export * from './village.provision.service';
 export * from './religion.provision.service';
 export * from './caste.provision.service';
 export * from './party.provision.service';
+export * from './profession.provision.service';
 export * from './pc.provision.service';
 export * from './ac.provision.service';
 export * from './ward.provision.service';

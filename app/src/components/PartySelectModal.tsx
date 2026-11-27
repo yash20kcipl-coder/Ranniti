@@ -89,10 +89,14 @@ export const PartySelectModal: React.FC<PartySelectModalProps> = ({
   };
 
   const isIndependentSelected =
-    !currentPartyId &&
-    (currentPartyName === 'Independent' ||
-      currentPartyName === 'Undecided' ||
-      !currentPartyName);
+    !currentPartyId ||
+    currentPartyId === 'null' ||
+    currentPartyId === 'undefined' ||
+    currentPartyName === 'Independent' ||
+    currentPartyName === 'Undecided' ||
+    currentPartyName === 'Independent / Undecided' ||
+    currentPartyName === t('undecidedIndependent') ||
+    !currentPartyName;
 
   return (
     <Modal
@@ -197,10 +201,17 @@ export const PartySelectModal: React.FC<PartySelectModalProps> = ({
         {/* Dynamic API Parties */}
         {filteredParties.map((party) => {
           const isSelected =
-            (currentPartyId && String(currentPartyId) === String(party.id)) ||
-            (currentPartyName &&
-              (currentPartyName.toLowerCase() === (party.abbreviation || '').toLowerCase() ||
-                currentPartyName.toLowerCase() === (party.name || '').toLowerCase()));
+            Boolean(currentPartyId) &&
+            String(currentPartyId) !== 'null' &&
+            String(currentPartyId) !== 'undefined' &&
+            (String(currentPartyId) === String(party.id) ||
+              (currentPartyName &&
+                currentPartyName !== 'Independent' &&
+                currentPartyName !== 'Undecided' &&
+                currentPartyName !== 'Independent / Undecided' &&
+                currentPartyName !== t('undecidedIndependent') &&
+                (currentPartyName.toLowerCase() === (party.abbreviation || '').toLowerCase() ||
+                  currentPartyName.toLowerCase() === (party.name || '').toLowerCase())));
 
           return (
             <TouchableOpacity
@@ -210,9 +221,14 @@ export const PartySelectModal: React.FC<PartySelectModalProps> = ({
                 isSelected && styles.partyItemSelected,
               ]}
               activeOpacity={0.7}
-              onPress={() =>
-                handleSelect(party.id, party.abbreviation || party.name)
-              }
+              onPress={() => {
+                if (isSelected) {
+                  // Deselect currently selected party
+                  handleSelect(null, t('undecidedIndependent') || 'Independent / Undecided');
+                } else {
+                  handleSelect(party.id, party.abbreviation || party.name);
+                }
+              }}
             >
               <View style={styles.partyLogoBox}>
                 {party.symbolLogo ? (
@@ -226,20 +242,33 @@ export const PartySelectModal: React.FC<PartySelectModalProps> = ({
                   <MaterialDesignIcons
                     name="flag"
                     size={20}
-                    color={isSelected ? theme.colors.primary : '#64748B'}
+                    color={party.color || (isSelected ? theme.colors.primary : '#64748B')}
                   />
                 )}
               </View>
               <View style={styles.partyInfo}>
-                <Text
-                  style={[
-                    styles.partyMainText,
-                    isSelected && { color: theme.colors.primary, fontFamily: FontFamily.bold },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {party.abbreviation || party.name}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text
+                    style={[
+                      styles.partyMainText,
+                      isSelected && { color: theme.colors.primary, fontFamily: FontFamily.bold },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {party.abbreviation || party.name}
+                  </Text>
+                  {Boolean(party.color) && (
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: party.color,
+                        marginLeft: 6,
+                      }}
+                    />
+                  )}
+                </View>
                 {Boolean(party.abbreviation && party.name !== party.abbreviation) && (
                   <Text style={styles.partySubText} numberOfLines={1}>
                     {party.name}

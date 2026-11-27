@@ -5,6 +5,7 @@ import {
   fetchSuperAdminBoothOptions,
   fetchSuperAdminInfluencerOptions,
 } from '@/redux/actions/voterSuperAdmin';
+import { searchSuperAdminMasterCategory } from '@/redux/actions/masterSuperAdmin';
 import {
   FORM_GENDER_OPTIONS,
   FORM_VOTER_TYPE_OPTIONS,
@@ -51,8 +52,8 @@ export const SuperAdminVoterFormPage: React.FC = () => {
 
   const dispatch = useAppDispatch();
   // Load master categories excluding heavy booths
-  const { religions, castes, acs, states, districts, pcs, parties } = useMasterData([
-    'states', 'districts', 'pcs', 'acs', 'religions', 'castes', 'parties'
+  const { religions, castes, acs, states, districts, pcs, parties, professionCategories, professions, talukas, villages } = useMasterData([
+    'states', 'districts', 'pcs', 'acs', 'religions', 'castes', 'parties', 'professionCategories', 'professions', 'talukas', 'villages'
   ]);
 
   const [submitting, setSubmitting] = useState(false);
@@ -233,24 +234,40 @@ export const SuperAdminVoterFormPage: React.FC = () => {
 
   const casteSuggestions: string[] = useMemo(() => {
     const primaryCastes = (castes || []).filter((c: any) => !c.parentCasteId);
-    if (!formData.religionId && !formData.religionName) {
-      return Array.from(new Set(primaryCastes.map((c: any) => c.name || c.casteName).filter(Boolean)));
+    const targetRelId = formData.religionId || (religions || []).find(
+      (r: any) => (r.name || r.religionName || '').trim().toLowerCase() === String(formData.religionName || '').trim().toLowerCase()
+    )?.id;
+
+    if (targetRelId) {
+      return Array.from(
+        new Set(
+          primaryCastes
+            .filter((c: any) => String(c.religionId) === String(targetRelId))
+            .map((c: any) => c.name || c.casteName)
+            .filter(Boolean)
+        )
+      );
     }
-    const targetRelId = formData.religionId;
-    const relMatches = primaryCastes.filter((c: any) => targetRelId && String(c.religionId) === String(targetRelId)).map((c: any) => c.name || c.casteName);
-    const others = primaryCastes.filter((c: any) => !targetRelId || String(c.religionId) !== String(targetRelId)).map((c: any) => c.name || c.casteName);
-    return Array.from(new Set([...relMatches, ...others].filter(Boolean)));
-  }, [castes, formData.religionId, formData.religionName]);
+    return Array.from(new Set(primaryCastes.map((c: any) => c.name || c.casteName).filter(Boolean)));
+  }, [castes, religions, formData.religionId, formData.religionName]);
 
   const subcasteSuggestions: string[] = useMemo(() => {
     const subcastes = (castes || []).filter((c: any) => Boolean(c.parentCasteId));
-    if (!formData.casteId && !formData.casteName) {
-      return Array.from(new Set(subcastes.map((c: any) => c.name || c.casteName).filter(Boolean)));
+    const targetCasteId = formData.casteId || (castes || []).find(
+      (c: any) => !c.parentCasteId && (c.name || c.casteName || '').trim().toLowerCase() === String(formData.casteName || '').trim().toLowerCase()
+    )?.id;
+
+    if (targetCasteId) {
+      return Array.from(
+        new Set(
+          subcastes
+            .filter((c: any) => String(c.parentCasteId) === String(targetCasteId))
+            .map((c: any) => c.name || c.casteName)
+            .filter(Boolean)
+        )
+      );
     }
-    const targetCasteId = formData.casteId;
-    const casteMatches = subcastes.filter((c: any) => targetCasteId && String(c.parentCasteId) === String(targetCasteId)).map((c: any) => c.name || c.casteName);
-    const others = subcastes.filter((c: any) => !targetCasteId || String(c.parentCasteId) !== String(targetCasteId)).map((c: any) => c.name || c.casteName);
-    return Array.from(new Set([...casteMatches, ...others].filter(Boolean)));
+    return Array.from(new Set(subcastes.map((c: any) => c.name || c.casteName).filter(Boolean)));
   }, [castes, formData.casteId, formData.casteName]);
 
   const partyOptions: Option[] = useMemo(() => {
@@ -457,12 +474,14 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         next.age = String(calculateAge(value));
       }
 
-      // Smart cascading resets
+      // Smart cascading resets & auto-linking
       if (name === 'stateId') {
         next.districtId = '';
         next.pcId = '';
         next.acId = '';
         next.boothId = '';
+        next.taluka = '';
+        next.village = '';
         next.familyInfluencerId = '';
         next.socialInfluencerId = '';
       } else if (name === 'pcId') {
@@ -478,6 +497,23 @@ export const SuperAdminVoterFormPage: React.FC = () => {
             next.boothId = '';
             next.familyInfluencerId = '';
             next.socialInfluencerId = '';
+          }
+        }
+        if (next.taluka && value) {
+          const currentTaluka = (talukas || []).find(
+            (t: any) => (t.name || '').trim().toLowerCase() === String(next.taluka).trim().toLowerCase()
+          );
+          if (currentTaluka && currentTaluka.districtId && String(currentTaluka.districtId) !== String(value)) {
+            next.taluka = '';
+            next.village = '';
+          }
+        }
+        if (next.village && value) {
+          const currentVillageObj = (villages || []).find(
+            (v: any) => (v.name || '').trim().toLowerCase() === String(next.village).trim().toLowerCase()
+          );
+          if (currentVillageObj && currentVillageObj.districtId && String(currentVillageObj.districtId) !== String(value)) {
+            next.village = '';
           }
         }
       } else if (name === 'acId') {
@@ -496,35 +532,202 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         next.familyInfluencerId = '';
         next.socialInfluencerId = '';
       } else if (name === 'religion' || name === 'religionName') {
+        const valStr = String(value || '').trim();
         const matchingRel = (religions || []).find(
-          (r: any) => (r.name || r.religionName || '').trim().toLowerCase() === String(value).trim().toLowerCase()
+          (r: any) => (r.name || r.religionName || '').trim().toLowerCase() === valStr.toLowerCase()
         );
+        next.religion = value;
         next.religionName = value;
         next.religionId = matchingRel ? String(matchingRel.id) : '';
+
+        // If current caste does not belong to this religion, clear caste and subcaste
+        if (next.casteId && matchingRel) {
+          const currentCaste = (castes || []).find((c: any) => String(c.id) === String(next.casteId));
+          if (currentCaste && currentCaste.religionId && String(currentCaste.religionId) !== String(matchingRel.id)) {
+            next.caste = '';
+            next.casteId = '';
+            next.casteName = '';
+            next.subcasteName = '';
+            next.subCaste = '';
+          }
+        }
       } else if (name === 'caste' || name === 'casteName') {
+        const valStr = String(value || '').trim();
         const matchingCaste = (castes || []).find(
-          (c: any) => (c.name || c.casteName || '').trim().toLowerCase() === String(value).trim().toLowerCase()
+          (c: any) => !(c.parentCasteId || c.parent_caste_id) && (c.name || c.casteName || '').trim().toLowerCase() === valStr.toLowerCase()
+        ) || (castes || []).find(
+          (c: any) => (c.name || c.casteName || '').trim().toLowerCase() === valStr.toLowerCase()
         );
+
+        next.caste = value;
         next.casteName = value;
         next.casteId = matchingCaste ? String(matchingCaste.id) : '';
-        if (matchingCaste && matchingCaste.religionId && !next.religionId) {
-          const rel = (religions || []).find((r: any) => String(r.id) === String(matchingCaste.religionId));
-          if (rel) {
-            next.religionId = String(rel.id);
-            next.religionName = rel.name || rel.religionName;
+
+        // Auto-populate Religion from caste
+        if (matchingCaste) {
+          const targetRelId = matchingCaste.religionId || matchingCaste.religion_id;
+          let rel = targetRelId ? (religions || []).find((r: any) => String(r.id) === String(targetRelId)) : null;
+          const candidateRelName = String((rel && (rel.name || rel.religionName)) || matchingCaste.religionName || matchingCaste.religion_name || '').trim();
+          if (!rel && candidateRelName) {
+            rel = (religions || []).find((r: any) => (r.name || r.religionName || '').trim().toLowerCase() === candidateRelName.toLowerCase());
+          }
+          const finalRelName = rel ? (rel.name || rel.religionName) : candidateRelName;
+          if (finalRelName) {
+            next.religion = finalRelName;
+            next.religionName = finalRelName;
+            if (rel) next.religionId = String(rel.id);
+            else if (targetRelId) next.religionId = String(targetRelId);
+          }
+        }
+
+        // If current subcaste does not belong to this caste, clear subcaste
+        if ((next.subcasteName || next.subCaste) && matchingCaste) {
+          const activeSubName = String(next.subcasteName || next.subCaste).trim().toLowerCase();
+          const currentSub = (castes || []).find(
+            (c: any) => (c.parentCasteId || c.parent_caste_id) && (c.name || c.casteName || '').trim().toLowerCase() === activeSubName
+          );
+          const pId = currentSub ? (currentSub.parentCasteId || currentSub.parent_caste_id) : null;
+          if (currentSub && pId && String(pId) !== String(matchingCaste.id)) {
+            next.subcasteName = '';
+            next.subCaste = '';
           }
         }
       } else if (name === 'subcasteName' || name === 'subCaste') {
+        const valStr = String(value || '').trim();
         next.subcasteName = value;
         next.subCaste = value;
-        const matchingSub = (castes || []).find(
-          (c: any) => c.parentCasteId && (c.name || c.casteName || '').trim().toLowerCase() === String(value).trim().toLowerCase()
-        );
-        if (matchingSub && matchingSub.parentCasteId && !next.casteId) {
-          const parentC = (castes || []).find((c: any) => String(c.id) === String(matchingSub.parentCasteId));
-          if (parentC) {
-            next.casteId = String(parentC.id);
-            next.casteName = parentC.name || parentC.casteName;
+
+        if (valStr) {
+          const matchingSub = (castes || []).find(
+            (c: any) => (c.parentCasteId || c.parent_caste_id) && (c.name || c.casteName || '').trim().toLowerCase() === valStr.toLowerCase()
+          ) || (castes || []).find(
+            (c: any) => (c.name || c.casteName || '').trim().toLowerCase() === valStr.toLowerCase()
+          );
+
+          if (matchingSub) {
+            const pId = matchingSub.parentCasteId || matchingSub.parent_caste_id;
+            const parentC = pId
+              ? (castes || []).find((c: any) => String(c.id) === String(pId))
+              : ((matchingSub.parentCasteName || matchingSub.parent_caste_name)
+                ? (castes || []).find((c: any) => !(c.parentCasteId || c.parent_caste_id) && (c.name || c.casteName || '').trim().toLowerCase() === String(matchingSub.parentCasteName || matchingSub.parent_caste_name).trim().toLowerCase())
+                : null);
+
+            const parentCasteName = parentC ? (parentC.name || parentC.casteName) : (matchingSub.parentCasteName || matchingSub.parent_caste_name || '');
+            const parentCasteId = parentC ? String(parentC.id) : (pId ? String(pId) : '');
+
+            if (parentCasteName) {
+              next.caste = parentCasteName;
+              next.casteName = parentCasteName;
+              next.casteId = parentCasteId;
+            }
+
+            // Auto-populate Religion from parent caste or subcaste
+            const targetRelId = (parentC && (parentC.religionId || parentC.religion_id)) || matchingSub.religionId || matchingSub.religion_id;
+            let rel = targetRelId ? (religions || []).find((r: any) => String(r.id) === String(targetRelId)) : null;
+            const candidateRelName = String((rel && (rel.name || rel.religionName)) || (parentC && (parentC.religionName || parentC.religion_name)) || matchingSub.religionName || matchingSub.religion_name || '').trim();
+            if (!rel && candidateRelName) {
+              rel = (religions || []).find((r: any) => (r.name || r.religionName || '').trim().toLowerCase() === candidateRelName.toLowerCase());
+            }
+
+            const finalRelName = rel ? (rel.name || rel.religionName) : candidateRelName;
+            if (finalRelName) {
+              next.religion = finalRelName;
+              next.religionName = finalRelName;
+              if (rel) next.religionId = String(rel.id);
+              else if (targetRelId) next.religionId = String(targetRelId);
+            }
+          }
+        }
+      } else if (name === 'profession') {
+        const valStr = String(value || '').trim();
+        next.profession = value;
+        if (valStr) {
+          const matchedProf = (professions || []).find(
+            (p: any) => (p.name || p.professionName || '').trim().toLowerCase() === valStr.toLowerCase()
+          );
+          if (matchedProf) {
+            const catId = matchedProf.categoryId || matchedProf.category_id;
+            const matchedCat = catId
+              ? (professionCategories || []).find((c: any) => String(c.id) === String(catId))
+              : null;
+            const finalCatName = (matchedCat && (matchedCat.name || matchedCat.categoryName)) || matchedProf.categoryName || matchedProf.category_name;
+            if (finalCatName) {
+              next.professionType = finalCatName;
+            }
+          }
+        }
+      } else if (name === 'professionType') {
+        const valStr = String(value || '').trim();
+        next.professionType = value;
+        if (next.profession && valStr) {
+          const matchedProf = (professions || []).find(
+            (p: any) => (p.name || '').trim().toLowerCase() === String(next.profession).trim().toLowerCase()
+          );
+          if (matchedProf && matchedProf.categoryId) {
+            const matchedCat = (professionCategories || []).find((c: any) => String(c.id) === String(matchedProf.categoryId));
+            if (!matchedCat || matchedCat.name.trim().toLowerCase() !== valStr.toLowerCase()) {
+              next.profession = '';
+            }
+          }
+        }
+      } else if (name === 'village') {
+        const valStr = String(value || '').trim();
+        next.village = value;
+        if (valStr) {
+          const matchedVillage = (villages || []).find(
+            (v: any) => (v.name || '').trim().toLowerCase() === valStr.toLowerCase()
+          );
+          if (matchedVillage) {
+            // Auto-populate Taluka
+            if (matchedVillage.talukaName) {
+              next.taluka = matchedVillage.talukaName;
+            } else if (matchedVillage.talukaId) {
+              const matchedTaluka = (talukas || []).find((t: any) => String(t.id) === String(matchedVillage.talukaId));
+              if (matchedTaluka) next.taluka = matchedTaluka.name;
+            }
+
+            // Auto-populate District
+            if (matchedVillage.districtId) {
+              next.districtId = String(matchedVillage.districtId);
+            }
+
+            // Auto-populate State
+            if (matchedVillage.stateId) {
+              next.stateId = String(matchedVillage.stateId);
+            }
+          }
+        }
+      } else if (name === 'taluka') {
+        const valStr = String(value || '').trim();
+        next.taluka = value;
+        if (valStr) {
+          const matchedTaluka = (talukas || []).find(
+            (t: any) => (t.name || '').trim().toLowerCase() === valStr.toLowerCase()
+          );
+          if (matchedTaluka) {
+            // Auto-populate District
+            if (matchedTaluka.districtId) {
+              next.districtId = String(matchedTaluka.districtId);
+            }
+
+            // Auto-populate State
+            if (matchedTaluka.stateId) {
+              next.stateId = String(matchedTaluka.stateId);
+            }
+
+            // If current village doesn't belong to this taluka, clear village
+            if (next.village) {
+              const currentVillageObj = (villages || []).find(
+                (v: any) => (v.name || '').trim().toLowerCase() === String(next.village).trim().toLowerCase()
+              );
+              if (
+                currentVillageObj &&
+                currentVillageObj.talukaId &&
+                String(currentVillageObj.talukaId) !== String(matchedTaluka.id)
+              ) {
+                next.village = '';
+              }
+            }
           }
         }
       }
@@ -577,9 +780,13 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         partyId: formData.partyId || formData.partyAffiliationId || null,
         taluka: formData.taluka?.trim() || null,
         village: formData.village?.trim() || null,
+        religionId: formData.religionId ? formData.religionId : null,
         religionName: formData.religionName?.trim() || formData.religion?.trim() || null,
+        casteId: formData.casteId ? formData.casteId : null,
         casteName: formData.casteName?.trim() || formData.caste?.trim() || null,
         subcasteName: formData.subcasteName?.trim() || formData.subCaste?.trim() || null,
+        professionType: formData.professionType?.trim() || null,
+        profession: formData.profession?.trim() || null,
         isDead: Boolean(formData.isDead),
         isFamilyInfluencer: Boolean(formData.isFamilyInfluencer),
         isSocialInfluencer: Boolean(formData.isSocialInfluencer),
@@ -605,14 +812,6 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     }
   };
 
-  if (loadingVoter) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   const targetInfluencerObj = voterMeta
     ? {
       id: voterMeta.id,
@@ -624,6 +823,77 @@ export const SuperAdminVoterFormPage: React.FC = () => {
       houseNo: voterMeta.houseNo,
     }
     : null;
+
+  const linkedFamilyHead = useMemo(() => {
+    const found = familyInfluencers.find((inf) => String(inf.value) === String(formData.familyInfluencerId));
+    if (found) {
+      return {
+        name: found.label,
+        epicNo: '',
+      };
+    }
+    if (voterMeta && String(voterMeta.familyInfluencerId) === String(formData.familyInfluencerId)) {
+      return {
+        name: voterMeta.familyInfluencerName,
+        epicNo: voterMeta.familyInfluencerEpic,
+      };
+    }
+    return null;
+  }, [familyInfluencers, formData.familyInfluencerId, voterMeta]);
+
+  const linkedSocialLeader = useMemo(() => {
+    const found = socialInfluencers.find((inf) => String(inf.value) === String(formData.socialInfluencerId));
+    if (found) {
+      return {
+        name: found.label,
+        epicNo: '',
+      };
+    }
+    if (voterMeta && String(voterMeta.socialInfluencerId) === String(formData.socialInfluencerId)) {
+      return {
+        name: voterMeta.socialInfluencerName,
+        epicNo: voterMeta.socialInfluencerEpic,
+      };
+    }
+    return null;
+  }, [socialInfluencers, formData.socialInfluencerId, voterMeta]);
+
+  const handleSearchVillages = React.useCallback(async (query: string) => {
+    return dispatch(searchSuperAdminMasterCategory('villages', '/masters/villages', query, 20));
+  }, [dispatch]);
+
+  const handleSearchTalukas = React.useCallback(async (query: string) => {
+    return dispatch(searchSuperAdminMasterCategory('talukas', '/masters/talukas', query, 20));
+  }, [dispatch]);
+
+  const handleSearchProfessions = React.useCallback(async (query: string) => {
+    return dispatch(searchSuperAdminMasterCategory('professions', '/masters/professions', query, 20));
+  }, [dispatch]);
+
+  const handleSearchSubcastes = React.useCallback(async (query: string) => {
+    return dispatch(searchSuperAdminMasterCategory('castes', '/masters/castes', query, 20));
+  }, [dispatch]);
+
+  const handleSelectVillage = React.useCallback((village: any) => {
+    if (!village || typeof village !== 'object') return;
+    setFormData((prev: any) => ({
+      ...prev,
+      village: village.name || prev.village,
+      taluka: village.talukaName || prev.taluka,
+      districtId: village.districtId ? String(village.districtId) : prev.districtId,
+      stateId: village.stateId ? String(village.stateId) : prev.stateId,
+    }));
+  }, []);
+
+  const handleSelectTaluka = React.useCallback((taluka: any) => {
+    if (!taluka || typeof taluka !== 'object') return;
+    setFormData((prev: any) => ({
+      ...prev,
+      taluka: taluka.name || prev.taluka,
+      districtId: taluka.districtId ? String(taluka.districtId) : prev.districtId,
+      stateId: taluka.stateId ? String(taluka.stateId) : prev.stateId,
+    }));
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -659,7 +929,13 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         }
       />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {loadingVoter ? (
+        <div className="flex flex-col items-center justify-center p-16 space-y-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Fetching voter profile records...</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
         <VoterIdentificationFormSection
           formData={formData}
           errors={errors}
@@ -682,6 +958,12 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           boothOptions={boothOptions}
           sameAddress={sameAddress}
           handleSameAddressToggle={(e) => handleCopyPresentAddress(e.target.checked)}
+          talukas={talukas}
+          villages={villages}
+          onSearchTalukas={handleSearchTalukas}
+          onSearchVillages={handleSearchVillages}
+          onSelectTaluka={handleSelectTaluka}
+          onSelectVillage={handleSelectVillage}
         />
 
         <VoterDemographicsFormSection
@@ -693,6 +975,10 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           casteSuggestions={casteSuggestions}
           religionSuggestions={religionSuggestions}
           subcasteSuggestions={subcasteSuggestions}
+          professionCategories={professionCategories}
+          professions={professions}
+          onSearchProfessions={handleSearchProfessions}
+          onSearchSubcastes={handleSearchSubcastes}
         />
 
         <VoterInfluencerFormSection
@@ -715,8 +1001,8 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           }}
           setAssignModalType={setAssignModalType}
           setLinkInfluencerType={setLinkInfluencerType}
-          linkedFamilyHead={null}
-          linkedSocialLeader={null}
+          linkedFamilyHead={linkedFamilyHead}
+          linkedSocialLeader={linkedSocialLeader}
         />
 
         {/* Sticky Bottom Actions Footer (Flush Bottom Aligned) */}
@@ -747,6 +1033,7 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           </div>
         </div>
       </form>
+      )}
 
       {targetInfluencerObj && (
         <>
@@ -754,6 +1041,7 @@ export const SuperAdminVoterFormPage: React.FC = () => {
             isOpen={familyModalOpen}
             onClose={() => setFamilyModalOpen(false)}
             influencer={targetInfluencerObj}
+            isSuperAdmin={true}
             onSuccess={() => {
               setFamilyModalOpen(false);
               dispatch(fetchSuperAdminVoterById(id!)).then((data: any) => setVoterMeta(data));
@@ -764,23 +1052,28 @@ export const SuperAdminVoterFormPage: React.FC = () => {
             isOpen={socialModalOpen}
             onClose={() => setSocialModalOpen(false)}
             influencer={targetInfluencerObj}
+            isSuperAdmin={true}
             onSuccess={() => {
               setSocialModalOpen(false);
               dispatch(fetchSuperAdminVoterById(id!)).then((data: any) => setVoterMeta(data));
             }}
           />
-
-          <LinkToInfluencerModal
-            isOpen={linkModalOpen}
-            onClose={() => setLinkModalOpen(false)}
-            voterIds={[id!]}
-            type={linkInfluencerType}
-            onSuccess={() => {
-              setLinkModalOpen(false);
-              dispatch(fetchSuperAdminVoterById(id!)).then((data: any) => setVoterMeta(data));
-            }}
-          />
         </>
+      )}
+
+      {isEditMode && id && (
+        <LinkToInfluencerModal
+          isOpen={linkModalOpen}
+          onClose={() => setLinkModalOpen(false)}
+          voterIds={[id]}
+          boothId={formData.boothId}
+          type={linkInfluencerType}
+          isSuperAdmin={true}
+          onSuccess={() => {
+            setLinkModalOpen(false);
+            dispatch(fetchSuperAdminVoterById(id)).then((data: any) => setVoterMeta(data));
+          }}
+        />
       )}
     </div>
   );

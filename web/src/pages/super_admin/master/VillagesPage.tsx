@@ -11,13 +11,11 @@ import React, { useState, useMemo } from 'react';
 import { exportToExcel } from '@/utils/exportImport';
 import { useMasterData } from '@/hooks/useMasterData';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ImportModal } from '@/components/common/ImportModal';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { VillageFormModal } from '@/components/common/master/form';
-import { startBulkImportFileJob } from '@/redux/actions/importJobs';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
@@ -34,7 +32,6 @@ export const VillagesPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
-  const [stateId, setStateId] = useState('');
   const [districtId, setDistrictId] = useState('');
   const [talukaId, setTalukaId] = useState('');
 
@@ -44,7 +41,6 @@ export const VillagesPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Debounced backend fetch for villages data with filter and pagination parameters
   useDebouncedEffect(() => {
@@ -52,7 +48,6 @@ export const VillagesPage: React.FC = () => {
     setLoading(true);
 
     const params: Record<string, any> = { page, limit };
-    if (stateId) params.stateId = stateId;
     if (districtId) params.districtId = districtId;
     if (talukaId) params.talukaId = talukaId;
     if (search.trim()) params.search = search.trim();
@@ -64,34 +59,22 @@ export const VillagesPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, 250, [dispatch, page, limit, search, stateId, districtId, talukaId]);
+  }, 250, [dispatch, page, limit, search, districtId, talukaId]);
 
-  // Filter options with cascading dependencies
-  const stateOptions = useMemo(
-    () => statesData.map((s: any) => ({ label: s.name, value: s.id })),
-    [statesData]
-  );
-
-  const filteredDistrictOptions = useMemo(() => {
-    const raw = stateId
-      ? districtsData.filter((d: any) => String(d.stateId) === String(stateId))
-      : districtsData;
-    return raw.map((d: any) => ({ label: d.name, value: d.id }));
-  }, [districtsData, stateId]);
+  const districtOptions = useMemo(() => {
+    return districtsData.map((d: any) => ({ label: d.name, value: d.id }));
+  }, [districtsData]);
 
   const filteredTalukaOptions = useMemo(() => {
     const raw = districtId
       ? talukasData.filter((t: any) => String(t.districtId) === String(districtId))
-      : stateId
-        ? talukasData.filter((t: any) => String(t.stateId) === String(stateId))
-        : talukasData;
+      : talukasData;
     return raw.map((t: any) => ({ label: t.name, value: t.id }));
-  }, [talukasData, districtId, stateId]);
+  }, [talukasData, districtId]);
 
   // Client-side filtering
   const filteredVillages = useMemo(() => {
     return villagesData.filter((item: any) => {
-      if (stateId && String(item.stateId) !== String(stateId)) return false;
       if (districtId && String(item.districtId) !== String(districtId)) return false;
       if (talukaId && String(item.talukaId) !== String(talukaId)) return false;
       if (search.trim()) {
@@ -104,7 +87,7 @@ export const VillagesPage: React.FC = () => {
       }
       return true;
     });
-  }, [villagesData, search, stateId, districtId, talukaId]);
+  }, [villagesData, search, districtId, talukaId]);
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -113,7 +96,6 @@ export const VillagesPage: React.FC = () => {
 
   const handleResetFilters = () => {
     setSearch('');
-    setStateId('');
     setDistrictId('');
     setTalukaId('');
     setPage(1);
@@ -121,43 +103,33 @@ export const VillagesPage: React.FC = () => {
 
   const filterFields: FilterField[] = [
     {
-      key: 'stateId',
-      label: 'State',
-      type: 'select',
-      value: stateId,
-      onChange: (val) => {
-        setStateId(val);
-        setDistrictId('');
-        setTalukaId('');
-        setPage(1);
-      },
-      options: stateOptions,
-      placeholder: 'All States',
-    },
-    {
       key: 'districtId',
       label: 'District',
       type: 'select',
       value: districtId,
+      defaultValue: '',
+      excludeFromCount: true,
       onChange: (val) => {
         setDistrictId(val);
         setTalukaId('');
         setPage(1);
       },
-      options: filteredDistrictOptions,
-      placeholder: 'All Districts',
+      options: [{ label: 'All Districts', value: '' }, ...districtOptions],
+      isPrimary: true,
     },
     {
       key: 'talukaId',
       label: 'Taluka',
       type: 'select',
       value: talukaId,
+      defaultValue: '',
+      excludeFromCount: true,
       onChange: (val) => {
         setTalukaId(val);
         setPage(1);
       },
-      options: filteredTalukaOptions,
-      placeholder: 'All Talukas',
+      options: [{ label: 'All Talukas', value: '' }, ...filteredTalukaOptions],
+      isPrimary: true,
     },
   ];
 
@@ -167,11 +139,11 @@ export const VillagesPage: React.FC = () => {
       key: 'name',
       header: 'Village Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
-    { key: 'talukaName', header: 'Taluka (Tehsil)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.talukaName || '-'}</span> },
-    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.districtName || '-'}</span> },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
+    { key: 'talukaName', header: 'Taluka', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.talukaName || '-'}</span> },
+    { key: 'districtName', header: 'District', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.districtName || '-'}</span> },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.stateName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -233,30 +205,6 @@ export const VillagesPage: React.FC = () => {
     toast.success('Villages exported successfully');
   };
 
-  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
-    try {
-      await dispatch(
-        startBulkImportFileJob(
-          'villages',
-          file,
-          () => {
-            const params: Record<string, any> = { page, limit };
-            if (stateId) params.stateId = stateId;
-            if (districtId) params.districtId = districtId;
-            if (talukaId) params.talukaId = talukaId;
-            if (search.trim()) params.search = search.trim();
-            dispatch(fetchSuperAdminMasterCategoryData('villages', '/masters/villages', false, params));
-          },
-          context || { stateId, districtId, talukaId }
-        )
-      );
-      toast.success('Bulk import job started for Villages!');
-      setIsImportModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start import');
-    }
-  };
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -275,25 +223,11 @@ export const VillagesPage: React.FC = () => {
         title="Villages"
         icon={<MapPin className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage revenue villages for voter demographic and residential address tracking."
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {villagesPagination?.total ?? villagesData.length} {(villagesPagination?.total ?? villagesData.length) === 1 ? 'Record' : 'Records'}
-          </span>
-        }
         onAddClick={handleOpenAdd}
         addLabel="Add Village"
-        onImportClick={() => setIsImportModalOpen(true)}
         onExportClick={handleExport}
         onSyncClick={handleSync}
         isSyncing={isSyncing}
-      />
-
-      <FilterBar
-        searchPlaceholder="Search Villages, Talukas, Districts..."
-        searchValue={search}
-        onSearchChange={handleSearchChange}
-        filters={filterFields}
-        onReset={handleResetFilters}
       />
 
       <DataTable
@@ -301,6 +235,19 @@ export const VillagesPage: React.FC = () => {
         columns={columns}
         data={villagesData}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            showDrawerButton={false}
+            showResetButton={false}
+            searchValue={search}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search Villages, Talukas, Districts..."
+            onSearchChange={handleSearchChange}
+          />
+        }
         serverPagination={
           villagesPagination
             ? {
@@ -345,14 +292,6 @@ export const VillagesPage: React.FC = () => {
         loading={isDeleting}
       />
 
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImport}
-        title="Import Villages"
-        categoryKey="villages"
-        sampleParams={{ stateId, districtId, talukaId }}
-      />
     </div>
   );
 };

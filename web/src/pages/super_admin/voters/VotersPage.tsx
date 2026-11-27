@@ -5,7 +5,6 @@ import {
   fetchSuperAdminVotersData,
   fetchSuperAdminVoterStats,
   deleteSuperAdminVoterItem,
-  importSuperAdminVotersData,
   exportSuperAdminVotersData,
   fetchSuperAdminInfluencerOptions,
 } from '@/redux/actions/voterSuperAdmin';
@@ -90,7 +89,6 @@ export const SuperAdminVotersPage: React.FC = () => {
 
   const [selectedVoter, setSelectedVoter] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Direct AC change handler for filter component
   const handleAcChange = (newAcId: string) => {
@@ -234,10 +232,6 @@ export const SuperAdminVotersPage: React.FC = () => {
     } catch (err) { }
   };
 
-  const handleBulkImport = async (fileOrRecords: any, context?: Record<string, any>) => {
-    await dispatch(importSuperAdminVotersData(fileOrRecords, getCurrentFilterParams(), context));
-  };
-
   const handleExportVoters = () => {
     dispatch(exportSuperAdminVotersData(getCurrentFilterParams()));
   };
@@ -308,15 +302,13 @@ export const SuperAdminVotersPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Super Admin Voter Directory"
-        icon={<Vote className="w-6 h-6" />}
-        subtitle="Global electoral directory, booth assignments, master data management, and tactical campaign overlays"
-        onImportClick={() => setIsImportModalOpen(true)}
-        importLabel="Import Voters (Excel)"
-        onExportClick={handleExportVoters}
-        exportLabel="Export Excel"
-        onAddClick={() => navigate('/dashboard/voters/new')}
         addLabel="Add Voter"
+        title="Voter Directory"
+        exportLabel="Export Excel"
+        onExportClick={handleExportVoters}
+        icon={<Vote className="w-5 h-5" />}
+        onAddClick={() => navigate('/dashboard/voters/new')}
+        subtitle="Global electoral directory, booth assignments, master data management, and tactical campaign overlays"
       />
 
       <VoterStatsCards
@@ -331,72 +323,70 @@ export const SuperAdminVotersPage: React.FC = () => {
         }}
       />
 
-      <FilterBar
-        searchPlaceholder="Search Name, EPIC No, Mobile, House..."
-        searchValue={search}
-        onSearchChange={setSearch}
-        filters={filterFields}
-        presets={filterPresets}
-        onReset={handleResetFilters}
+      {/* Unified Voter Table & FilterBar Card */}
+      <DataTable
+        data={voters}
+        columns={columns}
+        loading={loading}
+        showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            searchValue={search}
+            filters={filterFields}
+            presets={filterPresets}
+            onSearchChange={setSearch}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search Name, EPIC No, Mobile, House..."
+          />
+        }
+        serverPagination={{
+          page: pagination?.page || page,
+          limit: pagination?.limit || limit,
+          total: pagination?.total || 0,
+          totalPages: pagination?.totalPages || 1,
+          onPageChange: (newPage) => setPage(newPage),
+          onLimitChange: (newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          },
+        }}
+        actions={(row: any) => (
+          <VoterRowActions
+            row={row}
+            activeRowMenuId={activeRowMenuId}
+            setActiveRowMenuId={setActiveRowMenuId}
+            onView={() => navigate(`/dashboard/voters/${row.id}`)}
+            onEdit={() => navigate(`/dashboard/voters/${row.id}/edit`)}
+            onDelete={() => handleOpenDelete(row)}
+            onSetFamilyInfluencer={(target) => {
+              setTargetFamilyInfluencer(target);
+              setFamilyModalOpen(true);
+            }}
+            onSetSocialInfluencer={(target) => {
+              setTargetSocialInfluencer(target);
+              setSocialModalOpen(true);
+            }}
+            onLinkFamilyHead={(voterId) => {
+              setLinkTargetVoterIds([voterId]);
+              setLinkInfluencerType('family');
+              setLinkModalOpen(true);
+            }}
+            onLinkSocialLeader={(voterId) => {
+              setLinkTargetVoterIds([voterId]);
+              setLinkInfluencerType('social');
+              setLinkModalOpen(true);
+            }}
+          />
+        )}
       />
-
-      <div className="rounded-lg">
-        <DataTable
-          columns={columns}
-          data={voters}
-          loading={loading}
-          showHeader={false}
-          selectable={false}
-          serverPagination={{
-            page: pagination?.page || page,
-            limit: pagination?.limit || limit,
-            total: pagination?.total || 0,
-            totalPages: pagination?.totalPages || 1,
-            onPageChange: (newPage) => setPage(newPage),
-            onLimitChange: (newLimit) => {
-              setLimit(newLimit);
-              setPage(1);
-            },
-          }}
-          actions={(row: any) => (
-            <VoterRowActions
-              row={row}
-              activeRowMenuId={activeRowMenuId}
-              setActiveRowMenuId={setActiveRowMenuId}
-              onView={() => navigate(`/dashboard/voters/${row.id}`)}
-              onEdit={() => navigate(`/dashboard/voters/${row.id}/edit`)}
-              onDelete={() => handleOpenDelete(row)}
-              onSetFamilyInfluencer={(target) => {
-                setTargetFamilyInfluencer(target);
-                setFamilyModalOpen(true);
-              }}
-              onSetSocialInfluencer={(target) => {
-                setTargetSocialInfluencer(target);
-                setSocialModalOpen(true);
-              }}
-              onLinkFamilyHead={(voterId) => {
-                setLinkTargetVoterIds([voterId]);
-                setLinkInfluencerType('family');
-                setLinkModalOpen(true);
-              }}
-              onLinkSocialLeader={(voterId) => {
-                setLinkTargetVoterIds([voterId]);
-                setLinkInfluencerType('social');
-                setLinkModalOpen(true);
-              }}
-            />
-          )}
-        />
-      </div>
 
       <VoterModals
         isDeleteModalOpen={isDeleteModalOpen}
         setIsDeleteModalOpen={setIsDeleteModalOpen}
         selectedVoter={selectedVoter}
         onDeleteConfirm={handleDeleteConfirm}
-        isImportModalOpen={isImportModalOpen}
-        setIsImportModalOpen={setIsImportModalOpen}
-        onBulkImport={handleBulkImport}
         familyModalOpen={familyModalOpen}
         setFamilyModalOpen={setFamilyModalOpen}
         targetFamilyInfluencer={targetFamilyInfluencer}
@@ -411,7 +401,7 @@ export const SuperAdminVotersPage: React.FC = () => {
         setLinkTargetVoterIds={setLinkTargetVoterIds}
         linkInfluencerType={linkInfluencerType}
         onInfluencerSuccess={handleInfluencerSuccess}
-        sampleParams={{ acId: filterParams.acId, boothId: filterParams.boothId }}
+        isSuperAdmin={true}
       />
     </div>
   );

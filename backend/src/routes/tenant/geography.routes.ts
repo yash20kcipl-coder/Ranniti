@@ -46,9 +46,17 @@ router.route('/talukas')
   .get(tenantApiController.getTalukas)
   .post(tenantApiController.createTaluka);
 
+router.route('/talukas/:id')
+  .put(tenantApiController.updateTaluka)
+  .delete(tenantApiController.deleteTaluka);
+
 router.route('/villages')
   .get(tenantApiController.getVillages)
   .post(tenantApiController.createVillage);
+
+router.route('/villages/:id')
+  .put(tenantApiController.updateVillage)
+  .delete(tenantApiController.deleteVillage);
 
 // --- REFERENCE MASTER DATA ---
 router.get('/religions', tenantApiController.getReligions);
@@ -57,8 +65,28 @@ router.route('/castes')
   .get(tenantApiController.getCastes)
   .post(tenantApiController.createCaste);
 
+router.route('/castes/:id')
+  .put(tenantApiController.updateCaste)
+  .delete(tenantApiController.deleteCaste);
+
 router.route('/parties')
   .get(tenantApiController.getParties)
   .post(tenantApiController.createParty);
+
+router.route('/profession-categories')
+  .get(tenantApiController.getProfessionCategories)
+  .post(tenantApiController.createProfessionCategory);
+
+router.route('/profession-categories/:id')
+  .put(tenantApiController.updateProfessionCategory)
+  .delete(tenantApiController.deleteProfessionCategory);
+
+router.route('/professions')
+  .get(tenantApiController.getProfessions)
+  .post(tenantApiController.createProfession);
+
+router.route('/professions/:id')
+  .put(tenantApiController.updateProfession)
+  .delete(tenantApiController.deleteProfession);
 
 export const tenantGeographyRoutes = router;

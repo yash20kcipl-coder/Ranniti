@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { ApiError } from '../../utils/apiError';
 import { attachFileUrls } from '../../utils/fileUrl';
 import { ApiResponse } from '../../utils/apiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
@@ -150,6 +151,133 @@ export class AdminUserController {
     const response = ApiResponse.success(
       formattedUser,
       `Volunteer account has been ${statusMsg} successfully`
+    );
+    res.status(response.statusCode).json(response.body);
+  });
+
+  // ─── Tenant Web Portal Users Controllers ───────────────────────────────────
+
+  getTenantWebUsers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.tenantDbName || (req.query.tenantDbName as string);
+    if (!tenantDbName) {
+      const response = ApiResponse.success([], 'No tenant database configured');
+      res.status(response.statusCode).json(response.body);
+      return;
+    }
+    const users = await adminUserService.getTenantWebUsers(tenantDbName);
+    const formatted = attachFileUrls(users, ['avatar'], req);
+    const response = ApiResponse.success(formatted, 'Tenant web users retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  createTenantWebUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.tenantDbName || (req.body.tenantDbName as string);
+    if (!tenantDbName) {
+      throw ApiError.badRequest('Tenant database configuration missing');
+    }
+
+    // Plan-level permission enforcement
+    const isSuperAdmin = req.user?.role === 'super_admin';
+    if (!isSuperAdmin) {
+      const { query: masterQuery } = await import('../../queries/dbPool');
+      const tRes = await masterQuery(
+        `SELECT tr.allowed_tabs
+         FROM tenants t
+         LEFT JOIN tenant_roles tr ON tr.id = t.tenant_role_id
+         WHERE t.tenant_db_name = $1 LIMIT 1`,
+        [tenantDbName]
+      );
+      const allowedTabs = tRes.rows[0]?.allowed_tabs || {};
+      const canCreate = Boolean(allowedTabs.canCreateWebUsers || allowedTabs.can_create_web_users);
+      if (!canCreate) {
+        throw ApiError.forbidden(
+          'Your current subscription plan does not allow creating web portal users. Please contact Super Admin to upgrade your package.'
+        );
+      }
+    }
+
+    const { name, email, mobile, password, roleName, role, status } = req.body;
+    let accessibleTabs = req.body.accessibleTabs;
+    if (typeof accessibleTabs === 'string') {
+      try {
+        accessibleTabs = JSON.parse(accessibleTabs);
+      } catch {
+        // Fallback to raw string or empty object
+      }
+    }
+    if (!name || !email) {
+      throw ApiError.badRequest('Name and email are required to create a web user');
+    }
+
+    const newUser = await adminUserService.createTenantWebUser(tenantDbName, {
+      name,
+      email,
+      mobile,
+      password,
+      role: role || 'tenant_user',
+      roleName,
+      status,
+      accessibleTabs,
+      avatar: (req as any).file?.filename || req.body.avatar,
+    });
+
+    const formatted = attachFileUrls(newUser, ['avatar'], req);
+    const response = ApiResponse.success(formatted, 'Web user created successfully', 201);
+    res.status(response.statusCode).json(response.body);
+  });
+
+  updateTenantWebUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const tenantDbName = req.tenantDbName;
+    if (!tenantDbName) {
+      throw ApiError.badRequest('Tenant database configuration missing');
+    }
+
+    let accessibleTabs = req.body.accessibleTabs;
+    if (typeof accessibleTabs === 'string') {
+      try {
+        accessibleTabs = JSON.parse(accessibleTabs);
+      } catch {
+        // Fallback
+      }
+    }
+
+    const updated = await adminUserService.updateTenantWebUser(tenantDbName, id, {
+      ...req.body,
+      accessibleTabs: accessibleTabs !== undefined ? accessibleTabs : req.body.accessibleTabs,
+      avatar: (req as any).file?.filename || req.body.avatar,
+    });
+    const formatted = attachFileUrls(updated, ['avatar'], req);
+    const response = ApiResponse.success(formatted, 'Web user updated successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  deleteTenantWebUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const tenantDbName = req.tenantDbName;
+    if (!tenantDbName) {
+      throw ApiError.badRequest('Tenant database configuration missing');
+    }
+
+    await adminUserService.deleteTenantWebUser(tenantDbName, id);
+    const response = ApiResponse.success(null, 'Web user deleted successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  toggleTenantWebUserStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const tenantDbName = req.tenantDbName;
+    const requestedStatus = req.body?.status;
+    if (!tenantDbName) {
+      throw ApiError.badRequest('Tenant database configuration missing');
+    }
+
+    const updated = await adminUserService.toggleTenantWebUserStatus(tenantDbName, id, requestedStatus);
+    const formatted = attachFileUrls(updated, ['avatar'], req);
+    const statusMsg = formatted.status === 'active' ? 'enabled' : 'disabled';
+    const response = ApiResponse.success(
+      formatted,
+      `Web user account has been ${statusMsg} successfully`
     );
     res.status(response.statusCode).json(response.body);
   });

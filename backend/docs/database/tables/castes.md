@@ -11,3 +11,11 @@ Master table for storing caste & social category classifications.
 | `parent_caste_id` | `UUID` | Yes | `NULL` | Foreign Key referencing `castes(id)` for Subcastes |
 | `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Creation timestamp |
 | `updated_at` | `TIMESTAMPTZ` | No | `NOW()` | Update timestamp |
+
+## Indexes & Constraints
+
+* **`castes_pkey`**: Primary key on `(id)`
+* **`castes_name_key`**: Unique key on `(name)`
+* **`uq_castes_lower_name`**: Case-insensitive functional unique index on `(LOWER(TRIM(name)))`
+* **`idx_castes_parent_caste_id`**: B-tree index on `(parent_caste_id)`
+* **`idx_castes_religion_id`**: B-tree index on `(religion_id)`

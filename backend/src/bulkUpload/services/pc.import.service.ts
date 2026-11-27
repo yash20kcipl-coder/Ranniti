@@ -1,8 +1,10 @@
 import { BulkImporter } from '../../utils/bulkImporter';
 import { CacheService } from '../../services/cache.service';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { LookupResolverService } from '../lookupResolver.service';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { formatTitleCase } from '../../utils/textUtils';
 
 export class PcImportService {
   static async import(
@@ -26,7 +28,7 @@ export class PcImportService {
           const stateId = stateMap.get(stateRef) || context?.stateId;
 
           if (name && stateId) {
-            rowsToInsert.push({ state_id: stateId, pc_number: pcNum, name });
+            rowsToInsert.push({ state_id: stateId, pc_number: pcNum, name: formatTitleCase(name) });
           }
         }
         if (rowsToInsert.length === 0) return 0;
@@ -44,7 +46,26 @@ export class PcImportService {
       },
     });
 
-    await CacheService.invalidatePattern('ranniti:masters:pcs*');
+    await MasterCacheInvalidator.invalidate('pcs');
+
+    try {
+      const { MasterQueries } = await import('../../queries/master.queries');
+      const allPcs = await MasterQueries.getPcs().catch(() => []);
+      const { MasterBroadcastSync } = await import('../../services/sync/masterBroadcastSync.service');
+      await MasterBroadcastSync.broadcastBatchToAllTenants(
+        'parliamentary_constituencies',
+        allPcs.map((p: any) => ({
+          id: p.id,
+          pc_number: p.pcNumber ?? p.pc_number,
+          name: p.name,
+          state_id: p.stateId || p.state_id,
+        }))
+      );
+    } catch (broadcastErr) {
+      const { logger } = await import('../../utils/logger');
+      logger.error('[PcImportService] Failed to broadcast parliamentary constituencies to tenants:', broadcastErr);
+    }
+
     return result;
   }
 }

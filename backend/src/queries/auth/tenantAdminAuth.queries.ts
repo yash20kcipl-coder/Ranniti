@@ -19,6 +19,7 @@ export interface TenantAdminUserRecord {
   allowedTabs?: any;
   allowedWebTabs?: string[];
   allowedMasterSubTabs?: string[];
+  canCreateWebUsers?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,8 +44,9 @@ export class TenantAdminAuthQueries {
               t.tenant_role_id        AS "tenantRoleId",
               tr.role_name            AS "tenantRoleName",
               tr.allowed_tabs         AS "allowedTabs",
+              COALESCE((tr.allowed_tabs->>'canCreateWebUsers')::boolean, (tr.allowed_tabs->>'can_create_web_users')::boolean, false) AS "canCreateWebUsers",
               COALESCE(tr.allowed_tabs->'webTabs', '["dashboard", "voter_directory", "master_data", "settings"]'::jsonb) AS "allowedWebTabs",
-              COALESCE(tr.allowed_tabs->'masterSubTabs', '["acs", "wards", "booths", "elections"]'::jsonb) AS "allowedMasterSubTabs",
+              COALESCE(tr.allowed_tabs->'masterSubTabs', '["acs", "wards", "booths", "elections", "talukas", "villages", "castes", "profession-categories", "professions"]'::jsonb) AS "allowedMasterSubTabs",
               t.created_at            AS "createdAt",
               t.updated_at            AS "updatedAt"
        FROM tenants t
@@ -73,8 +75,9 @@ export class TenantAdminAuthQueries {
               t.tenant_role_id        AS "tenantRoleId",
               tr.role_name            AS "tenantRoleName",
               tr.allowed_tabs         AS "allowedTabs",
+              COALESCE((tr.allowed_tabs->>'canCreateWebUsers')::boolean, (tr.allowed_tabs->>'can_create_web_users')::boolean, false) AS "canCreateWebUsers",
               COALESCE(tr.allowed_tabs->'webTabs', '["dashboard", "voter_directory", "master_data", "settings"]'::jsonb) AS "allowedWebTabs",
-              COALESCE(tr.allowed_tabs->'masterSubTabs', '["acs", "wards", "booths", "elections"]'::jsonb) AS "allowedMasterSubTabs",
+              COALESCE(tr.allowed_tabs->'masterSubTabs', '["acs", "wards", "booths", "elections", "talukas", "villages", "castes", "profession-categories", "professions"]'::jsonb) AS "allowedMasterSubTabs",
               t.created_at            AS "createdAt",
               t.updated_at            AS "updatedAt"
        FROM tenants t

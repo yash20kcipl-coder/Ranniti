@@ -39,7 +39,7 @@ export const setMasterFetching = (category: string, isFetching: boolean) => ({
 
 const parseTenantMasterData = (raw: any): any[] => {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    return raw.villages || raw.booths || raw.acs || raw.pcs || raw.wards || raw.talukas || raw.districts || raw.states || raw.castes || raw.religions || raw.parties || raw.data || [];
+    return raw.professionCategories || raw.professions || raw.villages || raw.booths || raw.acs || raw.pcs || raw.wards || raw.talukas || raw.districts || raw.states || raw.castes || raw.religions || raw.parties || raw.data || [];
   }
   return Array.isArray(raw) ? raw : [];
 };
@@ -53,6 +53,17 @@ const getTenantEndpointData = async (endpoint: string, params?: Record<string, a
 };
 
 // Generic Tenant Master Category Data Thunk
+export const searchTenantMasterCategory = (_category: string, endpoint: string, query: string, limit = 20) => {
+  return async (_dispatch: AppDispatch) => {
+    try {
+      const { items } = await getTenantEndpointData(endpoint, { search: query, limit });
+      return items;
+    } catch {
+      return [];
+    }
+  };
+};
+
 export const fetchTenantMasterCategoryData = (category: string, endpoint: string, showLoader = true, params?: Record<string, any>) => {
   return async (dispatch: AppDispatch) => {
     dispatch(setMasterFetching(category, true));

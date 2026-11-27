@@ -19,9 +19,10 @@ import toast from 'react-hot-toast';
 import React, { useState, useMemo } from 'react';
 import { SafeImage } from '@/components/common/SafeImage';
 import { PageHeader } from '@/components/common/PageHeader';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { TableActions } from '@/components/common/TableActions';
+import { TableActions, TableActionButton } from '@/components/common/TableActions';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { useTenantMasterData } from '@/hooks/useTenantMasterData';
 import type { VolunteerRecord } from '@/redux/reducers/volunteer';
@@ -33,26 +34,26 @@ function getRoleBadge(role: string) {
   switch (role) {
     case 'pc_leader':
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+        <span className="px-2 py-0.5 rounded-md text-[9.5px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
           PC Leader
         </span>
       );
     case 'ac_leader':
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+        <span className="px-2 py-0.5 rounded-md text-[9.5px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
           AC Leader
         </span>
       );
     case 'sub_leader':
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-          Sub-Leader / Ward Lead
+        <span className="px-2 py-0.5 rounded-md text-[9.5px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+          Sub-Leader
         </span>
       );
     case 'supporter':
     default:
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+        <span className="px-2 py-0.5 rounded-md text-[9.5px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
           Booth Supporter
         </span>
       );
@@ -106,6 +107,13 @@ export const TenantVolunteersPage: React.FC = () => {
     dispatch(fetchVolunteerBoothCoverage());
   }, 0, [dispatch]);
 
+  // Auto-select AC if single AC available in tenant scope
+  useDebouncedEffect(() => {
+    if (acs?.length === 1 && !selectedAcFilter) {
+      setSelectedAcFilter(String(acs[0].id));
+    }
+  }, 50, [acs, selectedAcFilter]);
+
   // Leaders available as parent leader options
   const potentialParentLeaders = useMemo(() => {
     return volunteers.filter(
@@ -119,7 +127,7 @@ export const TenantVolunteersPage: React.FC = () => {
       mobile: '',
       email: '',
       role: 'supporter',
-      roleName: 'Campaign Supporter / Volunteer',
+      roleName: 'Campaign Supporter',
       avatar: null,
       parentLeaderId: null,
       assignedAcId: null,
@@ -267,36 +275,60 @@ export const TenantVolunteersPage: React.FC = () => {
     setSearchTerm('');
     setSelectedRole('');
     setSelectedStatus('');
-    setSelectedAcFilter('');
+    setSelectedAcFilter(acs?.length === 1 ? String(acs[0].id) : '');
   };
 
   // FilterBar configuration
-  const filterFields: FilterField[] = useMemo(
-    () => [
+  const filterFields: FilterField[] = useMemo(() => {
+    const fields: FilterField[] = [
       {
         key: 'role',
         label: 'Role Tier',
         type: 'select',
         value: selectedRole,
+        defaultValue: '',
+        excludeFromCount: true,
         onChange: (val) => setSelectedRole(val),
-        options: [...VOLUNTEER_ROLE_OPTIONS],
+        options: VOLUNTEER_ROLE_OPTIONS,
         isPrimary: true,
       },
       {
+        key: 'status',
+        label: 'Status',
+        type: 'select',
+        value: selectedStatus,
+        defaultValue: '',
+        excludeFromCount: true,
+        onChange: (val) => setSelectedStatus(val),
+        options: [
+          { label: 'All Statuses', value: '' },
+          { label: 'Active', value: 'active' },
+          { label: 'Disabled', value: 'disabled' },
+        ],
+        isPrimary: true,
+      },
+    ];
+
+    // Only display Constituency (AC) filter when more than 1 AC exists in tenant scope
+    if (acs.length > 1) {
+      fields.push({
         key: 'acId',
         label: 'Constituency (AC)',
         type: 'select',
         value: selectedAcFilter,
+        defaultValue: '',
+        excludeFromCount: true,
         onChange: (val) => setSelectedAcFilter(val),
         options: [
           { label: 'All Constituencies', value: '' },
           ...acs.map((a: any) => ({ label: a.name, value: a.id })),
         ],
         isPrimary: true,
-      },
-    ],
-    [selectedRole, selectedStatus, selectedAcFilter, acs]
-  );
+      });
+    }
+
+    return fields;
+  }, [selectedRole, selectedStatus, selectedAcFilter, acs]);
 
   // DataTable columns
   const columns: Column<VolunteerRecord>[] = useMemo(
@@ -305,16 +337,16 @@ export const TenantVolunteersPage: React.FC = () => {
         key: 'name',
         header: 'Volunteer Name',
         render: (vol) => (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <SafeImage
               alt={vol.name}
               fallbackText={vol.name}
               src={typeof vol.avatar === 'string' ? vol.avatar : null}
-              className="w-9 h-9 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+              className="w-8 h-8 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-700"
             />
-            <div>
-              <div className="text-[11px] font-bold text-slate-900 dark:text-white">{vol.name}</div>
-              <div className="text-[9px] text-slate-400">{vol.email}</div>
+            <div className="flex flex-col min-w-0 justify-center gap-0.5">
+              <div className="text-[10.5px] font-semibold text-slate-900 dark:text-white leading-tight truncate max-w-[180px]">{vol.name}</div>
+              <div className="text-[10px] text-slate-500 font-medium leading-tight truncate max-w-[180px]">{vol.email}</div>
             </div>
           </div>
         ),
@@ -329,20 +361,20 @@ export const TenantVolunteersPage: React.FC = () => {
         header: 'Reporting To',
         render: (vol) =>
           vol.parentLeaderName ? (
-            <span className="font-medium text-slate-800 dark:text-slate-200">
+            <span className="font-medium text-[10px] text-slate-800 dark:text-slate-200">
               {vol.parentLeaderName}
             </span>
           ) : (
-            <span className="text-slate-400 italic">Direct Campaign Lead</span>
+            <span className="text-slate-400 text-[10px] italic">Direct Campaign Lead</span>
           ),
       },
       {
         key: 'assignedBoothCount',
         header: 'Assigned Booths',
         render: (vol) => (
-          <div className="flex items-center gap-1.5">
-            <Vote size={14} className="text-indigo-500 shrink-0" />
-            <span className="font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center gap-1.5 text-[9.5px] font-mono font-semibold text-slate-900 dark:text-white">
+            <Vote size={12} className="text-indigo-500 shrink-0" />
+            <span>
               {vol.assignedBoothCount ?? vol.assignedBoothIds?.length ?? 0} Booths
             </span>
           </div>
@@ -353,10 +385,10 @@ export const TenantVolunteersPage: React.FC = () => {
         header: 'Mobile & Access',
         render: (vol) => (
           <div>
-            <div className="font-mono text-slate-900 dark:text-white font-medium">
-              {vol.mobile || '—'}
+            <div className="font-mono text-[9.5px] text-slate-900 dark:text-white font-medium">
+              {formatPhoneNumber(vol.mobile)}
             </div>
-            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold mt-0.5">
+            <div className="text-[9.5px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold mt-0.5">
               <Smartphone size={10} /> Mobile App Only
             </div>
           </div>
@@ -367,9 +399,9 @@ export const TenantVolunteersPage: React.FC = () => {
         header: 'Status',
         render: (vol) => (
           <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${vol.status === 'active'
-              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-              : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+            className={`px-2 py-0.5 rounded-md text-[9.5px] font-bold uppercase tracking-wider ${vol.status === 'active'
+              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-500/20'
+              : 'bg-slate-100 text-slate-500 dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
               }`}
           >
             {vol.status}
@@ -384,64 +416,66 @@ export const TenantVolunteersPage: React.FC = () => {
     <div className="space-y-4">
       {/* Page Header */}
       <PageHeader
+        addLabel="Onboard Volunteer"
         title="Field Volunteers & Cadre"
-        subtitle="Manage PC/AC leaders, sub-leaders, and ground supporters with booth territory assignments"
+        onAddClick={handleOpenCreateModal}
         icon={<Users className="w-5 h-5 text-indigo-500" />}
+        subtitle="Manage PC/AC leaders, sub-leaders, and ground supporters with booth territory assignments"
         badge={
           <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
             {volunteers.length} Cadres
           </span>
         }
-        onAddClick={handleOpenCreateModal}
-        addLabel="Onboard Volunteer"
       />
 
       {/* Cadre & Booth Coverage Stats */}
       <VolunteerStatsCards
         coverage={coverage}
-        totalVolunteers={volunteers.length}
-        totalBoothsCount={coverage?.totalBooths || availableBooths.length}
         selectedRole={selectedRole}
+        totalVolunteers={volunteers.length}
         onSelectRole={(role) => setSelectedRole(role)}
+        totalBoothsCount={coverage?.totalBooths || availableBooths.length}
       />
 
-      {/* Standard FilterBar */}
-      <FilterBar
-        searchPlaceholder="Search volunteers by name, mobile, email..."
-        searchValue={searchTerm}
-        onSearchChange={(val) => setSearchTerm(val)}
-        filters={filterFields}
-        onReset={handleResetFilters}
+      {/* Unified Volunteer Table & FilterBar Card */}
+      <DataTable
+        columns={columns}
+        data={volunteers}
+        loading={loading}
+        showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            showDrawerButton={false}
+            showResetButton={false}
+            searchValue={searchTerm}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search Name, Role, Mobile..."
+            onSearchChange={(val) => setSearchTerm(val)}
+          />
+        }
+        actions={(row) => (
+          <TableActions
+            onEdit={() => handleOpenEditModal(row)}
+            onDelete={() => setDeleteTargetId(row.id)}
+            extra={
+              <TableActionButton
+                variant="custom"
+                onClick={() => setStatusToggleTarget(row)}
+                icon={row.status === 'active' ? Power : PowerOff}
+                title={row.status === 'active' ? 'Active — Click to Disable' : 'Disabled — Click to Enable'}
+                className={
+                  row.status === 'active'
+                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-300'
+                    : 'bg-slate-100 text-slate-500 border border-slate-300 hover:bg-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
+                }
+              />
+            }
+          />
+        )}
       />
-
-      {/* Standard DataTable Container */}
-      <div className="rounded-lg">
-        <DataTable
-          columns={columns}
-          data={volunteers}
-          loading={loading}
-          showHeader={false}
-          actions={(row) => (
-            <TableActions
-              onEdit={() => handleOpenEditModal(row)}
-              onDelete={() => setDeleteTargetId(row.id)}
-              extra={
-                <button
-                  type="button"
-                  onClick={() => setStatusToggleTarget(row)}
-                  title={row.status === 'active' ? 'Active — Click to Disable' : 'Disabled — Click to Enable'}
-                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${row.status === 'active'
-                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-300'
-                    : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
-                    }`}
-                >
-                  {row.status === 'active' ? <Power size={14} /> : <PowerOff size={14} />}
-                </button>
-              }
-            />
-          )}
-        />
-      </div>
 
       {/* Onboard / Edit Volunteer Modal */}
       <VolunteerFormModal

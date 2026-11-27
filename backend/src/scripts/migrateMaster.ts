@@ -19,8 +19,14 @@ const migrationFiles = [
   'create_user_synced_contacts_table.sql',
   'remove_push_triggers_column.sql',
   'remove_voter_type_column.sql',
+  'add_color_to_parties.sql',
   'create_elections_table.sql',
   'create_tenant_elections_table.sql',
+  'create_case_insensitive_unique_indexes_for_masters.sql',
+  'create_profession_master_tables.sql',
+  'create_master_voter_sync_queue_table.sql',
+  'standardize_gariyadhar_labels.sql',
+  'remove_pincode_village_entry.sql',
 ];
 
 export async function runMasterMigrations(): Promise<void> {

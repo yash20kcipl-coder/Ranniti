@@ -5,7 +5,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { FontFamily } from '../../../utils/typography';
 import { AppTextInput } from '../../../components/AppTextInput';
 import { AppDropdown, DropdownOption } from '../../../components/AppDropdown';
-import { AppAutocompleteInput } from '../../../components/AppAutocompleteInput';
+import { AppAutocompleteInput, AutocompleteSuggestion } from '../../../components/AppAutocompleteInput';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { getRelationOptions } from '../../../constants/dropdownOptions';
 
@@ -19,11 +19,15 @@ export interface VoterDemographicsFormSectionProps {
   casteOptions: DropdownOption[];
   canEditDemographics: boolean;
   canEditContact: boolean;
-  subcasteSuggestions?: string[];
+  subcasteSuggestions?: (string | AutocompleteSuggestion)[];
   religionSuggestions?: string[];
   casteSuggestions?: string[];
   rawCastes?: any[];
   rawReligions?: any[];
+  professionCategories?: any[];
+  professions?: any[];
+  onSearchProfessions?: (query: string) => Promise<any[]>;
+  onSearchSubcastes?: (query: string) => Promise<any[]>;
   isFieldLocked?: (key: string) => boolean;
 }
 
@@ -42,7 +46,11 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
   casteSuggestions = [],
   rawCastes = [],
   rawReligions = [],
-  isFieldLocked = () => false,
+  professionCategories = [],
+  professions = [],
+  onSearchProfessions,
+  onSearchSubcastes,
+  isFieldLocked = (_key: string) => false,
 }) => {
   const relationOptions = React.useMemo(() => getRelationOptions(t), [t]);
 
@@ -69,20 +77,35 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
   }, [casteSuggestions, filteredCasteOptions]);
 
   const religionDisplayValue =
+    formData.religion ||
     formData.religionName ||
     religionOptions.find((r) => String(r.id) === String(formData.religionId))?.label ||
     '';
 
   const casteDisplayValue =
+    formData.caste ||
     formData.casteName ||
     casteOptions.find((c) => String(c.id) === String(formData.casteId))?.label ||
     '';
 
-  const commonProfessionSuggestions = React.useMemo(() => [
-    'Teacher', 'Farmer / Agriculture', 'Business / Trader', 'Doctor', 'Engineer',
-    'Lawyer / Advocate', 'Government Servant', 'Police / Security', 'Contractor',
-    'Driver', 'Mechanic', 'Accountant', 'Nurse / Healthcare', 'Student', 'Homemaker'
-  ], []);
+  const professionCategorySuggestions = React.useMemo(() => {
+    return (professionCategories || []).map((c: any) => c.name).filter(Boolean);
+  }, [professionCategories]);
+
+  const specificProfessionSuggestions = React.useMemo(() => {
+    if (formData.professionType) {
+      const selectedCat = (professionCategories || []).find(
+        (c: any) => (c.name || '').trim().toLowerCase() === String(formData.professionType).trim().toLowerCase()
+      );
+      if (selectedCat) {
+        return (professions || [])
+          .filter((p: any) => String(p.categoryId) === String(selectedCat.id))
+          .map((p: any) => p.name)
+          .filter(Boolean);
+      }
+    }
+    return (professions || []).map((p: any) => p.name).filter(Boolean);
+  }, [professions, professionCategories, formData.professionType]);
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -230,18 +253,19 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
             suggestions={resolvedCasteSuggestions}
             disabled={!canEditDemographics}
             onChangeText={(text) => {
-              const matched = filteredCasteOptions.find(
-                (c) => c.label.toLowerCase() === text.toLowerCase().trim()
+              const matchedCaste = (rawCastes || []).find(
+                (c: any) =>
+                  (c.name || '').toLowerCase().trim() === text.toLowerCase().trim() ||
+                  (c.casteName || '').toLowerCase().trim() === text.toLowerCase().trim()
               );
-              const rawC = (rawCastes || []).find((c: any) => String(c.id) === String(matched?.id));
               setFormData((prev: any) => {
                 const updated = {
                   ...prev,
-                  casteId: matched ? matched.id : '',
+                  casteId: matchedCaste ? String(matchedCaste.id) : '',
                   casteName: text,
                 };
-                if (rawC?.religionId && !prev.religionId) {
-                  const rel = (rawReligions || []).find((r: any) => String(r.id) === String(rawC.religionId));
+                if (matchedCaste?.religionId) {
+                  const rel = (rawReligions || []).find((r: any) => String(r.id) === String(matchedCaste.religionId));
                   if (rel) {
                     updated.religionId = String(rel.id);
                     updated.religionName = rel.name || rel.religionName;
@@ -252,18 +276,20 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
             }}
             onSelectSuggestion={(item) => {
               const name = typeof item === 'string' ? item : item.name;
-              const matched = filteredCasteOptions.find(
-                (c) => c.label.toLowerCase() === name.toLowerCase().trim()
+              const matchedCaste = (rawCastes || []).find(
+                (c: any) =>
+                  String(c.id) === String((item as any)?.id) ||
+                  (c.name || '').toLowerCase().trim() === name.toLowerCase().trim() ||
+                  (c.casteName || '').toLowerCase().trim() === name.toLowerCase().trim()
               );
-              const rawC = (rawCastes || []).find((c: any) => String(c.id) === String(matched?.id));
               setFormData((prev: any) => {
                 const updated = {
                   ...prev,
-                  casteId: matched ? matched.id : '',
-                  casteName: name,
+                  casteId: matchedCaste ? String(matchedCaste.id) : '',
+                  casteName: matchedCaste?.name || name,
                 };
-                if (rawC?.religionId && !prev.religionId) {
-                  const rel = (rawReligions || []).find((r: any) => String(r.id) === String(rawC.religionId));
+                if (matchedCaste?.religionId) {
+                  const rel = (rawReligions || []).find((r: any) => String(r.id) === String(matchedCaste.religionId));
                   if (rel) {
                     updated.religionId = String(rel.id);
                     updated.religionName = rel.name || rel.religionName;
@@ -282,17 +308,28 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         value={formData.subcasteName || ''}
         label={t('subCaste') || 'Sub-Caste'}
         placeholder={t('subCastePlaceholder') || 'e.g. Gaur, Khandelwal, Meena'}
+        onRemoteSearch={onSearchSubcastes}
         onChangeText={(text) => {
           const matchingSub = (rawCastes || []).find(
-            (c: any) => c.parentCasteId && (c.name || c.casteName || '').toLowerCase().trim() === text.toLowerCase().trim()
+            (c: any) =>
+              c.parentCasteId &&
+              ((c.name || '').toLowerCase().trim() === text.toLowerCase().trim() ||
+                (c.casteName || '').toLowerCase().trim() === text.toLowerCase().trim())
           );
           setFormData((prev: any) => {
             const updated = { ...prev, subcasteName: text };
-            if (matchingSub && matchingSub.parentCasteId && !prev.casteId) {
+            if (matchingSub?.parentCasteId) {
               const parentC = (rawCastes || []).find((c: any) => String(c.id) === String(matchingSub.parentCasteId));
               if (parentC) {
                 updated.casteId = String(parentC.id);
                 updated.casteName = parentC.name || parentC.casteName;
+                if (parentC.religionId) {
+                  const rel = (rawReligions || []).find((r: any) => String(r.id) === String(parentC.religionId));
+                  if (rel) {
+                    updated.religionId = String(rel.id);
+                    updated.religionName = rel.name || rel.religionName;
+                  }
+                }
               }
             }
             return updated;
@@ -301,15 +338,26 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         onSelectSuggestion={(item) => {
           const text = typeof item === 'string' ? item : item.name;
           const matchingSub = (rawCastes || []).find(
-            (c: any) => c.parentCasteId && (c.name || c.casteName || '').toLowerCase().trim() === text.toLowerCase().trim()
+            (c: any) =>
+              c.parentCasteId &&
+              ((c.name || '').toLowerCase().trim() === text.toLowerCase().trim() ||
+                (c.casteName || '').toLowerCase().trim() === text.toLowerCase().trim() ||
+                String(c.id) === String((item as any)?.id))
           );
           setFormData((prev: any) => {
             const updated = { ...prev, subcasteName: text };
-            if (matchingSub && matchingSub.parentCasteId && !prev.casteId) {
+            if (matchingSub?.parentCasteId) {
               const parentC = (rawCastes || []).find((c: any) => String(c.id) === String(matchingSub.parentCasteId));
               if (parentC) {
                 updated.casteId = String(parentC.id);
                 updated.casteName = parentC.name || parentC.casteName;
+                if (parentC.religionId) {
+                  const rel = (rawReligions || []).find((r: any) => String(r.id) === String(parentC.religionId));
+                  if (rel) {
+                    updated.religionId = String(rel.id);
+                    updated.religionName = rel.name || rel.religionName;
+                  }
+                }
               }
             }
             return updated;
@@ -317,23 +365,60 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
         }}
       />
 
-      <AppTextInput
+      <AppAutocompleteInput
         icon="briefcase-outline"
         label={t('professionType') || 'Profession Category'}
         placeholder={t('professionTypePlaceholder') || 'e.g. Government, Business, Student, Retired'}
         value={formData.professionType || ''}
-        editable={canEditDemographics}
+        suggestions={professionCategorySuggestions}
+        disabled={!canEditDemographics}
         onChangeText={(text) => {
           setFormData((prev: any) => ({ ...prev, professionType: text }));
+        }}
+        onSelectSuggestion={(item) => {
+          const name = typeof item === 'string' ? item : item.name;
+          setFormData((prev: any) => ({ ...prev, professionType: name }));
         }}
       />
       <AppAutocompleteInput
         value={formData.profession || ''}
-        suggestions={commonProfessionSuggestions}
+        suggestions={specificProfessionSuggestions}
         label={t('profession') || 'Specific Occupation'}
         placeholder={t('professionPlaceholder') || 'e.g. Civil Engineer, Teacher'}
+        onRemoteSearch={onSearchProfessions}
         onChangeText={(text) => {
-          setFormData((prev: any) => ({ ...prev, profession: text }));
+          const matchedProf = (professions || []).find(
+            (p: any) => (p.name || '').trim().toLowerCase() === text.trim().toLowerCase()
+          );
+          setFormData((prev: any) => {
+            const updated = { ...prev, profession: text };
+            if (matchedProf && matchedProf.categoryId && !prev.professionType) {
+              const matchedCat = (professionCategories || []).find((c: any) => String(c.id) === String(matchedProf.categoryId));
+              if (matchedCat) {
+                updated.professionType = matchedCat.name;
+              }
+            }
+            return updated;
+          });
+        }}
+        onSelectSuggestion={(item) => {
+          const text = typeof item === 'string' ? item : (item.name || '');
+          const catName = typeof item === 'object' && item !== null ? (item.sublabel || item.category) : undefined;
+          const matchedProf = (professions || []).find(
+            (p: any) => (p.name || '').trim().toLowerCase() === text.trim().toLowerCase()
+          );
+          setFormData((prev: any) => {
+            const updated = { ...prev, profession: text };
+            if (catName && !prev.professionType) {
+              updated.professionType = catName;
+            } else if (matchedProf && matchedProf.categoryId && !prev.professionType) {
+              const matchedCat = (professionCategories || []).find((c: any) => String(c.id) === String(matchedProf.categoryId));
+              if (matchedCat) {
+                updated.professionType = matchedCat.name;
+              }
+            }
+            return updated;
+          });
         }}
         disabled={!canEditDemographics}
         icon="briefcase-outline"
@@ -346,7 +431,7 @@ export const VoterDemographicsFormSection: React.FC<VoterDemographicsFormSection
           </Text>
         )
       }
-    </View >
+    </View>
   );
 };
 

@@ -11,6 +11,8 @@ export const SET_MASTER_RELIGIONS = "SET_MASTER_RELIGIONS";
 export const SET_MASTER_DISTRICTS = "SET_MASTER_DISTRICTS";
 export const SET_MASTER_TALUKAS = "SET_MASTER_TALUKAS";
 export const SET_MASTER_VILLAGES = "SET_MASTER_VILLAGES";
+export const SET_MASTER_PROFESSION_CATEGORIES = "SET_MASTER_PROFESSION_CATEGORIES";
+export const SET_MASTER_PROFESSIONS = "SET_MASTER_PROFESSIONS";
 
 export interface StateMasterItem {
   id: string;
@@ -60,6 +62,7 @@ export interface PartyMasterItem {
   name: string;
   abbreviation: string;
   symbolLogo?: string;
+  color?: string;
 }
 
 export interface ReligionMasterItem {
@@ -79,13 +82,33 @@ export interface TalukaMasterItem {
   id: string;
   name: string;
   districtId?: string;
+  districtName?: string;
+  stateId?: string;
+  stateName?: string;
 }
 
 export interface VillageMasterItem {
   id: string;
   name: string;
   talukaId?: string;
+  talukaName?: string;
   districtId?: string;
+  districtName?: string;
+  stateId?: string;
+  stateName?: string;
+}
+
+export interface ProfessionCategoryMasterItem {
+  id: string;
+  name: string;
+  professionCount?: number;
+}
+
+export interface ProfessionMasterItem {
+  id: string;
+  categoryId: string;
+  categoryName?: string;
+  name: string;
 }
 
 export interface MasterState {
@@ -100,6 +123,8 @@ export interface MasterState {
   castes: CasteMasterItem[];
   talukas: TalukaMasterItem[];
   villages: VillageMasterItem[];
+  professionCategories: ProfessionCategoryMasterItem[];
+  professions: ProfessionMasterItem[];
   loading: boolean;
   boothsLoading: boolean;
 }
@@ -116,6 +141,8 @@ const initialState: MasterState = {
   castes: [],
   talukas: [],
   villages: [],
+  professionCategories: [],
+  professions: [],
   loading: false,
   boothsLoading: false,
 };
@@ -187,6 +214,16 @@ const masterReducer = (state = initialState, action: any): MasterState => {
       return {
         ...state,
         villages: action.payload,
+      };
+    case SET_MASTER_PROFESSION_CATEGORIES:
+      return {
+        ...state,
+        professionCategories: action.payload,
+      };
+    case SET_MASTER_PROFESSIONS:
+      return {
+        ...state,
+        professions: action.payload,
       };
     default:
       return state;

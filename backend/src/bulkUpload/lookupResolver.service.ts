@@ -1,6 +1,8 @@
 import { logger } from '../utils/logger';
 import { query } from '../queries/dbPool';
 import { CacheService } from '../services/cache.service';
+import { MasterCacheInvalidator } from '../services/cacheInvalidation.service';
+import { formatTitleCase } from '../utils/textUtils';
 
 export interface VoterResolvedMasters {
   states: Map<string, string>;
@@ -65,7 +67,7 @@ export class LookupResolverService {
         if (val && typeof val === 'string' && val.trim().length > 0) {
           const cleanVal = val.trim();
           if (!religionMap.has(cleanVal.toLowerCase())) {
-            missingNames.add(cleanVal);
+            missingNames.add(formatTitleCase(cleanVal));
           }
           break;
         }
@@ -92,8 +94,91 @@ export class LookupResolverService {
       logger.info(`[LookupResolverService] Auto-created missing religion: '${r.name}' (${uuid})`);
     }
 
-    await CacheService.invalidatePattern('ranniti:masters:religions*');
+    await MasterCacheInvalidator.invalidate('religions');
     return religionMap;
+  }
+
+  /**
+   * Batch resolve and auto-create missing profession categories in a single query.
+   * Returns normalized Map<lowercase_name_or_uuid, uuid>.
+   */
+  static async ensureProfessionCategoriesExist(
+    records: any[],
+    keyNames = [
+      'categoryName',
+      'Category Name',
+      'CategoryName',
+      'Profession Category',
+      'professionCategory',
+      'ProfessionCategory',
+      'profession_category',
+      'Category',
+      'category',
+      'Details',
+      'details',
+      'professionType',
+      'profession_type',
+      'ProfessionType',
+      'categoryId',
+      'category_id',
+    ]
+  ): Promise<Map<string, string>> {
+    const categoryMap = new Map<string, string>();
+
+    const dbCategories = await query(`SELECT id, name FROM profession_categories`);
+    for (const c of dbCategories.rows) {
+      const uuid = c.id;
+      const cleanName = c.name.toLowerCase().trim();
+      categoryMap.set(uuid.toLowerCase(), uuid);
+      categoryMap.set(cleanName, uuid);
+    }
+
+    const missingMap = new Map<string, string>();
+    for (const row of records) {
+      for (const key of keyNames) {
+        const val = row[key];
+        if (val && typeof val === 'string' && val.trim().length > 0) {
+          const cleanVal = val.trim();
+          const lowerVal = cleanVal.toLowerCase();
+          if (!categoryMap.has(lowerVal) && !missingMap.has(lowerVal)) {
+            missingMap.set(lowerVal, formatTitleCase(cleanVal));
+          }
+          break;
+        }
+      }
+    }
+
+    if (missingMap.size === 0) return categoryMap;
+
+    const missingList = Array.from(missingMap.values());
+    const valuePlaceholders = missingList.map((_, idx) => `($${idx + 1})`).join(', ');
+    const bulkInsertSql = `
+      INSERT INTO profession_categories (name)
+      VALUES ${valuePlaceholders}
+      ON CONFLICT DO NOTHING
+      RETURNING id, name;
+    `;
+
+    const insertedRes = await query(bulkInsertSql, missingList);
+    for (const c of insertedRes.rows) {
+      const uuid = c.id;
+      const cleanName = c.name.toLowerCase().trim();
+      categoryMap.set(uuid.toLowerCase(), uuid);
+      categoryMap.set(cleanName, uuid);
+      logger.info(`[LookupResolverService] Auto-created missing profession category: '${c.name}' (${uuid})`);
+    }
+
+    // Refresh all categories from DB so that any that conflicted are guaranteed to be in the map
+    const refreshedCategories = await query(`SELECT id, name FROM profession_categories`);
+    for (const c of refreshedCategories.rows) {
+      const uuid = c.id;
+      const cleanName = c.name.toLowerCase().trim();
+      categoryMap.set(uuid.toLowerCase(), uuid);
+      categoryMap.set(cleanName, uuid);
+    }
+
+    await MasterCacheInvalidator.invalidate(['professionCategories', 'professions']);
+    return categoryMap;
   }
 
   /**
@@ -170,7 +255,7 @@ export class LookupResolverService {
       logger.info(`[LookupResolverService] Auto-created missing caste: '${c.name}' (${uuid})`);
     }
 
-    await CacheService.invalidatePattern('ranniti:masters:castes*');
+    await MasterCacheInvalidator.invalidate('castes');
     return casteMap;
   }
 
@@ -194,7 +279,7 @@ export class LookupResolverService {
         if (val && typeof val === 'string' && val.trim().length > 0) {
           const cleanVal = val.trim();
           if (!stateMap.has(cleanVal.toLowerCase())) {
-            missingNames.add(cleanVal);
+            missingNames.add(formatTitleCase(cleanVal));
           }
           break;
         }
@@ -221,7 +306,7 @@ export class LookupResolverService {
       logger.info(`[LookupResolverService] Auto-created missing state: '${s.name}' (${uuid})`);
     }
 
-    await CacheService.invalidatePattern('ranniti:masters:states*');
+    await MasterCacheInvalidator.invalidate('states');
     return stateMap;
   }
 
@@ -282,7 +367,7 @@ export class LookupResolverService {
       logger.info(`[LookupResolverService] Auto-created missing party: '${p.name}' (${uuid})`);
     }
 
-    await CacheService.invalidatePattern('ranniti:masters:parties*');
+    await MasterCacheInvalidator.invalidate('parties');
     return partyMap;
   }
 
@@ -333,7 +418,7 @@ export class LookupResolverService {
           if (!districtMap.has(comboKey) && !districtMap.has(cleanLower) && stateId) {
             const entryKey = `${stateId}_${cleanLower}`;
             if (!missingEntriesMap.has(entryKey)) {
-              missingEntriesMap.set(entryKey, { stateId, name: cleanVal });
+              missingEntriesMap.set(entryKey, { stateId, name: formatTitleCase(cleanVal) });
             }
           }
           break;
@@ -383,7 +468,7 @@ export class LookupResolverService {
       logger.info(`[LookupResolverService] Auto-created missing district: '${d.name}' (${uuid})`);
     }
 
-    await CacheService.invalidatePattern('ranniti:masters:districts*');
+    await MasterCacheInvalidator.invalidate('districts');
     return districtMap;
   }
 
@@ -498,7 +583,7 @@ export class LookupResolverService {
       logger.info(`[LookupResolverService] Auto-created missing PC: '${p.name}' (${uuid})`);
     }
 
-    await CacheService.invalidatePattern('ranniti:masters:pcs*');
+    await MasterCacheInvalidator.invalidate('pcs');
     return pcMap;
   }
 
@@ -525,12 +610,21 @@ export class LookupResolverService {
       const cleanName = a.name.toLowerCase().trim();
       acMap.set(uuid.toLowerCase(), uuid);
       acMap.set(cleanName, uuid);
+      if (cleanName === 'gariyadhar') {
+        acMap.set('gariadhar', uuid);
+      }
       if (a.pc_id) {
         acMap.set(`${a.pc_id}_${cleanName}`, uuid);
         acMap.set(`${a.pc_id}_${a.ac_number}`, uuid);
+        if (cleanName === 'gariyadhar') {
+          acMap.set(`${a.pc_id}_gariadhar`, uuid);
+        }
       }
       if (a.pc_name) {
         acMap.set(`${a.pc_name.toLowerCase().trim()}_${cleanName}`, uuid);
+        if (cleanName === 'gariyadhar') {
+          acMap.set(`${a.pc_name.toLowerCase().trim()}_gariadhar`, uuid);
+        }
       }
     }
 
@@ -546,7 +640,10 @@ export class LookupResolverService {
       const pcRef = LookupResolverService.extractValue(row, ['PC Name', 'PCName', 'pcName', 'pc', 'pcId', 'pc_id']).toLowerCase();
       const pcId = (pcMap ? pcMap.get(pcRef) : null) || defaultPcId;
 
-      const acName = LookupResolverService.extractValue(row, ['AC Name', 'ACName', 'acName', 'ac', 'ac_name', 'name']);
+      let acName = LookupResolverService.extractValue(row, ['AC Name', 'ACName', 'acName', 'ac', 'ac_name', 'name']);
+      if (acName && acName.toLowerCase().trim() === 'gariadhar') {
+        acName = 'Gariyadhar';
+      }
       const rawAcNum = Number(LookupResolverService.extractValue(row, ['AC Number', 'ACNumber', 'acNumber', 'ac_number']) || 0);
 
       const districtRef = LookupResolverService.extractValue(row, ['District Name', 'DistrictName', 'districtName', 'district', 'districtId', 'district_id']).toLowerCase();
@@ -602,7 +699,7 @@ export class LookupResolverService {
         logger.info(`[LookupResolverService] Auto-created missing AC: '${a.name}' (${uuid})`);
       }
 
-      await CacheService.invalidatePattern('ranniti:masters:acs*');
+      await MasterCacheInvalidator.invalidate('acs');
     }
 
     return acMap;
@@ -630,11 +727,20 @@ export class LookupResolverService {
       const cleanName = t.name.toLowerCase().trim();
       talukaMap.set(uuid.toLowerCase(), uuid);
       talukaMap.set(cleanName, uuid);
+      if (cleanName === 'gariyadhar') {
+        talukaMap.set('gariadhar', uuid);
+      }
       if (t.district_id) {
         talukaMap.set(`${t.district_id}_${cleanName}`, uuid);
+        if (cleanName === 'gariyadhar') {
+          talukaMap.set(`${t.district_id}_gariadhar`, uuid);
+        }
       }
       if (t.district_name) {
         talukaMap.set(`${t.district_name.toLowerCase().trim()}_${cleanName}`, uuid);
+        if (cleanName === 'gariyadhar') {
+          talukaMap.set(`${t.district_name.toLowerCase().trim()}_gariadhar`, uuid);
+        }
       }
     }
 
@@ -644,14 +750,17 @@ export class LookupResolverService {
       const distRef = LookupResolverService.extractValue(row, ['District Name', 'DistrictName', 'districtName', 'district', 'districtId', 'district_id']).toLowerCase();
       const districtId = (districtMap ? districtMap.get(distRef) : null) || defaultDistrictId;
 
-      const talukaName = LookupResolverService.extractValue(row, ['Taluka Name', 'TalukaName', 'talukaName', 'taluka', 'Tehsil', 'tehsil', 'name']);
+      let talukaName = LookupResolverService.extractValue(row, ['Taluka Name', 'TalukaName', 'talukaName', 'taluka', 'Tehsil', 'tehsil']);
+      if (talukaName && talukaName.toLowerCase().trim() === 'gariadhar') {
+        talukaName = 'Gariyadhar';
+      }
       if (talukaName && districtId) {
         const cleanLower = talukaName.toLowerCase();
         const comboKey = `${districtId}_${cleanLower}`;
 
         if (!talukaMap.has(comboKey) && !talukaMap.has(cleanLower)) {
           if (!missingEntriesMap.has(comboKey)) {
-            missingEntriesMap.set(comboKey, { districtId, name: talukaName });
+            missingEntriesMap.set(comboKey, { districtId, name: formatTitleCase(talukaName) });
           }
         }
       }
@@ -686,7 +795,7 @@ export class LookupResolverService {
         logger.info(`[LookupResolverService] Auto-created missing Taluka: '${t.name}' (${uuid})`);
       }
 
-      await CacheService.invalidatePattern('ranniti:masters:talukas*');
+      await MasterCacheInvalidator.invalidate('talukas');
     }
 
     return talukaMap;
@@ -787,7 +896,7 @@ export class LookupResolverService {
         logger.info(`[LookupResolverService] Auto-created missing Ward: #${w.ward_number} '${w.name}' (${uuid})`);
       }
 
-      await CacheService.invalidatePattern('ranniti:masters:wards*');
+      await MasterCacheInvalidator.invalidate('wards');
     }
 
     return wardMap;
@@ -889,7 +998,7 @@ export class LookupResolverService {
         logger.info(`[LookupResolverService] Auto-created missing Booth: #${b.booth_number} '${b.name}' in AC ${b.ac_id}`);
       }
 
-      await CacheService.invalidatePattern('ranniti:masters:booths*');
+      await MasterCacheInvalidator.invalidate('booths');
     }
 
     return boothMap;

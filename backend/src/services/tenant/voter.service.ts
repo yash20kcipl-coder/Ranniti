@@ -70,8 +70,15 @@ export class VoterService {
     return await VoterQueries.createVoter(data, tenantDbName);
   }
 
-  static async updateVoter(id: string, data: Partial<Voter>, tenantDbName?: string | null): Promise<Voter | null> {
+  static async updateVoter(
+    id: string,
+    data: Partial<Voter>,
+    tenantDbName?: string | null,
+    volunteerId?: string | null
+  ): Promise<Voter | null> {
     logger.info(`[VoterService] Updating voter id: ${id}`);
+    const existingVoter = await VoterQueries.getVoterById(id, tenantDbName);
+
     if (data.dob) {
       const computedAge = calculateAge(data.dob);
       if (computedAge !== null) {
@@ -80,42 +87,116 @@ export class VoterService {
       data.dob = formatDateForDb(data.dob) || data.dob;
     }
 
-    // Auto-upsert Taluka and Village if provided as string names
-    let talukaId: string | null = null;
-    if (data.taluka) {
-      talukaId = await MasterQueries.upsertTalukaByName(data.taluka, data.districtId || undefined);
+    // Normalize aliases if provided
+    if ((data as any).religion !== undefined && data.religionName === undefined) {
+      data.religionName = (data as any).religion;
     }
-    if (data.village) {
-      await MasterQueries.upsertVillageByName(data.village, talukaId || undefined);
+    if ((data as any).caste !== undefined && data.casteName === undefined) {
+      data.casteName = (data as any).caste;
+    }
+    if ((data as any).subCaste !== undefined && data.subcasteName === undefined) {
+      data.subcasteName = (data as any).subCaste;
     }
 
-    // Auto-upsert Religion, Caste, and Subcaste
+    // Auto-upsert Taluka and Village if provided as string names, or clear if empty
+    let talukaId: string | null = null;
+    if (data.taluka !== undefined) {
+      const cleanTaluka = data.taluka ? String(data.taluka).trim() : '';
+      if (cleanTaluka) {
+        data.taluka = cleanTaluka;
+        talukaId = await MasterQueries.upsertTalukaByName(cleanTaluka, data.districtId || undefined);
+      } else {
+        data.taluka = null;
+      }
+    }
+    if (data.village !== undefined) {
+      const cleanVillage = data.village ? String(data.village).trim() : '';
+      if (cleanVillage) {
+        data.village = cleanVillage;
+        await MasterQueries.upsertVillageByName(cleanVillage, talukaId || undefined);
+      } else {
+        data.village = null;
+      }
+    }
+
+    // Auto-upsert or clear Religion, Caste, and Subcaste
     const isUuid = (val?: string | null) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
-    if (data.religionName && data.religionName.trim()) {
-      const resolvedRelId = await MasterQueries.upsertReligionByName(data.religionName.trim());
-      if (resolvedRelId) data.religionId = resolvedRelId;
-    } else if (data.religionId && !isUuid(data.religionId)) {
-      const resolvedRelId = await MasterQueries.upsertReligionByName(data.religionId);
-      if (resolvedRelId) data.religionId = resolvedRelId;
+    if (data.religionName !== undefined) {
+      const cleanRel = data.religionName ? String(data.religionName).trim() : '';
+      if (cleanRel) {
+        const resolvedRelId = await MasterQueries.upsertReligionByName(cleanRel);
+        if (resolvedRelId) data.religionId = resolvedRelId;
+      } else {
+        data.religionId = null;
+      }
+    } else if (data.religionId !== undefined) {
+      if (data.religionId && !isUuid(data.religionId)) {
+        const resolvedRelId = await MasterQueries.upsertReligionByName(String(data.religionId).trim());
+        data.religionId = resolvedRelId || null;
+      } else if (!data.religionId) {
+        data.religionId = null;
+      }
     }
 
-    if (data.casteName && data.casteName.trim()) {
-      const resolvedCasteId = await MasterQueries.upsertCasteByName(data.casteName.trim(), data.religionId);
-      if (resolvedCasteId) data.casteId = resolvedCasteId;
-    } else if (data.casteId && !isUuid(data.casteId)) {
-      const resolvedCasteId = await MasterQueries.upsertCasteByName(data.casteId, data.religionId);
-      if (resolvedCasteId) data.casteId = resolvedCasteId;
+    if (data.casteName !== undefined) {
+      const cleanCaste = data.casteName ? String(data.casteName).trim() : '';
+      if (cleanCaste) {
+        const resolvedCasteId = await MasterQueries.upsertCasteByName(cleanCaste, data.religionId || undefined);
+        if (resolvedCasteId) data.casteId = resolvedCasteId;
+      } else {
+        data.casteId = null;
+      }
+    } else if (data.casteId !== undefined) {
+      if (data.casteId && !isUuid(data.casteId)) {
+        const resolvedCasteId = await MasterQueries.upsertCasteByName(String(data.casteId).trim(), data.religionId || undefined);
+        data.casteId = resolvedCasteId || null;
+      } else if (!data.casteId) {
+        data.casteId = null;
+      }
     }
 
-    if (data.subcasteName && data.subcasteName.trim()) {
-      await MasterQueries.upsertSubcasteByName(data.subcasteName.trim(), data.casteId, data.religionId);
+    if (data.subcasteName !== undefined) {
+      const cleanSub = data.subcasteName ? String(data.subcasteName).trim() : '';
+      if (cleanSub) {
+        data.subcasteName = cleanSub;
+        await MasterQueries.upsertSubcasteByName(cleanSub, data.casteId || undefined, data.religionId || undefined);
+      } else {
+        data.subcasteName = null;
+      }
+    }
+
+    if (data.profession !== undefined) {
+      const cleanProf = data.profession ? String(data.profession).trim() : '';
+      data.profession = cleanProf || null;
+    }
+
+    if (data.professionType !== undefined) {
+      const cleanProfType = data.professionType ? String(data.professionType).trim() : '';
+      data.professionType = cleanProfType || null;
     }
 
     if (data.isFamilyInfluencer === true) {
       data.familyInfluencerId = null;
     }
-    return await VoterQueries.updateVoter(id, data, tenantDbName);
+
+    const updatedVoter = await VoterQueries.updateVoter(id, data, tenantDbName);
+
+    if (volunteerId && existingVoter && updatedVoter) {
+      const { SurveyScoringService } = await import('./surveyScoring.service');
+      SurveyScoringService.recordVoterFieldUpdates({
+        volunteerId,
+        voterId: id,
+        boothId: updatedVoter.boothId,
+        oldVoter: existingVoter,
+        updatedVoter,
+        tenantDbName,
+      }).catch((err) => {
+        logger.warn(`[VoterService] Non-fatal error recording survey field updates: ${err.message}`);
+      });
+    }
+
+    return updatedVoter;
   }
 
   static async deleteVoter(id: string, tenantDbName?: string | null): Promise<boolean> {

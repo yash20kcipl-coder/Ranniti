@@ -10,7 +10,7 @@ Stores Tier 1 Super Admin Tenant Feature Packages. Controls maximum web tab, mas
 | `id` | `UUID` | `PRIMARY KEY DEFAULT gen_random_uuid()` | Unique package identifier |
 | `role_name` | `VARCHAR(100)` | `NOT NULL UNIQUE` | Package / Role name |
 | `description` | `TEXT` | `NULL` | Detailed description of package scope |
-| `allowed_tabs` | `JSONB` | `NOT NULL DEFAULT ...` | JSON ceiling object (`web_tabs`, `master_sub_tabs`, `mobile_modules`) |
+| `allowed_tabs` | `JSONB` | `NOT NULL DEFAULT ...` | JSON ceiling object (`web_tabs`, `master_sub_tabs`, `mobile_modules`, `can_create_web_users` / `canCreateWebUsers`) |
 | `is_active` | `BOOLEAN` | `NOT NULL DEFAULT true` | Package availability status |
 | `is_default` | `BOOLEAN` | `NOT NULL DEFAULT false` | Flag indicating default role package auto-assigned on tenant creation |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT NOW()` | Creation timestamp |

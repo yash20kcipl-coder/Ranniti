@@ -1,41 +1,48 @@
 import toast from 'react-hot-toast';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard } from 'lucide-react';
-import { PageHeader } from '@/components/common/PageHeader';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { fetchTenantDashboardMetrics } from '@/redux/actions/tenantDashboard';
+import { fetchTenantDashboardOverview } from '@/redux/actions/tenantDashboardOverview';
 
 // Subcomponents per Rule 21
-import { RecentVotersCard } from './components/RecentVotersCard';
-import { BoothCoverageCard } from './components/BoothCoverageCard';
-import { TenantKpiStatsGrid } from './components/TenantKpiStatsGrid';
-import { VoterSentimentCard } from './components/VoterSentimentCard';
-import { DashboardQuickActions } from './components/DashboardQuickActions';
-import { VoterDemographicsCard } from './components/VoterDemographicsCard';
-import { RegistrationVelocityCard } from './components/RegistrationVelocityCard';
+import { DashboardHeader } from './components/DashboardHeader';
+import { OverviewKpiGrid } from './components/OverviewKpiGrid';
+import { AssignedAreaMapCard } from './components/AssignedAreaMapCard';
+import { PartyLeaningCard } from './components/PartyLeaningCard';
+import { AgePartyCrossTabCard } from './components/AgePartyCrossTabCard';
+import { GenderBreakdownCard } from './components/GenderBreakdownCard';
+import { FieldCompletenessCard } from './components/FieldCompletenessCard';
+import { CadreDeploymentCard } from './components/CadreDeploymentCard';
 
 export const TenantDashboardPage: React.FC = () => {
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [refreshing, setRefreshing] = useState(false);
-  const { data, loading } = useAppSelector((state) => state.tenantDashboard);
+  const [selectedBoothId, setSelectedBoothId] = useState<string>('');
+  const { data, loading } = useAppSelector((state) => state.tenantDashboardOverview);
 
-  // Initial load using debounced effect per Rule 13
+  // Reload overview metrics whenever selectedBoothId changes (Rule 13)
   useDebouncedEffect(() => {
-    dispatch(fetchTenantDashboardMetrics());
-  }, 200, []);
+    dispatch(fetchTenantDashboardOverview(false, true, selectedBoothId));
+  }, 200, [selectedBoothId]);
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
     try {
-      await dispatch(fetchTenantDashboardMetrics(true));
-      toast.success('Campaign metrics updated');
+      await dispatch(fetchTenantDashboardOverview(true, true, selectedBoothId));
+      toast.success('Dashboard updated with latest numbers');
     } catch {
-      toast.error('Failed to refresh campaign metrics');
+      toast.error('Could not update dashboard. Please try again.');
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleBoothChange = (boothId: string, boothName?: string) => {
+    setSelectedBoothId(boothId);
+    if (boothId) {
+      toast.success(`Showing data for ${boothName || `Booth #${boothId}`}`);
+    } else {
+      toast('Showing data for all booths in your area');
     }
   };
 
@@ -43,41 +50,37 @@ export const TenantDashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-4 pb-6">
-      {/* Reusable PageHeader per Rule 18 */}
-      <PageHeader
-        addLabel="Add Voter"
-        isSyncing={refreshing}
-        syncLabel="Sync Metrics"
-        onSyncClick={handleManualRefresh}
-        title={`${orgName} — Campaign Dashboard`}
-        onAddClick={() => navigate('/dashboard/voters/new')}
-        icon={<LayoutDashboard className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />}
-        subtitle="Constituency Electoral Operations, Voter Sentiment Analytics & Cadre Monitoring"
+      {/* Executive Dashboard Header with Booth Filter */}
+      <DashboardHeader
+        orgName={orgName}
+        totalVoters={data?.totalVoters}
+        totalBooths={data?.totalBooths}
+        onRefresh={handleManualRefresh}
+        isRefreshing={refreshing}
+        selectedBoothId={selectedBoothId}
+        onBoothChange={handleBoothChange}
       />
 
-      {/* Quick Launchpad & Status Bar */}
-      <DashboardQuickActions onRefresh={handleManualRefresh} refreshing={refreshing} />
+      {/* Top 4 KPI Summary Cards */}
+      <OverviewKpiGrid data={data} loading={loading} />
 
-      {/* Top 4 KPI Metrics Grid */}
-      <TenantKpiStatsGrid data={data} loading={loading} />
-
-      {/* 2x2 Analytics & Field Operations Grid (Equal Heights per Row) */}
+      {/* Row 1: Assigned Area Map & Party Leaning / Swing Voters */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Card 1: Voter Sentiment & Party Leanings */}
-        <VoterSentimentCard data={data} loading={loading} />
-
-        {/* Card 2: 14-Day Registration Momentum Sparkline */}
-        <RegistrationVelocityCard data={data} loading={loading} />
-
-        {/* Card 3: Age Cohorts & Gender Profile */}
-        <VoterDemographicsCard data={data} loading={loading} />
-
-        {/* Card 4: Electoral Infrastructure & Booths */}
-        <BoothCoverageCard data={data} loading={loading} />
+        <AssignedAreaMapCard data={data} loading={loading} />
+        <PartyLeaningCard data={data} loading={loading} />
       </div>
 
-      {/* Recent Voter Registrations Table */}
-      <RecentVotersCard recentVoters={data?.recentVoters || []} loading={loading} />
+      {/* Row 2: Age Groups × Party Support & Gender Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <AgePartyCrossTabCard data={data} loading={loading} />
+        <GenderBreakdownCard data={data} loading={loading} />
+      </div>
+
+      {/* Row 3: Important Voter Details Filled & Booth Sub-Leaders / Supporters */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <FieldCompletenessCard data={data} loading={loading} />
+        <CadreDeploymentCard data={data} loading={loading} />
+      </div>
     </div>
   );
 };

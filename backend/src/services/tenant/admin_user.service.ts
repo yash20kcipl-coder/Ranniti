@@ -3,6 +3,7 @@ import { ApiError } from '../../utils/apiError';
 import { AuthQueries } from '../../queries/auth.queries';
 import { AdminUser } from '../../models/admin_user.model';
 import { TenantPoolManager } from '../pool/tenantPoolManager';
+import { hashPassword, generateTenantPassword } from '../../utils/password';
 
 export class AdminUserService {
   async getAllAdminUsers(tenantDbName?: string | null): Promise<AdminUser[]> {
@@ -358,6 +359,154 @@ export class AdminUserService {
       await query(`DELETE FROM user_booth_assignments WHERE user_id = $1`, [id]);
     } catch { }
     await query(`DELETE FROM admin_users WHERE id = $1`, [id]);
+  }
+
+  // ─── Tenant Web Portal Users Management ──────────────────────────────────────
+
+  async getTenantWebUsers(tenantDbName: string): Promise<any[]> {
+    const res = await TenantPoolManager.query(
+      tenantDbName,
+      `SELECT id, name, email, role, role_name AS "roleName", mobile, avatar, status,
+              accessible_tabs AS "accessibleTabs", created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM tenant_users
+       WHERE role = 'tenant_user' OR (accessible_tabs->>'isWebUser')::boolean = true
+       ORDER BY created_at DESC`
+    );
+    return res.rows;
+  }
+
+  async createTenantWebUser(
+    tenantDbName: string,
+    data: { name: string; email: string; password?: string; mobile?: string; role?: string; roleName?: string; avatar?: string; status?: string; accessibleTabs?: any }
+  ): Promise<any> {
+    const cleanEmail = data.email.toLowerCase().trim();
+    const existing = await TenantPoolManager.query(
+      tenantDbName,
+      `SELECT id FROM tenant_users WHERE LOWER(email) = $1 LIMIT 1`,
+      [cleanEmail]
+    );
+    if (existing.rows.length > 0) {
+      throw ApiError.badRequest('A user with this email already exists in your organization');
+    }
+
+    if (data.mobile && data.mobile.trim()) {
+      const existingMobile = await TenantPoolManager.query(
+        tenantDbName,
+        `SELECT id FROM tenant_users WHERE mobile = $1 LIMIT 1`,
+        [data.mobile.trim()]
+      );
+      if (existingMobile.rows.length > 0) {
+        throw ApiError.badRequest('A user with this mobile number already exists in your organization');
+      }
+    }
+
+    const rawPassword = data.password && data.password.trim().length >= 6
+      ? data.password.trim()
+      : generateTenantPassword(data.name, data.mobile || '1234');
+    const passwordHash = await hashPassword(rawPassword);
+
+    const effectiveTabs = {
+      isWebUser: true,
+      webTabs: data.accessibleTabs?.webTabs || ['dashboard', 'voter_directory', 'master_data', 'settings'],
+      masterSubTabs: data.accessibleTabs?.masterSubTabs || ['acs', 'wards', 'booths'],
+    };
+
+    // Self-healing: ensure restrictive role check constraint is dropped in tenant DB
+    try {
+      await TenantPoolManager.query(
+        tenantDbName,
+        `ALTER TABLE tenant_users DROP CONSTRAINT IF EXISTS tenant_users_role_check;
+         ALTER TABLE tenant_users ALTER COLUMN role TYPE VARCHAR(50);`
+      );
+    } catch {
+      // Ignore if already dropped or column already widened
+    }
+
+    const assignedRole = (data as any).role || 'tenant_user';
+
+    const res = await TenantPoolManager.query(
+      tenantDbName,
+      `INSERT INTO tenant_users (name, email, password_hash, role, role_name, mobile, avatar, status, tenant_db_name, accessible_tabs)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, name, email, role, role_name AS "roleName", mobile, avatar, status,
+                 accessible_tabs AS "accessibleTabs", created_at AS "createdAt", updated_at AS "updatedAt"`,
+      [
+        data.name.trim(),
+        cleanEmail,
+        passwordHash,
+        assignedRole,
+        data.roleName?.trim() || 'Tenant Web User',
+        data.mobile?.trim() || null,
+        data.avatar || null,
+        data.status || 'active',
+        tenantDbName,
+        JSON.stringify(effectiveTabs),
+      ]
+    );
+
+    return {
+      ...res.rows[0],
+      generatedDefaultPassword: rawPassword,
+    };
+  }
+
+  async updateTenantWebUser(
+    tenantDbName: string,
+    id: string,
+    data: { name?: string; email?: string; password?: string; mobile?: string; role?: string; roleName?: string; avatar?: string; status?: string; accessibleTabs?: any }
+  ): Promise<any> {
+    const existing = await TenantPoolManager.query(
+      tenantDbName,
+      `SELECT id FROM tenant_users WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    if (!existing.rows[0]) {
+      throw ApiError.notFound('Web user not found');
+    }
+
+    // Self-healing: ensure restrictive role check constraint is dropped in tenant DB
+    try {
+      await TenantPoolManager.query(
+        tenantDbName,
+        `ALTER TABLE tenant_users DROP CONSTRAINT IF EXISTS tenant_users_role_check;
+         ALTER TABLE tenant_users ALTER COLUMN role TYPE VARCHAR(50);`
+      );
+    } catch {
+      // Ignore if already dropped or column already widened
+    }
+
+    let passwordHash: string | undefined = undefined;
+    if (data.password && data.password.trim().length >= 6) {
+      passwordHash = await hashPassword(data.password.trim());
+    }
+
+    const updatePayload: any = { ...data };
+    if (passwordHash) {
+      updatePayload.passwordHash = passwordHash;
+    }
+    delete updatePayload.password;
+
+    const updated = await AuthQueries.updateTenantUserProfile(id, updatePayload, tenantDbName);
+    return updated;
+  }
+
+  async deleteTenantWebUser(tenantDbName: string, id: string): Promise<void> {
+    await TenantPoolManager.query(tenantDbName, `DELETE FROM tenant_users WHERE id = $1`, [id]);
+  }
+
+  async toggleTenantWebUserStatus(tenantDbName: string, id: string, requestedStatus?: string): Promise<any> {
+    const res = await TenantPoolManager.query(
+      tenantDbName,
+      `SELECT status FROM tenant_users WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    if (!res.rows[0]) {
+      throw ApiError.notFound('Web user not found');
+    }
+    const currentStatus = res.rows[0].status;
+    const newStatus = requestedStatus || (currentStatus === 'active' ? 'inactive' : 'active');
+    const updated = await AuthQueries.updateTenantUserProfile(id, { status: newStatus }, tenantDbName);
+    return updated;
   }
 }
 

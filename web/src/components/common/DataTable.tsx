@@ -1,5 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Database, Plus } from 'lucide-react';
+import { TABLE_STYLES, getTableBadgeClass, type TableBadgeVariant } from '../../styles/tableStyles';
+import {
+  TablePrimaryText,
+  TableSecondaryText,
+  TableMonoText,
+  TableBadge,
+  type TableBadgeProps,
+  type TableTextProps,
+} from './TableTypography';
+
+// Re-export table tokens and micro-components for single-import convenience
+export {
+  TABLE_STYLES,
+  getTableBadgeClass,
+  TablePrimaryText,
+  TableSecondaryText,
+  TableMonoText,
+  TableBadge,
+  type TableBadgeVariant,
+  type TableBadgeProps,
+  type TableTextProps,
+};
 
 export interface Column<T> {
   key: string;
@@ -8,6 +30,7 @@ export interface Column<T> {
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
   width?: string;
+  type?: 'primary' | 'secondary' | 'mono';
 }
 
 export interface ServerPaginationConfig {
@@ -28,6 +51,7 @@ export interface DataTableProps<T> {
   addLabel?: string;
   actions?: (row: T) => React.ReactNode;
   filterSlot?: React.ReactNode;
+  filterBar?: React.ReactNode;
   headerAction?: React.ReactNode;
   title?: string;
   subtitle?: string;
@@ -35,6 +59,9 @@ export interface DataTableProps<T> {
   selectable?: boolean;
   onSelectionChange?: (selectedRows: T[]) => void;
   serverPagination?: ServerPaginationConfig;
+  className?: string;
+  headerClassName?: string;
+  rowBorder?: boolean;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -46,6 +73,7 @@ export function DataTable<T extends Record<string, any>>({
   addLabel = 'Add Record',
   actions,
   filterSlot,
+  filterBar,
   headerAction,
   title,
   subtitle,
@@ -53,6 +81,9 @@ export function DataTable<T extends Record<string, any>>({
   selectable = false,
   onSelectionChange,
   serverPagination,
+  className = '',
+  headerClassName = '',
+  rowBorder = false,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -131,23 +162,23 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   return (
-    <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200/90 dark:border-slate-800 overflow-hidden">
+    <div className={`relative bg-white dark:bg-slate-900 rounded-xl shadow-xs dark:border-slate-800 overflow-hidden ${className}`}>
+      {/* Integrated Search & FilterBar Toolbar */}
+      {filterBar && (
+        <div className="border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+          {filterBar}
+        </div>
+      )}
+
       {/* Table Header Controls */}
       {showHeader && (
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-100/70 dark:bg-slate-900">
+        <div className={`p-4 border-b border-slate-200/80 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 ${headerClassName}`}>
           <div className="flex items-center gap-3">
-            <span className="p-2 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-500/20 shadow-2xs flex-shrink-0">
-              <Database size={16} />
-            </span>
             <div>
               <div className="flex items-center gap-2.5">
                 {title && <h2 className="font-slab text-base font-bold text-slate-900 dark:text-white tracking-tight">{title}</h2>}
-                <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-semibold text-[11px] whitespace-nowrap tabular-nums">
-                  {(serverPagination ? serverPagination.total : data.length).toLocaleString()}{' '}
-                  {(serverPagination ? serverPagination.total : data.length) === 1 ? 'record' : 'records'}
-                </span>
               </div>
-              {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
+              {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
             </div>
           </div>
 
@@ -156,7 +187,7 @@ export function DataTable<T extends Record<string, any>>({
             {filterSlot}
 
             {/* Search Input */}
-            <div className="relative flex-1 sm:w-48 min-w-[150px]">
+            <div className="relative flex-1 sm:w-55 min-w-[180px]">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 type="text"
@@ -166,7 +197,7 @@ export function DataTable<T extends Record<string, any>>({
                   setCurrentPage(1);
                 }}
                 placeholder={searchPlaceholder}
-                className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 hover:bg-white focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
               />
             </div>
 
@@ -176,7 +207,7 @@ export function DataTable<T extends Record<string, any>>({
             {onAddClick && (
               <button
                 onClick={onAddClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer whitespace-nowrap flex-shrink-0 active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs shadow-indigo-600/20 transition-all cursor-pointer whitespace-nowrap shrink-0 active:scale-[0.98]"
               >
                 <Plus size={14} />
                 <span>{addLabel}</span>
@@ -190,7 +221,7 @@ export function DataTable<T extends Record<string, any>>({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-[#1e293b] dark:bg-[#0f172a] border-b-2 border-slate-700/90 text-slate-200 dark:text-slate-200 uppercase tracking-wider text-[11px] font-bold font-slab shadow-2xs">
+            <tr className="bg-[#1e293b] dark:bg-[#0f172a] border-b-2 border-slate-700/90 text-slate-200 dark:text-slate-200 uppercase tracking-wider text-[10px] font-bold font-slab shadow-2xs">
               {selectable && (
                 <th className="p-3.5 w-10 text-center">
                   <input
@@ -205,7 +236,7 @@ export function DataTable<T extends Record<string, any>>({
                 <th
                   key={col.key}
                   style={{ width: col.width }}
-                  className={`px-4 py-3.5 font-bold tracking-wider ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}`}
+                  className={`text-[10px] px-4 py-3.5 font-bold tracking-wider ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}`}
                 >
                   {col.sortable ? (
                     <button
@@ -220,14 +251,14 @@ export function DataTable<T extends Record<string, any>>({
                   )}
                 </th>
               ))}
-              {actions && <th className="px-4 py-3.5 text-right font-bold text-slate-200">Actions</th>}
+              {actions && <th className="text-[10px] px-4 py-3.5 text-right font-bold text-slate-200">Actions</th>}
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
               Array.from({ length: serverPagination ? Math.min(serverPagination.limit, 10) : pageSize }).map((_, i) => (
-                <tr key={i} className={`animate-pulse border-b border-slate-200/70 dark:border-slate-800 ${i % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/70 dark:bg-slate-800/30'}`}>
+                <tr key={i} className={`animate-pulse ${rowBorder ? 'border-b border-slate-200/70 dark:border-slate-800' : ''} ${i % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/70 dark:bg-slate-800/30'}`}>
                   {selectable && <td className="p-4"><div className="w-4 h-4 bg-slate-200 dark:bg-slate-700 rounded mx-auto" /></td>}
                   {columns.map((c) => (
                     <td key={c.key} className="px-4 py-3.5">
@@ -253,7 +284,7 @@ export function DataTable<T extends Record<string, any>>({
                 return (
                   <tr
                     key={rowId}
-                    className={`border-b border-slate-200/90 dark:border-slate-800/80 transition-colors group ${isSelected
+                    className={`${rowBorder ? 'border-b border-slate-200/90 dark:border-slate-800/80' : ''} transition-colors group ${isSelected
                       ? 'bg-indigo-50 dark:bg-indigo-950/40'
                       : isEven
                         ? 'bg-white dark:bg-slate-900 hover:bg-indigo-50/50 dark:hover:bg-slate-800/50'
@@ -273,14 +304,23 @@ export function DataTable<T extends Record<string, any>>({
                     {columns.map((col) => (
                       <td
                         key={col.key}
-                        className={`px-4 py-3.5 text-slate-900 dark:text-slate-100 font-medium text-xs sm:text-sm ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
-                          }`}
+                        className={`${TABLE_STYLES.cell} ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}`}
                       >
-                        {col.render ? col.render(row, idx) : row[col.key] ?? '—'}
+                        {col.render ? (
+                          col.render(row, idx)
+                        ) : col.type === 'primary' ? (
+                          <TablePrimaryText>{row[col.key] ?? '—'}</TablePrimaryText>
+                        ) : col.type === 'secondary' ? (
+                          <TableSecondaryText>{row[col.key] ?? '—'}</TableSecondaryText>
+                        ) : col.type === 'mono' ? (
+                          <TableMonoText>{row[col.key] ?? '—'}</TableMonoText>
+                        ) : (
+                          row[col.key] ?? '—'
+                        )}
                       </td>
                     ))}
                     {actions && (
-                      <td className="px-5 py-3.5 text-right">
+                      <td className="px-5 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {actions(row)}
                         </div>

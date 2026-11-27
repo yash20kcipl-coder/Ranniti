@@ -32,6 +32,8 @@ export interface FilterField {
   disabled?: boolean | ((currentValues: Record<string, any>) => boolean);
   helperText?: string | ((currentValues: Record<string, any>) => string | undefined);
   hidden?: boolean | ((currentValues: Record<string, any>) => boolean);
+  defaultValue?: any;
+  excludeFromCount?: boolean;
   onDraftChange?: (
     value: any,
     setDraftValues: React.Dispatch<React.SetStateAction<Record<string, any>>>
@@ -48,7 +50,11 @@ export interface FilterBarProps {
   onReset?: () => void;
   onApply?: (appliedValues: Record<string, any>) => void;
   extraActions?: React.ReactNode;
+  embedded?: boolean;
   className?: string;
+  controlClassName?: string;
+  showDrawerButton?: boolean;
+  showResetButton?: boolean;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -60,11 +66,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onReset,
   onApply,
   extraActions,
+  embedded = false,
   className = '',
+  controlClassName = 'rounded-xl',
+  showDrawerButton = true,
+  showResetButton = true,
 }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
   const [draftValues, setDraftValues] = useState<Record<string, any>>({});
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
   // Sync draft values when drawer opens or when external filters change while drawer is closed
   useEffect(() => {
@@ -77,16 +87,21 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     }
   }, [isDrawerOpen]);
 
-  // Calculate committed active filter count (excluding empty values)
-  const activeFilters = filters.filter(
-    (f) => f.value !== '' && f.value !== null && f.value !== undefined
-  );
-  const activeFiltersCount = activeFilters.length;
+  const isFieldActive = (field: FilterField, val: any) => {
+    if (field.excludeFromCount) return false;
+    if (field.defaultValue !== undefined) {
+      return val !== field.defaultValue && val !== '' && val !== null && val !== undefined;
+    }
+    return val !== '' && val !== null && val !== undefined;
+  };
+
+  // Calculate committed active filter count (excluding empty values and scope defaults)
+  const activeFiltersCount = filters.filter((f) => isFieldActive(f, f.value)).length;
 
   // Calculate draft active filter count inside drawer
   const draftActiveCount = filters.filter((f) => {
     const val = draftValues[f.key] !== undefined ? draftValues[f.key] : f.value;
-    return val !== '' && val !== null && val !== undefined;
+    return isFieldActive(f, val);
   }).length;
 
   // Primary filters shown inline
@@ -113,12 +128,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     name,
     icon: data.icon,
     fields: data.fields,
-    activeCount: data.fields.filter(
-      (f) => f.value !== '' && f.value !== null && f.value !== undefined
-    ).length,
+    activeCount: data.fields.filter((f) => isFieldActive(f, f.value)).length,
     draftActiveCount: data.fields.filter((f) => {
       const val = draftValues[f.key] !== undefined ? draftValues[f.key] : f.value;
-      return val !== '' && val !== null && val !== undefined;
+      return isFieldActive(f, val);
     }).length,
   }));
 
@@ -138,16 +151,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       document.body.style.overflow = origOverflow;
     };
   }, [isDrawerOpen]);
-
-  // Helper to format filter value label for tag cloud
-  const getFilterDisplayValue = (field: FilterField) => {
-    const rawOptions = typeof field.options === 'function' ? field.options({}) : field.options;
-    if (rawOptions && rawOptions.length > 0) {
-      const match = rawOptions.find((opt) => String(opt.value) === String(field.value));
-      if (match) return match.label;
-    }
-    return String(field.value);
-  };
 
   const handleDraftChange = (key: string, value: any) => {
     setDraftValues((prev) => ({
@@ -482,55 +485,65 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const totalActiveFilterCount = activeFiltersCount + (hasSearch ? 1 : 0);
 
   return (
-    <div className={`p-2.5 sm:p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-2.5 ${className}`}>
-      {/* Top Controls Row */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
-        {/* Search Field (spans naturally) */}
+    <div
+      className={
+        embedded
+          ? `p-5 bg-white dark:bg-slate-900 ${className}`
+          : `p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/60 shadow-2xs ${className}`
+      }
+    >
+      {/* Unified Controls Toolbar Row */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        {/* Left Side: Search Field (spans natural flexible space) */}
         {onSearchChange && (
-          <div className="flex-1 min-w-[240px] max-w-md sm:max-w-lg lg:max-w-xl">
+          <div className="flex-1 min-w-[240px]">
             <FormInput
-              name="filter_search"
+              size="md"
               type="text"
-              size="sm"
-              placeholder={searchPlaceholder}
+              clearable={true}
               value={searchValue}
+              name="filter_search"
+              inputClassName={controlClassName}
+              placeholder={searchPlaceholder}
+              onClear={() => onSearchChange('')}
               onChange={(e) => onSearchChange((e.target as any)?.value ?? e)}
               icon={<Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />}
             />
           </div>
         )}
 
-        {/* Inline Primary Filters + Drawer Trigger */}
-        <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2 flex-1">
+        {/* Right Side: Filters Group (Inline Filters + Drawer Toggle + Reset + Extra Actions) */}
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 shrink-0">
           {inlineFilters.map((field) => {
             const activeFilterValues = filters.reduce((acc, f) => ({ ...acc, [f.key]: f.value }), {});
             return (
-              <div key={field.key} className="w-full sm:w-40 md:w-44 flex-shrink">
+              <div key={field.key} className="w-full sm:w-auto sm:min-w-[180px] md:min-w-[200px] max-w-[260px]">
                 <FormInput
+                  size="md"
                   name={field.key}
-                  type={field.type === 'pills' || field.type === 'notice' ? 'select' : (field.type || 'select')}
-                  size="sm"
                   value={field.value}
-                  onChange={(e) => field.onChange((e.target as any)?.value ?? e)}
+                  inputClassName={controlClassName}
                   options={resolveFieldOptions(field, activeFilterValues)}
-                  placeholder={resolveFieldPlaceholder(field, activeFilterValues)}
                   disabled={resolveFieldDisabled(field, activeFilterValues)}
+                  onChange={(e) => field.onChange((e.target as any)?.value ?? e)}
+                  placeholder={resolveFieldPlaceholder(field, activeFilterValues) || `Select ${field.label}`}
+                  type={field.type === 'pills' || field.type === 'notice' ? 'select' : (field.type || 'select')}
                 />
               </div>
             );
           })}
 
           {/* Side Drawer / Popup Toggle Button (always shown when > 4 filters or presets exist) */}
-          {(totalFiltersCount > 4 || presets.length > 0 || hasExplicitPrimary) && (
+          {showDrawerButton && (totalFiltersCount > 4 || presets.length > 0 || hasExplicitPrimary) && (
             <button
               type="button"
               onClick={() => setIsDrawerOpen(true)}
-              className={`inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-medium font-slab border transition-all whitespace-nowrap flex-shrink-0 cursor-pointer active:scale-[0.98] ${totalActiveFilterCount > 0
-                ? 'bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 shadow-2xs'
-                : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 shadow-2xs'
+              className={`inline-flex items-center gap-1.5 px-3 h-9 ${controlClassName} text-xs font-semibold font-slab border transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-[0.98] ${totalActiveFilterCount > 0
+                ? 'bg-indigo-50/70 dark:bg-indigo-950/30 hover:bg-indigo-100/70 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/70 dark:border-indigo-800/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
+                : 'bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-slate-700/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]'
                 }`}
             >
-              <Filter className={`w-3.5 h-3.5 shrink-0 ${totalActiveFilterCount > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`} />
+              <Filter className={`w-3.5 h-3.5 shrink-0 ${totalActiveFilterCount > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`} />
               <span>Filters</span>
               {totalActiveFilterCount > 0 && (
                 <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-bold font-mono">
@@ -540,63 +553,22 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </button>
           )}
 
-          {extraActions}
-        </div>
-      </div>
-
-      {/* Active Filter Chips / Tags Cloud */}
-      {totalActiveFilterCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800 animate-fadeIn">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 mr-1">
-            <Filter className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-            <span>Active Filters ({totalActiveFilterCount}):</span>
-          </div>
-
-          {hasSearch && (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-medium shadow-2xs">
-              <span className="text-slate-400 dark:text-slate-500">Search:</span>
-              <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[140px]">"{searchValue}"</span>
-              <button
-                type="button"
-                onClick={() => onSearchChange?.('')}
-                className="p-0.5 rounded text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                title="Clear search query"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-
-          {activeFilters.map((field) => (
-            <div
-              key={field.key}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-medium shadow-2xs"
-            >
-              <span className="text-slate-400 dark:text-slate-500">{field.label}:</span>
-              <span className="font-semibold text-slate-900 dark:text-white">{getFilterDisplayValue(field)}</span>
-              <button
-                type="button"
-                onClick={() => field.onChange('')}
-                className="p-0.5 rounded text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                title={`Clear ${field.label} filter`}
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-
-          {onReset && (
+          {/* Quick Reset All button when active filters exist */}
+          {showResetButton && totalActiveFilterCount > 0 && onReset && (
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:underline ml-1 cursor-pointer transition-colors"
+              className={`inline-flex items-center gap-1.5 px-2.5 h-9 ${controlClassName} text-xs font-semibold font-slab border border-slate-200/70 dark:border-slate-700/60 bg-white dark:bg-slate-800/80 hover:bg-rose-50/80 dark:hover:bg-rose-950/30 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-800 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all shrink-0 cursor-pointer`}
+              title="Reset all filters"
             >
-              <RotateCcw className="w-3 h-3" />
-              <span>Clear All</span>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Reset</span>
             </button>
           )}
+
+          {extraActions}
         </div>
-      )}
+      </div>
 
       {renderDrawer()}
     </div>

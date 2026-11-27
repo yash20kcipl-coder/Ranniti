@@ -5,12 +5,11 @@ import {
   fetchTenantVotersData as fetchVotersData,
   fetchTenantVoterStats as fetchVoterStats,
   deleteTenantVoterItem as deleteVoterItem,
-  importTenantVotersData as importVotersData,
   exportTenantVotersData as exportVotersData,
   fetchTenantInfluencerOptions as fetchInfluencerOptions,
   fetchTenantBoothOptions,
 } from '@/redux/actions/voterTenant';
-import { setVoterFilters, setVoterBoothOptions } from '@/redux/actions/voter';
+import { setVoterFilters } from '@/redux/actions/voter';
 import { useTenantMasterData } from '@/hooks/useTenantMasterData';
 import { initialVoterFilters } from '@/redux/reducers/voter';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
@@ -98,7 +97,6 @@ export const VotersPage: React.FC = () => {
   const [socialInfluencers, setSocialInfluencers] = useState<any[]>([]);
   const [selectedVoter, setSelectedVoter] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Direct AC change handler for filter component
   const handleAcChange = (newAcId: string) => {
@@ -108,22 +106,14 @@ export const VotersPage: React.FC = () => {
     setSocialInfluencers([]);
     if (filterParams.familyInfluencerId) setFilter('familyInfluencerId', '');
     if (filterParams.socialInfluencerId) setFilter('socialInfluencerId', '');
-    if (newAcId) {
-      dispatch(fetchTenantBoothOptions({ acId: newAcId }));
-    } else {
-      dispatch(setVoterBoothOptions([]));
-    }
+    dispatch(fetchTenantBoothOptions({ acId: newAcId || undefined }));
   };
 
   // Immediate draft AC change handler to populate booth dropdown inside filter drawer
   const handleAcDraftChange = (newAcId: string) => {
     setFamilyInfluencers([]);
     setSocialInfluencers([]);
-    if (newAcId) {
-      dispatch(fetchTenantBoothOptions({ acId: newAcId }));
-    } else {
-      dispatch(setVoterBoothOptions([]));
-    }
+    dispatch(fetchTenantBoothOptions({ acId: newAcId || undefined }));
   };
 
   // Direct Booth change handler for filter component
@@ -159,10 +149,10 @@ export const VotersPage: React.FC = () => {
     }
   };
 
-  // Recover options on initial mount / back navigation if acId or boothId is saved in Redux
+  // Recover options on initial mount / back navigation if boothOptions is empty
   React.useEffect(() => {
-    if (filterParams.acId && (!boothOptions || boothOptions.length === 0)) {
-      dispatch(fetchTenantBoothOptions({ acId: filterParams.acId }));
+    if (!boothOptions || boothOptions.length === 0) {
+      dispatch(fetchTenantBoothOptions({ acId: filterParams.acId || undefined }));
     }
     if (filterParams.boothId) {
       dispatch(fetchInfluencerOptions({ boothId: filterParams.boothId, type: 'family' }))
@@ -173,6 +163,17 @@ export const VotersPage: React.FC = () => {
         .catch(() => { });
     }
   }, []);
+
+  // Auto-select single AC if tenant only has one Assembly Constituency
+  useDebouncedEffect(() => {
+    if (masterData.acs?.length === 1) {
+      const singleAcId = String(masterData.acs[0].id);
+      if (filterParams.acId !== singleAcId) {
+        setFilter('acId', singleAcId);
+        dispatch(fetchTenantBoothOptions({ acId: singleAcId }));
+      }
+    }
+  }, 50, [masterData.acs, filterParams.acId]);
 
   useDebouncedEffect(() => {
     if (isInitialMountRef.current) {
@@ -201,10 +202,6 @@ export const VotersPage: React.FC = () => {
     } catch (_) { }
   };
 
-  const handleBulkImport = async (fileOrRecords: any, context?: Record<string, any>) => {
-    await dispatch(importVotersData(fileOrRecords, getApiParams(), context));
-  };
-
   const handleExportVoters = () => {
     dispatch(exportVotersData(getApiParams()));
   };
@@ -226,7 +223,7 @@ export const VotersPage: React.FC = () => {
     resetFilters(initialVoterFilters);
     setFamilyInfluencers([]);
     setSocialInfluencers([]);
-    dispatch(setVoterBoothOptions([]));
+    dispatch(fetchTenantBoothOptions({}));
     dispatch(setVoterFilters(initialVoterFilters));
     dispatch(fetchVotersData({ page: 1, limit }));
     dispatch(fetchVoterStats({}));
@@ -256,7 +253,8 @@ export const VotersPage: React.FC = () => {
       onAcDraftChange: handleAcDraftChange,
       onBoothDraftChange: handleBoothDraftChange,
     },
-    filterMasterBundle
+    filterMasterBundle,
+    { isTenant: true }
   );
 
   // ─── Render ───────────────────────────────────────────────────────────────────
@@ -266,8 +264,6 @@ export const VotersPage: React.FC = () => {
         title="Voter Directory"
         icon={<Vote className="w-6 h-6" />}
         subtitle="Electoral directory, booth assignment, extended fields, and campaign overlays"
-        onImportClick={() => setIsImportModalOpen(true)}
-        importLabel="Import Voters (Excel)"
         onExportClick={handleExportVoters}
         exportLabel="Export Excel"
         onAddClick={() => navigate('/dashboard/voters/new')}
@@ -290,55 +286,53 @@ export const VotersPage: React.FC = () => {
         }}
       />
 
-      <FilterBar
-        searchPlaceholder="Search Name, EPIC No, Mobile, House..."
-        searchValue={filterParams.search}
-        onSearchChange={(val) => setFilter('search', val)}
-        filters={filterFields}
-        presets={filterPresets}
-        onReset={handleResetFilters}
+      {/* Unified Voter Table & FilterBar Card */}
+      <DataTable
+        columns={columns}
+        data={voters}
+        loading={loading}
+        showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            presets={filterPresets}
+            onReset={handleResetFilters}
+            searchValue={filterParams.search}
+            onSearchChange={(val) => setFilter('search', val)}
+            searchPlaceholder="Search Name, EPIC No, Mobile, House..."
+          />
+        }
+        serverPagination={{
+          page: pagination?.page || page,
+          limit: pagination?.limit || limit,
+          total: pagination?.total || 0,
+          totalPages: pagination?.totalPages || 1,
+          onPageChange: (newPage) => setPage(newPage),
+          onLimitChange: (newLimit) => { setLimit(newLimit); setPage(1); },
+        }}
+        actions={(row: any) => (
+          <VoterRowActions
+            row={row}
+            activeRowMenuId={activeRowMenuId}
+            onDelete={() => handleOpenDelete(row)}
+            setActiveRowMenuId={setActiveRowMenuId}
+            onView={() => navigate(`/dashboard/voters/${row.id}`)}
+            onEdit={() => navigate(`/dashboard/voters/${row.id}/edit`)}
+            onSetFamilyInfluencer={(target) => { setTargetFamilyInfluencer(target); setFamilyModalOpen(true); }}
+            onSetSocialInfluencer={(target) => { setTargetSocialInfluencer(target); setSocialModalOpen(true); }}
+            onLinkFamilyHead={(voterId) => { setLinkTargetVoterIds([voterId]); setLinkInfluencerType('family'); setLinkModalOpen(true); }}
+            onLinkSocialLeader={(voterId) => { setLinkTargetVoterIds([voterId]); setLinkInfluencerType('social'); setLinkModalOpen(true); }}
+          />
+        )}
       />
-
-      <div className="rounded-lg">
-        <DataTable
-          columns={columns}
-          data={voters}
-          loading={loading}
-          showHeader={false}
-          selectable={false}
-          serverPagination={{
-            page: pagination?.page || page,
-            limit: pagination?.limit || limit,
-            total: pagination?.total || 0,
-            totalPages: pagination?.totalPages || 1,
-            onPageChange: (newPage) => setPage(newPage),
-            onLimitChange: (newLimit) => { setLimit(newLimit); setPage(1); },
-          }}
-          actions={(row: any) => (
-            <VoterRowActions
-              row={row}
-              activeRowMenuId={activeRowMenuId}
-              setActiveRowMenuId={setActiveRowMenuId}
-              onView={() => navigate(`/dashboard/voters/${row.id}`)}
-              onEdit={() => navigate(`/dashboard/voters/${row.id}/edit`)}
-              onDelete={() => handleOpenDelete(row)}
-              onSetFamilyInfluencer={(target) => { setTargetFamilyInfluencer(target); setFamilyModalOpen(true); }}
-              onSetSocialInfluencer={(target) => { setTargetSocialInfluencer(target); setSocialModalOpen(true); }}
-              onLinkFamilyHead={(voterId) => { setLinkTargetVoterIds([voterId]); setLinkInfluencerType('family'); setLinkModalOpen(true); }}
-              onLinkSocialLeader={(voterId) => { setLinkTargetVoterIds([voterId]); setLinkInfluencerType('social'); setLinkModalOpen(true); }}
-            />
-          )}
-        />
-      </div>
 
       <VoterModals
         isDeleteModalOpen={isDeleteModalOpen}
         setIsDeleteModalOpen={setIsDeleteModalOpen}
         selectedVoter={selectedVoter}
         onDeleteConfirm={handleDeleteConfirm}
-        isImportModalOpen={isImportModalOpen}
-        setIsImportModalOpen={setIsImportModalOpen}
-        onBulkImport={handleBulkImport}
         familyModalOpen={familyModalOpen}
         setFamilyModalOpen={setFamilyModalOpen}
         targetFamilyInfluencer={targetFamilyInfluencer}
@@ -353,7 +347,6 @@ export const VotersPage: React.FC = () => {
         setLinkTargetVoterIds={setLinkTargetVoterIds}
         linkInfluencerType={linkInfluencerType}
         onInfluencerSuccess={handleInfluencerSuccess}
-        sampleParams={{ acId: filterParams.acId, boothId: filterParams.boothId }}
       />
     </div>
   );

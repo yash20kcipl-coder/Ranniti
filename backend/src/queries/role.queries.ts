@@ -73,10 +73,10 @@ export class RoleQueries {
     try {
       const seededRole = await this.createTenantRole({
         roleName: 'Full Political Campaign Suite',
-        description: 'Complete access to all web tabs (incl. settings), tenant master sub-tabs (AC, Ward, Booth), voter directory, and mobile field capabilities.',
+        description: 'Complete access to all web tabs (incl. settings), tenant master sub-tabs (AC, Ward, Booth, Talukas, Villages, Castes, Professions), voter directory, and mobile field capabilities.',
         allowedTabs: {
           webTabs: ['dashboard', 'voter_directory', 'master_data', 'settings'],
-          masterSubTabs: ['acs', 'wards', 'booths'],
+          masterSubTabs: ['acs', 'wards', 'booths', 'elections', 'talukas', 'villages', 'castes', 'profession-categories', 'professions'],
         },
         isActive: true,
         isDefault: true,

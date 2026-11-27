@@ -1,9 +1,11 @@
 import { logger } from '../../utils/logger';
 import { CacheService } from '../../services/cache.service';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { BulkImporter } from '../../utils/bulkImporter';
 import { MasterQueries } from '../../queries/master.queries';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { formatTitleCase } from '../../utils/textUtils';
 
 export class ReligionImportService {
   static async import(
@@ -17,7 +19,12 @@ export class ReligionImportService {
       onProgress: progressCallback,
       onBatchInsert: async (batch) => {
 
-        const rowsToInsert = batch.map((row) => ({ name: (row.name || row.religionName || '').trim() })).filter((r) => r.name.length > 0);
+        const rowsToInsert = batch
+          .map((row) => {
+            const raw = (row.name || row.religionName || '').trim();
+            return { name: raw ? formatTitleCase(raw) : '' };
+          })
+          .filter((r) => r.name.length > 0);
 
         const uniqueRowsMap = new Map<string, any>();
         for (const r of rowsToInsert) { uniqueRowsMap.set(r.name.toLowerCase(), r) }
@@ -33,7 +40,7 @@ export class ReligionImportService {
       },
     });
 
-    await CacheService.invalidatePattern('ranniti:masters:religions*');
+    await MasterCacheInvalidator.invalidate('religions');
     try {
       const allReligions = await MasterQueries.getReligions().catch(() => []);
       const { MasterBroadcastSync } = await import('../../services/sync/masterBroadcastSync.service');

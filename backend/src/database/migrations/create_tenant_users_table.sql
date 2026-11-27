@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS tenant_users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     mpin_hash VARCHAR(255) DEFAULT NULL,
-    role VARCHAR(30) NOT NULL CHECK (role IN ('pc_leader', 'ac_leader', 'leader', 'sub_leader', 'supporter')),
+    role VARCHAR(50) NOT NULL,
     role_name VARCHAR(100),
     mobile VARCHAR(15),
     avatar VARCHAR(500),

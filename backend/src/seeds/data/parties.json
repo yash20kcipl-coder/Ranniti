@@ -3,240 +3,280 @@
     "name": "Bharatiya Janata Party",
     "abbreviation": "BJP",
     "symbolLogo": "/uploads/parties/bjp.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#ea580c"
   },
   {
     "name": "Indian National Congress",
     "abbreviation": "INC",
     "symbolLogo": "/uploads/parties/inc.png",
-    "alliance": "INDIA Alliance"
+    "alliance": "INDIA Alliance",
+    "color": "#0284c7"
   },
   {
     "name": "Aam Aadmi Party",
     "abbreviation": "AAP",
     "symbolLogo": "/uploads/parties/aap.png",
-    "alliance": "INDIA Alliance"
+    "alliance": "INDIA Alliance",
+    "color": "#06b6d4"
   },
   {
     "name": "Bahujan Samaj Party",
     "abbreviation": "BSP",
     "symbolLogo": "/uploads/parties/bsp.png",
-    "alliance": "Independent"
+    "alliance": "Independent",
+    "color": "#2563eb"
   },
   {
     "name": "Communist Party of India (Marxist)",
     "abbreviation": "CPI(M)",
     "symbolLogo": "/uploads/parties/cpim.png",
-    "alliance": "Left Front / INDIA"
+    "alliance": "Left Front / INDIA",
+    "color": "#991b1b"
   },
   {
     "name": "Communist Party of India",
     "abbreviation": "CPI",
     "symbolLogo": "/uploads/parties/cpi.png",
-    "alliance": "Left Front / INDIA"
+    "alliance": "Left Front / INDIA",
+    "color": "#b91c1c"
   },
   {
     "name": "All India Trinamool Congress",
     "abbreviation": "TMC",
     "symbolLogo": "/uploads/parties/tmc.png",
-    "alliance": "INDIA Alliance"
+    "alliance": "INDIA Alliance",
+    "color": "#16a34a"
   },
   {
     "name": "Nationalist Congress Party",
     "abbreviation": "NCP",
     "symbolLogo": "/uploads/parties/ncp.png",
-    "alliance": "Mahayuti / NDA"
+    "alliance": "Mahayuti / NDA",
+    "color": "#7c3aed"
   },
   {
     "name": "Nationalist Congress Party (Sharadchandra Pawar)",
     "abbreviation": "NCP (SP)",
     "symbolLogo": "/uploads/parties/ncp_sp.png",
-    "alliance": "Maha Vikas Aghadi (MVA) / INDIA"
+    "alliance": "Maha Vikas Aghadi (MVA) / INDIA",
+    "color": "#8b5cf6"
   },
   {
     "name": "Shiv Sena",
     "abbreviation": "SHS",
     "symbolLogo": "/uploads/parties/ss.png",
-    "alliance": "Mahayuti / NDA"
+    "alliance": "Mahayuti / NDA",
+    "color": "#f97316"
   },
   {
     "name": "Shiv Sena (Uddhav Balasaheb Thackeray)",
     "abbreviation": "SHS (UBT)",
     "symbolLogo": "/uploads/parties/shs_ubt.png",
-    "alliance": "Maha Vikas Aghadi (MVA) / INDIA"
+    "alliance": "Maha Vikas Aghadi (MVA) / INDIA",
+    "color": "#ea580c"
   },
   {
     "name": "Maharashtra Navnirman Sena",
     "abbreviation": "MNS",
     "symbolLogo": "/uploads/parties/mns.png",
-    "alliance": "Mahayuti / NDA Support"
+    "alliance": "Mahayuti / NDA Support",
+    "color": "#3b82f6"
   },
   {
     "name": "Samajwadi Party",
     "abbreviation": "SP",
     "symbolLogo": "/uploads/parties/sp.png",
-    "alliance": "INDIA Alliance"
+    "alliance": "INDIA Alliance",
+    "color": "#ef4444"
   },
   {
     "name": "Rashtriya Janata Dal",
     "abbreviation": "RJD",
     "symbolLogo": "/uploads/parties/rjd.png",
-    "alliance": "Mahagathbandhan / INDIA"
+    "alliance": "Mahagathbandhan / INDIA",
+    "color": "#15803d"
   },
   {
     "name": "Janata Dal (United)",
     "abbreviation": "JD(U)",
     "symbolLogo": "/uploads/parties/jdu.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#16a34a"
   },
   {
     "name": "Janata Dal (Secular)",
     "abbreviation": "JD(S)",
     "symbolLogo": "/uploads/parties/jds.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#10b981"
   },
   {
     "name": "Dravida Munnetra Kazhagam",
     "abbreviation": "DMK",
     "symbolLogo": "/uploads/parties/dmk.png",
-    "alliance": "INDIA Alliance"
+    "alliance": "INDIA Alliance",
+    "color": "#dc2626"
   },
   {
     "name": "All India Anna Dravida Munnetra Kazhagam",
     "abbreviation": "AIADMK",
     "symbolLogo": "/uploads/parties/aiadmk.png",
-    "alliance": "Regional / Independent"
+    "alliance": "Regional / Independent",
+    "color": "#059669"
   },
   {
     "name": "Bharat Rashtra Samithi",
     "abbreviation": "BRS",
     "symbolLogo": "/uploads/parties/brs.png",
-    "alliance": "Regional / Independent"
+    "alliance": "Regional / Independent",
+    "color": "#e11d48"
   },
   {
     "name": "Telugu Desam Party",
     "abbreviation": "TDP",
     "symbolLogo": "/uploads/parties/tdp.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#f59e0b"
   },
   {
     "name": "YSR Congress Party",
     "abbreviation": "YSRCP",
     "symbolLogo": "/uploads/parties/ysrcp.jpg",
-    "alliance": "Regional / Independent"
+    "alliance": "Regional / Independent",
+    "color": "#2563eb"
   },
   {
     "name": "Jana Sena Party",
     "abbreviation": "JSP",
     "symbolLogo": "/uploads/parties/jsp.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#dc2626"
   },
   {
     "name": "Biju Janata Dal",
     "abbreviation": "BJD",
     "symbolLogo": "/uploads/parties/bjd.png",
-    "alliance": "Regional / Independent"
+    "alliance": "Regional / Independent",
+    "color": "#10b981"
   },
   {
     "name": "Jharkhand Mukti Morcha",
     "abbreviation": "JMM",
     "symbolLogo": "/uploads/parties/jmm.png",
-    "alliance": "INDIA Alliance"
+    "alliance": "INDIA Alliance",
+    "color": "#16a34a"
   },
   {
     "name": "Shiromani Akali Dal",
     "abbreviation": "SAD",
     "symbolLogo": "/uploads/parties/sad.png",
-    "alliance": "Regional / Independent"
+    "alliance": "Regional / Independent",
+    "color": "#f59e0b"
   },
   {
     "name": "Rashtriya Lok Dal",
     "abbreviation": "RLD",
     "symbolLogo": "/uploads/parties/rld.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#15803d"
   },
   {
     "name": "All India Majlis-e-Ittehadul Muslimeen",
     "abbreviation": "AIMIM",
     "symbolLogo": "/uploads/parties/aimim.png",
-    "alliance": "Independent"
+    "alliance": "Independent",
+    "color": "#047857"
   },
   {
     "name": "National People's Party",
     "abbreviation": "NPP",
     "symbolLogo": "/uploads/parties/npp.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#f59e0b"
   },
   {
     "name": "Vanchit Bahujan Aghadi",
     "abbreviation": "VBA",
     "symbolLogo": "/uploads/parties/vba.png",
-    "alliance": "Regional / Maharashtra"
+    "alliance": "Regional / Maharashtra",
+    "color": "#2563eb"
   },
   {
     "name": "Prahar Janshakti Party",
     "abbreviation": "PJP",
     "symbolLogo": "/uploads/parties/pjp.png",
-    "alliance": "Regional / Maharashtra"
+    "alliance": "Regional / Maharashtra",
+    "color": "#f97316"
   },
   {
     "name": "Peasants and Workers Party of India",
     "abbreviation": "PWPI",
     "symbolLogo": "/uploads/parties/pwpi.png",
-    "alliance": "Regional / Maharashtra"
+    "alliance": "Regional / Maharashtra",
+    "color": "#dc2626"
   },
   {
     "name": "Rashtriya Loktantrik Party",
     "abbreviation": "RLP",
     "symbolLogo": "/uploads/parties/rlp.png",
-    "alliance": "Regional"
+    "alliance": "Regional",
+    "color": "#f59e0b"
   },
   {
     "name": "Sikkim Krantikari Morcha",
     "abbreviation": "SKM",
     "symbolLogo": "/uploads/parties/skm.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#dc2626"
   },
   {
     "name": "Mizo National Front",
     "abbreviation": "MNF",
     "symbolLogo": "/uploads/parties/mnf.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#0284c7"
   },
   {
     "name": "Zoram People's Movement",
     "abbreviation": "ZPM",
     "symbolLogo": "/uploads/parties/zpm.png",
-    "alliance": "Regional / Independent"
+    "alliance": "Regional / Independent",
+    "color": "#e11d48"
   },
   {
     "name": "Nationalist Democratic Progressive Party",
     "abbreviation": "NDPP",
     "symbolLogo": "/uploads/parties/ndpp.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#8b5cf6"
   },
   {
     "name": "Asom Gana Parishad",
     "abbreviation": "AGP",
     "symbolLogo": "/uploads/parties/agp.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#dc2626"
   },
   {
     "name": "Viduthalai Chiruthaigal Katchi",
     "abbreviation": "VCK",
     "symbolLogo": "/uploads/parties/vck.png",
-    "alliance": "INDIA Alliance"
+    "alliance": "INDIA Alliance",
+    "color": "#2563eb"
   },
   {
     "name": "Pattali Makkal Katchi",
     "abbreviation": "PMK",
     "symbolLogo": "/uploads/parties/pmk.png",
-    "alliance": "National Democratic Alliance (NDA)"
+    "alliance": "National Democratic Alliance (NDA)",
+    "color": "#f59e0b"
   },
   {
     "name": "Independent / Neutral",
     "abbreviation": "IND",
     "symbolLogo": "/uploads/parties/ind.png",
-    "alliance": "Independent"
+    "alliance": "Independent",
+    "color": "#64748b"
   }
 ]

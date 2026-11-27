@@ -1,10 +1,12 @@
 import { logger } from '../../utils/logger';
 import { BulkImporter } from '../../utils/bulkImporter';
 import { CacheService } from '../../services/cache.service';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { MasterQueries } from '../../queries/master.queries';
 import { LookupResolverService } from '../lookupResolver.service';
 import { BatchInsertQuery } from '../../queries/batchInsert.query';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { formatTitleCase } from '../../utils/textUtils';
 
 export class WardImportService {
   static async import(
@@ -32,7 +34,7 @@ export class WardImportService {
             rowsToInsert.push({
               ac_id: acId,
               ward_number: wardNum,
-              name,
+              name: formatTitleCase(name),
             });
           }
         }
@@ -47,7 +49,7 @@ export class WardImportService {
       },
     });
 
-    await CacheService.invalidatePattern('ranniti:masters:wards*');
+    await MasterCacheInvalidator.invalidate('wards');
 
     // Broadcast newly imported wards to scoped tenants per AC
     try {

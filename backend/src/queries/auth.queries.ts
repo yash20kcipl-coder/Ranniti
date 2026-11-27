@@ -23,6 +23,7 @@ export interface UserRecord {
   allowedTabs?: any;
   allowedWebTabs?: string[];
   allowedMasterSubTabs?: string[];
+  canCreateWebUsers?: boolean;
   parentLeaderId?: string | null;
   assignedAcId?: string | null;
   assignedAcName?: string | null;
@@ -58,11 +59,11 @@ export class AuthQueries {
       const ROLE_NAME_MAP: Record<string, string> = {
         pc_leader: 'PC Leader',
         ac_leader: 'AC Leader',
-        sub_leader: 'Sub-Leader / Ward Coordinator',
-        supporter: 'Campaign Supporter / Volunteer',
-        leader: 'Assembly / Sub-Sector Leader',
+        sub_leader: 'Sub-Leader',
+        supporter: 'Campaign Supporter',
+        leader: 'Assembly Leader',
       };
-      if (user.role && ROLE_NAME_MAP[user.role] && (!user.roleName || (user.role !== 'supporter' && user.roleName === 'Campaign Supporter / Volunteer'))) {
+      if (user.role && ROLE_NAME_MAP[user.role] && (!user.roleName || (user.role !== 'supporter' && user.roleName === 'Campaign Supporter / Volunteer') || user.roleName === 'Campaign Supporter / Volunteer')) {
         user.roleName = ROLE_NAME_MAP[user.role];
       }
 
@@ -184,6 +185,68 @@ export class AuthQueries {
       return await this.enrichUserLocationDetails(user);
     }
 
+    // Check for Tenant Web User accounts in tenant databases
+    const tenantUser = await VolunteerAuthQueries.findVolunteerByIdentifier(identifier);
+    if (tenantUser) {
+      let accessibleTabs = tenantUser.accessibleTabs;
+      if (typeof accessibleTabs === 'string') {
+        try {
+          accessibleTabs = JSON.parse(accessibleTabs);
+        } catch {
+          accessibleTabs = {};
+        }
+      }
+
+      const isWebEligible =
+        tenantUser.role === 'tenant_user' ||
+        accessibleTabs?.isWebUser === true ||
+        (Array.isArray(accessibleTabs?.webTabs) && accessibleTabs.webTabs.length > 0);
+
+      if (isWebEligible) {
+        let orgName = 'Campaign Office';
+        let tRoleId: string | null = null;
+        let tRoleName: string | null = null;
+        let tAllowedTabs: any = null;
+        let webTabs = ['dashboard', 'voter_directory', 'master_data', 'settings'];
+        let masterSubTabs = ['acs', 'wards', 'booths', 'elections', 'talukas', 'villages', 'castes', 'profession-categories', 'professions'];
+
+        if (tenantUser.tenantDbName) {
+          try {
+            const tInfo = await query(
+              `SELECT t.organization_name, t.tenant_role_id, tr.role_name AS tenant_role_name, tr.allowed_tabs
+               FROM tenants t
+               LEFT JOIN tenant_roles tr ON tr.id = t.tenant_role_id
+               WHERE t.tenant_db_name = $1 LIMIT 1`,
+              [tenantUser.tenantDbName]
+            );
+            if (tInfo.rows[0]) {
+              orgName = tInfo.rows[0].organization_name || orgName;
+              tRoleId = tInfo.rows[0].tenant_role_id || null;
+              tRoleName = tInfo.rows[0].tenant_role_name || null;
+              tAllowedTabs = tInfo.rows[0].allowed_tabs || null;
+              if (tAllowedTabs?.webTabs) webTabs = tAllowedTabs.webTabs;
+              if (tAllowedTabs?.masterSubTabs) masterSubTabs = tAllowedTabs.masterSubTabs;
+            }
+          } catch { }
+        }
+
+        const user: UserRecord = {
+          ...tenantUser,
+          role: 'tenant_user',
+          roleName: tenantUser.roleName || 'Tenant Web User',
+          organizationName: orgName,
+          tenantRoleId: tRoleId,
+          tenantRoleName: tRoleName,
+          allowedTabs: tAllowedTabs,
+          canCreateWebUsers: Boolean(accessibleTabs?.canCreateWebUsers),
+          allowedWebTabs: accessibleTabs?.webTabs || webTabs,
+          allowedMasterSubTabs: accessibleTabs?.masterSubTabs || masterSubTabs,
+          assignedBoothIds: tenantUser.assignedBoothIds || [],
+        } as any;
+        return await this.enrichUserLocationDetails(user);
+      }
+    }
+
     return null;
   }
 
@@ -203,6 +266,65 @@ export class AuthQueries {
         ...tenantAdmin,
         assignedBoothIds: [],
       };
+      return await this.enrichUserLocationDetails(user);
+    }
+
+    const tenantUser = await VolunteerAuthQueries.findVolunteerById(id);
+    if (tenantUser) {
+      let accessibleTabs = tenantUser.accessibleTabs;
+      if (typeof accessibleTabs === 'string') {
+        try {
+          accessibleTabs = JSON.parse(accessibleTabs);
+        } catch {
+          accessibleTabs = {};
+        }
+      }
+
+      const isWebEligible =
+        tenantUser.role === 'tenant_user' ||
+        accessibleTabs?.isWebUser === true ||
+        (Array.isArray(accessibleTabs?.webTabs) && accessibleTabs.webTabs.length > 0);
+
+      let orgName = 'Campaign Office';
+      let tRoleId: string | null = null;
+      let tRoleName: string | null = null;
+      let tAllowedTabs: any = null;
+      let webTabs = ['dashboard', 'voter_directory', 'master_data', 'settings'];
+      let masterSubTabs = ['acs', 'wards', 'booths', 'elections', 'talukas', 'villages', 'castes', 'profession-categories', 'professions'];
+
+      if (tenantUser.tenantDbName) {
+        try {
+          const tInfo = await query(
+            `SELECT t.organization_name, t.tenant_role_id, tr.role_name AS tenant_role_name, tr.allowed_tabs
+             FROM tenants t
+             LEFT JOIN tenant_roles tr ON tr.id = t.tenant_role_id
+             WHERE t.tenant_db_name = $1 LIMIT 1`,
+            [tenantUser.tenantDbName]
+          );
+          if (tInfo.rows[0]) {
+            orgName = tInfo.rows[0].organization_name || orgName;
+            tRoleId = tInfo.rows[0].tenant_role_id || null;
+            tRoleName = tInfo.rows[0].tenant_role_name || null;
+            tAllowedTabs = tInfo.rows[0].allowed_tabs || null;
+            if (tAllowedTabs?.webTabs) webTabs = tAllowedTabs.webTabs;
+            if (tAllowedTabs?.masterSubTabs) masterSubTabs = tAllowedTabs.masterSubTabs;
+          }
+        } catch { }
+      }
+
+      const user: UserRecord = {
+        ...tenantUser,
+        role: isWebEligible ? 'tenant_user' : tenantUser.role,
+        roleName: tenantUser.roleName || (isWebEligible ? 'Tenant Web User' : tenantUser.role),
+        organizationName: orgName,
+        tenantRoleId: tRoleId,
+        tenantRoleName: tRoleName,
+        allowedTabs: tAllowedTabs,
+        canCreateWebUsers: Boolean(accessibleTabs?.canCreateWebUsers),
+        allowedWebTabs: accessibleTabs?.webTabs || webTabs,
+        allowedMasterSubTabs: accessibleTabs?.masterSubTabs || masterSubTabs,
+        assignedBoothIds: tenantUser.assignedBoothIds || [],
+      } as any;
       return await this.enrichUserLocationDetails(user);
     }
 

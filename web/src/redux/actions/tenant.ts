@@ -1,5 +1,6 @@
 import api from '@/services/api';
 import { Loading } from './loader';
+import { saveLogin } from './auth';
 import { errorHandler } from '../apiUtils';
 import type { AppDispatch } from '../store';
 import { toFormDataOrJson } from '@/utils/formData';
@@ -192,6 +193,21 @@ export const fetchTenantDbSyncStatus = (id: string) => {
 };
 
 /**
+ * Reconcile all master lookup tables in tenant DB against Master DB
+ */
+export const reconcileTenantLookups = (id: string) => {
+  return async (dispatch: AppDispatch): Promise<TenantDbSyncStatus> => {
+    try {
+      const res = await api.post(`/super-admin/tenants/${id}/reconcile-lookups`);
+      return res.data?.data || res.data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    }
+  };
+};
+
+/**
  * Update tenant user account
  */
 export const updateTenantUser = (id: string, payload: Record<string, any>) => {
@@ -323,6 +339,88 @@ export const fetchTenantVotersData = (params: Record<string, any> = {}) => {
     } catch (err) {
       dispatch(errorHandler(err));
       throw err;
+    }
+  };
+};
+
+/**
+ * Super Admin direct login (impersonate) to a tenant account
+ */
+export const impersonateTenant = (tenantId: string) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(Loading(true));
+    try {
+      // Capture current super admin session before switching
+      const currentToken = localStorage.getItem('token');
+      const currentUserRaw = localStorage.getItem('user');
+
+      const res = await api.post(`/super-admin/tenants/${tenantId}/impersonate`);
+      const resData = res.data?.data || res.data;
+      const { user: tenantUser, token: tenantToken } = resData;
+
+      if (currentToken && currentUserRaw) {
+        localStorage.setItem('super_admin_impersonator_token', currentToken);
+        localStorage.setItem('super_admin_impersonator_user', currentUserRaw);
+      }
+
+      await dispatch(
+        saveLogin(
+          tenantToken,
+          tenantUser,
+          `Direct login to ${tenantUser.organizationName || tenantUser.name} successful`
+        )
+      );
+      return resData;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(Loading(false));
+    }
+  };
+};
+
+/**
+ * Return to Super Admin account from an impersonated tenant session
+ */
+export const exitTenantImpersonation = () => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(Loading(true));
+    try {
+      const storedSaToken = localStorage.getItem('super_admin_impersonator_token');
+      const storedSaUserRaw = localStorage.getItem('super_admin_impersonator_user');
+
+      let saToken = storedSaToken;
+      let saUser = storedSaUserRaw ? JSON.parse(storedSaUserRaw) : null;
+
+      // Attempt to hit backend exit-impersonation to obtain fresh verified token
+      try {
+        const res = await api.post('/auth/exit-impersonation');
+        const resData = res.data?.data || res.data;
+        if (resData?.token && resData?.user) {
+          saToken = resData.token;
+          saUser = resData.user;
+        }
+      } catch (apiErr) {
+        // Fall back to locally preserved super admin credentials
+        if (!saToken || !saUser) {
+          throw apiErr;
+        }
+      }
+
+      // Cleanup impersonation state
+      localStorage.removeItem('super_admin_impersonator_token');
+      localStorage.removeItem('super_admin_impersonator_user');
+
+      if (saToken && saUser) {
+        await dispatch(saveLogin(saToken, saUser, 'Returned to Super Admin portal'));
+      }
+      return { token: saToken, user: saUser };
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(Loading(false));
     }
   };
 };

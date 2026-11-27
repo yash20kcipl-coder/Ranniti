@@ -92,19 +92,38 @@ export const syncDeviceContactsAction = (
           ? contactsPayload
           : deviceContacts.map((c) => ({ name: c.name, phone: c.phone }));
 
-      const response = await apiClient.post('/mobile/voters/sync-contacts', {
-        contacts: payloadToSend,
-      });
+      if (payloadToSend.length === 0) {
+        toast.info('No valid device contacts found to sync');
+        return;
+      }
 
-      const resData = response?.data?.data || response?.data || {};
-      const totalMatched = resData.totalMatched ?? 0;
+      // Chunk large payloads (e.g. 20,000 contacts) into batches of 2,000 to prevent payload & gateway timeouts
+      const CHUNK_SIZE = 2000;
+      let totalMatched = 0;
+      const totalBatches = Math.ceil(payloadToSend.length / CHUNK_SIZE);
 
-      toast.success(`${totalMatched} voters matched with phone contacts!`);
+      for (let i = 0; i < payloadToSend.length; i += CHUNK_SIZE) {
+        const chunk = payloadToSend.slice(i, i + CHUNK_SIZE);
+        const response = await apiClient.post(
+          '/mobile/voters/sync-contacts',
+          { contacts: chunk },
+          { timeout: 45000 }
+        );
+
+        const resData = response?.data?.data || response?.data || {};
+        totalMatched += resData.totalMatched ?? 0;
+      }
+
+      toast.success(
+        totalBatches > 1
+          ? `${totalMatched} voters matched across ${payloadToSend.length} contacts!`
+          : `${totalMatched} voters matched with phone contacts!`
+      );
 
       // Refresh matched list from server
       await dispatch(fetchSyncedContactsAction(1, false));
     } catch (e: any) {
-      const errorMsg = e?.response?.data?.message || 'Contact sync failed';
+      const errorMsg = e?.response?.data?.message || e?.message || 'Contact sync failed';
       toast.error(errorMsg);
     } finally {
       dispatch({ type: SET_SYNCING_DEVICE, payload: false });

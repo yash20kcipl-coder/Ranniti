@@ -13,9 +13,17 @@ import { Modal } from '../Modal';
 import toast from 'react-hot-toast';
 import React, { useState } from 'react';
 import { SafeImage } from '../SafeImage';
-import { useAppDispatch } from '@/redux/hooks';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
-import { fetchSocialCandidatesAction, bulkAssignInfluencerAction } from '@/redux/actions/voter';
+import {
+  fetchSocialCandidatesAction,
+  bulkAssignTenantInfluencerAction,
+} from '@/redux/actions/voterTenant';
+import {
+  fetchSuperAdminSocialCandidatesAction,
+  bulkAssignSuperAdminInfluencerAction,
+} from '@/redux/actions/voterSuperAdmin';
 
 export interface SocialInfluencerTarget {
   id: string;
@@ -35,6 +43,7 @@ export interface SocialInfluencerAssignModalProps {
   onClose: () => void;
   influencer: SocialInfluencerTarget | null;
   onSuccess?: () => void;
+  isSuperAdmin?: boolean;
 }
 
 export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalProps> = ({
@@ -42,8 +51,12 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
   onClose,
   influencer,
   onSuccess,
+  isSuperAdmin,
 }) => {
   const dispatch = useAppDispatch();
+  const currentUser = useAppSelector((state) => state.user.myprofile || state.user.user);
+  const isSuperAdminResolved =
+    isSuperAdmin ?? (currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'super_admin');
 
   // Search & Filter State (Defaulting Unassigned to true for network building)
   const [search, setSearch] = useState('');
@@ -87,9 +100,12 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
       setLoading(true);
 
       const targetSectionNo = influencer.sectionNo || liveInfluencerMeta?.sectionNo;
+      const fetchAction = isSuperAdminResolved
+        ? fetchSuperAdminSocialCandidatesAction
+        : fetchSocialCandidatesAction;
 
       dispatch(
-        fetchSocialCandidatesAction({
+        fetchAction({
           influencerId: influencer.id,
           boothId: influencer.boothId || undefined,
           search: search.trim() || undefined,
@@ -127,6 +143,7 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
       genderFilter,
       voterTypeFilter,
       page,
+      isSuperAdminResolved,
     ]
   );
 
@@ -157,8 +174,12 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
     try {
       setSubmitting(true);
 
+      const assignAction = isSuperAdminResolved
+        ? bulkAssignSuperAdminInfluencerAction
+        : bulkAssignTenantInfluencerAction;
+
       await dispatch(
-        bulkAssignInfluencerAction({
+        assignAction({
           influencerId: influencer.id,
           influencerType: 'social',
           voterIds: selectedVoterIds,
@@ -513,7 +534,7 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                           {voter.age ? ` / ${voter.age} yrs` : ''}
                         </td>
                         <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300 font-mono">
-                          {voter.mobileNo || '-'}
+                          {formatPhoneNumber(voter.mobileNo)}
                         </td>
                         <td className="py-2.5 px-3 text-right">
                           {voter.isAlreadyLinked ? (

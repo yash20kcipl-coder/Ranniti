@@ -1,6 +1,10 @@
 export interface AllowedTabsJson {
   web_tabs: string[];
   master_sub_tabs: string[];
+  canCreateWebUsers?: boolean;
+  can_create_web_users?: boolean;
+  webTabs?: string[];
+  masterSubTabs?: string[];
 }
 
 export interface AccessibleTabsJson {

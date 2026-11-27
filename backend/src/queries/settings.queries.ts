@@ -1,6 +1,10 @@
 import { query, dbPool } from './dbPool';
 import { CacheService } from '../services/cache.service';
 import { TenantPoolManager } from '../services/pool/tenantPoolManager';
+import {
+  DEFAULT_SURVEY_FIELD_POINTS,
+  SurveyFieldPointsConfig,
+} from '../config/surveyScoreWeights';
 
 async function executeSettingsQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
   if (tenantDbName && tenantDbName.trim()) {
@@ -48,6 +52,7 @@ export interface CampaignSettingsRecord {
     mandatoryMobile: boolean;
     allowPhotoCapture: boolean;
   };
+  surveyFieldPoints: SurveyFieldPointsConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,6 +114,9 @@ const mapSettingsRowToCamelCase = (row: any): CampaignSettingsRecord => ({
     mandatoryMobile: false,
     allowPhotoCapture: true,
   },
+  surveyFieldPoints: (row.survey_field_points && typeof row.survey_field_points === 'object')
+    ? { ...DEFAULT_SURVEY_FIELD_POINTS, ...row.survey_field_points }
+    : DEFAULT_SURVEY_FIELD_POINTS,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -181,6 +189,7 @@ export const settingsQueries = {
     const pollingDate = data.pollingDate !== undefined ? data.pollingDate : current.pollingDate;
     const electionType = data.electionType !== undefined ? data.electionType : current.electionType;
     const fieldRules = JSON.stringify(data.fieldRules !== undefined ? data.fieldRules : current.fieldRules);
+    const surveyFieldPoints = JSON.stringify(data.surveyFieldPoints !== undefined ? data.surveyFieldPoints : current.surveyFieldPoints);
 
     const updateSql = `
       UPDATE campaign_settings SET
@@ -200,8 +209,9 @@ export const settingsQueries = {
         polling_date = $14,
         election_type = $15,
         field_rules = $16::jsonb,
+        survey_field_points = $17::jsonb,
         updated_at = NOW()
-      WHERE id = $17
+      WHERE id = $18
       RETURNING *
     `;
 
@@ -222,6 +232,7 @@ export const settingsQueries = {
       pollingDate || null,
       electionType,
       fieldRules,
+      surveyFieldPoints,
       current.id,
     ], tenantDbName);
 
@@ -229,6 +240,51 @@ export const settingsQueries = {
     await CacheService.del(`ranniti:settings:${tenantDbName || 'master'}`);
 
     return mapSettingsRowToCamelCase(res.rows[0]);
+  },
+
+  /**
+   * Get dynamic survey field scoring points
+   */
+  async getSurveyFieldPoints(tenantDbName?: string | null): Promise<SurveyFieldPointsConfig> {
+    const settings = await this.getSettings(tenantDbName);
+    return settings.surveyFieldPoints || DEFAULT_SURVEY_FIELD_POINTS;
+  },
+
+  /**
+   * Update dynamic survey field scoring points
+   */
+  async updateSurveyFieldPoints(
+    pointsConfig: SurveyFieldPointsConfig,
+    tenantDbName?: string | null
+  ): Promise<SurveyFieldPointsConfig> {
+    const current = await this.getSettings(tenantDbName);
+    const merged = { ...current.surveyFieldPoints, ...pointsConfig };
+
+    const sql = `
+      UPDATE campaign_settings
+      SET survey_field_points = $1::jsonb, updated_at = NOW()
+      WHERE id = $2
+      RETURNING survey_field_points
+    `;
+    const res = await executeSettingsQuery(sql, [JSON.stringify(merged), current.id], tenantDbName);
+    await CacheService.del(`ranniti:settings:${tenantDbName || 'master'}`);
+    return res.rows[0]?.survey_field_points || merged;
+  },
+
+  /**
+   * Reset survey field scoring points to default
+   */
+  async resetSurveyFieldPoints(tenantDbName?: string | null): Promise<SurveyFieldPointsConfig> {
+    const current = await this.getSettings(tenantDbName);
+    const sql = `
+      UPDATE campaign_settings
+      SET survey_field_points = $1::jsonb, updated_at = NOW()
+      WHERE id = $2
+      RETURNING survey_field_points
+    `;
+    const res = await executeSettingsQuery(sql, [JSON.stringify(DEFAULT_SURVEY_FIELD_POINTS), current.id], tenantDbName);
+    await CacheService.del(`ranniti:settings:${tenantDbName || 'master'}`);
+    return res.rows[0]?.survey_field_points || DEFAULT_SURVEY_FIELD_POINTS;
   },
 
   /**

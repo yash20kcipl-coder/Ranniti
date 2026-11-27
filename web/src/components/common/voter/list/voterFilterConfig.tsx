@@ -7,11 +7,6 @@ import {
   Star,
   UserX,
   AlertTriangle,
-  Mars,
-  Venus,
-  User,
-  Copy,
-  Check,
   Phone,
 } from 'lucide-react';
 import {
@@ -21,10 +16,10 @@ import {
   IS_DEAD_OPTIONS,
   VOTER_TYPE_OPTIONS,
 } from '@/constants/dropdownOptions';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
 import { SafeImage } from '@/components/common/SafeImage';
 import type { Column } from '@/components/common/DataTable';
 import type { FilterField, FilterPreset, Option } from '@/components/common/FilterBar';
-import { useState } from 'react';
 
 export interface VoterFilterState {
   filterParams: Record<string, string>;
@@ -75,10 +70,16 @@ export function getVoterMasterOptions(masters: VoterFilterMasterData) {
   return { stateOptions, religionOptions, casteOptions, partyOptions };
 }
 
+export interface VoterFilterFieldsOptions {
+  isTenant?: boolean;
+}
+
 export function buildVoterFilterFields(
   state: VoterFilterState,
-  masters: VoterFilterMasterData
+  masters: VoterFilterMasterData,
+  options?: VoterFilterFieldsOptions
 ): FilterField[] {
+  const isTenant = !!options?.isTenant;
   const { stateOptions, religionOptions, casteOptions, partyOptions } = getVoterMasterOptions(masters);
   const {
     districts = [],
@@ -99,243 +100,279 @@ export function buildVoterFilterFields(
     influencerRole, influencerStatus,
   } = filterParams;
 
-  return [
-    // --- Location & Booth Category ---
-    {
-      key: 'stateId',
-      label: 'State',
-      category: 'Location & Booth',
-      categoryIcon: <MapPin className="w-4 h-4" />,
-      gridSpan: 1,
-      value: stateId,
-      onChange: (val: string) => {
-        setFilter('stateId', val);
-        setFilter('districtId', '');
-        setFilter('pcId', '');
-        if (state.onAcChange) {
-          state.onAcChange('');
-        } else {
-          setFilter('acId', '');
-          setFilter('boothId', '');
-        }
+  // --- Location & Booth Category Fields ---
+  const locationFields: FilterField[] = [];
+
+  if (!isTenant) {
+    locationFields.push(
+      {
+        key: 'stateId',
+        label: 'State',
+        category: 'Location & Booth',
+        categoryIcon: <MapPin className="w-4 h-4" />,
+        gridSpan: 1,
+        value: stateId,
+        onChange: (val: string) => {
+          setFilter('stateId', val);
+          setFilter('districtId', '');
+          setFilter('pcId', '');
+          if (state.onAcChange) {
+            state.onAcChange('');
+          } else {
+            setFilter('acId', '');
+            setFilter('boothId', '');
+          }
+        },
+        onDraftChange: (val: string, setDraftValues: any) => {
+          setDraftValues((prev: any) => ({
+            ...prev,
+            stateId: val,
+            districtId: '',
+            pcId: '',
+            acId: '',
+            boothId: '',
+            familyInfluencerId: '',
+            socialInfluencerId: '',
+          }));
+          if (state.onAcDraftChange) {
+            state.onAcDraftChange('');
+          }
+        },
+        options: stateOptions,
+        isPrimary: false,
       },
-      onDraftChange: (val: string, setDraftValues: any) => {
-        setDraftValues((prev: any) => ({
-          ...prev,
-          stateId: val,
-          districtId: '',
-          pcId: '',
-          acId: '',
-          boothId: '',
-          familyInfluencerId: '',
-          socialInfluencerId: '',
-        }));
-        if (state.onAcDraftChange) {
-          state.onAcDraftChange('');
-        }
+      {
+        key: 'districtId',
+        label: 'District',
+        category: 'Location & Booth',
+        categoryIcon: <MapPin className="w-4 h-4" />,
+        gridSpan: 1,
+        value: districtId,
+        onChange: (val: string) => {
+          setFilter('districtId', val);
+          setFilter('pcId', '');
+          if (state.onAcChange) {
+            state.onAcChange('');
+          } else {
+            setFilter('acId', '');
+            setFilter('boothId', '');
+          }
+        },
+        onDraftChange: (val: string, setDraftValues: any) => {
+          setDraftValues((prev: any) => ({
+            ...prev,
+            districtId: val,
+            pcId: '',
+            acId: '',
+            boothId: '',
+            familyInfluencerId: '',
+            socialInfluencerId: '',
+          }));
+          if (state.onAcDraftChange) {
+            state.onAcDraftChange('');
+          }
+        },
+        options: (draft: Record<string, any>) => {
+          const curState = draft.stateId !== undefined ? draft.stateId : stateId;
+          return [
+            { label: 'All Districts', value: '' },
+            ...districts
+              .filter((d: any) => !curState || String(d.stateId) === curState)
+              .map((d: any) => ({ label: d.name || d.districtName, value: String(d.id) })),
+          ];
+        },
+        isPrimary: false,
       },
-      options: stateOptions,
-      isPrimary: false,
+      {
+        key: 'pcId',
+        label: 'Parliamentary Constituency (PC)',
+        category: 'Location & Booth',
+        categoryIcon: <MapPin className="w-4 h-4" />,
+        gridSpan: 1,
+        value: pcId,
+        onChange: (val: string) => {
+          setFilter('pcId', val);
+          if (state.onAcChange) {
+            state.onAcChange('');
+          } else {
+            setFilter('acId', '');
+            setFilter('boothId', '');
+          }
+        },
+        onDraftChange: (val: string, setDraftValues: any) => {
+          setDraftValues((prev: any) => ({
+            ...prev,
+            pcId: val,
+            acId: '',
+            boothId: '',
+            familyInfluencerId: '',
+            socialInfluencerId: '',
+          }));
+          if (state.onAcDraftChange) {
+            state.onAcDraftChange('');
+          }
+        },
+        options: (draft: Record<string, any>) => {
+          const curDistrict = draft.districtId !== undefined ? draft.districtId : districtId;
+          const curState = draft.stateId !== undefined ? draft.stateId : stateId;
+          return [
+            { label: 'All PCs', value: '' },
+            ...pcs
+              .filter(
+                (p: any) =>
+                  (!curState || String(p.stateId) === curState) &&
+                  (!curDistrict || String(p.districtId) === curDistrict)
+              )
+              .map((p: any) => ({ label: p.name || p.pcName, value: String(p.id) })),
+          ];
+        },
+        isPrimary: false,
+      }
+    );
+  }
+
+  // Assembly Constituency (AC)
+  locationFields.push({
+    key: 'acId',
+    label: 'Assembly Constituency (AC)',
+    category: 'Location & Booth',
+    categoryIcon: <MapPin className="w-4 h-4" />,
+    gridSpan: 1,
+    value: acId || (acs.length === 1 ? String(acs[0].id) : ''),
+    excludeFromCount: isTenant && acs.length === 1,
+    onChange: (val: string) => {
+      if (state.onAcChange) {
+        state.onAcChange(val);
+      } else {
+        setFilter('acId', val);
+        setFilter('boothId', '');
+      }
     },
-    {
-      key: 'districtId',
-      label: 'District',
-      category: 'Location & Booth',
-      categoryIcon: <MapPin className="w-4 h-4" />,
-      gridSpan: 1,
-      value: districtId,
-      onChange: (val: string) => {
-        setFilter('districtId', val);
-        setFilter('pcId', '');
-        if (state.onAcChange) {
-          state.onAcChange('');
-        } else {
-          setFilter('acId', '');
-          setFilter('boothId', '');
-        }
-      },
-      onDraftChange: (val: string, setDraftValues: any) => {
-        setDraftValues((prev: any) => ({
-          ...prev,
-          districtId: val,
-          pcId: '',
-          acId: '',
-          boothId: '',
-          familyInfluencerId: '',
-          socialInfluencerId: '',
-        }));
-        if (state.onAcDraftChange) {
-          state.onAcDraftChange('');
-        }
-      },
-      options: (draft: Record<string, any>) => {
-        const curState = draft.stateId !== undefined ? draft.stateId : stateId;
-        return [
-          { label: 'All Districts', value: '' },
-          ...districts
-            .filter((d: any) => !curState || String(d.stateId) === curState)
-            .map((d: any) => ({ label: d.name || d.districtName, value: String(d.id) })),
-        ];
-      },
-      isPrimary: false,
+    onDraftChange: (val: string, setDraftValues: any) => {
+      setDraftValues((prev: any) => ({
+        ...prev,
+        acId: val,
+        boothId: '',
+        familyInfluencerId: '',
+        socialInfluencerId: '',
+      }));
+      if (state.onAcDraftChange) {
+        state.onAcDraftChange(val);
+      }
     },
-    {
-      key: 'pcId',
-      label: 'Parliamentary Constituency (PC)',
-      category: 'Location & Booth',
-      categoryIcon: <MapPin className="w-4 h-4" />,
-      gridSpan: 1,
-      value: pcId,
-      onChange: (val: string) => {
-        setFilter('pcId', val);
-        if (state.onAcChange) {
-          state.onAcChange('');
-        } else {
-          setFilter('acId', '');
-          setFilter('boothId', '');
-        }
-      },
-      onDraftChange: (val: string, setDraftValues: any) => {
-        setDraftValues((prev: any) => ({
-          ...prev,
-          pcId: val,
-          acId: '',
-          boothId: '',
-          familyInfluencerId: '',
-          socialInfluencerId: '',
-        }));
-        if (state.onAcDraftChange) {
-          state.onAcDraftChange('');
-        }
-      },
-      options: (draft: Record<string, any>) => {
-        const curDistrict = draft.districtId !== undefined ? draft.districtId : districtId;
-        const curState = draft.stateId !== undefined ? draft.stateId : stateId;
-        return [
-          { label: 'All PCs', value: '' },
-          ...pcs
-            .filter(
-              (p: any) =>
-                (!curState || String(p.stateId) === curState) &&
-                (!curDistrict || String(p.districtId) === curDistrict)
-            )
-            .map((p: any) => ({ label: p.name || p.pcName, value: String(p.id) })),
-        ];
-      },
-      isPrimary: false,
+    onDraftRevert: () => {
+      if (state.onAcDraftChange) {
+        state.onAcDraftChange(acId || (acs.length === 1 ? String(acs[0].id) : ''));
+      }
     },
-    {
-      key: 'acId',
-      label: 'Assembly Constituency (AC)',
-      category: 'Location & Booth',
-      categoryIcon: <MapPin className="w-4 h-4" />,
-      gridSpan: 1,
-      value: acId,
-      onChange: (val: string) => {
-        if (state.onAcChange) {
-          state.onAcChange(val);
-        } else {
-          setFilter('acId', val);
-          setFilter('boothId', '');
+    options: (draft: Record<string, any>) => {
+      if (isTenant) {
+        if (acs.length === 1) {
+          return acs.map((a: any) => ({ label: a.name || a.acName, value: String(a.id) }));
         }
-      },
-      onDraftChange: (val: string, setDraftValues: any) => {
-        setDraftValues((prev: any) => ({
-          ...prev,
-          acId: val,
-          boothId: '',
-          familyInfluencerId: '',
-          socialInfluencerId: '',
-        }));
-        if (state.onAcDraftChange) {
-          state.onAcDraftChange(val);
-        }
-      },
-      onDraftRevert: () => {
-        if (state.onAcDraftChange) {
-          state.onAcDraftChange(acId || '');
-        }
-      },
-      options: (draft: Record<string, any>) => {
-        const curPc = draft.pcId !== undefined ? draft.pcId : pcId;
-        const curDistrict = draft.districtId !== undefined ? draft.districtId : districtId;
         return [
           { label: 'All ACs', value: '' },
-          ...acs
-            .filter(
-              (a: any) =>
-                (!curPc || String(a.pcId) === curPc) &&
-                (!curDistrict || String(a.districtId) === curDistrict)
-            )
-            .map((a: any) => ({ label: a.name || a.acName, value: String(a.id) })),
+          ...acs.map((a: any) => ({ label: a.name || a.acName, value: String(a.id) })),
         ];
-      },
-      isPrimary: true,
+      }
+      const curPc = draft.pcId !== undefined ? draft.pcId : pcId;
+      const curDistrict = draft.districtId !== undefined ? draft.districtId : districtId;
+      const filteredAcs = acs
+        .filter(
+          (a: any) =>
+            (!curPc || String(a.pcId) === curPc) &&
+            (!curDistrict || String(a.districtId) === curDistrict)
+        )
+        .map((a: any) => ({ label: a.name || a.acName, value: String(a.id) }));
+
+      if (filteredAcs.length === 1) {
+        return filteredAcs;
+      }
+      return [
+        { label: 'All ACs', value: '' },
+        ...filteredAcs,
+      ];
     },
-    {
-      key: 'boothId',
-      label: 'Polling Booth',
-      category: 'Location & Booth',
-      categoryIcon: <MapPin className="w-4 h-4" />,
-      gridSpan: 2,
-      value: boothId,
-      disabled: (draft: Record<string, any>) => {
-        const curAc = draft.acId !== undefined ? draft.acId : acId;
-        return !curAc;
-      },
-      placeholder: (draft: Record<string, any>) => {
-        const curAc = draft.acId !== undefined ? draft.acId : acId;
-        if (!curAc) return 'Select AC first';
-        if (isBoothsLoading) return 'Loading booths...';
-        return 'All Booths in AC';
-      },
-      helperText: (draft: Record<string, any>) => {
-        const curAc = draft.acId !== undefined ? draft.acId : acId;
-        if (!curAc) return 'Select an Assembly Constituency (AC) first to view booths';
-        if (isBoothsLoading) return 'Loading constituency booths...';
-        return undefined;
-      },
-      onChange: (val: string) => {
-        if (state.onBoothChange) {
-          state.onBoothChange(val);
-        } else {
-          setFilter('boothId', val);
-        }
-      },
-      onDraftChange: (val: string, setDraftValues: any) => {
-        setDraftValues((prev: any) => ({
-          ...prev,
-          boothId: val,
-          familyInfluencerId: '',
-          socialInfluencerId: '',
-        }));
-        if (state.onBoothDraftChange) {
-          state.onBoothDraftChange(val);
-        }
-      },
-      onDraftRevert: () => {
-        if (state.onBoothDraftChange) {
-          state.onBoothDraftChange(boothId || '');
-        }
-      },
-      options: (draft: Record<string, any>) => {
-        const curAc = draft.acId !== undefined ? draft.acId : acId;
-        if (!curAc) {
-          return [{ label: 'Select AC first', value: '' }];
-        }
-        if (isBoothsLoading) {
-          return [{ label: 'Loading booths...', value: '' }];
-        }
-        return [
-          { label: 'All Booths in AC', value: '' },
-          ...booths.map((b: any) => ({
-            label: `${b.boothNumber ? `Booth #${b.boothNumber} - ` : ''}${b.name}`,
-            value: String(b.id),
-          })),
-        ];
-      },
-      isPrimary: true,
+    // For tenant, AC is inside the filter popup drawer; for super_admin, it is primary inline
+    isPrimary: !isTenant,
+  });
+
+  // Polling Booth
+  locationFields.push({
+    key: 'boothId',
+    label: 'Polling Booth',
+    category: 'Location & Booth',
+    categoryIcon: <MapPin className="w-4 h-4" />,
+    gridSpan: isTenant ? 1 : 2,
+    value: boothId,
+    disabled: (draft: Record<string, any>) => {
+      if (isTenant) return isBoothsLoading;
+      const curAc = draft.acId !== undefined ? draft.acId : acId;
+      return !curAc;
     },
+    placeholder: (draft: Record<string, any>) => {
+      if (isBoothsLoading) return 'Loading booths...';
+      const curAc = draft.acId !== undefined ? draft.acId : acId;
+      if (isTenant) {
+        return curAc ? 'All Booths in AC' : 'All Polling Booths';
+      }
+      if (!curAc) return 'Select AC first';
+      return 'All Booths in AC';
+    },
+    helperText: (draft: Record<string, any>) => {
+      if (isTenant) return undefined;
+      const curAc = draft.acId !== undefined ? draft.acId : acId;
+      if (!curAc) return 'Select an Assembly Constituency (AC) first to view booths';
+      if (isBoothsLoading) return 'Loading constituency booths...';
+      return undefined;
+    },
+    onChange: (val: string) => {
+      if (state.onBoothChange) {
+        state.onBoothChange(val);
+      } else {
+        setFilter('boothId', val);
+      }
+    },
+    onDraftChange: (val: string, setDraftValues: any) => {
+      setDraftValues((prev: any) => ({
+        ...prev,
+        boothId: val,
+        familyInfluencerId: '',
+        socialInfluencerId: '',
+      }));
+      if (state.onBoothDraftChange) {
+        state.onBoothDraftChange(val);
+      }
+    },
+    onDraftRevert: () => {
+      if (state.onBoothDraftChange) {
+        state.onBoothDraftChange(boothId || '');
+      }
+    },
+    options: (draft: Record<string, any>) => {
+      const curAc = draft.acId !== undefined ? draft.acId : acId;
+      if (!isTenant && !curAc) {
+        return [{ label: 'Select AC first', value: '' }];
+      }
+      if (isBoothsLoading) {
+        return [{ label: 'Loading booths...', value: '' }];
+      }
+      const filteredBooths = isTenant && curAc
+        ? booths.filter((b: any) => !b.acId || String(b.acId) === curAc)
+        : booths;
+      return [
+        { label: curAc ? 'All Booths in AC' : 'All Polling Booths', value: '' },
+        ...filteredBooths.map((b: any) => ({
+          label: `${b.boothNumber ? `Booth #${b.boothNumber} - ` : ''}${b.name}`,
+          value: String(b.id),
+        })),
+      ];
+    },
+    isPrimary: true,
+  });
+
+  return [
+    ...locationFields,
 
     // --- Demographics Category ---
     {
@@ -348,7 +385,7 @@ export function buildVoterFilterFields(
       value: gender,
       onChange: (val: string) => setFilter('gender', val),
       options: GENDER_OPTIONS,
-      isPrimary: true,
+      isPrimary: !isTenant,
     },
     {
       key: 'ageGroup',
@@ -395,7 +432,7 @@ export function buildVoterFilterFields(
       value: status,
       onChange: (val: string) => setFilter('status', val),
       options: STATUS_OPTIONS,
-      isPrimary: true,
+      isPrimary: !isTenant,
     },
     {
       key: 'isDead',
@@ -636,42 +673,33 @@ export function buildVoterFilterPresets(state: VoterFilterState): FilterPreset[]
 
 // ─── Epic Cell Component with Instant Copy ──────────────────────────────────
 const EpicCell: React.FC<{ epicNo?: string; isDead?: boolean }> = ({ epicNo, isDead }) => {
-  const [copied, setCopied] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!epicNo) return;
     try {
       navigator.clipboard?.writeText(epicNo);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
     } catch {
       // Ignore clipboard write failures
     }
   };
 
+  if (!epicNo) {
+    return <span className="text-slate-400 dark:text-slate-600 font-mono text-xs">—</span>;
+  }
+
   return (
     <div className="flex flex-col items-start gap-1">
-      <div className="group/epic inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-xs font-bold border border-slate-300 dark:border-slate-700 shadow-2xs">
-        <span className="tracking-wide select-all">{epicNo || 'NO-EPIC'}</span>
-        {epicNo && (
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="p-0.5 rounded text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-            title={copied ? 'Copied!' : 'Copy EPIC number'}
-          >
-            {copied ? (
-              <Check size={11} className="text-emerald-500 stroke-[2.5]" />
-            ) : (
-              <Copy size={11} className="opacity-0 group-hover/epic:opacity-100 transition-opacity text-slate-500" />
-            )}
-          </button>
-        )}
+      <div
+        onClick={handleCopy}
+        className="group/epic inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50/90 hover:bg-indigo-50/80 dark:bg-slate-800/80 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-300 font-mono text-[10px] font-semibold border border-slate-200/70 dark:border-slate-700/60 hover:border-indigo-300 dark:hover:border-indigo-700/80 transition-all cursor-pointer select-all shadow-2xs"
+        title="Click to copy EPIC"
+      >
+        <span className="tracking-wide">{epicNo}</span>
       </div>
       {isDead && (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 font-bold text-[9px] border border-rose-300 dark:border-rose-800 uppercase tracking-wider font-mono">
-          <AlertTriangle size={9} /> DECEASED
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-xs bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 font-bold text-[8.5px] border border-rose-300/80 dark:border-rose-800 uppercase tracking-wider font-mono">
+          <AlertTriangle size={8} /> DECEASED
         </span>
       )}
     </div>
@@ -682,96 +710,119 @@ export function buildVoterTableColumns(): Column<any>[] {
   return [
     {
       key: 'epicNo',
-      header: 'EPIC No.',
       sortable: true,
+      header: 'EPIC No.',
       render: (row: any) => <EpicCell epicNo={row.epicNo} isDead={row.isDead} />,
     },
     {
       key: 'name',
-      header: 'Voter & Details',
+      header: 'Voter Name',
       render: (row: any) => {
         const engName = [row.engFirstName, row.engMiddleName, row.engSurname].filter(Boolean).join(' ') || row.nameEn || '';
         const locName = [row.firstName, row.middleName, row.surname].filter(Boolean).join(' ') || row.fullName || row.name || '';
-        const guardian = row.guardianName || row.relativeName;
-        const relation = row.relation;
-        const g = (row.gender || '').toLowerCase();
-        const isMale = g === 'male' || g === 'm';
-        const isFemale = g === 'female' || g === 'f';
-        const phone = row.mobileNo || row.mobile;
 
         return (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <SafeImage
               src={row.avatar}
               alt={engName || locName}
               fallbackText={engName || locName}
-              className="w-8 h-8 rounded-md object-cover border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shrink-0 shadow-2xs"
+              className="w-8 h-8 rounded-full object-cover border border-indigo-100 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/80 to-slate-100 dark:from-slate-800 dark:to-indigo-950/40 text-indigo-700 dark:text-indigo-300 shrink-0 text-[10px] font-bold shadow-2xs"
             />
-            <div className="flex flex-col min-w-0">
-              {/* Line 1: Primary Voter Name + Gender/Age Tag */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-slab font-bold text-slate-900 dark:text-slate-100 text-xs tracking-tight leading-snug">
-                  {locName || engName || 'Unnamed Voter'}
-                </span>
-                {(row.gender || row.age) && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-700 dark:text-slate-300 font-semibold border border-slate-300 dark:border-slate-700 font-mono shadow-2xs">
-                    {isMale ? (
-                      <Mars size={10} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                    ) : isFemale ? (
-                      <Venus size={10} className="text-pink-600 dark:text-pink-400 shrink-0" />
-                    ) : (
-                      <User size={10} className="text-slate-500 shrink-0" />
-                    )}
-                    {row.age && <span className="tabular-nums text-[9px]">{row.age}y</span>}
-                  </span>
-                )}
+            <div className="flex flex-col min-w-0 justify-center gap-0.5">
+              {/* Line 1: English Voter Name at Top */}
+              <div
+                className="font-semibold text-slate-900 dark:text-slate-100 text-[10.5px] leading-tight truncate max-w-[220px]"
+                title={engName || locName || 'Unnamed Voter'}
+              >
+                {engName || locName || 'Unnamed Voter'}
               </div>
 
-              {/* Line 2: Relation · Mobile · English Name (Clean Single Line) */}
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 truncate">
-                {guardian && (
-                  <span className="truncate">
-                    <span className="text-slate-400 dark:text-slate-500">{relation ? `${relation}: ` : 'Guardian: '}</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{guardian}</span>
-                  </span>
-                )}
-                {guardian && phone && <span className="text-slate-300 dark:text-slate-600">·</span>}
-                {phone && (
-                  <span className="inline-flex items-center gap-1 font-mono text-slate-700 dark:text-slate-300 font-medium">
-                    <Phone size={10} className="text-slate-400" />
-                    <span>{phone}</span>
-                  </span>
-                )}
-                {(guardian || phone) && engName && engName !== locName && <span className="text-slate-300 dark:text-slate-600">·</span>}
-                {engName && engName !== locName && (
-                  <span className="truncate max-w-[150px] text-slate-500 dark:text-slate-400">{engName}</span>
-                )}
-              </div>
+              {/* Line 2: Regional/Local Name below English Name */}
+              {locName && locName !== engName && (
+                <div
+                  className="text-[10px] text-slate-600 dark:text-slate-300 font-medium leading-tight truncate max-w-[220px]"
+                  title={locName}
+                >
+                  {locName}
+                </div>
+              )}
             </div>
           </div>
         );
       },
     },
     {
+      key: 'relation',
+      header: 'Relation',
+      render: (row: any) => {
+        const guardian = row.guardianName || row.relativeName;
+        const relationType = row.relation || row.relationType;
+
+        if (!guardian && !relationType) {
+          return <div className="text-slate-400 dark:text-slate-600 font-mono text-[11px]">—</div>;
+        }
+
+        const primaryText = guardian || relationType;
+        const subText = guardian && relationType ? relationType : null;
+
+        return (
+          <div className="flex flex-col min-w-0 justify-center gap-0.5">
+            {subText && (
+              <div className="text-[10.5px] text-slate-600 dark:text-slate-300 font-medium leading-tight capitalize">
+                {subText.toLowerCase()}
+              </div>
+            )}
+            <div
+              className="font-medium text-slate-800 dark:text-slate-200 text-[10px] leading-tight truncate max-w-[180px]"
+              title={primaryText || ''}
+            >
+              {primaryText}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'mobileNo',
+      header: 'Phone No.',
+      render: (row: any) => {
+        const phone = row.mobileNo || row.mobile || row.mobileNumber;
+        if (!phone) {
+          return <span className="text-slate-400 dark:text-slate-600 font-mono text-[11px]">—</span>;
+        }
+        const formatted = formatPhoneNumber(phone);
+        return (
+          <a
+            href={`tel:${phone}`}
+            className="inline-flex items-center gap-1.5 font-mono text-[10px] text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium whitespace-nowrap"
+          >
+            <Phone size={10} className="text-indigo-500/80 shrink-0" />
+            <span>{formatted}</span>
+          </a>
+        );
+      },
+    },
+    {
       key: 'booth',
-      header: 'Booth / Serial / House',
+      sortable: true,
+      header: 'Booth / Serial',
       render: (row: any) => {
         const metadataItems = [
           row.serialNo ? `Serial #${row.serialNo}` : null,
-          row.houseNo ? `House: ${row.houseNo}` : null,
           row.sectionNo ? `Sec: ${row.sectionNo}` : null,
         ].filter(Boolean);
 
         return (
-          <div className="flex flex-col text-[11px] space-y-1">
+          <div className="flex flex-col text-[10px] space-y-0.5">
             {/* Line 1: Booth Title */}
-            <span className="text-slate-900 dark:text-slate-100 font-bold truncate max-w-[200px]" title={row.boothName}>
-              {row.boothName || 'Unassigned Booth'}
-            </span>
+            <div className="text-slate-900 text-[10.5px] dark:text-slate-100 font-semibold truncate max-w-[200px]" title={row.boothName}>
+              {row.boothName || (row.boothNumber ? `Booth #${row.boothNumber}` : 'Unassigned Booth')}
+            </div>
 
-            {/* Line 2: Serial · House · Sec (Clean Monospace Metadata) */}
+            {/* Line 2: Serial · Sec (Clean Monospace Metadata) */}
             {metadataItems.length > 0 && (
-              <div className="text-[11px] text-slate-600 dark:text-slate-400 font-mono font-medium">
+              <div className="text-[9.5px] text-slate-600 dark:text-slate-300 font-mono font-medium">
                 {metadataItems.join(' · ')}
               </div>
             )}
@@ -800,21 +851,21 @@ export function buildVoterTableColumns(): Column<any>[] {
           (!hasParty || !isNeutralOrUndecided);
 
         if (!hasParty && !showVoterType) {
-          return <span className="text-slate-400 dark:text-slate-600 font-mono text-xs">—</span>;
+          return <span className="text-slate-400 dark:text-slate-600 font-mono text-[11px]">—</span>;
         }
 
         return (
-          <div className="flex flex-col gap-1 items-start text-xs">
+          <div className="flex flex-col gap-1 items-start text-[10px]">
             {hasParty ? (
               <span
-                className="font-bold text-slate-900 dark:text-slate-100 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[11px] shadow-2xs"
+                className="font-semibold text-slate-800 dark:text-slate-200 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/60 text-[9.5px] shadow-2xs"
                 title={row.partyName || ''}
               >
                 {row.partyAbbreviation || row.partyName}
               </span>
             ) : null}
             {showVoterType && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60 shadow-2xs">
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/60 shadow-2xs">
                 {voterType}
               </span>
             )}
@@ -830,24 +881,24 @@ export function buildVoterTableColumns(): Column<any>[] {
         const isSocialInf = row.isSocialInfluencer || Number(row.socialInfluencedCount) > 0;
 
         if (!isFamilyInf && !isSocialInf) {
-          return <span className="text-slate-400 dark:text-slate-600 font-mono text-xs">—</span>;
+          return <span className="text-slate-400 dark:text-slate-600 font-mono text-[11px]">—</span>;
         }
 
         return (
-          <div className="flex flex-col gap-1 items-start">
+          <div className="flex flex-col gap-1 items-start text-[10px]">
             {isFamilyInf && (
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 border border-purple-300 dark:border-purple-700 text-[10px] font-bold shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200/70 dark:border-purple-700/60 text-[9.5px] font-semibold shadow-2xs"
                 title={
                   Number(row.familyInfluencedCount) > 0
                     ? `Family Influencer for ${row.familyInfluencedCount} voter${row.familyInfluencedCount > 1 ? 's' : ''}`
                     : 'Family Influencer (Head of Household)'
                 }
               >
-                <Crown size={11} className="shrink-0 text-purple-700 dark:text-purple-300" />
+                <Crown size={11} className="shrink-0 text-purple-600 dark:text-purple-400" />
                 <span>Family Head</span>
                 {Number(row.familyInfluencedCount) > 0 && (
-                  <span className="px-1 py-0.2 rounded-xs bg-purple-200 dark:bg-purple-800 text-[9px] font-bold font-mono ml-0.5">
+                  <span className="px-1 py-0.2 rounded-xs bg-purple-200/90 dark:bg-purple-900 text-[8.5px] font-bold font-mono text-purple-800 dark:text-purple-200 ml-0.5">
                     {row.familyInfluencedCount}
                   </span>
                 )}
@@ -855,55 +906,23 @@ export function buildVoterTableColumns(): Column<any>[] {
             )}
             {isSocialInf && (
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 text-[10px] font-bold shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-700/60 text-[9.5px] font-semibold shadow-2xs"
                 title={
                   Number(row.socialInfluencedCount) > 0
                     ? `Social Influencer for ${row.socialInfluencedCount} voter${row.socialInfluencedCount > 1 ? 's' : ''}`
                     : 'Social Influencer (Community Leader)'
                 }
               >
-                <Sparkles size={11} className="shrink-0 text-amber-700 dark:text-amber-300" />
+                <Sparkles size={11} className="shrink-0 text-amber-600 dark:text-amber-400" />
                 <span>Social Leader</span>
                 {Number(row.socialInfluencedCount) > 0 && (
-                  <span className="px-1 py-0.2 rounded-xs bg-amber-200 dark:bg-amber-800 text-[9px] font-bold font-mono ml-0.5">
+                  <span className="px-1 py-0.2 rounded-xs bg-amber-200/90 dark:bg-amber-900 text-[8.5px] font-bold font-mono text-amber-800 dark:text-amber-200 ml-0.5">
                     {row.socialInfluencedCount}
                   </span>
                 )}
               </span>
             )}
           </div>
-        );
-      },
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row: any) => {
-        const st = (row.status || 'ACTIVE').toUpperCase();
-        const isLive = st === 'ACTIVE';
-        const badgeColor =
-          isLive
-            ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/80'
-            : st === 'SHIFTED'
-              ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700/80'
-              : st === 'UNVERIFIED'
-                ? 'bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-700/80'
-                : 'bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-700/80';
-
-        return (
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9.5px] font-bold font-mono border shadow-2xs ${badgeColor}`}>
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${isLive
-                ? 'bg-emerald-600 dark:bg-emerald-400 animate-pulse'
-                : st === 'SHIFTED'
-                  ? 'bg-amber-500'
-                  : st === 'UNVERIFIED'
-                    ? 'bg-purple-500'
-                    : 'bg-rose-500'
-                }`}
-            />
-            <span>{st}</span>
-          </span>
         );
       },
     },

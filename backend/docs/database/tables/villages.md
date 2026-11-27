@@ -18,4 +18,5 @@ Master table for storing administrative and revenue villages within talukas. Fun
 | :--- | :--- | :--- | :--- |
 | `villages_pkey` | `B-Tree (Unique)` | `id` | Primary Key constraint |
 | `unq_village_taluka_name` | `B-Tree (Unique)` | `(taluka_id, name)` | Unique constraint per taluka village naming |
+| `uq_villages_taluka_lower_name` | `B-Tree (Functional Unique)` | `(taluka_id, LOWER(TRIM(name)))` | Case-insensitive functional unique index preventing duplicate village names |
 | `idx_villages_taluka_id` | `B-Tree` | `taluka_id` | Fast taluka villages lookup |

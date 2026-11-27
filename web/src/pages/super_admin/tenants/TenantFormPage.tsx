@@ -661,6 +661,7 @@ export const TenantFormPage: React.FC = () => {
                           </span>
                           <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 font-mono">
                             {selectedRole.allowedTabs?.webTabs?.length || 0} Web Tabs, {selectedRole.allowedTabs?.masterSubTabs?.length || 0} Sub-Tabs
+                            {selectedRole.allowedTabs?.canCreateWebUsers ? ' • Web Users Enabled' : ''}
                           </span>
                         </div>
                       </div>

@@ -14,7 +14,6 @@ import {
   Loader2,
   Landmark,
   Layers,
-  Sparkles,
   KeyRound,
   RefreshCw,
   Check,
@@ -33,6 +32,7 @@ import {
   Activity,
   CalendarCheck,
   Calendar,
+  LogIn,
 } from 'lucide-react';
 import {
   fetchTenantById,
@@ -40,13 +40,16 @@ import {
   deleteTenantUser,
   fetchTenantProvisioningStatus,
   fetchTenantDbSyncStatus,
+  reconcileTenantLookups,
   retryTenantProvisioning,
   resumeTenantProvisioning,
+  impersonateTenant,
   type TenantDbSyncStatus,
 } from '@/redux/actions/tenant';
 import toast from 'react-hot-toast';
 import { SafeImage } from '@/components/common/SafeImage';
 import { PageHeader } from '@/components/common/PageHeader';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
 import React, { useState, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -63,6 +66,8 @@ const TABLE_FRIENDLY_NAMES: Record<string, { label: string; short: string }> = {
   religions: { label: 'Religions', short: 'Religions' },
   castes: { label: 'Castes', short: 'Castes' },
   parties: { label: 'Parties', short: 'Parties' },
+  profession_categories: { label: 'Profession Categories', short: 'Prof. Cats' },
+  professions: { label: 'Specific Professions', short: 'Professions' },
   parliamentary_constituencies: { label: 'Parliamentary (PC)', short: 'PC Seats' },
   assembly_constituencies: { label: 'Assembly (AC)', short: 'AC Seats' },
   wards: { label: 'Wards', short: 'Wards' },
@@ -117,10 +122,37 @@ export const TenantDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  const handleDirectLogin = async () => {
+    if (!tenant) return;
+    const status = tenant.status || tenant.accountStatus;
+    if (status === 'suspended') {
+      toast.error(`Cannot log in: Tenant '${tenant.organizationName}' is currently suspended`);
+      return;
+    }
+    const provStatus = tenant.provisioningStatus || status;
+    if (provStatus === 'pending' || provStatus === 'provisioning') {
+      toast.error(`Tenant database is still provisioning (${tenant.provisioningProgress || 0}%). Please wait.`);
+      return;
+    }
+    setLoggingIn(true);
+    try {
+      await dispatch(impersonateTenant(tenant.id));
+      setIsLoginModalOpen(false);
+      navigate('/dashboard');
+    } catch {
+      // Handled by Redux errorHandler
+    } finally {
+      setLoggingIn(false);
+    }
+  };
 
   // Sync health audit state
   const [syncStatus, setSyncStatus] = useState<TenantDbSyncStatus | null>(null);
   const [checkingSync, setCheckingSync] = useState(false);
+  const [reconcilingLookups, setReconcilingLookups] = useState(false);
   const [isDriftExpanded, setIsDriftExpanded] = useState(false);
   const [retryingProvisioning, setRetryingProvisioning] = useState(false);
   const [resumingProvisioning, setResumingProvisioning] = useState(false);
@@ -198,6 +230,24 @@ export const TenantDetailPage: React.FC = () => {
         // Handled by Redux errorHandler
       } finally {
         setCheckingSync(false);
+      }
+    },
+    [id, dispatch]
+  );
+
+  const handleReconcileLookups = useCallback(
+    async (targetId?: string) => {
+      const tenantId = targetId || id;
+      if (!tenantId) return;
+      setReconcilingLookups(true);
+      try {
+        const result = await dispatch(reconcileTenantLookups(tenantId));
+        setSyncStatus(result);
+        toast.success('Master lookup tables reconciled to 100% parity!');
+      } catch {
+        toast.error('Failed to reconcile master lookup tables');
+      } finally {
+        setReconcilingLookups(false);
       }
     },
     [id, dispatch]
@@ -456,14 +506,8 @@ export const TenantDetailPage: React.FC = () => {
       {/* Reusable PageHeader Component (Rule 18) */}
       <PageHeader
         title={tenant.organizationName}
-        subtitle={`Tenant Database: ${tenant.tenantDbName || 'Provisioning'}`}
         icon={<Building className="w-6 h-6" />}
-        badge={
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-            <Sparkles size={12} className="text-amber-500" />
-            Dedicated PostgreSQL Instance
-          </span>
-        }
+        subtitle={`Tenant Database: ${tenant.tenantDbName || 'Provisioning'}`}
         actions={
           <div className="flex items-center gap-2.5 flex-wrap">
             <Link
@@ -473,6 +517,17 @@ export const TenantDetailPage: React.FC = () => {
               <ArrowLeft size={15} />
               <span>Back</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={() => setIsLoginModalOpen(true)}
+              disabled={!isActive}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center gap-1.5 cursor-pointer"
+              title={isActive ? 'Direct Login to Tenant Workspace' : 'Tenant is not active'}
+            >
+              <LogIn size={14} />
+              <span>Direct Login</span>
+            </button>
 
             <button
               type="button"
@@ -584,8 +639,8 @@ export const TenantDetailPage: React.FC = () => {
                   </div>
                   <div className="truncate">
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Contact Phone</p>
-                    <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                      {tenant.mobile || 'No contact specified'}
+                    <p className="font-semibold text-slate-800 dark:text-slate-200 truncate font-mono">
+                      {tenant.mobile ? formatPhoneNumber(tenant.mobile) : 'No contact specified'}
                     </p>
                   </div>
                 </div>
@@ -739,8 +794,8 @@ export const TenantDetailPage: React.FC = () => {
           {(isProvisioning || isFailed) && (
             <div
               className={`rounded-3xl p-6 sm:p-7 border shadow-sm space-y-6 transition-all ${isFailed
-                  ? 'bg-rose-500/5 border-rose-500/30 dark:bg-rose-950/20 dark:border-rose-900/40'
-                  : 'bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-cyan-500/5 border-indigo-500/30 dark:border-indigo-500/20'
+                ? 'bg-rose-500/5 border-rose-500/30 dark:bg-rose-950/20 dark:border-rose-900/40'
+                : 'bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-cyan-500/5 border-indigo-500/30 dark:border-indigo-500/20'
                 }`}
             >
               {/* Header with Title, Live Badge, and Retry Button */}
@@ -748,8 +803,8 @@ export const TenantDetailPage: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-lg ${isFailed
-                        ? 'bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/30'
-                        : 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/30'
+                      ? 'bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/30'
+                      : 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/30'
                       }`}
                   >
                     {isFailed ? (
@@ -765,8 +820,8 @@ export const TenantDetailPage: React.FC = () => {
                       </h3>
                       <span
                         className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${isFailed
-                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                            : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 animate-pulse'
+                          ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                          : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 animate-pulse'
                           }`}
                       >
                         {isFailed ? 'Action Required' : 'Live Stream'}
@@ -809,8 +864,8 @@ export const TenantDetailPage: React.FC = () => {
                       onClick={handleRetryProvisioning}
                       disabled={retryingProvisioning || resumingProvisioning}
                       className={`py-2 px-3.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${isFailed
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/25'
-                          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/25'
+                        : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
                         } disabled:opacity-50`}
                       title={isFailed ? 'Retry Provisioning Pipeline' : 'Restart Provisioning Pipeline from 0%'}
                     >
@@ -826,8 +881,8 @@ export const TenantDetailPage: React.FC = () => {
                 <div className="h-3 w-full bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner">
                   <div
                     className={`h-full rounded-full transition-all duration-500 shadow-sm ${isFailed
-                        ? 'bg-gradient-to-r from-rose-500 to-red-600'
-                        : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500'
+                      ? 'bg-gradient-to-r from-rose-500 to-red-600'
+                      : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500'
                       }`}
                     style={{ width: `${Math.max(4, tenant.provisioningProgress || 0)}%` }}
                   />
@@ -854,12 +909,12 @@ export const TenantDetailPage: React.FC = () => {
                     <div
                       key={stage.id}
                       className={`rounded-2xl p-3 border transition-all flex flex-col justify-between ${isCurrent
-                          ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-400/60 dark:border-indigo-600/60 shadow-sm ring-1 ring-indigo-500/20'
-                          : isDone
-                            ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
-                            : isError
-                              ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-400 dark:border-rose-800 text-rose-800 dark:text-rose-300'
-                              : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800/60 text-slate-400'
+                        ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-400/60 dark:border-indigo-600/60 shadow-sm ring-1 ring-indigo-500/20'
+                        : isDone
+                          ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+                          : isError
+                            ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-400 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                            : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800/60 text-slate-400'
                         }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
@@ -992,12 +1047,23 @@ export const TenantDetailPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleCheckSync()}
-                  disabled={checkingSync}
+                  disabled={checkingSync || reconcilingLookups}
                   className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm"
                   title="Run Real-Time Sync Audit"
                 >
                   <RefreshCw size={13} className={checkingSync ? 'animate-spin text-indigo-600' : ''} />
                   <span>{checkingSync ? 'Auditing...' : 'Audit Sync'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleReconcileLookups()}
+                  disabled={reconcilingLookups || checkingSync}
+                  className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Reconcile All 13 Master Lookup Tables with Master DB"
+                >
+                  <RefreshCw size={13} className={reconcilingLookups ? 'animate-spin' : ''} />
+                  <span>{reconcilingLookups ? 'Reconciling...' : 'Reconcile Lookups'}</span>
                 </button>
               </div>
             </div>
@@ -1199,15 +1265,29 @@ export const TenantDetailPage: React.FC = () => {
             {/* Master Lookup Tables Sync Parity Breakdown */}
             {syncStatus && Object.keys(syncStatus.masterLookupSync || {}).length > 0 && (
               <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
                     <FileSpreadsheet size={14} className="text-indigo-500" />
                     <span>Master Lookup Tables Parity Breakdown</span>
                   </p>
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                    {Object.values(syncStatus.masterLookupSync).filter((v) => v.synced).length} of{' '}
-                    {Object.keys(syncStatus.masterLookupSync).length} Tables Synced
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      {Object.values(syncStatus.masterLookupSync).filter((v) => v.synced).length} of{' '}
+                      {Object.keys(syncStatus.masterLookupSync).length} Tables Synced
+                    </span>
+                    {Object.values(syncStatus.masterLookupSync).some((v) => !v.synced) && (
+                      <button
+                        type="button"
+                        onClick={() => handleReconcileLookups()}
+                        disabled={reconcilingLookups}
+                        className="px-3 py-1 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        title="Fix out-of-sync tables and bring to 100% parity"
+                      >
+                        <RefreshCw size={11} className={reconcilingLookups ? 'animate-spin' : ''} />
+                        <span>{reconcilingLookups ? 'Syncing...' : 'Sync Out-of-Sync Tables'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* 4-Column Responsive Grid with Clean, Untruncated Labels */}
@@ -1411,11 +1491,10 @@ export const TenantDetailPage: React.FC = () => {
                         <span>Poll: {elec.electionDate || 'Not set'}</span>
                       </div>
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                          elec.status === 'ACTIVE'
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${elec.status === 'ACTIVE'
                             ? 'bg-emerald-500/10 text-emerald-500'
                             : 'bg-blue-500/10 text-blue-500'
-                        }`}
+                          }`}
                       >
                         {elec.status}
                       </span>
@@ -1448,6 +1527,22 @@ export const TenantDetailPage: React.FC = () => {
         confirmText="Delete Account"
         variant="danger"
         isLoading={deleting}
+      />
+
+      {/* Confirmation Modal for Direct Login (Impersonation) */}
+      <ConfirmModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onConfirm={handleDirectLogin}
+        title="Direct Login to Tenant Office?"
+        description={
+          tenant
+            ? `You are about to log in directly to '${tenant.organizationName}' (${tenant.name}) as Tenant Administrator. You can switch back to Super Admin at any time via the top banner.`
+            : ''
+        }
+        confirmText="Log In as Tenant"
+        variant="info"
+        isLoading={loggingIn}
       />
     </div>
   );

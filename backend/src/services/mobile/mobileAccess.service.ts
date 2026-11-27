@@ -1,6 +1,40 @@
 import { RoleQueries } from '../../queries/role.queries';
 import { logger } from '../../utils/logger';
 
+// ── Legacy <-> Modern Screen Key Mapping for Zero-Break Live Mobile App Parity ──
+const LEGACY_TO_MODERN_SCREEN_MAP: Record<string, string[]> = {
+  booth_analytics: ['dashboard', 'assignedbooths', 'electionpolling'],
+  voter_search: ['voterlist'],
+  family_tree: ['familymapping'],
+  gate_meetings: ['influencermapping', 'contactsync'],
+  team_management: ['teammanagement'],
+  election_polling: ['electionpolling'],
+};
+
+const MODERN_TO_LEGACY_SCREEN_MAP: Record<string, string[]> = {
+  dashboard: ['booth_analytics'],
+  assignedbooths: ['booth_analytics'],
+  electionpolling: ['election_polling', 'booth_analytics'],
+  voterlist: ['voter_search'],
+  familymapping: ['family_tree'],
+  influencermapping: ['gate_meetings'],
+  contactsync: ['gate_meetings'],
+  teammanagement: ['team_management'],
+};
+
+export const ensureDualKeyScreens = (screens: string[]): string[] => {
+  const result = new Set<string>(screens);
+  for (const s of screens) {
+    if (LEGACY_TO_MODERN_SCREEN_MAP[s]) {
+      LEGACY_TO_MODERN_SCREEN_MAP[s].forEach((m) => result.add(m));
+    }
+    if (MODERN_TO_LEGACY_SCREEN_MAP[s]) {
+      MODERN_TO_LEGACY_SCREEN_MAP[s].forEach((l) => result.add(l));
+    }
+  }
+  return Array.from(result);
+};
+
 export interface MobileAccessConfig {
   roleKey: string;
   roleName: string;
@@ -35,7 +69,7 @@ export class MobileAccessService {
         const roles = await RoleQueries.getAllTenantUserRoles(tenantDbName);
         const matchedRole = roles.find((r) => r.roleKey === role);
         if (matchedRole) {
-          const screens =
+          const rawScreens =
             customAccessibleTabs?.mobileScreens ||
             customAccessibleTabs?.mobile_screens ||
             matchedRole.accessibleTabs?.mobileScreens ||
@@ -44,6 +78,7 @@ export class MobileAccessService {
               'family_tree',
               'booth_analytics',
             ];
+          const screens = ensureDualKeyScreens(rawScreens);
 
           return {
             roleKey: matchedRole.roleKey,
@@ -72,7 +107,16 @@ export class MobileAccessService {
       return {
         roleKey: 'pc_leader',
         roleName: 'Parliamentary Constituency Leader',
-        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics', 'gate_meetings', 'election_polling'],
+        mobileScreens: ensureDualKeyScreens([
+          'dashboard',
+          'assignedbooths',
+          'voterlist',
+          'electionpolling',
+          'familymapping',
+          'influencermapping',
+          'contactsync',
+          'teammanagement',
+        ]),
         voterPermissions: {
           canViewVoter: true,
           canCreateVoter: true,
@@ -91,7 +135,16 @@ export class MobileAccessService {
       return {
         roleKey: 'ac_leader',
         roleName: 'Assembly Constituency Leader',
-        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics', 'gate_meetings', 'election_polling'],
+        mobileScreens: ensureDualKeyScreens([
+          'dashboard',
+          'assignedbooths',
+          'voterlist',
+          'electionpolling',
+          'familymapping',
+          'influencermapping',
+          'contactsync',
+          'teammanagement',
+        ]),
         voterPermissions: {
           canViewVoter: true,
           canCreateVoter: true,
@@ -110,7 +163,14 @@ export class MobileAccessService {
       return {
         roleKey: 'sub_leader',
         roleName: 'Sub Leader',
-        mobileScreens: ['voter_search', 'family_tree', 'booth_analytics', 'election_polling'],
+        mobileScreens: ensureDualKeyScreens([
+          'dashboard',
+          'assignedbooths',
+          'voterlist',
+          'electionpolling',
+          'familymapping',
+          'teammanagement',
+        ]),
         voterPermissions: {
           canViewVoter: true,
           canCreateVoter: true,
@@ -129,7 +189,12 @@ export class MobileAccessService {
     return {
       roleKey: 'supporter',
       roleName: 'Booth Supporter',
-      mobileScreens: ['voter_search', 'family_tree', 'election_polling'],
+      mobileScreens: ensureDualKeyScreens([
+        'dashboard',
+        'voterlist',
+        'electionpolling',
+        'familymapping',
+      ]),
       voterPermissions: {
         canViewVoter: true,
         canCreateVoter: false,
@@ -169,7 +234,7 @@ export class MobileAccessService {
           return filteredRoles.map((r) => ({
             roleKey: r.roleKey,
             roleName: r.roleName,
-            mobileScreens: r.accessibleTabs?.mobileScreens || r.accessibleTabs?.mobile_screens || [],
+            mobileScreens: ensureDualKeyScreens(r.accessibleTabs?.mobileScreens || r.accessibleTabs?.mobile_screens || []),
             voterPermissions: {
               canViewVoter: r.voterPermissions?.canViewVoter ?? r.voterPermissions?.can_view_voter ?? true,
               canCreateVoter: r.voterPermissions?.canCreateVoter ?? r.voterPermissions?.can_create_voter ?? false,

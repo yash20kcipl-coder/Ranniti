@@ -7,6 +7,7 @@ const router = Router();
 // Protect all Super Admin tenant feature role routes
 router.use(authenticateJwt, requireSuperAdmin);
 
+router.get('/available-tabs', tenantRoleController.getAvailableTabs);
 router.get('/', tenantRoleController.getTenantRoles);
 router.post('/', tenantRoleController.createTenantRole);
 router.put('/:id', tenantRoleController.updateTenantRole);

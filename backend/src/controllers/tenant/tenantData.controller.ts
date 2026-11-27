@@ -2,6 +2,7 @@ import { ApiError } from '../../utils/apiError';
 import { Request, Response, NextFunction } from 'express';
 import { tenantDataService } from '../../services/tenant/tenantData.service';
 import { TenantDashboardService } from '../../services/tenant/tenantDashboard.service';
+import { TenantDashboardOverviewService } from '../../services/tenant/tenantDashboardOverview.service';
 
 export class TenantDataController {
   /**
@@ -14,7 +15,8 @@ export class TenantDataController {
         throw ApiError.unauthorized('Authentication required');
       }
 
-      const profile = await tenantDataService.getTenantProfile(req.user.userId);
+      const tenantDbName = req.tenantDbName || req.user.tenantDbName || (req.headers['x-tenant-db'] as string);
+      const profile = await tenantDataService.getTenantProfile(req.user.userId, tenantDbName);
       res.status(200).json({
         success: true,
         data: profile,
@@ -44,6 +46,41 @@ export class TenantDataController {
       res.status(200).json({
         success: true,
         data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * GET /api/tenant/data/overview
+   * Retrieves redesigned campaign overview metrics with optional boothId filtering
+   */
+  getOverview = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId) {
+        throw ApiError.unauthorized('Authentication required');
+      }
+
+      const tenantDbName = req.tenantDbName || req.user.tenantDbName || null;
+      if (!tenantDbName) {
+        throw ApiError.badRequest('No tenant database is assigned to this user account');
+      }
+
+      const forceRefresh = req.query.refresh === 'true';
+      const boothId =
+        typeof req.query.boothId === 'string' && req.query.boothId.trim()
+          ? req.query.boothId.trim()
+          : undefined;
+
+      const overview = await TenantDashboardOverviewService.getOverview(
+        tenantDbName,
+        forceRefresh,
+        boothId
+      );
+      res.status(200).json({
+        success: true,
+        data: overview,
       });
     } catch (error) {
       next(error);

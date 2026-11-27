@@ -87,6 +87,11 @@ CREATE INDEX IF NOT EXISTS idx_voters_family_inf ON voters(family_influencer_id)
 CREATE INDEX IF NOT EXISTS idx_voters_social_inf ON voters(social_influencer_id);
 CREATE INDEX IF NOT EXISTS idx_voters_family_id ON voters(family_id);
 CREATE INDEX IF NOT EXISTS idx_voters_booth_family_id ON voters(booth_id, family_id);
+
+-- Ensure relation & guardian_name exist on legacy tables before indexing
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS relation VARCHAR(100);
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS guardian_name TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_voters_relation ON voters(relation);
 CREATE INDEX IF NOT EXISTS idx_voters_guardian_name ON voters(guardian_name);
 CREATE INDEX IF NOT EXISTS idx_voters_ac_id_id ON voters(ac_id, id);

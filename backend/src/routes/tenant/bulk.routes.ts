@@ -6,6 +6,7 @@ const router = Router();
 
 // --- TENANT BULK IMPORT & TRACKING ENDPOINTS ---
 router.get('/jobs', TenantBulkController.getAllImportJobs);
+router.delete('/jobs/:jobId', TenantBulkController.deleteImportJob);
 router.get('/status/:jobId', TenantBulkController.getBulkImportStatus);
 router.get('/failed-records/:jobId', TenantBulkController.downloadFailedRecords);
 router.post('/file/:category', excelUpload.single('file'), TenantBulkController.startBulkImportFile);

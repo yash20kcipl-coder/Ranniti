@@ -1,14 +1,14 @@
 /**
  * Standard password generator for volunteer onboarding:
- * Formula: CapitalizedFirstName + Last4DigitsOfMobile + #
+ * Unified Formula: CapitalizedFirstName + "@" + Last4DigitsOfMobile
  * 
  * Examples:
- * - Rahul Sharma (9876543210) -> Rahul3210#
- * - Amit Patil (9123456789) -> Amit6789#
- * - Sneha (9988771122) -> Sneha1122#
+ * - Rahul Sharma (9876543210) -> Rahul@3210
+ * - Amit Patil (9123456789) -> Amit@6789
+ * - Sneha (9988771122) -> Sneha@1122
  */
 export function generateVolunteerDefaultPassword(name: string, mobile: string): string {
-  if (!name || !name.trim()) return 'Ranniti@123';
+  if (!name || !name.trim()) return 'Ranniti@1234';
 
   // Extract first word of the name, remove non-alphabetic characters
   const cleanName = name.trim().split(/\s+/)[0].replace(/[^a-zA-Z]/g, '');
@@ -20,5 +20,5 @@ export function generateVolunteerDefaultPassword(name: string, mobile: string): 
   const cleanPhone = (mobile || '').replace(/\D/g, '');
   const last4 = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : '1234';
 
-  return `${capitalized}${last4}#`;
+  return `${capitalized}@${last4}`;
 }

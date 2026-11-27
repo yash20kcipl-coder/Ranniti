@@ -1,7 +1,7 @@
 import api from '@/services/api';
 import { errorHandler } from '../apiUtils';
 import type { AppDispatch } from '../store';
-import type { CampaignSettings, WhatsAppTemplate, AppVersionConfig } from '@/types/settings.types';
+import type { CampaignSettings, WhatsAppTemplate, AppVersionConfig, SurveyFieldPointsConfig } from '@/types/settings.types';
 
 
 export const SET_APP_VERSIONS = 'SET_APP_VERSIONS';
@@ -11,6 +11,9 @@ export const SET_SETTINGS_LOADING = 'SET_SETTINGS_LOADING';
 export const SET_WHATSAPP_SYNCING = 'SET_WHATSAPP_SYNCING';
 export const SET_WHATSAPP_TEMPLATES = 'SET_WHATSAPP_TEMPLATES';
 export const SET_SETTINGS_ACTIVE_TAB = 'SET_SETTINGS_ACTIVE_TAB';
+export const SET_SURVEY_FIELD_POINTS = 'SET_SURVEY_FIELD_POINTS';
+export const SET_SURVEY_POINTS_LOADING = 'SET_SURVEY_POINTS_LOADING';
+export const SET_SURVEY_POINTS_SAVING = 'SET_SURVEY_POINTS_SAVING';
 
 
 export const setSettingsLoading = (loading: boolean) => ({
@@ -277,6 +280,135 @@ export const updateSuperAdminAppVersionConfig = (idOrPlatform: string, payload: 
       throw err;
     } finally {
       dispatch(setSettingsSaving(false));
+    }
+  };
+};
+
+export const setSurveyFieldPoints = (points: SurveyFieldPointsConfig) => ({
+  type: SET_SURVEY_FIELD_POINTS,
+  payload: points,
+});
+
+export const setSurveyPointsLoading = (loading: boolean) => ({
+  type: SET_SURVEY_POINTS_LOADING,
+  payload: loading,
+});
+
+export const setSurveyPointsSaving = (saving: boolean) => ({
+  type: SET_SURVEY_POINTS_SAVING,
+  payload: saving,
+});
+
+export const fetchTenantSurveyFieldPoints = () => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setSurveyPointsLoading(true));
+    try {
+      const res = await api.get('/tenant/settings/survey-field-points');
+      const data = res.data?.data || res.data;
+      if (data) {
+        dispatch(setSurveyFieldPoints(data));
+      }
+      return data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(setSurveyPointsLoading(false));
+    }
+  };
+};
+
+export const updateTenantSurveyFieldPoints = (pointsConfig: SurveyFieldPointsConfig) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setSurveyPointsSaving(true));
+    try {
+      const res = await api.put('/tenant/settings/survey-field-points', pointsConfig);
+      const data = res.data?.data || res.data;
+      if (data) {
+        dispatch(setSurveyFieldPoints(data));
+      }
+      return data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(setSurveyPointsSaving(false));
+    }
+  };
+};
+
+export const fetchSuperAdminSurveyFieldPoints = () => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setSurveyPointsLoading(true));
+    try {
+      const res = await api.get('/super-admin/settings/survey-field-points');
+      const data = res.data?.data || res.data;
+      if (data) {
+        dispatch(setSurveyFieldPoints(data));
+      }
+      return data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(setSurveyPointsLoading(false));
+    }
+  };
+};
+
+export const updateSuperAdminSurveyFieldPoints = (pointsConfig: SurveyFieldPointsConfig) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setSurveyPointsSaving(true));
+    try {
+      const res = await api.put('/super-admin/settings/survey-field-points', pointsConfig);
+      const data = res.data?.data || res.data;
+      if (data) {
+        dispatch(setSurveyFieldPoints(data));
+      }
+      return data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(setSurveyPointsSaving(false));
+    }
+  };
+};
+
+export const resetSuperAdminSurveyFieldPoints = () => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setSurveyPointsSaving(true));
+    try {
+      const res = await api.post('/super-admin/settings/survey-field-points/reset');
+      const data = res.data?.data || res.data;
+      if (data) {
+        dispatch(setSurveyFieldPoints(data));
+      }
+      return data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(setSurveyPointsSaving(false));
+    }
+  };
+};
+
+export const resetTenantSurveyFieldPoints = () => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setSurveyPointsSaving(true));
+    try {
+      const res = await api.post('/tenant/settings/survey-field-points/reset');
+      const data = res.data?.data || res.data;
+      if (data) {
+        dispatch(setSurveyFieldPoints(data));
+      }
+      return data;
+    } catch (err) {
+      dispatch(errorHandler(err));
+      throw err;
+    } finally {
+      dispatch(setSurveyPointsSaving(false));
     }
   };
 };

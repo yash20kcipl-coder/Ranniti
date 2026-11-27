@@ -164,7 +164,7 @@ export const TenantElectionTurnoutPage: React.FC = () => {
         sortable: true,
         width: '90px',
         render: (row) => (
-          <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">
+          <span className="font-mono font-medium text-indigo-600 dark:text-indigo-400 text-[9.5px]">
             #{row.boothNumber || '-'}
           </span>
         ),
@@ -174,7 +174,7 @@ export const TenantElectionTurnoutPage: React.FC = () => {
         header: 'Booth Location / Name',
         sortable: true,
         render: (row) => (
-          <div className="font-medium text-slate-900 dark:text-slate-100 text-xs">
+          <div className="font-medium text-slate-900 dark:text-slate-100 text-[10.5px] leading-tight">
             {row.boothName || `Polling Booth #${row.boothNumber}`}
           </div>
         ),
@@ -186,7 +186,7 @@ export const TenantElectionTurnoutPage: React.FC = () => {
         align: 'right',
         width: '110px',
         render: (row) => (
-          <span className="font-mono text-xs text-slate-700 dark:text-slate-300">
+          <span className="font-mono text-[9.5px] text-slate-700 dark:text-slate-300">
             {row.totalVoters.toLocaleString()}
           </span>
         ),
@@ -199,10 +199,10 @@ export const TenantElectionTurnoutPage: React.FC = () => {
         width: '130px',
         render: (row) => (
           <div className="flex flex-col items-end">
-            <span className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100">
+            <span className="font-mono font-bold text-[9.5px] text-slate-900 dark:text-slate-100">
               {row.votedCount.toLocaleString()}
             </span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">
+            <span className="text-[9.5px] font-mono text-slate-400 dark:text-slate-500 font-normal">
               M: {row.maleVotedCount} • F: {row.femaleVotedCount}
             </span>
           </div>
@@ -221,7 +221,7 @@ export const TenantElectionTurnoutPage: React.FC = () => {
           return (
             <div className="flex flex-col items-center gap-1 max-w-[130px] mx-auto">
               <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9.5px] font-mono font-semibold border ${
                   isLow
                     ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
                     : isMid
@@ -250,12 +250,12 @@ export const TenantElectionTurnoutPage: React.FC = () => {
         width: '120px',
         render: (row) =>
           row.votedCount > 0 ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9.5px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Reporting
             </span>
           ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/60">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/60">
               No Votes
             </span>
           ),

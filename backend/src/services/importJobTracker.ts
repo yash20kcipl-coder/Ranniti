@@ -157,6 +157,19 @@ class ImportJobTrackerService {
     return job;
   }
 
+  deleteJob(jobId: string, tenantDbName?: string): boolean {
+    const job = this.jobs.get(jobId);
+    if (!job) return false;
+    if (tenantDbName && job.tenantDbName !== tenantDbName) {
+      return false;
+    }
+    const deleted = this.jobs.delete(jobId);
+    if (deleted) {
+      logger.info(`[ImportJobTracker] Job deleted from tracker: ${jobId}`);
+    }
+    return deleted;
+  }
+
   getAllJobs(tenantDbName?: string): ImportJob[] {
     const all = Array.from(this.jobs.values());
     const filtered = tenantDbName

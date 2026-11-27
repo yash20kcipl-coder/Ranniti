@@ -11,6 +11,7 @@ export class MobileVoterService {
   ) {
     const filters: VoterFilterParams = { ...params };
     filters.tenantDbName = user.tenantDbName;
+    filters.userId = user.id;
 
     const isBoothRestrictedRole = user.role === 'supporter' || user.role === 'sub_leader';
 
@@ -89,7 +90,7 @@ export class MobileVoterService {
         FROM voters v
         LEFT JOIN parties p ON v.party_id = p.id
         WHERE v.family_id = $1 AND (v.is_dead IS NOT TRUE)
-        ORDER BY v.age DESC, v.serial_no ASC
+        ORDER BY v.serial_no ASC NULLS LAST, v.age DESC
       `;
       const res = await TenantPoolManager.query(tenantDbName, sql, [familyCode.trim()]);
       members = res.rows;
@@ -109,7 +110,7 @@ export class MobileVoterService {
         FROM voters v
         LEFT JOIN parties p ON v.party_id = p.id
         WHERE v.booth_id = $1 AND v.house_no = $2 AND (v.is_dead IS NOT TRUE)
-        ORDER BY v.age DESC, v.serial_no ASC
+        ORDER BY v.serial_no ASC NULLS LAST, v.age DESC
       `;
       const resFallback = await TenantPoolManager.query(tenantDbName, sqlFallback, [voter.boothId, voter.houseNo]);
       if (resFallback.rows.length > 0) {
@@ -418,7 +419,7 @@ export class MobileVoterService {
     }
 
     const { VoterService } = await import('../tenant/voter.service');
-    const updated = await VoterService.updateVoter(voterId, updateData, user.tenantDbName);
+    const updated = await VoterService.updateVoter(voterId, updateData, user.tenantDbName, user.id);
     if (!updated) {
       throw ApiError.notFound('Voter record not found or update failed');
     }

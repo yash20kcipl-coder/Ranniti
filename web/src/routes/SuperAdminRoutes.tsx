@@ -19,6 +19,12 @@ import {
   TenantDetailPage,
 } from '@/pages/super_admin/tenants';
 
+// Super Admin Role & Feature Package Pages
+import {
+  TenantRoleManager,
+  TenantRolePackageFormPage,
+} from '@/pages/super_admin/roles';
+
 
 // Super Admin Master Data Pages
 import {
@@ -34,10 +40,18 @@ import {
   BoothsPage,
   BulkUploadTestPage,
   SuperAdminElectionsPage,
+  ProfessionCategoriesPage,
+  ProfessionsPage,
 } from '@/pages/super_admin/master';
 
 // Super Admin Settings Page
 import { SuperAdminSettingsPage } from '@/pages/super_admin/settings/SuperAdminSettingsPage';
+
+// Import Management Page
+import { ImportsManagementPage } from '@/pages/imports';
+
+// UI Showcase / Component Gallery Page
+import { UiShowcasePage } from '@/pages/super_admin/ui_gallery';
 
 export const SuperAdminRoutes: React.FC = () => {
   return (
@@ -66,15 +80,23 @@ export const SuperAdminRoutes: React.FC = () => {
       <Route path="tenants/:id" element={<TenantDetailPage />} />
       <Route path="tenants/:id/edit" element={<TenantFormPage />} />
 
-      {/* Roles & Feature Packages (Hosted within Settings Tab) */}
-      <Route path="roles" element={<Navigate to="/dashboard/settings?tab=tenant-roles" replace />} />
-      <Route path="roles/*" element={<Navigate to="/dashboard/settings?tab=tenant-roles" replace />} />
+      {/* Roles & Feature Packages */}
+      <Route path="roles" element={<TenantRoleManager />} />
+      <Route path="roles/new" element={<TenantRolePackageFormPage />} />
+      <Route path="roles/:id" element={<TenantRolePackageFormPage />} />
+      <Route path="roles/:id/edit" element={<TenantRolePackageFormPage />} />
       <Route path="settings/tenant-roles" element={<Navigate to="/dashboard/settings?tab=tenant-roles" replace />} />
+      <Route path="settings/roles/new" element={<TenantRolePackageFormPage />} />
+      <Route path="settings/roles/:id/edit" element={<TenantRolePackageFormPage />} />
 
       {/* Master Data */}
       <Route path="master" element={<Navigate to="/dashboard/master/districts" replace />} />
+      <Route path="imports" element={<ImportsManagementPage />} />
+      <Route path="bulk-imports" element={<Navigate to="/dashboard/imports" replace />} />
       <Route path="master/religions" element={<ReligionsPage />} />
       <Route path="master/castes" element={<CastesPage />} />
+      <Route path="master/profession-categories" element={<ProfessionCategoriesPage />} />
+      <Route path="master/professions" element={<ProfessionsPage />} />
       <Route path="master/districts" element={<DistrictsPage />} />
       <Route path="master/talukas" element={<TalukasPage />} />
       <Route path="master/villages" element={<VillagesPage />} />
@@ -87,6 +109,10 @@ export const SuperAdminRoutes: React.FC = () => {
       <Route path="master/bulk-test" element={<BulkUploadTestPage />} />
       <Route path="master/demo" element={<Navigate to="/dashboard/master/bulk-test" replace />} />
       <Route path="StateAssembly/*" element={<Navigate to="/dashboard/master/acs" replace />} />
+
+      {/* UI Showcase / Design System Gallery */}
+      <Route path="ui-gallery" element={<UiShowcasePage />} />
+      <Route path="ui-components" element={<Navigate to="/dashboard/ui-gallery" replace />} />
 
       {/* Super Admin System Settings */}
       <Route path="settings" element={<SuperAdminSettingsPage />} />

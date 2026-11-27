@@ -75,9 +75,12 @@ export const createVoterSchema = z.object({
     profession: z.string().optional().nullable(),
     religionId: preprocessUuid(),
     religionName: z.string().optional().nullable(),
+    religion: z.string().optional().nullable(),
     casteId: preprocessUuid(),
     casteName: z.string().optional().nullable(),
+    caste: z.string().optional().nullable(),
     subcasteName: z.string().optional().nullable(),
+    subCaste: z.string().optional().nullable(),
     voterType: z.string().optional().default('Voter'),
 
     status: z.string().optional().default('ACTIVE'),

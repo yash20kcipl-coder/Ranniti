@@ -11,13 +11,11 @@ import React, { useState, useMemo } from 'react';
 import { exportToExcel } from '@/utils/exportImport';
 import { useMasterData } from '@/hooks/useMasterData';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ImportModal } from '@/components/common/ImportModal';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { BoothFormModal } from '@/components/common/master/form';
-import { startBulkImportFileJob } from '@/redux/actions/importJobs';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
@@ -33,11 +31,8 @@ export const BoothsPage: React.FC = () => {
   // Pagination & Filter States
   const [page, setPage] = useState(1);
   const [acId, setAcId] = useState('');
-  const [pcId, setPcId] = useState('');
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
-  const [wardId, setWardId] = useState('');
-  const [stateId, setStateId] = useState('');
   const [districtId, setDistrictId] = useState('');
 
   // Modal States
@@ -45,7 +40,6 @@ export const BoothsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
 
   // Debounced backend fetch for booths data with filter and pagination parameters
@@ -54,11 +48,8 @@ export const BoothsPage: React.FC = () => {
     setLoading(true);
 
     const params: Record<string, any> = { page, limit };
-    if (stateId) params.stateId = stateId;
     if (districtId) params.districtId = districtId;
-    if (pcId) params.pcId = pcId;
     if (acId) params.acId = acId;
-    if (wardId) params.wardId = wardId;
     if (search.trim()) params.search = search.trim();
 
     dispatch(fetchSuperAdminMasterCategoryData('booths', '/masters/booths', false, params)).finally(() => {
@@ -68,45 +59,24 @@ export const BoothsPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, 250, [dispatch, page, limit, search, stateId, districtId, pcId, acId, wardId]);
+  }, 250, [dispatch, page, limit, search, districtId, acId]);
 
-  // Options with cascading dependencies
-  const stateOptions = useMemo(() => statesData.map((s: any) => ({ label: s.name, value: s.id })), [statesData]);
-
-  const filteredDistrictOptions = useMemo(() => {
-    const raw = stateId ? districtsData.filter((d: any) => String(d.stateId) === String(stateId)) : districtsData;
-    return raw.map((d: any) => ({ label: d.name, value: d.id }));
-  }, [districtsData, stateId]);
-
-  const filteredPcOptions = useMemo(() => {
-    const raw = stateId ? pcsData.filter((p: any) => String(p.stateId) === String(stateId)) : pcsData;
-    return raw.map((p: any) => ({ label: p.name, value: p.id }));
-  }, [pcsData, stateId]);
+  const districtOptions = useMemo(() => {
+    return districtsData.map((d: any) => ({ label: d.name, value: d.id }));
+  }, [districtsData]);
 
   const filteredAcOptions = useMemo(() => {
     const raw = districtId
       ? acsData.filter((a: any) => String(a.districtId) === String(districtId))
-      : pcId
-        ? acsData.filter((a: any) => String(a.pcId) === String(pcId))
-        : stateId
-          ? acsData.filter((a: any) => String(a.stateId) === String(stateId))
-          : acsData;
-    return raw.map((a: any) => ({ label: a.name, value: a.id }));
-  }, [acsData, districtId, pcId, stateId]);
-
-  const filteredWardOptions = useMemo(() => {
-    const raw = acId ? wardsData.filter((w: any) => String(w.acId) === String(acId)) : wardsData;
-    return raw.map((w: any) => ({ label: `${w.wardNumber ? `${w.wardNumber} - ` : ''}${w.name}`, value: w.id }));
-  }, [wardsData, acId]);
+      : acsData;
+    return raw.map((a: any) => ({ label: `${a.acNumber ? `#${a.acNumber} - ` : ''}${a.name}`, value: a.id }));
+  }, [acsData, districtId]);
 
   // Client-side filtering
   const filteredBooths = useMemo(() => {
     return boothsData.filter((item: any) => {
-      if (stateId && String(item.stateId) !== String(stateId)) return false;
       if (districtId && String(item.districtId) !== String(districtId)) return false;
-      if (pcId && String(item.pcId) !== String(pcId)) return false;
       if (acId && String(item.acId) !== String(acId)) return false;
-      if (wardId && String(item.wardId) !== String(wardId)) return false;
       if (search.trim()) {
         const query = search.toLowerCase();
         const matchName = item.name?.toLowerCase().includes(query);
@@ -117,7 +87,7 @@ export const BoothsPage: React.FC = () => {
       }
       return true;
     });
-  }, [boothsData, search, stateId, districtId, pcId, acId, wardId]);
+  }, [boothsData, search, districtId, acId]);
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -126,88 +96,45 @@ export const BoothsPage: React.FC = () => {
 
   const handleResetFilters = () => {
     setSearch('');
-    setStateId('');
     setDistrictId('');
-    setPcId('');
     setAcId('');
-    setWardId('');
     setPage(1);
   };
 
-  const filterFields: FilterField[] = [
-    {
-      key: 'stateId',
-      label: 'State',
-      category: 'Geography Hierarchy',
-      type: 'select',
-      value: stateId,
-      onChange: (val) => {
-        setStateId(val);
-        setDistrictId('');
-        setPcId('');
-        setAcId('');
-        setWardId('');
-        setPage(1);
+  const filterFields: FilterField[] = useMemo(
+    () => [
+      {
+        key: 'districtId',
+        label: 'District',
+        type: 'select',
+        value: districtId,
+        defaultValue: '',
+        excludeFromCount: true,
+        onChange: (val) => {
+          setDistrictId(val);
+          setAcId('');
+          setPage(1);
+        },
+        options: [{ label: 'All Districts', value: '' }, ...districtOptions],
+        isPrimary: true,
       },
-      options: stateOptions,
-      placeholder: 'All States',
-    },
-    {
-      key: 'districtId',
-      label: 'District',
-      category: 'Geography Hierarchy',
-      type: 'select',
-      value: districtId,
-      onChange: (val) => {
-        setDistrictId(val);
-        setAcId('');
-        setPage(1);
+      {
+        key: 'acId',
+        label: 'Assembly (AC)',
+        type: 'select',
+        value: acId,
+        defaultValue: '',
+        excludeFromCount: true,
+        onChange: (val) => {
+          setAcId(val);
+          setPage(1);
+        },
+        options: [{ label: 'All ACs', value: '' }, ...filteredAcOptions],
+        isPrimary: true,
       },
-      options: filteredDistrictOptions,
-      placeholder: 'All Districts',
-    },
-    {
-      key: 'pcId',
-      label: 'Parliamentary Constituency (PC)',
-      category: 'Constituencies',
-      type: 'select',
-      value: pcId,
-      onChange: (val) => {
-        setPcId(val);
-        setAcId('');
-        setPage(1);
-      },
-      options: filteredPcOptions,
-      placeholder: 'All PCs',
-    },
-    {
-      key: 'acId',
-      label: 'Assembly Constituency (AC)',
-      category: 'Constituencies',
-      type: 'select',
-      value: acId,
-      onChange: (val) => {
-        setAcId(val);
-        setWardId('');
-        setPage(1);
-      },
-      options: filteredAcOptions,
-      placeholder: 'All ACs',
-    },
-    {
-      key: 'wardId',
-      label: 'Ward / Prabhag',
-      category: 'Local Area',
-      type: 'select',
-      value: wardId,
-      onChange: (val) => {
-        setWardId(val);
-        setPage(1);
-      },
-      options: filteredWardOptions,
-      placeholder: 'All Wards',
-    },
-  ];
+    ],
+    [districtId, acId, districtOptions, filteredAcOptions]
+  );
 
   // Columns Definition
   const columns: Column<any>[] = [
@@ -215,22 +142,22 @@ export const BoothsPage: React.FC = () => {
       key: 'boothNumber',
       header: 'Booth No.',
       sortable: true,
-      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.boothNumber || '-'}</span>,
+      render: (row) => <span className="font-mono font-medium text-[9.5px] text-slate-700 dark:text-slate-300">#{row.boothNumber || '-'}</span>,
     },
     {
       key: 'name',
       header: 'Polling Station Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
-    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.locationBuilding || '-'}</span> },
-    { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.acName || '-'}</span> },
-    { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.wardName || '-'}</span> },
+    { key: 'locationBuilding', header: 'Location / Address', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.locationBuilding || '-'}</span> },
+    { key: 'acName', header: 'Assembly (AC)', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.acName || '-'}</span> },
+    { key: 'wardName', header: 'Ward / Prabhag', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.wardName || '-'}</span> },
     {
       key: 'totalVoters',
       header: 'Total Voters',
       sortable: true,
-      render: (row) => <span className="font-mono font-semibold text-xs text-slate-700 dark:text-slate-300">{(row.totalVoters ?? 0).toLocaleString()}</span>,
+      render: (row) => <span className="font-mono font-medium text-[9.5px] text-slate-700 dark:text-slate-300">{(row.totalVoters ?? 0).toLocaleString()}</span>,
     },
   ];
 
@@ -293,32 +220,6 @@ export const BoothsPage: React.FC = () => {
     toast.success('Booths exported successfully');
   };
 
-  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
-    try {
-      await dispatch(
-        startBulkImportFileJob(
-          'booths',
-          file,
-          () => {
-            const params: Record<string, any> = { page, limit };
-            if (stateId) params.stateId = stateId;
-            if (districtId) params.districtId = districtId;
-            if (pcId) params.pcId = pcId;
-            if (acId) params.acId = acId;
-            if (wardId) params.wardId = wardId;
-            if (search.trim()) params.search = search.trim();
-            dispatch(fetchSuperAdminMasterCategoryData('booths', '/masters/booths', false, params));
-          },
-          context || { stateId, districtId, pcId, acId, wardId }
-        )
-      );
-      toast.success('Bulk import job started for Booths!');
-      setIsImportModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start import');
-    }
-  };
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -335,27 +236,13 @@ export const BoothsPage: React.FC = () => {
     <div className="space-y-4">
       <PageHeader
         title="Polling Booths"
-        icon={<Vote className="w-6 h-6 text-indigo-500" />}
-        subtitle="Manage individual polling booth locations under Wards and Assembly Constituencies."
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {boothsPagination?.total ?? boothsData.length} {(boothsPagination?.total ?? boothsData.length) === 1 ? 'Record' : 'Records'}
-          </span>
-        }
         addLabel="Add Booth"
         isSyncing={isSyncing}
         onSyncClick={handleSync}
         onAddClick={handleOpenAdd}
         onExportClick={handleExport}
-        onImportClick={() => setIsImportModalOpen(true)}
-      />
-
-      <FilterBar
-        searchPlaceholder="Search Booth No, Polling Station Name, AC, Ward..."
-        searchValue={search}
-        onSearchChange={handleSearchChange}
-        filters={filterFields}
-        onReset={handleResetFilters}
+        icon={<Vote className="w-6 h-6 text-indigo-500" />}
+        subtitle="Manage individual polling booth locations under Wards and Assembly Constituencies."
       />
 
       <DataTable
@@ -363,6 +250,19 @@ export const BoothsPage: React.FC = () => {
         loading={loading}
         data={boothsData}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={filterFields}
+            showDrawerButton={false}
+            showResetButton={false}
+            searchValue={search}
+            onSearchChange={handleSearchChange}
+            onReset={handleResetFilters}
+            searchPlaceholder="Search Booth No, Polling Station Name, AC, Ward..."
+          />
+        }
         serverPagination={
           boothsPagination
             ? {
@@ -409,14 +309,6 @@ export const BoothsPage: React.FC = () => {
         loading={isDeleting}
       />
 
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImport}
-        title="Import Booths"
-        categoryKey="booths"
-        sampleParams={{ stateId, districtId, pcId, acId, wardId }}
-      />
     </div>
   );
 };

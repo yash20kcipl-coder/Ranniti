@@ -398,8 +398,8 @@ export class MobileTeamService {
       const ROLE_NAME_MAP: Record<string, string> = {
         pc_leader: 'PC Leader',
         ac_leader: 'AC Leader',
-        sub_leader: 'Sub-Leader / Ward Coordinator',
-        supporter: 'Campaign Supporter / Volunteer',
+        sub_leader: 'Sub-Leader',
+        supporter: 'Campaign Supporter',
       };
       updateFields.push(`role = $${pIdx++}`);
       updateValues.push(payload.role.trim());

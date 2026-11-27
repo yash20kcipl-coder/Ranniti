@@ -27,7 +27,41 @@ export class MobileAuthService {
       throw ApiError.forbidden('Admin and Super Admin accounts must log in via the Web Portal.');
     }
 
-    const isMatch = await comparePassword(password, user.passwordHash);
+    let isMatch = await comparePassword(password, user.passwordHash);
+    if (!isMatch) {
+      // Check auto-generated password variants (e.g. Rahul@3210 vs legacy Rahul3210# or Rahul3210@)
+      const variants: string[] = [];
+
+      // If entered with @: e.g. Rahul@3210 -> test Rahul3210#
+      const atMatch = password.match(/^([a-zA-Z]+)@(\d+)$/);
+      if (atMatch) {
+        variants.push(`${atMatch[1]}${atMatch[2]}#`);
+        variants.push(`${atMatch[1]}${atMatch[2]}@`);
+      }
+
+      // If entered with # at end: e.g. Rahul3210# -> test Rahul@3210
+      const hashMatch = password.match(/^([a-zA-Z]+)(\d+)#$/);
+      if (hashMatch) {
+        variants.push(`${hashMatch[1]}@${hashMatch[2]}`);
+      }
+
+      // If entered with @ at end: e.g. Rahul3210@ -> test Rahul@3210
+      const endAtMatch = password.match(/^([a-zA-Z]+)(\d+)@$/);
+      if (endAtMatch) {
+        variants.push(`${endAtMatch[1]}@${endAtMatch[2]}`);
+      }
+
+      for (const variant of variants) {
+        if (variant !== password) {
+          const match = await comparePassword(variant, user.passwordHash);
+          if (match) {
+            isMatch = true;
+            break;
+          }
+        }
+      }
+    }
+
     if (!isMatch) {
       throw ApiError.unauthorized('Invalid credentials');
     }

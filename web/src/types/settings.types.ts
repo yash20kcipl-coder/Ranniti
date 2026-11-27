@@ -17,6 +17,16 @@ export interface FieldRulesConfig {
   allowPhotoCapture: boolean;
 }
 
+export interface SurveyFieldPointRule {
+  label: string;
+  points: number;
+  category: 'contact' | 'political' | 'demographic' | 'status' | 'address' | 'profile' | 'identification';
+  enabled: boolean;
+  requirePreviouslyEmpty?: boolean;
+}
+
+export type SurveyFieldPointsConfig = Record<string, SurveyFieldPointRule>;
+
 export interface CampaignSettings {
   id?: string;
   organizationId?: string | null;
@@ -46,6 +56,7 @@ export interface CampaignSettings {
   electionType?: string;
   // Field Rules
   fieldRules: FieldRulesConfig;
+  surveyFieldPoints?: SurveyFieldPointsConfig;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -91,5 +102,5 @@ export interface AppVersionConfig {
   updatedAt?: string;
 }
 
-export type SettingsTabKey = 'user-roles' | 'tenant-roles' | 'app-versions' | 'whatsapp-templates' | 'push-notifications';
+export type SettingsTabKey = 'user-roles' | 'tenant-roles' | 'app-versions' | 'whatsapp-templates' | 'push-notifications' | 'survey-field-points';
 

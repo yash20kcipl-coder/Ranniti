@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FileUploadInput } from './FileUploadInput';
-import { Eye, EyeOff, Check, AlertCircle, ChevronDown, Search, X } from 'lucide-react';
+import { Eye, EyeOff, Check, AlertCircle, ChevronDown, Search, X, Loader2 } from 'lucide-react';
 
 export interface Option {
   label: string;
@@ -22,6 +22,12 @@ export interface FormInputProps {
   options?: Option[];
   /** Suggestion strings for type="autocomplete" free-text inputs */
   suggestions?: string[];
+  /** Async search fallback when local suggestions don't match */
+  onRemoteSearch?: (query: string) => Promise<any[]>;
+  /** Callback with full object when selected from suggestions or remote results */
+  onSelectDetailed?: (item: any) => void;
+  /** Custom renderer for detailed suggestion item */
+  renderSuggestionDetail?: (item: any) => React.ReactNode;
   error?: string;
   helperText?: string;
   rows?: number;
@@ -32,6 +38,10 @@ export interface FormInputProps {
   size?: 'sm' | 'md' | 'lg';
   /** @deprecated use type="autocomplete" + suggestions instead */
   list?: string;
+  inlineLabel?: string;
+  clearable?: boolean;
+  onClear?: () => void;
+  inputClassName?: string;
 }
 
 interface SearchableSelectProps {
@@ -46,6 +56,8 @@ interface SearchableSelectProps {
   icon?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg';
   baseInputStyles: string;
+  inlineLabel?: string;
+  clearable?: boolean;
 }
 
 interface AutocompleteInputProps {
@@ -58,6 +70,9 @@ interface AutocompleteInputProps {
   disabled?: boolean;
   icon?: React.ReactNode;
   baseInputStyles: string;
+  onRemoteSearch?: (query: string) => Promise<any[]>;
+  onSelectDetailed?: (item: any) => void;
+  renderSuggestionDetail?: (item: any) => React.ReactNode;
 }
 
 const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
@@ -70,9 +85,16 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   disabled,
   icon,
   baseInputStyles,
+  onRemoteSearch,
+  onSelectDetailed,
+  renderSuggestionDetail,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number; openUpwards: boolean } | null>(null);
+  const [remoteResults, setRemoteResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<any>(null);
+  const prevQueryRef = useRef<string>('');
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -87,11 +109,57 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     return uniqueSuggestions.filter((s) => s.toLowerCase().includes(term)).slice(0, 20);
   }, [uniqueSuggestions, value]);
 
+  // Trigger remote search automatically when no local matches exist and input is at least 2 chars
+  useEffect(() => {
+    const trimmed = value.trim();
+    if (!onRemoteSearch || trimmed.length < 2) {
+      setRemoteResults([]);
+      setIsSearching(false);
+      prevQueryRef.current = '';
+      return;
+    }
+
+    if (filtered.length > 0) {
+      setRemoteResults([]);
+      setIsSearching(false);
+      prevQueryRef.current = '';
+      return;
+    }
+
+    if (trimmed === prevQueryRef.current) return;
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        prevQueryRef.current = trimmed;
+        const res = await onRemoteSearch(trimmed);
+        setRemoteResults(Array.isArray(res) ? res : []);
+      } catch {
+        setRemoteResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 250);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [value, filtered.length, onRemoteSearch]);
+
   const hasExactMatch = React.useMemo(() => {
     if (!value.trim()) return true;
     const term = value.toLowerCase().trim();
-    return uniqueSuggestions.some((s) => s.toLowerCase() === term);
-  }, [uniqueSuggestions, value]);
+    if (uniqueSuggestions.some((s) => s.toLowerCase() === term)) return true;
+    if (remoteResults.some((r) => {
+      const name = typeof r === 'string' ? r : (r?.name || '');
+      return name.toLowerCase() === term;
+    })) return true;
+    return false;
+  }, [uniqueSuggestions, remoteResults, value]);
 
   const updateCoords = useCallback(() => {
     if (!containerRef.current) return;
@@ -134,13 +202,21 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     setIsOpen(true);
   };
 
-  const handleSelect = (suggestion: string) => {
+  const handleSelect = (suggestion: string, itemDetail?: any) => {
     onChange?.({ target: { name: name || '', value: suggestion } });
+    if (itemDetail && onSelectDetailed) {
+      onSelectDetailed(itemDetail);
+    }
     setIsOpen(false);
     inputRef.current?.focus();
   };
 
-  const showDropdown = isOpen && (filtered.length > 0 || (!hasExactMatch && value.trim().length > 0));
+  const showDropdown = isOpen && (
+    filtered.length > 0 ||
+    remoteResults.length > 0 ||
+    isSearching ||
+    (!hasExactMatch && value.trim().length > 0)
+  );
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -173,7 +249,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
           className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/90 shadow-2xl shadow-slate-900/10 dark:shadow-black/90 backdrop-blur-xl overflow-hidden"
           onMouseDown={(e) => e.preventDefault()}
         >
-          <div className="max-h-52 overflow-y-auto p-1.5 space-y-0.5">
+          <div className="max-h-56 overflow-y-auto p-1.5 space-y-0.5">
             {!hasExactMatch && value.trim().length > 0 && (
               <button
                 type="button"
@@ -183,6 +259,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
                 <span className="truncate">Add new <strong>"{value.trim()}"</strong></span>
               </button>
             )}
+
             {filtered.map((s, index) => (
               <button
                 key={`${s}-${index}`}
@@ -197,6 +274,81 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
                 {s.toLowerCase() === value.toLowerCase().trim() && <Check size={12} className="shrink-0 text-white ml-auto" />}
               </button>
             ))}
+
+            {isSearching && (
+              <div className="flex items-center gap-2 px-3 py-2 text-xs font-slab text-slate-500 dark:text-slate-400">
+                <Loader2 size={13} className="animate-spin text-indigo-500" />
+                <span>Searching database for "{value.trim()}"...</span>
+              </div>
+            )}
+
+            {!isSearching && remoteResults.length > 0 && (
+              <div className="space-y-0.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Database Search Results
+                </div>
+                {remoteResults.map((item, index) => {
+                  const itemName = typeof item === 'string' ? item : (item?.name || '');
+                  const locationSubtitle = renderSuggestionDetail
+                    ? renderSuggestionDetail(item)
+                    : (typeof item === 'object' && item !== null
+                      ? [item.talukaName, item.districtName, item.stateName].filter(Boolean).join(', ')
+                      : '');
+                  const isSelected = itemName.toLowerCase() === value.toLowerCase().trim();
+
+                  return (
+                    <button
+                      key={`remote-${item.id || itemName}-${index}`}
+                      type="button"
+                      onMouseDown={() => handleSelect(itemName, item)}
+                      className={`w-full px-3 py-2 rounded-lg text-xs font-slab text-left transition-colors cursor-pointer flex flex-col gap-0.5 ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white font-medium'
+                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="truncate font-medium">{itemName}</span>
+                        {isSelected && <Check size={12} className="shrink-0 text-white ml-2" />}
+                      </div>
+                      {locationSubtitle ? (
+                        <span className={`text-[10px] truncate ${isSelected ? 'text-indigo-100' : 'text-slate-400 dark:text-slate-500'}`}>
+                          {locationSubtitle}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {filtered.length === 0 && !isSearching && remoteResults.length === 0 && value.trim().length >= 2 && onRemoteSearch && (
+              <div className="px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 italic">
+                No database records found matching "{value.trim()}"
+              </div>
+            )}
+
+            {onRemoteSearch && filtered.length > 0 && value.trim().length >= 2 && !isSearching && remoteResults.length === 0 && (
+              <button
+                type="button"
+                onMouseDown={async (e) => {
+                  e.preventDefault();
+                  setIsSearching(true);
+                  try {
+                    const res = await onRemoteSearch(value.trim());
+                    setRemoteResults(Array.isArray(res) ? res : []);
+                  } catch {
+                    setRemoteResults([]);
+                  } finally {
+                    setIsSearching(false);
+                  }
+                }}
+                className="w-full px-3 py-1.5 text-[11px] font-slab text-indigo-600 dark:text-indigo-400 hover:underline text-left flex items-center gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800"
+              >
+                <Search size={12} />
+                <span>Search database for more "{value.trim()}"...</span>
+              </button>
+            )}
           </div>
         </div>,
         document.body
@@ -218,6 +370,8 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   icon,
   size = 'md',
   baseInputStyles,
+  inlineLabel,
+  clearable = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -311,6 +465,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
+  const hasActiveValue = value !== undefined && value !== null && String(value).trim() !== '';
   const selectedOption = options.find((opt) => String(opt.value) === String(value));
 
   const filteredOptions = options.filter((opt) => {
@@ -325,6 +480,13 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const handleSelect = (optValue: string | number) => {
     onChange?.({ target: { name: name || '', value: optValue } });
     setIsOpen(false);
+    setSearchTerm('');
+  };
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onChange?.({ target: { name: name || '', value: '' } });
     setSearchTerm('');
   };
 
@@ -346,23 +508,53 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`${baseInputStyles} ${icon ? (size === 'sm' ? 'pl-8' : 'pl-10') : ''} ${size === 'sm' ? 'pr-8 text-[11px]' : 'pr-10 text-xs'} font-slab text-left transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none ${isOpen ? 'ring-2 ring-indigo-500/20 border-indigo-500' : ''
+        className={`${baseInputStyles} ${size === 'sm' ? 'px-2.5 text-[11px]' : 'px-3 text-xs'} font-slab text-left transition-all flex items-center justify-between gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none ${isOpen ? 'ring-1 ring-indigo-400/30 border-indigo-400/80' : ''
           }`}
       >
-        {icon && (
-          <div className={`absolute ${size === 'sm' ? 'left-2.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none`}>
-            {icon}
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          {icon && (
+            <span className="shrink-0 text-slate-400 dark:text-slate-500">
+              {icon}
+            </span>
+          )}
+
+          <div className="flex items-center min-w-0 truncate">
+            {inlineLabel && hasActiveValue && (
+              <span className="text-slate-400 dark:text-slate-500 font-normal shrink-0 mr-1 text-[11px]">
+                {inlineLabel}:
+              </span>
+            )}
+            <span className={`truncate font-slab ${size === 'sm' ? 'text-[11px]' : 'text-xs'} ${hasActiveValue ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-400 dark:text-slate-500 font-normal'}`}>
+              {selectedOption ? selectedOption.label : (hasActiveValue ? String(value) : placeholder)}
+            </span>
           </div>
-        )}
+        </div>
 
-        <span className={`block truncate font-slab ${size === 'sm' ? 'text-[11px]' : 'text-xs'} ${selectedOption ? 'text-slate-900 dark:text-slate-100 font-normal' : 'text-slate-400 dark:text-slate-500 font-normal'}`}>
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
+        <div className="flex items-center gap-1 shrink-0 text-slate-400 dark:text-slate-500 ml-1">
+          {clearable && hasActiveValue && !disabled && !required && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={handleClear}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  handleClear(e as any);
+                }
+              }}
+              className="p-0.5 rounded-full hover:text-rose-500 dark:hover:text-rose-400 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition-colors cursor-pointer"
+              title={`Clear ${inlineLabel || 'selection'}`}
+            >
+              <X size={size === 'sm' ? 12 : 13} />
+            </span>
+          )}
 
-        <ChevronDown
-          size={size === 'sm' ? 14 : 16}
-          className={`absolute ${size === 'sm' ? 'right-2.5' : 'right-3.5'} top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-200 text-slate-500 dark:text-slate-400 ${isOpen ? 'rotate-180 text-indigo-500' : ''}`}
-        />
+          <ChevronDown
+            size={size === 'sm' ? 13 : 15}
+            className={`pointer-events-none transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-500' : ''}`}
+          />
+        </div>
       </button>
 
       {/* Custom Dropdown Panel (Portal-rendered to document.body to prevent any underlapping or clipping) */}
@@ -458,6 +650,9 @@ export const FormInput: React.FC<FormInputProps> = ({
   disabled = false,
   options = [],
   suggestions = [],
+  onRemoteSearch,
+  onSelectDetailed,
+  renderSuggestionDetail,
   error,
   helperText,
   rows = 3,
@@ -467,25 +662,33 @@ export const FormInput: React.FC<FormInputProps> = ({
   className = '',
   size = 'md',
   list,
+  inlineLabel,
+  clearable,
+  onClear,
+  inputClassName = "",
 }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const isSm = size === 'sm';
+  const normalizedInputClassName = (inputClassName || '').replace(/\brounded-xxl\b/g, 'rounded-2xl');
+  const hasCustomRadius = Boolean(normalizedInputClassName && /\brounded(-[\w[\]-]+)?\b/.test(normalizedInputClassName));
+  const radiusClass = hasCustomRadius ? '' : 'rounded-md';
+
   const sizeStyles = isSm
-    ? 'h-8 px-2.5 text-[11px] leading-tight font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-md'
+    ? `h-8 px-2.5 text-[11px] leading-tight font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 ${radiusClass}`
     : type === 'textarea'
-      ? 'px-3 py-2 text-xs leading-relaxed font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-md'
-      : 'h-9 px-3 text-xs leading-tight font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-md';
+      ? `px-3 py-2 text-xs leading-relaxed font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 ${radiusClass}`
+      : `h-9 px-3 text-xs leading-tight font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 ${radiusClass}`;
 
   const isFilled = value !== undefined && value !== null && String(value).trim() !== '' && value !== false;
 
   const stateStyles = error
-    ? 'border-red-500 focus:border-red-500 bg-red-50/40 dark:bg-red-950/20 text-slate-900 dark:text-slate-100'
+    ? 'border-red-400 focus:border-red-400 bg-red-50/30 dark:bg-red-950/20 text-slate-900 dark:text-slate-100'
     : isFilled
-      ? 'bg-slate-50/80 dark:bg-slate-800/60 border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 text-slate-900 dark:text-slate-100 font-normal focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs'
-      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 shadow-2xs';
+      ? 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700/60 hover:border-slate-300/80 dark:hover:border-slate-600 text-slate-900 dark:text-slate-100 font-normal focus:border-indigo-400/80 focus:ring-1 focus:ring-indigo-400/20'
+      : 'bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-800/80 hover:border-slate-300/80 dark:hover:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-indigo-400/80 focus:ring-1 focus:ring-indigo-400/20';
 
-  const baseInputStyles = `w-full ${sizeStyles} border ${stateStyles} font-slab focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
+  const baseInputStyles = `w-full ${sizeStyles} border ${stateStyles} font-slab focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${normalizedInputClassName}`.trim();
 
   const renderInput = () => {
     switch (type) {
@@ -528,6 +731,8 @@ export const FormInput: React.FC<FormInputProps> = ({
             icon={icon}
             size={size}
             baseInputStyles={baseInputStyles}
+            inlineLabel={inlineLabel}
+            clearable={clearable}
           />
         );
 
@@ -543,6 +748,9 @@ export const FormInput: React.FC<FormInputProps> = ({
             disabled={disabled}
             icon={icon}
             baseInputStyles={baseInputStyles}
+            onRemoteSearch={onRemoteSearch}
+            onSelectDetailed={onSelectDetailed}
+            renderSuggestionDetail={renderSuggestionDetail}
           />
         );
       case 'textarea':
@@ -648,8 +856,25 @@ export const FormInput: React.FC<FormInputProps> = ({
               required={required}
               disabled={disabled}
               list={list}
-              className={`${baseInputStyles} ${icon ? (isSm ? 'pl-8' : 'pl-10') : ''} font-slab text-xs`}
+              className={`${baseInputStyles} ${icon ? (isSm ? 'pl-8' : 'pl-10') : ''} ${clearable && isFilled && !disabled ? (isSm ? 'pr-8' : 'pr-9') : ''} font-slab text-xs`}
             />
+            {clearable && isFilled && !disabled && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onClear) {
+                    onClear();
+                  } else if (onChange) {
+                    onChange({ target: { name: name || '', value: '' } });
+                  }
+                }}
+                className={`absolute ${isSm ? 'right-2' : 'right-2.5'} top-1/2 -translate-y-1/2 p-0.5 rounded-full text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer`}
+                title="Clear"
+              >
+                <X size={isSm ? 12 : 14} />
+              </button>
+            )}
           </div>
         );
     }

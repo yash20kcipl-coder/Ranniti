@@ -57,5 +57,5 @@ export const requireSuperAdmin = requireRole('super_admin');
 /**
  * Shortcut middleware requiring Tenant Admin or Super Admin role
  */
-export const requireAdmin = requireRole('super_admin', 'tenant_admin');
+export const requireAdmin = requireRole('super_admin', 'tenant_admin', 'tenant_user');
 

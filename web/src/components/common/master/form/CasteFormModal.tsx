@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
 import { FORM_CASTE_CATEGORY_OPTIONS } from '@/constants/dropdownOptions';
+import { formatTitleCase } from '@/utils/textUtils';
 
 interface CasteFormModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export const CasteFormModal: React.FC<CasteFormModalProps> = ({
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      await onSave({ name, category, religionId, parentCasteId });
+      await onSave({ name: formatTitleCase(name.trim()), category, religionId, parentCasteId });
     } finally {
       setSubmitting(false);
     }

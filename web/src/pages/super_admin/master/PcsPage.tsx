@@ -11,13 +11,11 @@ import React, { useState, useMemo } from 'react';
 import { exportToExcel } from '@/utils/exportImport';
 import { useMasterData } from '@/hooks/useMasterData';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ImportModal } from '@/components/common/ImportModal';
 import { PcFormModal } from '@/components/common/master/form';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { startBulkImportFileJob } from '@/redux/actions/importJobs';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
@@ -41,7 +39,6 @@ export const PcsPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Debounced backend fetch for pcs data with filter parameters
   useDebouncedEffect(() => {
@@ -89,9 +86,11 @@ export const PcsPage: React.FC = () => {
       label: 'State',
       type: 'select',
       value: stateId,
+      defaultValue: '',
+      excludeFromCount: true,
       onChange: setStateId,
-      options: stateOptions,
-      placeholder: 'All States',
+      options: [{ label: 'All States', value: '' }, ...stateOptions],
+      isPrimary: true,
     },
   ];
 
@@ -101,15 +100,15 @@ export const PcsPage: React.FC = () => {
       key: 'pcNumber',
       header: 'PC No.',
       sortable: true,
-      render: (row) => <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">#{row.pcNumber || '-'}</span>,
+      render: (row) => <span className="font-mono font-medium text-[9.5px] text-slate-700 dark:text-slate-300">#{row.pcNumber || '-'}</span>,
     },
     {
       key: 'name',
       header: 'Constituency Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.stateName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -171,28 +170,6 @@ export const PcsPage: React.FC = () => {
     toast.success('PCs exported successfully');
   };
 
-  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
-    try {
-      await dispatch(
-        startBulkImportFileJob(
-          'pcs',
-          file,
-          () => {
-            const params: Record<string, string> = {};
-            if (stateId) params.stateId = stateId;
-            if (search.trim()) params.search = search.trim();
-            dispatch(fetchSuperAdminMasterCategoryData('pcs', '/masters/pcs', false, params));
-          },
-          context || { stateId }
-        )
-      );
-      toast.success('Bulk import job started for PCs!');
-      setIsImportModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start import');
-    }
-  };
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -208,28 +185,14 @@ export const PcsPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <PageHeader
+        addLabel="Add PC"
+        isSyncing={isSyncing}
+        onSyncClick={handleSync}
+        onAddClick={handleOpenAdd}
+        onExportClick={handleExport}
         title="Parliamentary Constituencies (PC)"
         icon={<Globe className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage Lok Sabha parliamentary constituencies."
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {filteredPcs.length} {filteredPcs.length === 1 ? 'Record' : 'Records'}
-          </span>
-        }
-        onAddClick={handleOpenAdd}
-        addLabel="Add PC"
-        onImportClick={() => setIsImportModalOpen(true)}
-        onExportClick={handleExport}
-        onSyncClick={handleSync}
-        isSyncing={isSyncing}
-      />
-
-      <FilterBar
-        searchPlaceholder="Search PC Name, PC No, State..."
-        searchValue={search}
-        onSearchChange={setSearch}
-        filters={filterFields}
-        onReset={handleResetFilters}
       />
 
       <DataTable
@@ -237,6 +200,19 @@ export const PcsPage: React.FC = () => {
         data={filteredPcs}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            searchPlaceholder="Search PC Name, PC No, State..."
+            searchValue={search}
+            showDrawerButton={false}
+            showResetButton={false}
+            onSearchChange={setSearch}
+            filters={filterFields}
+            onReset={handleResetFilters}
+          />
+        }
         actions={(row) => (
           <TableActions
             onEdit={() => handleOpenEdit(row)}
@@ -246,31 +222,22 @@ export const PcsPage: React.FC = () => {
       />
 
       <PcFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        editingItem={editingItem}
         states={statesData}
         onSave={handleSave}
+        isOpen={isModalOpen}
+        editingItem={editingItem}
+        onClose={() => setIsModalOpen(false)}
       />
 
       <ConfirmModal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleDeleteConfirm}
         title="Delete PC"
-        message={`Are you sure you want to delete "${itemToDelete?.name || ''}"?`}
         confirmText="Delete"
-        confirmVariant="danger"
         loading={isDeleting}
-      />
-
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImport}
-        title="Import PCs"
-        categoryKey="pcs"
-        sampleParams={{ stateId }}
+        confirmVariant="danger"
+        isOpen={deleteModalOpen}
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setDeleteModalOpen(false)}
+        message={`Are you sure you want to delete "${itemToDelete?.name || ''}"?`}
       />
     </div>
   );

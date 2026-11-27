@@ -12,7 +12,6 @@ import {
   updateSuperAdminElection,
   deleteSuperAdminElection,
 } from '@/redux/actions/superAdminElection';
-import { useMasterData } from '@/hooks/useMasterData';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -37,7 +36,6 @@ export const SuperAdminElectionsPage: React.FC = () => {
   const { elections, total, loading } = useAppSelector(
     (state) => state.superAdminElection
   );
-  const { states = [] } = useMasterData(['states']);
 
   // Filter & Pagination States
   const [page, setPage] = useState(1);
@@ -45,7 +43,6 @@ export const SuperAdminElectionsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterStateId, setFilterStateId] = useState('');
 
   // Modal States
   const [isSaving, setIsSaving] = useState(false);
@@ -68,12 +65,11 @@ export const SuperAdminElectionsPage: React.FC = () => {
       if (search.trim()) filters.search = search.trim();
       if (filterStatus) filters.status = filterStatus;
       if (filterType) filters.electionType = filterType;
-      if (filterStateId) filters.stateId = filterStateId;
 
       dispatch(fetchSuperAdminElections(filters));
     },
     200,
-    [search, filterStatus, filterType, filterStateId, page, limit]
+    [search, filterStatus, filterType, page, limit]
   );
 
   // Filter Fields Configuration
@@ -84,49 +80,37 @@ export const SuperAdminElectionsPage: React.FC = () => {
         label: 'Status',
         type: 'select',
         value: filterStatus,
+        defaultValue: '',
+        excludeFromCount: true,
         onChange: (val) => {
           setFilterStatus(val);
           setPage(1);
         },
-        options: ELECTION_STATUS_OPTIONS,
-        placeholder: 'All Statuses',
+        options: [{ label: 'All Statuses', value: '' }, ...ELECTION_STATUS_OPTIONS],
+        isPrimary: true,
       },
       {
         key: 'electionType',
         label: 'Election Type',
         type: 'select',
         value: filterType,
+        defaultValue: '',
+        excludeFromCount: true,
         onChange: (val) => {
           setFilterType(val);
           setPage(1);
         },
-        options: ELECTION_TYPE_OPTIONS,
-        placeholder: 'All Types',
-      },
-      {
-        key: 'stateId',
-        label: 'State',
-        type: 'select',
-        value: filterStateId,
-        onChange: (val) => {
-          setFilterStateId(val);
-          setPage(1);
-        },
-        options: [
-          { label: 'All States', value: '' },
-          ...states.map((s: any) => ({ label: s.name, value: s.id })),
-        ],
-        placeholder: 'All States',
+        options: [{ label: 'All Types', value: '' }, ...ELECTION_TYPE_OPTIONS],
+        isPrimary: true,
       },
     ],
-    [filterStatus, filterType, filterStateId, states]
+    [filterStatus, filterType]
   );
 
   const handleClearFilters = () => {
     setSearch('');
     setFilterStatus('');
     setFilterType('');
-    setFilterStateId('');
     setPage(1);
   };
 
@@ -176,11 +160,11 @@ export const SuperAdminElectionsPage: React.FC = () => {
       sortable: true,
       render: (row) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-semibold text-xs text-slate-900 dark:text-slate-100">
+          <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">
             {row.name}
           </span>
           {row.electionCode && (
-            <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="font-mono text-[9.5px] text-slate-500 dark:text-slate-400">
               #{row.electionCode}
             </span>
           )}
@@ -201,7 +185,7 @@ export const SuperAdminElectionsPage: React.FC = () => {
           OTHER: 'Other',
         };
         return (
-          <span className="inline-block px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+          <span className="inline-block px-2 py-0.5 text-[9.5px] font-medium rounded-md bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
             {typeLabels[row.electionType] || row.electionType}
           </span>
         );
@@ -211,16 +195,14 @@ export const SuperAdminElectionsPage: React.FC = () => {
       key: 'stateName',
       header: 'Constituency Scope',
       render: (row) => (
-        <div className="flex flex-col gap-0.5 text-xs">
+        <div className="flex flex-col gap-0.5 text-[10px]">
           <div className="flex items-center gap-1 text-slate-800 dark:text-slate-200 font-medium">
-            <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+            <MapPin className="w-3 h-3 text-indigo-500" />
             <span>{row.stateName || 'All States'}</span>
           </div>
           {(row.pcName || row.acName) && (
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              {[row.pcName && `PC: ${row.pcName}`, row.acName && `AC: ${row.acName}`]
-                .filter(Boolean)
-                .join(' • ')}
+            <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-mono">
+              {[row.pcName, row.acName].filter(Boolean).join(' · ')}
             </span>
           )}
         </div>
@@ -235,9 +217,9 @@ export const SuperAdminElectionsPage: React.FC = () => {
         const isToday = pDate && pDate === todayStr;
         const diffDays = pDate
           ? Math.ceil(
-              (new Date(pDate).getTime() - new Date(todayStr).getTime()) /
-                (1000 * 3600 * 24)
-            )
+            (new Date(pDate).getTime() - new Date(todayStr).getTime()) /
+            (1000 * 3600 * 24)
+          )
           : null;
 
         return (
@@ -298,10 +280,9 @@ export const SuperAdminElectionsPage: React.FC = () => {
         };
         return (
           <span
-            className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-              statusColors[row.status] ||
+            className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusColors[row.status] ||
               'bg-slate-500/10 border-slate-500/20 text-slate-400'
-            }`}
+              }`}
           >
             {row.status}
           </span>
@@ -316,11 +297,6 @@ export const SuperAdminElectionsPage: React.FC = () => {
         title="Election Master"
         subtitle="Centralized management of national, state, and local election cycles, schedules, and tenant assignments"
         icon={<CalendarCheck size={22} />}
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {total} {total === 1 ? 'Record' : 'Records'}
-          </span>
-        }
         onAddClick={() => {
           setEditingItem(null);
           setIsModalOpen(true);
@@ -328,22 +304,27 @@ export const SuperAdminElectionsPage: React.FC = () => {
         addLabel="Add Master Election"
       />
 
-      <FilterBar
-        searchValue={search}
-        onSearchChange={(val) => {
-          setSearch(val);
-          setPage(1);
-        }}
-        searchPlaceholder="Search master elections by title or code..."
-        filters={filterFields}
-        onReset={handleClearFilters}
-      />
-
       <DataTable
         columns={columns}
         data={elections}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            searchValue={search}
+            showDrawerButton={false}
+            showResetButton={false}
+            onSearchChange={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+            searchPlaceholder="Search master elections by title or code..."
+            filters={filterFields}
+            onReset={handleClearFilters}
+          />
+        }
         serverPagination={{
           page,
           limit,

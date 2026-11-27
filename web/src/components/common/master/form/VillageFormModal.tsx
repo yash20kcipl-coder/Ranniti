@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
+import { formatTitleCase } from '@/utils/textUtils';
 
 interface VillageFormModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export const VillageFormModal: React.FC<VillageFormModalProps> = ({
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      await onSave({ name, stateId, districtId, talukaId });
+      await onSave({ name: formatTitleCase(name.trim()), stateId, districtId, talukaId });
     } finally {
       setSubmitting(false);
     }

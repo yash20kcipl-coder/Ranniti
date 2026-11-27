@@ -11,13 +11,11 @@ import React, { useState, useMemo } from 'react';
 import { exportToExcel } from '@/utils/exportImport';
 import { useMasterData } from '@/hooks/useMasterData';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ImportModal } from '@/components/common/ImportModal';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { CasteFormModal } from '@/components/common/master/form';
-import { startBulkImportFileJob } from '@/redux/actions/importJobs';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 
@@ -42,7 +40,6 @@ export const CastesPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Debounced backend fetch for castes data with filter parameters
   useDebouncedEffect(() => {
@@ -101,18 +98,22 @@ export const CastesPage: React.FC = () => {
       label: 'Category',
       type: 'select',
       value: categoryFilter,
+      defaultValue: '',
+      excludeFromCount: true,
       onChange: setCategoryFilter,
-      options: categoryOptions,
-      placeholder: 'All Categories',
+      options: [{ label: 'All Categories', value: '' }, ...categoryOptions],
+      isPrimary: true,
     },
     {
       key: 'religionId',
       label: 'Religion',
       type: 'select',
       value: religionId,
+      defaultValue: '',
+      excludeFromCount: true,
       onChange: setReligionId,
-      options: religionOptions,
-      placeholder: 'All Religions',
+      options: [{ label: 'All Religions', value: '' }, ...religionOptions],
+      isPrimary: true,
     },
   ];
 
@@ -122,20 +123,20 @@ export const CastesPage: React.FC = () => {
       key: 'name',
       header: 'Caste / Subcaste Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 leading-tight">{row.name}</span>,
     },
     {
       key: 'category',
       header: 'Category',
       sortable: true,
       render: (row) => (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
           {row.category || '-'}
         </span>
       ),
     },
-    { key: 'religionName', header: 'Religion', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.religionName || '-'}</span> },
-    { key: 'parentCasteName', header: 'Parent Caste', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.parentCasteName || '-'}</span> },
+    { key: 'religionName', header: 'Religion', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.religionName || '-'}</span> },
+    { key: 'parentCasteName', header: 'Parent Caste', sortable: true, render: (row) => <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-tight">{row.parentCasteName || '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -197,28 +198,6 @@ export const CastesPage: React.FC = () => {
     toast.success('Castes exported successfully');
   };
 
-  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
-    try {
-      await dispatch(
-        startBulkImportFileJob(
-          'castes',
-          file,
-          () => {
-            const params: Record<string, string> = {};
-            if (religionId) params.religionId = religionId;
-            if (search.trim()) params.search = search.trim();
-            dispatch(fetchSuperAdminMasterCategoryData('castes', '/masters/castes', false, params));
-          },
-          context || { religionId }
-        )
-      );
-      toast.success('Bulk import job started for Castes!');
-      setIsImportModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start import');
-    }
-  };
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -237,25 +216,11 @@ export const CastesPage: React.FC = () => {
         title="Castes & Subcastes"
         icon={<Users className="w-6 h-6 text-indigo-500" />}
         subtitle="Manage caste categories and social classifications."
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {filteredCastes.length} {filteredCastes.length === 1 ? 'Record' : 'Records'}
-          </span>
-        }
         onAddClick={handleOpenAdd}
         addLabel="Add Caste"
-        onImportClick={() => setIsImportModalOpen(true)}
         onExportClick={handleExport}
         onSyncClick={handleSync}
         isSyncing={isSyncing}
-      />
-
-      <FilterBar
-        searchPlaceholder="Search Caste, Category, Religion, Parent Caste..."
-        searchValue={search}
-        onSearchChange={setSearch}
-        filters={filterFields}
-        onReset={handleResetFilters}
       />
 
       <DataTable
@@ -263,6 +228,19 @@ export const CastesPage: React.FC = () => {
         data={filteredCastes}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            searchPlaceholder="Search Caste, Category, Religion, Parent Caste..."
+            searchValue={search}
+            showDrawerButton={false}
+            showResetButton={false}
+            onSearchChange={setSearch}
+            filters={filterFields}
+            onReset={handleResetFilters}
+          />
+        }
         actions={(row) => (
           <TableActions
             onEdit={() => handleOpenEdit(row)}
@@ -291,14 +269,6 @@ export const CastesPage: React.FC = () => {
         loading={isDeleting}
       />
 
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImport}
-        title="Import Castes"
-        categoryKey="castes"
-        sampleParams={{ religionId }}
-      />
     </div>
   );
 };

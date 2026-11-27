@@ -12,6 +12,8 @@ import {
   SET_BOOTHS_LOADING,
   SET_MASTER_TALUKAS,
   SET_MASTER_VILLAGES,
+  SET_MASTER_PROFESSION_CATEGORIES,
+  SET_MASTER_PROFESSIONS,
   AcMasterItem,
   WardMasterItem,
   BoothMasterItem,
@@ -23,6 +25,8 @@ import {
   PcMasterItem,
   TalukaMasterItem,
   VillageMasterItem,
+  ProfessionCategoryMasterItem,
+  ProfessionMasterItem,
 } from "../reducers/master";
 import { Dispatch } from "redux";
 import apiClient from "../../api/apiClient";
@@ -176,6 +180,7 @@ export const fetchMasterPartiesAction = () => {
         name: p.name,
         abbreviation: p.abbreviation || p.name,
         symbolLogo: p.symbolLogo,
+        color: p.color,
       }));
       dispatch({ type: SET_MASTER_PARTIES, payload: parties });
       return parties;
@@ -215,6 +220,7 @@ export const fetchMasterCastesAction = (religionId?: string) => {
         name: c.name,
         category: c.category || 'General',
         religionId: c.religionId ? String(c.religionId) : undefined,
+        parentCasteId: c.parentCasteId || c.parent_caste_id ? String(c.parentCasteId || c.parent_caste_id) : undefined,
       }));
       dispatch({ type: SET_MASTER_CASTES, payload: castes });
       return castes;
@@ -257,6 +263,26 @@ export const fetchMasterInfluencerOptionsAction = (params: {
   };
 };
 
+export const searchMasterTalukasAction = (search: string, limit = 20) => {
+  return async () => {
+    try {
+      const res = await apiClient.get('/mobile/masters/talukas', { params: { search, limit } });
+      const raw = res?.data?.data || res?.data || [];
+      const list = Array.isArray(raw) ? raw : (raw.talukas || []);
+      return list.map((item: any) => ({
+        id: String(item.id),
+        name: item.name || item.talukaName || `Taluka #${item.id}`,
+        districtId: item.districtId ? String(item.districtId) : undefined,
+        districtName: item.districtName,
+        stateId: item.stateId ? String(item.stateId) : undefined,
+        stateName: item.stateName,
+      }));
+    } catch {
+      return [];
+    }
+  };
+};
+
 export const fetchMasterTalukasAction = (districtId?: string) => {
   return async (dispatch: Dispatch) => {
     try {
@@ -268,11 +294,36 @@ export const fetchMasterTalukasAction = (districtId?: string) => {
         id: String(item.id),
         name: item.name || item.talukaName || `Taluka #${item.id}`,
         districtId: item.districtId ? String(item.districtId) : undefined,
+        districtName: item.districtName,
+        stateId: item.stateId ? String(item.stateId) : undefined,
+        stateName: item.stateName,
       }));
       dispatch({ type: SET_MASTER_TALUKAS, payload: talukas });
       return talukas;
     } catch (e) {
       console.error('Failed to fetch talukas master data:', e);
+      return [];
+    }
+  };
+};
+
+export const searchMasterVillagesAction = (search: string, limit = 20) => {
+  return async () => {
+    try {
+      const res = await apiClient.get('/mobile/masters/villages', { params: { search, limit } });
+      const raw = res?.data?.data || res?.data || [];
+      const list = Array.isArray(raw) ? raw : (raw.villages || []);
+      return list.map((item: any) => ({
+        id: String(item.id),
+        name: item.name || item.villageName || `Village #${item.id}`,
+        talukaId: item.talukaId ? String(item.talukaId) : undefined,
+        talukaName: item.talukaName,
+        districtId: item.districtId ? String(item.districtId) : undefined,
+        districtName: item.districtName,
+        stateId: item.stateId ? String(item.stateId) : undefined,
+        stateName: item.stateName,
+      }));
+    } catch {
       return [];
     }
   };
@@ -291,12 +342,78 @@ export const fetchMasterVillagesAction = (talukaId?: string, districtId?: string
         id: String(item.id),
         name: item.name || item.villageName || `Village #${item.id}`,
         talukaId: item.talukaId ? String(item.talukaId) : undefined,
+        talukaName: item.talukaName,
         districtId: item.districtId ? String(item.districtId) : undefined,
+        districtName: item.districtName,
+        stateId: item.stateId ? String(item.stateId) : undefined,
+        stateName: item.stateName,
       }));
       dispatch({ type: SET_MASTER_VILLAGES, payload: villages });
       return villages;
     } catch (e) {
       console.error('Failed to fetch villages master data:', e);
+      return [];
+    }
+  };
+};
+
+export const fetchMasterProfessionCategoriesAction = () => {
+  return async (dispatch: Dispatch) => {
+    try {
+      const res = await apiClient.get('/mobile/masters/profession-categories');
+      const raw = res?.data?.data || res?.data || [];
+      const list = Array.isArray(raw) ? raw : (raw.professionCategories || []);
+      const categories: ProfessionCategoryMasterItem[] = list.map((item: any) => ({
+        id: String(item.id),
+        name: item.name || `Category #${item.id}`,
+        professionCount: item.professionCount ? Number(item.professionCount) : undefined,
+      }));
+      dispatch({ type: SET_MASTER_PROFESSION_CATEGORIES, payload: categories });
+      return categories;
+    } catch (e) {
+      console.error('Failed to fetch profession categories master data:', e);
+      return [];
+    }
+  };
+};
+
+export const searchMasterProfessionsAction = (search: string, limit = 20) => {
+  return async () => {
+    try {
+      const res = await apiClient.get('/mobile/masters/professions', { params: { search, limit } });
+      const raw = res?.data?.data || res?.data || [];
+      const list = Array.isArray(raw) ? raw : (raw.professions || []);
+      return list.map((item: any) => ({
+        id: String(item.id),
+        name: item.name || `Profession #${item.id}`,
+        sublabel: item.categoryName || item.category_name,
+        category: item.categoryName || item.category_name,
+        raw: item,
+      }));
+    } catch {
+      return [];
+    }
+  };
+};
+
+export const fetchMasterProfessionsAction = (categoryId?: string) => {
+  return async (dispatch: Dispatch) => {
+    try {
+      const params: any = {};
+      if (categoryId) params.categoryId = categoryId;
+      const res = await apiClient.get('/mobile/masters/professions', { params });
+      const raw = res?.data?.data || res?.data || [];
+      const list = Array.isArray(raw) ? raw : (raw.professions || []);
+      const professions: ProfessionMasterItem[] = list.map((item: any) => ({
+        id: String(item.id),
+        categoryId: String(item.categoryId || item.category_id || ''),
+        categoryName: item.categoryName || item.category_name || undefined,
+        name: item.name || `Profession #${item.id}`,
+      }));
+      dispatch({ type: SET_MASTER_PROFESSIONS, payload: professions });
+      return professions;
+    } catch (e) {
+      console.error('Failed to fetch professions master data:', e);
       return [];
     }
   };

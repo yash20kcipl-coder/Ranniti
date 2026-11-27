@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import { CacheService } from './cache.service';
 import { SyncManifestService } from './syncManifest.service';
+import { MasterLookupBroadcaster } from './superAdmin/masterLookupBroadcaster.service';
 
 export type MasterCategory =
   | 'states'
@@ -14,6 +15,8 @@ export type MasterCategory =
   | 'religions'
   | 'castes'
   | 'parties'
+  | 'professionCategories'
+  | 'professions'
   | 'voters'
   | 'tenantSettings'
   | 'userRoles';
@@ -81,6 +84,20 @@ const CATEGORY_REGISTRY: Record<MasterCategory, CategoryConfig> = {
     masterPattern: 'ranniti:masters:parties*',
     tenantPattern: (t) => `ranniti:tenant:${t}:parties*`,
     syncKey: 'parties',
+  },
+  professionCategories: {
+    masterPattern: 'ranniti:masters:profession_categories*',
+    tenantPattern: (t) => `ranniti:tenant:${t}:profession_categories*`,
+    syncKey: 'professionCategories',
+    additionalPatterns: (t) => [
+      `ranniti:tenant:${t}:professions*`,
+      'ranniti:masters:professions*',
+    ],
+  },
+  professions: {
+    masterPattern: 'ranniti:masters:professions*',
+    tenantPattern: (t) => `ranniti:tenant:${t}:professions*`,
+    syncKey: 'professions',
   },
   voters: {
     tenantPattern: (t) => `ranniti:tenant:${t}:voter*`,
@@ -155,6 +172,11 @@ export class MasterCacheInvalidator {
       logger.info(
         `[MasterCacheInvalidator] Invalidation and sync bump completed for [${list.join(', ')}] (tenant: ${tenantDbName || 'global'})`
       );
+
+      // 5. If mutation was global Master DB, broadcast sync to active tenant databases in background
+      if (!tenantDbName?.trim()) {
+        MasterLookupBroadcaster.broadcast(list);
+      }
     } catch (err: any) {
       logger.error(`[MasterCacheInvalidator] Error during invalidation for [${list.join(', ')}]:`, err);
     }

@@ -195,6 +195,43 @@ export class TenantSettingsController {
     const response = ApiResponse.success(payload, 'Tenant WhatsApp templates synchronized');
     res.status(response.statusCode).json(response.body);
   });
+
+  /**
+   * GET /api/v1/tenant/settings/survey-field-points
+   * Retrieve dynamic survey field scoring points
+   */
+  getSurveyFieldPoints = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.tenantDbName || req.user?.tenantDbName;
+    const points = await settingsQueries.getSurveyFieldPoints(tenantDbName);
+    const response = ApiResponse.success(points, 'Survey field points retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  /**
+   * PUT /api/v1/tenant/settings/survey-field-points
+   * Update dynamic survey field scoring points
+   */
+  updateSurveyFieldPoints = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.tenantDbName || req.user?.tenantDbName;
+    const pointsConfig = req.body;
+    if (!pointsConfig || typeof pointsConfig !== 'object') {
+      throw ApiError.badRequest('Invalid points configuration payload');
+    }
+    const updated = await settingsQueries.updateSurveyFieldPoints(pointsConfig, tenantDbName);
+    const response = ApiResponse.success(updated, 'Survey field points updated successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  /**
+   * POST /api/v1/tenant/settings/survey-field-points/reset
+   * Reset survey field scoring points to default configuration
+   */
+  resetSurveyFieldPoints = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const tenantDbName = req.tenantDbName || req.user?.tenantDbName;
+    const reset = await settingsQueries.resetSurveyFieldPoints(tenantDbName);
+    const response = ApiResponse.success(reset, 'Survey field points reset to defaults successfully');
+    res.status(response.statusCode).json(response.body);
+  });
 }
 
 export const tenantSettingsController = new TenantSettingsController();

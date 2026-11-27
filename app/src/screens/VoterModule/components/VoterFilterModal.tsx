@@ -459,7 +459,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
               <TouchableOpacity
                 key={tile.id || 'all-tile'}
                 style={[styles.tileCard, isSelected && styles.tileCardActive]}
-                onPress={() => setSelectedVoterType(tile.id)}
+                onPress={() => setSelectedVoterType(selectedVoterType === tile.id ? '' : tile.id)}
                 activeOpacity={0.7}
               >
                 <View style={[styles.tileIconBox, isSelected && styles.tileIconBoxActive]}>

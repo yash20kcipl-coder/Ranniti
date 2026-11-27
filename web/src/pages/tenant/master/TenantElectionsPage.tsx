@@ -57,24 +57,28 @@ export const TenantElectionsPage: React.FC = () => {
         label: 'Status',
         type: 'select',
         value: filterStatus,
+        defaultValue: '',
+        excludeFromCount: true,
         onChange: (val) => {
           setFilterStatus(val);
           setPage(1);
         },
-        options: ELECTION_STATUS_OPTIONS,
-        placeholder: 'All Statuses',
+        options: [{ label: 'All Statuses', value: '' }, ...ELECTION_STATUS_OPTIONS],
+        isPrimary: true,
       },
       {
         key: 'electionType',
         label: 'Election Type',
         type: 'select',
         value: filterType,
+        defaultValue: '',
+        excludeFromCount: true,
         onChange: (val) => {
           setFilterType(val);
           setPage(1);
         },
-        options: ELECTION_TYPE_OPTIONS,
-        placeholder: 'All Types',
+        options: [{ label: 'All Types', value: '' }, ...ELECTION_TYPE_OPTIONS],
+        isPrimary: true,
       },
     ],
     [filterStatus, filterType]
@@ -128,25 +132,25 @@ export const TenantElectionsPage: React.FC = () => {
       sortable: true,
       render: (row) => (
         <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => navigate(`/dashboard/tenant-master/elections/${row.id}/turnout`)}
-              className="text-left font-slab font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+              className="text-left font-semibold text-[10.5px] text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer leading-tight"
               title="Open Live Turnout War Room"
             >
               {row.name}
             </button>
             {row.isDefault && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                 Active Default
               </span>
             )}
           </div>
           {row.electionCode && (
-            <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
-              Code: #{row.electionCode}
+            <span className="font-mono text-[9.5px] text-slate-500 dark:text-slate-400">
+              #{row.electionCode}
             </span>
           )}
         </div>
@@ -157,16 +161,16 @@ export const TenantElectionsPage: React.FC = () => {
       header: 'Type',
       render: (row) => {
         const typeLabels: Record<string, string> = {
-          ASSEMBLY: 'Assembly (Vidhan Sabha)',
-          PARLIAMENTARY: 'Parliamentary (Lok Sabha)',
-          MUNICIPAL_CORP: 'Municipal Corporation',
+          ASSEMBLY: 'Assembly (VS)',
+          PARLIAMENTARY: 'Parliamentary (LS)',
+          MUNICIPAL_CORP: 'Municipal Corp',
           ZILLA_PARISHAD: 'Zilla Parishad',
           PANCHAYAT_SAMITI: 'Panchayat Samiti',
           GRAM_PANCHAYAT: 'Gram Panchayat',
           OTHER: 'Other',
         };
         return (
-          <span className="inline-block px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+          <span className="inline-block px-2 py-0.5 text-[9.5px] font-medium rounded-md bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
             {typeLabels[row.electionType] || row.electionType}
           </span>
         );
@@ -183,20 +187,20 @@ export const TenantElectionsPage: React.FC = () => {
 
         return (
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
-              <Calendar className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+            <div className="flex items-center gap-1 text-[10px] font-medium text-slate-800 dark:text-slate-200">
+              <Calendar className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
               <span>{pDate || 'Not Set'}</span>
             </div>
             {isToday ? (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 w-fit">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 w-fit">
                 Polling Today
               </span>
             ) : diffDays !== null && diffDays > 0 ? (
-              <span className="text-[11px] text-blue-500 dark:text-blue-400 font-medium">
+              <span className="text-[9.5px] text-blue-500 dark:text-blue-400 font-medium">
                 In {diffDays} day{diffDays > 1 ? 's' : ''}
               </span>
             ) : diffDays !== null ? (
-              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+              <span className="text-[9.5px] text-slate-400 dark:text-slate-500">
                 {Math.abs(diffDays)} day{Math.abs(diffDays) > 1 ? 's' : ''} ago
               </span>
             ) : null}
@@ -210,8 +214,8 @@ export const TenantElectionsPage: React.FC = () => {
       render: (row) => {
         const cDate = row.countingDate ? String(row.countingDate).split('T')[0] : '';
         return (
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+          <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+            <Calendar className="w-3 h-3 text-slate-400" />
             <span>{cDate || 'Not Announced'}</span>
           </div>
         );
@@ -229,7 +233,7 @@ export const TenantElectionsPage: React.FC = () => {
         };
         return (
           <span
-            className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusColors[row.status] || 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+            className={`inline-block px-2 py-0.5 rounded-md text-[9.5px] font-semibold border ${statusColors[row.status] || 'bg-slate-500/10 border-slate-500/20 text-slate-400'
               }`}
           >
             {row.status}
@@ -245,11 +249,6 @@ export const TenantElectionsPage: React.FC = () => {
         title="Election Master"
         subtitle="View assigned campaign elections, designate the active default election, and monitor polling-day operations"
         icon={<Vote size={22} />}
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {total} {total === 1 ? 'Assigned' : 'Assigned'}
-          </span>
-        }
         onSyncClick={handleSyncDefaultByDate}
         syncLabel={isSyncing ? 'Syncing...' : 'Sync Default by Date'}
       />
@@ -269,22 +268,27 @@ export const TenantElectionsPage: React.FC = () => {
         </div>
       </div>
 
-      <FilterBar
-        searchValue={search}
-        onSearchChange={(val) => {
-          setSearch(val);
-          setPage(1);
-        }}
-        searchPlaceholder="Search assigned elections..."
-        filters={filterFields}
-        onReset={handleClearFilters}
-      />
-
       <DataTable
         columns={columns}
         data={elections}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            searchValue={search}
+            showDrawerButton={false}
+            showResetButton={false}
+            onSearchChange={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+            searchPlaceholder="Search assigned elections..."
+            filters={filterFields}
+            onReset={handleClearFilters}
+          />
+        }
         serverPagination={{
           page,
           limit,

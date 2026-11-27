@@ -177,7 +177,10 @@ export class TenantApiController {
     try {
       const tenantDbName = req.tenantDbName;
       const districtId = req.query.districtId as string | undefined;
-      const talukas = await tenantApiService.getTenantTalukas(districtId, tenantDbName);
+      const stateId = req.query.stateId as string | undefined;
+      const search = req.query.search as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+      const talukas = await tenantApiService.getTenantTalukas({ districtId, stateId, search, limit }, tenantDbName);
       res.status(200).json({ success: true, data: talukas });
     } catch (error) {
       next(error);
@@ -189,6 +192,28 @@ export class TenantApiController {
       const tenantDbName = req.tenantDbName;
       const newTaluka = await tenantApiService.createTenantTaluka(req.body, tenantDbName);
       res.status(201).json({ success: true, data: newTaluka, message: 'Taluka created successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateTaluka = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      const updated = await tenantApiService.updateTenantTaluka(id, req.body, tenantDbName);
+      res.status(200).json({ success: true, data: updated, message: 'Taluka updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteTaluka = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      await tenantApiService.deleteTenantTaluka(id, tenantDbName);
+      res.status(200).json({ success: true, message: 'Taluka deleted successfully' });
     } catch (error) {
       next(error);
     }
@@ -226,6 +251,28 @@ export class TenantApiController {
     }
   };
 
+  updateVillage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      const updated = await tenantApiService.updateTenantVillage(id, req.body, tenantDbName);
+      res.status(200).json({ success: true, data: updated, message: 'Village updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteVillage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      await tenantApiService.deleteTenantVillage(id, tenantDbName);
+      res.status(200).json({ success: true, message: 'Village deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // --- REFERENCE MASTERS ---
   getReligions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -258,12 +305,121 @@ export class TenantApiController {
     }
   };
 
+  updateCaste = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      const updated = await tenantApiService.updateTenantCaste(id, req.body, tenantDbName);
+      res.status(200).json({ success: true, data: updated, message: 'Caste updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteCaste = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      await tenantApiService.deleteTenantCaste(id, tenantDbName);
+      res.status(200).json({ success: true, message: 'Caste deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getParties = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantDbName = req.tenantDbName;
       const parties = await tenantApiService.getTenantParties(tenantDbName);
       const partiesWithUrls = attachFileUrls(parties, ['symbolLogo'], req);
       res.status(200).json({ success: true, data: partiesWithUrls });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getProfessionCategories = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const categories = await tenantApiService.getTenantProfessionCategories(tenantDbName);
+      res.status(200).json({ success: true, data: categories });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createProfessionCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const newCategory = await tenantApiService.createTenantProfessionCategory(req.body, tenantDbName);
+      res.status(201).json({ success: true, data: newCategory, message: 'Profession category created successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateProfessionCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      const updated = await tenantApiService.updateTenantProfessionCategory(id, req.body, tenantDbName);
+      res.status(200).json({ success: true, data: updated, message: 'Profession category updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteProfessionCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      await tenantApiService.deleteTenantProfessionCategory(id, tenantDbName);
+      res.status(200).json({ success: true, message: 'Profession category deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getProfessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const categoryId = req.query.categoryId as string | undefined;
+      const search = req.query.search as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+      const professions = await tenantApiService.getTenantProfessions({ categoryId, search, limit }, tenantDbName);
+      res.status(200).json({ success: true, data: professions });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createProfession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const newProfession = await tenantApiService.createTenantProfession(req.body, tenantDbName);
+      res.status(201).json({ success: true, data: newProfession, message: 'Profession created successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateProfession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      const updated = await tenantApiService.updateTenantProfession(id, req.body, tenantDbName);
+      res.status(200).json({ success: true, data: updated, message: 'Profession updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteProfession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantDbName = req.tenantDbName;
+      const id = String(req.params.id);
+      await tenantApiService.deleteTenantProfession(id, tenantDbName);
+      res.status(200).json({ success: true, message: 'Profession deleted successfully' });
     } catch (error) {
       next(error);
     }

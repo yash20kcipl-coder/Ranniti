@@ -15,6 +15,7 @@ import { resolveConstituencyScope } from '../helpers/scopeResolver';
 import { VillageProvisionService } from './village.provision.service';
 import { ReligionProvisionService } from './religion.provision.service';
 import { DistrictProvisionService } from './district.provision.service';
+import { ProfessionProvisionService } from './profession.provision.service';
 import { TenantDbProvisioner, getTenantDbPool } from '../../utils/tenantDbProvisioner';
 import { ElectionSyncService } from '../../services/superAdmin/electionSync.service';
 
@@ -31,12 +32,12 @@ async function syncMasterLookupTables(
   shouldTruncate: boolean = true,
   pcIds: string[] = []
 ): Promise<void> {
-  const { resolvedAcIds, resolvedPcIds } = await resolveConstituencyScope(acIds, pcIds);
+  const { resolvedAcIds, resolvedPcIds, resolvedDistrictIds } = await resolveConstituencyScope(acIds, pcIds);
 
   // Cleanly clear existing lookup data to prevent duplicate key conflicts (full provisioning only)
   if (shouldTruncate) {
     await tenantPool.query(`
-      TRUNCATE TABLE booths, wards, villages, talukas, assembly_constituencies, parliamentary_constituencies, districts, states, castes, religions, parties CASCADE;
+      TRUNCATE TABLE booths, wards, villages, talukas, assembly_constituencies, parliamentary_constituencies, districts, states, castes, religions, parties, professions, profession_categories CASCADE;
     `);
   }
 
@@ -44,61 +45,72 @@ async function syncMasterLookupTables(
     label: string;
     tableName: string;
     action: () => Promise<any>;
-  }> = [];
+  }> =[
+  { label: 'Syncing States (1/12)', tableName: 'states', action: () => StateProvisionService.sync(tenantPool) },
+  { label: 'Syncing Districts (2/12)', tableName: 'districts', action: () => DistrictProvisionService.sync(tenantPool) },
+  { label: 'Syncing Talukas (3/12)', tableName: 'talukas', action: () => TalukaProvisionService.sync(tenantPool, resolvedDistrictIds, resolvedAcIds) },
+  { label: 'Syncing Villages (4/12)', tableName: 'villages', action: () => VillageProvisionService.sync(tenantPool, resolvedDistrictIds, resolvedAcIds) },
+  { label: 'Syncing Religions (5/12)', tableName: 'religions', action: () => ReligionProvisionService.sync(tenantPool) },
+  { label: 'Syncing Castes (6/12)', tableName: 'castes', action: () => CasteProvisionService.sync(tenantPool) },
+  { label: 'Syncing Parties (7/12)', tableName: 'parties', action: () => PartyProvisionService.sync(tenantPool) },
+  { label: 'Syncing Professions (8/12)', tableName: 'professions', action: () => ProfessionProvisionService.sync(tenantPool) },
+  { label: 'Syncing Parliamentary Constituencies (9/12)', tableName: 'parliamentary_constituencies', action: () => PcProvisionService.sync(tenantPool, resolvedPcIds) },
+  { label: 'Syncing Assembly Constituencies (10/12)', tableName: 'assembly_constituencies', action: () => AcProvisionService.sync(tenantPool, resolvedAcIds) },
+  { label: 'Syncing Wards (11/12)', tableName: 'wards', action: () => WardProvisionService.sync(tenantPool, resolvedAcIds) },
+  { label: 'Syncing Polling Booths (12/12)', tableName: 'booths', action: () => BoothProvisionService.sync(tenantPool, resolvedAcIds) }
+];
 
-  if (shouldTruncate) {
-    tableSyncTasks.push(
-      { label: 'Syncing States (1/11)', tableName: 'states', action: () => StateProvisionService.sync(tenantPool) },
-      { label: 'Syncing Districts (2/11)', tableName: 'districts', action: () => DistrictProvisionService.sync(tenantPool) },
-      { label: 'Syncing Talukas (3/11)', tableName: 'talukas', action: () => TalukaProvisionService.sync(tenantPool) },
-      { label: 'Syncing Villages (4/11)', tableName: 'villages', action: () => VillageProvisionService.sync(tenantPool) },
-      { label: 'Syncing Religions (5/11)', tableName: 'religions', action: () => ReligionProvisionService.sync(tenantPool) },
-      { label: 'Syncing Castes (6/11)', tableName: 'castes', action: () => CasteProvisionService.sync(tenantPool) },
-      { label: 'Syncing Parties (7/11)', tableName: 'parties', action: () => PartyProvisionService.sync(tenantPool) }
-    );
-  }
+for (let i = 0; i < tableSyncTasks.length; i++) {
+  const task = tableSyncTasks[i];
+  const pct = progressBase + Math.round((i / tableSyncTasks.length) * progressRange);
 
-  tableSyncTasks.push(
-    { label: 'Syncing Parliamentary Constituencies (8/11)', tableName: 'parliamentary_constituencies', action: () => PcProvisionService.sync(tenantPool, resolvedPcIds) },
-    { label: 'Syncing Assembly Constituencies (9/11)', tableName: 'assembly_constituencies', action: () => AcProvisionService.sync(tenantPool, resolvedAcIds) },
-    { label: 'Syncing Wards (10/11)', tableName: 'wards', action: () => WardProvisionService.sync(tenantPool, resolvedAcIds) },
-    { label: 'Syncing Polling Booths (11/11)', tableName: 'booths', action: () => BoothProvisionService.sync(tenantPool, resolvedAcIds) }
-  );
+  await TenantQueries.updateProvisioningStatus(userId, {
+    status: 'provisioning',
+    provisioningProgress: pct,
+    currentStep: task.label,
+    currentPhase: 'master_data',
+    activeTable: task.tableName,
+  });
 
-  for (let i = 0; i < tableSyncTasks.length; i++) {
-    const task = tableSyncTasks[i];
-    const pct = progressBase + Math.round((i / tableSyncTasks.length) * progressRange);
-
+  const res = await task.action();
+  if (res?.count !== undefined) {
     await TenantQueries.updateProvisioningStatus(userId, {
       status: 'provisioning',
-      provisioningProgress: pct,
-      currentStep: task.label,
-      currentPhase: 'master_data',
-      activeTable: task.tableName,
+      processedRecords: res.count,
     });
-
-    const res = await task.action();
-    if (res?.count !== undefined) {
-      await TenantQueries.updateProvisioningStatus(userId, {
-        status: 'provisioning',
-        processedRecords: res.count,
-      });
-    }
   }
+}
 
-  // Prune out-of-scope legacy booths, wards, ACs, and PCs from previous runs (full provisioning only)
-  if (shouldTruncate && resolvedAcIds.length > 0) {
-    await tenantPool.query(`DELETE FROM booths WHERE NOT (ac_id = ANY($1::uuid[]))`, [resolvedAcIds]);
-    await tenantPool.query(`DELETE FROM wards WHERE NOT (ac_id = ANY($1::uuid[]))`, [resolvedAcIds]);
-    await tenantPool.query(`DELETE FROM assembly_constituencies WHERE NOT (id = ANY($1::uuid[]))`, [resolvedAcIds]);
-    if (resolvedPcIds.length > 0) {
-      await tenantPool.query(`DELETE FROM parliamentary_constituencies WHERE NOT (id = ANY($1::uuid[]))`, [resolvedPcIds]);
-    }
+// Prune out-of-scope legacy booths, wards, ACs, PCs, talukas, and villages from previous runs (full provisioning only)
+if (shouldTruncate && resolvedAcIds.length > 0) {
+  await tenantPool.query(`DELETE FROM booths WHERE NOT (ac_id = ANY($1::uuid[]))`, [resolvedAcIds]);
+  await tenantPool.query(`DELETE FROM wards WHERE NOT (ac_id = ANY($1::uuid[]))`, [resolvedAcIds]);
+  await tenantPool.query(`DELETE FROM assembly_constituencies WHERE NOT (id = ANY($1::uuid[]))`, [resolvedAcIds]);
+  if (resolvedPcIds.length > 0) {
+    await tenantPool.query(`DELETE FROM parliamentary_constituencies WHERE NOT (id = ANY($1::uuid[]))`, [resolvedPcIds]);
   }
+  if (resolvedDistrictIds.length > 0) {
+    // Prune unreferenced villages outside the resolved districts
+    await tenantPool.query(
+      `DELETE FROM villages
+         WHERE taluka_id NOT IN (SELECT id FROM talukas WHERE district_id = ANY($1::uuid[]))
+           AND id NOT IN (SELECT DISTINCT village_id FROM booths WHERE village_id IS NOT NULL)
+           AND id NOT IN (SELECT DISTINCT village_id FROM voters WHERE village_id IS NOT NULL)`,
+      [resolvedDistrictIds]
+    );
+    // Prune unreferenced talukas outside the resolved districts
+    await tenantPool.query(
+      `DELETE FROM talukas
+         WHERE NOT (district_id = ANY($1::uuid[]))
+           AND id NOT IN (SELECT DISTINCT taluka_id FROM villages WHERE taluka_id IS NOT NULL)`,
+      [resolvedDistrictIds]
+    );
+  }
+}
 
-  // Ensure default wards exist and booths are linked to wards
-  await WardProvisionService.ensureDefaultWards(tenantPool);
-  await BoothProvisionService.repairWardAssignments(tenantPool);
+// Ensure default wards exist and booths are linked to wards
+await WardProvisionService.ensureDefaultWards(tenantPool);
+await BoothProvisionService.repairWardAssignments(tenantPool);
 }
 
 // ---------------------------------------------------------------------------

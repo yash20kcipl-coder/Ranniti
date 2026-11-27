@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 export interface DonutSegment {
   id: string | number;
@@ -41,14 +41,14 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   const displayData = hasData
     ? chartData
     : [
-        {
-          id: 'unmapped',
-          label: 'Swing / Unmapped Base',
-          value: 100,
-          color: '#94A3B8',
-          percentage: 100,
-        },
-      ];
+      {
+        id: 'unmapped',
+        label: 'Swing / Unmapped Base',
+        value: 100,
+        color: '#94A3B8',
+        percentage: 100,
+      },
+    ];
 
   const activeItem = activeIndex !== null ? displayData[activeIndex] : null;
 
@@ -58,27 +58,6 @@ export const DonutChart: React.FC<DonutChartProps> = ({
       <div className="relative shrink-0 flex items-center justify-center" style={{ width: size, height: size }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            {hasData && (
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const seg = payload[0].payload as typeof chartData[0];
-                    return (
-                      <div className="bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-2 rounded-lg shadow-xl border border-slate-800 font-mono">
-                        <div className="flex items-center gap-1.5 font-bold mb-0.5" style={{ color: seg.color }}>
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: seg.color }} />
-                          {seg.label}
-                        </div>
-                        <div>
-                          <span className="font-extrabold">{seg.value.toLocaleString()}</span> voters ({seg.percentage}%)
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-            )}
             <Pie
               data={displayData}
               cx="50%"
@@ -133,7 +112,9 @@ export const DonutChart: React.FC<DonutChartProps> = ({
               <span className="text-xl font-extrabold text-slate-900 dark:text-white font-mono leading-tight">
                 {total.toLocaleString()}
               </span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">100% of mapped</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                {displayData.length} {displayData.length === 1 ? 'group' : 'groups'}
+              </span>
             </>
           ) : (
             <>
@@ -173,11 +154,10 @@ export const DonutChart: React.FC<DonutChartProps> = ({
               key={seg.id || idx}
               onMouseEnter={() => setActiveIndex(idx)}
               onMouseLeave={() => setActiveIndex(null)}
-              className={`p-2.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between text-xs ${
-                activeIndex === idx
+              className={`p-2.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between text-xs ${activeIndex === idx
                   ? 'bg-slate-50 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 shadow-xs scale-[1.01]'
                   : 'bg-white/60 dark:bg-slate-900/60 border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <span

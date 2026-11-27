@@ -4,6 +4,18 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { roleService } from '../../services/superAdmin/role.service';
 
 export class TenantUserRoleController {
+  getAvailableTabs = asyncHandler(async (_req: Request, res: Response): Promise<void> => {
+    const catalog = roleService.getAvailableTabs();
+    const response = ApiResponse.success(catalog, 'Available Tabs retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getAvailableVolunteerPermissions = asyncHandler(async (_req: Request, res: Response): Promise<void> => {
+    const catalog = roleService.getAvailableVolunteerPermissions();
+    const response = ApiResponse.success(catalog, 'Available Volunteer Permissions retrieved successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
   getTenantUserRoles = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const tenantDbName = (req.tenantDbName || req.user?.tenantDbName) || (req.query.tenantDbName as string);
     const roles = await roleService.getAllTenantUserRoles(tenantDbName);

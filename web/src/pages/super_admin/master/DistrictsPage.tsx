@@ -9,14 +9,13 @@ import {
 } from '@/redux/actions/masterSuperAdmin';
 import React, { useState, useMemo } from 'react';
 import { exportToExcel } from '@/utils/exportImport';
+import { formatTitleCase } from '@/utils/textUtils';
 import { useMasterData } from '@/hooks/useMasterData';
 import { PageHeader } from '@/components/common/PageHeader';
-import { ImportModal } from '@/components/common/ImportModal';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { TableActions } from '@/components/common/TableActions';
-import { startBulkImportFileJob } from '@/redux/actions/importJobs';
 import { DistrictFormModal } from '@/components/common/master/form';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
@@ -41,7 +40,6 @@ export const DistrictsPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Debounced backend fetch for districts data with filter parameters
   useDebouncedEffect(() => {
@@ -88,9 +86,11 @@ export const DistrictsPage: React.FC = () => {
       label: 'State',
       type: 'select',
       value: stateId,
+      defaultValue: '',
+      excludeFromCount: true,
       onChange: setStateId,
-      options: stateOptions,
-      placeholder: 'All States',
+      options: [{ label: 'All States', value: '' }, ...stateOptions],
+      isPrimary: true,
     },
   ];
 
@@ -100,9 +100,9 @@ export const DistrictsPage: React.FC = () => {
       key: 'name',
       header: 'District Name',
       sortable: true,
-      render: (row) => <span className="font-slab font-bold text-xs text-slate-900 dark:text-slate-100">{row.name}</span>,
+      render: (row) => <span className="font-slab font-bold text-[10.5px] text-slate-900 dark:text-slate-100">{formatTitleCase(row.name)}</span>,
     },
-    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-xs text-slate-600 dark:text-slate-400">{row.stateName || '-'}</span> },
+    { key: 'stateName', header: 'State', sortable: true, render: (row) => <span className="text-[10.5px] text-slate-600 dark:text-slate-400">{row.stateName ? formatTitleCase(row.stateName) : '-'}</span> },
   ];
 
   const handleOpenAdd = () => {
@@ -122,14 +122,15 @@ export const DistrictsPage: React.FC = () => {
 
   const handleSave = async (data: { name: string; stateId: string }) => {
     try {
+      const formattedData = { ...data, name: formatTitleCase(data.name) };
       if (editingItem) {
         await dispatch(
-          updateSuperAdminMasterCategoryItem('districts', '/masters/districts', editingItem.id, data)
+          updateSuperAdminMasterCategoryItem('districts', '/masters/districts', editingItem.id, formattedData)
         );
         toast.success('District updated successfully!');
       } else {
         await dispatch(
-          createSuperAdminMasterCategoryItem('districts', '/masters/districts', data)
+          createSuperAdminMasterCategoryItem('districts', '/masters/districts', formattedData)
         );
         toast.success('District created successfully!');
       }
@@ -164,28 +165,6 @@ export const DistrictsPage: React.FC = () => {
     toast.success('Districts exported successfully');
   };
 
-  const handleImport = async (file: File, _?: any, context?: Record<string, any>) => {
-    try {
-      await dispatch(
-        startBulkImportFileJob(
-          'districts',
-          file,
-          () => {
-            const params: Record<string, string> = {};
-            if (stateId) params.stateId = stateId;
-            if (search.trim()) params.search = search.trim();
-            dispatch(fetchSuperAdminMasterCategoryData('districts', '/masters/districts', false, params));
-          },
-          context || { stateId }
-        )
-      );
-      toast.success('Bulk import job started for Districts!');
-      setIsImportModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start import');
-    }
-  };
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -202,27 +181,13 @@ export const DistrictsPage: React.FC = () => {
     <div className="space-y-4">
       <PageHeader
         title="Districts"
-        icon={<Building2 className="w-6 h-6 text-indigo-500" />}
-        subtitle="Manage administrative district divisions."
-        badge={
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold text-xs">
-            {filteredDistricts.length} {filteredDistricts.length === 1 ? 'Record' : 'Records'}
-          </span>
-        }
-        onAddClick={handleOpenAdd}
-        addLabel="Add District"
-        onImportClick={() => setIsImportModalOpen(true)}
-        onExportClick={handleExport}
-        onSyncClick={handleSync}
         isSyncing={isSyncing}
-      />
-
-      <FilterBar
-        searchPlaceholder="Search District Name, State..."
-        searchValue={search}
-        onSearchChange={setSearch}
-        filters={filterFields}
-        onReset={handleResetFilters}
+        addLabel="Add District"
+        onSyncClick={handleSync}
+        onAddClick={handleOpenAdd}
+        onExportClick={handleExport}
+        subtitle="Manage administrative district divisions."
+        icon={<Building2 className="w-6 h-6 text-indigo-500" />}
       />
 
       <DataTable
@@ -230,6 +195,19 @@ export const DistrictsPage: React.FC = () => {
         data={filteredDistricts}
         loading={loading}
         showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            searchPlaceholder="Search District Name, State..."
+            searchValue={search}
+            showDrawerButton={false}
+            showResetButton={false}
+            onSearchChange={setSearch}
+            filters={filterFields}
+            onReset={handleResetFilters}
+          />
+        }
         actions={(row) => (
           <TableActions
             onEdit={() => handleOpenEdit(row)}
@@ -255,15 +233,6 @@ export const DistrictsPage: React.FC = () => {
         confirmText="Delete"
         confirmVariant="danger"
         loading={isDeleting}
-      />
-
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImport}
-        title="Import Districts"
-        categoryKey="districts"
-        sampleParams={{ stateId }}
       />
     </div>
   );

@@ -170,12 +170,12 @@ export const VolunteerStatsCards: React.FC<VolunteerStatsCardsProps> = ({
             </div>
           </div>
 
-          {/* Tier 2: Ward Lead Coverage */}
+          {/* Tier 2: Sub-Leader Coverage */}
           <div>
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-                Ward Leads:
+                Sub-Leaders:
               </span>
               <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">
                 {wardPercent}% ({wardCoveredBooths}/{totalBooths})

@@ -399,10 +399,12 @@ export const convert101Excel = async (customSource?: string): Promise<void> => {
       const pcName = 'Amreli';
       const districtName = 'Amreli';
       const stateName = 'Gujarat';
-      const taluka = 'Gariadhar';
+      const taluka = 'Gariyadhar';
 
       const voterAddress = cleanText(r.Anubhag_name);
-      const village = extractVillage(voterAddress) || 'Gariadhar';
+      // Disabled heuristic village extraction from address string to prevent dirty/invalid village entries.
+      // Village is left empty or explicitly assigned via master data.
+      const village = '';
       const fullAddress = '';
 
       const rowData = [

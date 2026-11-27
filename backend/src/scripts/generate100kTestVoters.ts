@@ -200,10 +200,11 @@ export const generate100kTestVoters = async (): Promise<void> => {
     const pcName = 'Amreli';
     const districtName = 'Amreli';
     const stateName = 'Gujarat';
-    const taluka = 'Gariadhar';
+    const taluka = 'Gariyadhar';
 
     const voterAddress = cleanText(r.Anubhag_name);
-    const village = extractVillage(voterAddress) || 'Gariadhar';
+    // Disabled heuristic village extraction from address string to prevent dirty/invalid village entries.
+    const village = '';
     const fullAddress = voterAddress;
 
     const rowData = [

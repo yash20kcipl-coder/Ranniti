@@ -94,6 +94,7 @@ coverage/
 .oxlintcache
 *.tmp
 *.temp
+*.zip
 
 # ------------------------------------------------------------------------------
 # Backend Uploads & Generated Media
@@ -119,6 +120,7 @@ xlsx/168_choriyasi.xlsx
 app/android/.gradle/
 app/android/build/
 app/android/app/build/
+app/android/apkCounts/
 app/android/.cxx/
 app/android/*.iml
 app/android/*.hprof

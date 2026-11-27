@@ -519,7 +519,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
                     <Text style={styles.passwordPreviewCode}>{generatedPasswordPreview}</Text>
                   </View>
                 </View>
-                <Text style={styles.passwordPreviewHint}>{t('formulaPasswordHint') || 'Formula: Name + PhoneLast4 + #'}</Text>
+                <Text style={styles.passwordPreviewHint}>{t('formulaPasswordHint') || 'Formula: Name + @ + PhoneLast4'}</Text>
               </View>
             )}
 

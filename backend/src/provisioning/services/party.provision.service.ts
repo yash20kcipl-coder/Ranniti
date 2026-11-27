@@ -7,14 +7,14 @@ import { getTenantDbPool } from '../../utils/tenantDbProvisioner';
 
 export class PartyProvisionService {
   static readonly TABLE_NAME = 'parties';
-  static readonly COLUMNS = ['id', 'name', 'abbreviation', 'symbol_logo', 'created_at', 'updated_at'];
+  static readonly COLUMNS = ['id', 'name', 'abbreviation', 'symbol_logo', 'alliance', 'color', 'created_at', 'updated_at'];
 
   /**
    * Syncs all party records from master DB into the tenant database.
    */
   static async sync(tenantPool: Pool): Promise<{ count: number }> {
     const res = await masterQuery(
-      `SELECT id, name, abbreviation, symbol_logo, created_at, updated_at FROM ${this.TABLE_NAME}`
+      `SELECT id, name, abbreviation, symbol_logo, alliance, color, created_at, updated_at FROM ${this.TABLE_NAME}`
     );
     const rows = res.rows;
 

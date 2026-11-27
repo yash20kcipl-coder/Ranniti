@@ -124,6 +124,24 @@ export interface Party {
   name: string;
   abbreviation: string;
   symbolLogo?: string;
+  alliance?: string;
+  color?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProfessionCategory {
+  id: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Profession {
+  id: string;
+  categoryId: string;
+  categoryName?: string;
+  name: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -2,8 +2,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
-  FlatList,
-  RefreshControl,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
@@ -26,6 +24,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { SearchHeaderWithFilter } from '../../components/SearchHeaderWithFilter';
 import { PermissionsPopUp } from '../../components/Permissions';
+import { MdFlatList } from '../../components';
 import { MyContactCard } from './components/MyContactCard';
 import { SyncedContactCard } from './components/SyncedContactCard';
 import { fetchDeviceContacts } from '../../utils/contactReader';
@@ -122,10 +121,11 @@ export const ContactSyncScreen: React.FC = () => {
   const filteredDeviceContacts = useMemo(() => {
     if (!search || !search.trim()) return deviceContacts;
     const term = search.trim().toLowerCase();
+    const cleanSearchDigits = term.replace(/\D/g, '');
     return deviceContacts.filter(
       (c) =>
         c.name.toLowerCase().includes(term) ||
-        c.phone.replace(/\D/g, '').includes(term.replace(/\D/g, ''))
+        (cleanSearchDigits.length > 0 && c.phone.replace(/\D/g, '').includes(cleanSearchDigits))
     );
   }, [deviceContacts, search]);
 
@@ -153,10 +153,11 @@ export const ContactSyncScreen: React.FC = () => {
   // Tab 1: My Contacts Scene
   const renderMyContactsScene = () => {
     return (
-      <FlatList
+      <MdFlatList<DeviceContactItem>
         data={filteredDeviceContacts}
-        keyExtractor={(item) => item.id}
+        paginationProps={{ count: 50 }}
         contentContainerStyle={styles.listContent}
+        refresh={handleSyncPress}
         renderItem={({ item }: { item: DeviceContactItem }) => (
           <MyContactCard item={item} theme={theme} />
         )}
@@ -178,13 +179,6 @@ export const ContactSyncScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         }
-        refreshControl={
-          <RefreshControl
-            refreshing={syncing}
-            onRefresh={handleSyncPress}
-            tintColor={theme.colors.primary || '#1E40AF'}
-          />
-        }
       />
     );
   };
@@ -196,10 +190,12 @@ export const ContactSyncScreen: React.FC = () => {
     }
 
     return (
-      <FlatList
+      <MdFlatList<SyncedContactVoter>
         data={syncedVoters}
-        keyExtractor={(item) => item.voterId}
         contentContainerStyle={styles.listContent}
+        refresh={handleRefresh}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.4}
         renderItem={({ item }: { item: SyncedContactVoter }) => (
           <SyncedContactCard
             item={item}
@@ -216,15 +212,6 @@ export const ContactSyncScreen: React.FC = () => {
             <Text style={styles.emptySubtitle}>{t('noSyncedContactsDesc')}</Text>
           </View>
         }
-        refreshControl={
-          <RefreshControl
-            refreshing={loading && syncedVoters.length > 0}
-            onRefresh={handleRefresh}
-            tintColor={theme.colors.primary || '#1E40AF'}
-          />
-        }
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.4}
       />
     );
   };

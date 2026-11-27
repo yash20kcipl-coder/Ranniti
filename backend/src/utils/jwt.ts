@@ -11,6 +11,8 @@ export interface JwtPayload {
   assignedAcId?: string | null;
   assignedAcIds?: string[] | null;
   assignedBoothIds?: string[];
+  isImpersonated?: boolean;
+  impersonatedBy?: string;
 }
 
 export const generateJwtToken = (payload: JwtPayload): string => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, ChevronRight, Vote } from 'lucide-react';
+import { Card } from '@/components/common/Card';
 import { SafeImage } from '@/components/common/SafeImage';
 import type { TenantDashboardPayload } from '@/redux/actions/tenantDashboard';
 
@@ -45,33 +46,22 @@ export const RecentVotersCard: React.FC<RecentVotersCardProps> = ({
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 shadow-xs animate-pulse">
-        <div className="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded mb-4" />
+      <Card loading className="min-h-[220px]">
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-12 bg-slate-200 dark:bg-slate-800 rounded-lg" />
           ))}
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-lg p-5 border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/60">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-            <Clock size={18} />
-          </div>
-          <div>
-            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-              Recent Voter Contacts & Registrations
-            </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Latest constituent updates recorded in campaign database
-            </p>
-          </div>
-        </div>
+    <Card
+      title="Recent Voter Contacts & Registrations"
+      subtitle="Latest constituent updates recorded in campaign database"
+      icon={<Clock size={18} className="text-blue-600 dark:text-blue-400" />}
+      action={
         <button
           type="button"
           onClick={() => navigate('/dashboard/voters')}
@@ -79,8 +69,8 @@ export const RecentVotersCard: React.FC<RecentVotersCardProps> = ({
         >
           View All <ChevronRight size={14} />
         </button>
-      </div>
-
+      }
+    >
       {recentVoters.length === 0 ? (
         <div className="p-8 text-center rounded-lg bg-slate-50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 text-xs">
           No recent voter registrations recorded yet.
@@ -143,6 +133,6 @@ export const RecentVotersCard: React.FC<RecentVotersCardProps> = ({
           </table>
         </div>
       )}
-    </div>
+    </Card>
   );
 };

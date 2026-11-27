@@ -6,6 +6,8 @@ import {
   UPDATE_TENANT_ROLE,
   DELETE_TENANT_ROLE,
   SET_DEFAULT_TENANT_ROLE,
+  SET_AVAILABLE_TABS,
+  SET_AVAILABLE_VOLUNTEER_PERMISSIONS,
   SET_TENANT_USER_ROLES,
   ADD_TENANT_USER_ROLE,
   UPDATE_TENANT_USER_ROLE,
@@ -19,6 +21,44 @@ export const setRoleLoading = (loading: boolean) => ({
   type: SET_ROLE_LOADING,
   payload: loading,
 });
+
+/**
+ * Super Admin: Fetch Available Platform Tabs and Feature Toggles Catalog from Backend
+ */
+export const fetchAvailableTabs = () => {
+  return async (dispatch: AppDispatch) => {
+    try {
+      const res = await api
+        .get('/tenant/roles/available-tabs')
+        .catch(() => api.get('/super-admin/tenant-roles/available-tabs'));
+      const data = res.data?.data || res.data;
+      if (data) {
+        dispatch({ type: SET_AVAILABLE_TABS, payload: data });
+      }
+      return data;
+    } catch {
+      return null;
+    }
+  };
+};
+
+/**
+ * Tenant: Fetch Available Volunteer Permissions, Screens & Subordinates Catalog from Backend
+ */
+export const fetchAvailableVolunteerPermissions = () => {
+  return async (dispatch: AppDispatch) => {
+    try {
+      const res = await api.get('/tenant/roles/available-permissions');
+      const data = res.data?.data || res.data;
+      if (data) {
+        dispatch({ type: SET_AVAILABLE_VOLUNTEER_PERMISSIONS, payload: data });
+      }
+      return data;
+    } catch {
+      return null;
+    }
+  };
+};
 
 /**
  * Super Admin: Fetch all Tenant Role Packages
@@ -35,6 +75,23 @@ export const fetchTenantRolePackages = () => {
       return data;
     } catch (err) {
       // In UI phase preview, retain default state if API is not yet live
+    } finally {
+      dispatch(setRoleLoading(false));
+    }
+  };
+};
+
+/**
+ * Super Admin: Fetch single Tenant Role Package by ID
+ */
+export const fetchTenantRolePackageById = (id: string) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setRoleLoading(true));
+    try {
+      const res = await api.get(`/super-admin/tenant-roles/${id}`);
+      return res.data?.data || res.data;
+    } catch (err) {
+      return null;
     } finally {
       dispatch(setRoleLoading(false));
     }
@@ -123,6 +180,21 @@ export const fetchTenantUserRoles = () => {
       return data;
     } catch (err) {
       // In UI phase preview, retain default state if API is not yet live
+    } finally {
+      dispatch(setRoleLoading(false));
+    }
+  };
+};
+
+/**
+ * Tenant Admin: Fetch single user role by ID
+ */
+export const fetchTenantUserRoleById = (id: string) => {
+  return async (dispatch: AppDispatch) => {
+    dispatch(setRoleLoading(true));
+    try {
+      const res = await api.get(`/tenant/user-roles/${id}`);
+      return res.data?.data || res.data;
     } finally {
       dispatch(setRoleLoading(false));
     }

@@ -15,6 +15,7 @@ export const generatePartiesImportXlsx = async (): Promise<string[]> => {
     { header: 'abbreviation', key: 'abbreviation', width: 18 },
     { header: 'symbolLogo', key: 'symbolLogo', width: 35 },
     { header: 'alliance', key: 'alliance', width: 40 },
+    { header: 'color', key: 'color', width: 16 },
   ];
 
   // Header styling
@@ -34,6 +35,7 @@ export const generatePartiesImportXlsx = async (): Promise<string[]> => {
       abbreviation: party.abbreviation,
       symbolLogo: party.symbolLogo || '',
       alliance: party.alliance || '',
+      color: (party as any).color || '',
     });
     row.height = 20;
 
@@ -45,7 +47,7 @@ export const generatePartiesImportXlsx = async (): Promise<string[]> => {
       };
     }
 
-    ['name', 'abbreviation', 'symbolLogo', 'alliance'].forEach((colKey) => {
+    ['name', 'abbreviation', 'symbolLogo', 'alliance', 'color'].forEach((colKey) => {
       const cell = row.getCell(colKey);
       cell.alignment = { vertical: 'middle', horizontal: 'left' };
       cell.border = {

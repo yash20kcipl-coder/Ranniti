@@ -59,8 +59,8 @@ Ranniti employs a **Database-per-Tenant** isolation model combined with a centra
 | **`user_booth_assignments`** | ✅ **YES** | ⚠️ *Optional* | **Junction** | **Retain in Master DB** | Maps field volunteers (`admin_users`) to assigned polling booths. |
 | **`states`** | ✅ **YES** | ✅ **YES** | **Lookup Master** | **Master + Tenant Partition** | State reference catalog. |
 | **`districts`** | ✅ **YES** | ✅ **YES** | **Lookup Master** | **Master + Tenant Partition** | District reference catalog. |
-| **`talukas`** | ✅ **YES** | ✅ **YES** | **Lookup Master** | **Master + Tenant Partition** | Taluka (tehsil) reference catalog. |
-| **`villages`** | ✅ **YES** | ✅ **YES** | **Lookup Master** | **Master + Tenant Partition** | Village residence reference catalog. |
+| **`talukas`** | ✅ **YES** | ✅ **YES** | **Lookup Master** | **Master + Tenant Partition** | Taluka (tehsil) reference catalog, scoped to the tenant's assigned constituency districts. |
+| **`villages`** | ✅ **YES** | ✅ **YES** | **Lookup Master** | **Master + Tenant Partition** | Village residence reference catalog, scoped to the tenant's assigned constituency districts and booths. |
 | **`religions`** | ✅ **YES** | ✅ **YES** | **Lookup Master** | **Master + Tenant Partition** | Standard religion classification master. |
 | **`castes`** | ✅ **YES** | ✅ **YES** | **Lookup Master** | **Master + Tenant Partition** | Caste and subcaste categorization master. |
 | **`parties`** | ✅ **YES** | ✅ **YES** | **Lookup Master** | **Master + Tenant Partition** | Political parties and symbol logos. |

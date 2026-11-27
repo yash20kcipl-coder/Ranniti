@@ -29,20 +29,22 @@ export const seedParties = async (): Promise<void> => {
     abbreviation: string;
     symbol_logo: string | null;
     alliance: string | null;
+    color: string | null;
   }> = [];
 
   for (const party of initialParties) {
     try {
       const res = await query(
-        `INSERT INTO parties (name, abbreviation, symbol_logo, alliance)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO parties (name, abbreviation, symbol_logo, alliance, color)
+         VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (name) DO UPDATE SET
            abbreviation = EXCLUDED.abbreviation,
            symbol_logo = EXCLUDED.symbol_logo,
            alliance = EXCLUDED.alliance,
+           color = EXCLUDED.color,
            updated_at = NOW()
-         RETURNING id, name, abbreviation, symbol_logo, alliance`,
-        [party.name, party.abbreviation, party.symbolLogo || null, party.alliance || null]
+         RETURNING id, name, abbreviation, symbol_logo, alliance, color`,
+        [party.name, party.abbreviation, party.symbolLogo || null, party.alliance || null, (party as any).color || null]
       );
       if (res.rows.length > 0) {
         seededRecords.push(res.rows[0]);

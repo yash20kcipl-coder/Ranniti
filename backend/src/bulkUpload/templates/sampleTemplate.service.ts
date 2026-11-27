@@ -15,8 +15,7 @@ export class SampleTemplateService {
     if (cat === 'castes' || cat === 'caste') {
       const religions = await MasterQueries.getReligions().catch(() => []);
       const r1 = religions[0]?.name || 'Hinduism';
-      const r2 = religions[1]?.name || 'Islam';
-      return `name,category,religionName\nBrahmin,General,${r1}\nRajput,General,${r1}\nYadav,OBC,${r2}\nJat,OBC,${r2}`;
+      return `Cast,Sub Cast,Category,Religion\nBrahmin,Audichya,General,${r1}\nBrahmin,Nagar,General,${r1}\nPatel,Kadva Patel,General,${r1}\nLuhar,,OBC,${r1}`;
     }
 
     if (cat === 'states' || cat === 'state') {
@@ -68,7 +67,18 @@ export class SampleTemplateService {
     }
 
     if (cat === 'parties' || cat === 'party' || cat === 'political_parties') {
-      return 'name,abbreviation,symbolLogo\nBharatiya Janata Party,BJP,/uploads/parties/bjp.png\nIndian National Congress,INC,/uploads/parties/inc.png\nAam Aadmi Party,AAP,/uploads/parties/aap.png';
+      return 'name,abbreviation,symbolLogo,color,alliance\nBharatiya Janata Party,BJP,/uploads/parties/bjp.png,#ea580c,National Democratic Alliance (NDA)\nIndian National Congress,INC,/uploads/parties/inc.png,#0284c7,INDIA Alliance\nAam Aadmi Party,AAP,/uploads/parties/aap.png,#06b6d4,INDIA Alliance';
+    }
+
+    if (cat === 'profession-categories' || cat === 'profession_categories' || cat === 'professioncategories' || cat === 'profession_category') {
+      return 'name\nBusiness\nService\nAgriculture\nHealthcare\nEducation';
+    }
+
+    if (cat === 'professions' || cat === 'profession') {
+      const categories = await MasterQueries.getProfessionCategories().catch(() => []);
+      const c1 = categories[0]?.name || 'Business';
+      const c2 = categories[1]?.name || 'Service';
+      return `name,categoryName\nShopkeeper,${c1}\nSoftware Engineer,${c2}`;
     }
 
     if (cat === 'voters' || cat === 'voter') {
@@ -251,6 +261,34 @@ export class SampleTemplateService {
       sheet.addRow(['Sikhism']);
       sheet.addRow(['Buddhism']);
       sheet.addRow(['Jainism']);
+
+    } else if (cat === 'profession-categories' || cat === 'profession_categories' || cat === 'professioncategories' || cat === 'profession_category') {
+      sheet.addRow(['name']);
+      sheet.addRow(['Business']);
+      sheet.addRow(['Service']);
+      sheet.addRow(['Agriculture']);
+      sheet.addRow(['Healthcare']);
+      sheet.addRow(['Education']);
+
+    } else if (cat === 'professions' || cat === 'profession') {
+      const categories = await MasterQueries.getProfessionCategories().catch(() => []);
+      let categoryNames = categories.map((c) => c.name);
+      let defaultCategory = categoryNames[0] || 'Business';
+
+      if (queryParams.categoryId) {
+        const matched = categories.find((c) => String(c.id).toLowerCase() === String(queryParams.categoryId).toLowerCase());
+        if (matched) {
+          defaultCategory = matched.name;
+          categoryNames = [matched.name, ...categoryNames.filter((n) => n !== matched.name)];
+        }
+      }
+
+      sheet.addRow(['name', 'categoryName']);
+      sheet.addRow(['Shopkeeper', defaultCategory]);
+      sheet.addRow(['Software Engineer', categoryNames[1] || defaultCategory]);
+
+      const categoryFormula = registerDynamicLookup('ProfessionCategories', categoryNames);
+      addListValidation('B', categoryFormula);
 
     } else if (cat === 'states' || cat === 'state') {
       sheet.addRow(['name']);
@@ -470,10 +508,10 @@ export class SampleTemplateService {
       }
 
     } else if (cat === 'parties' || cat === 'party' || cat === 'political_parties' || cat === 'political_party') {
-      sheet.addRow(['name', 'abbreviation', 'symbolLogo']);
-      sheet.addRow(['Bharatiya Janata Party', 'BJP', '/uploads/parties/bjp.png']);
-      sheet.addRow(['Indian National Congress', 'INC', '/uploads/parties/inc.png']);
-      sheet.addRow(['Aam Aadmi Party', 'AAP', '/uploads/parties/aap.png']);
+      sheet.addRow(['name', 'abbreviation', 'symbolLogo', 'color', 'alliance']);
+      sheet.addRow(['Bharatiya Janata Party', 'BJP', '/uploads/parties/bjp.png', '#ea580c', 'National Democratic Alliance (NDA)']);
+      sheet.addRow(['Indian National Congress', 'INC', '/uploads/parties/inc.png', '#0284c7', 'INDIA Alliance']);
+      sheet.addRow(['Aam Aadmi Party', 'AAP', '/uploads/parties/aap.png', '#06b6d4', 'INDIA Alliance']);
 
     } else if (cat === 'demo' || cat === 'demos' || cat === 'bulk_test' || cat === 'bulk_upload_demos') {
       sheet.addRow([

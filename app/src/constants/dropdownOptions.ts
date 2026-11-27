@@ -208,13 +208,13 @@ export const VOLUNTEER_ROLE_OPTIONS: DropdownOption[] = [
   { id: '', label: 'All Roles' },
   { id: 'pc_leader', label: 'PC Leader' },
   { id: 'ac_leader', label: 'AC Leader' },
-  { id: 'sub_leader', label: 'Sub-Leader / Ward Coordinator' },
-  { id: 'supporter', label: 'Campaign Supporter / Volunteer' },
+  { id: 'sub_leader', label: 'Sub-Leader' },
+  { id: 'supporter', label: 'Campaign Supporter' },
 ];
 
 export const FORM_VOLUNTEER_ROLE_OPTIONS: DropdownOption[] = [
   { id: 'pc_leader', label: 'PC Leader' },
   { id: 'ac_leader', label: 'AC Leader' },
-  { id: 'sub_leader', label: 'Sub-Leader / Ward Coordinator' },
-  { id: 'supporter', label: 'Campaign Supporter / Volunteer' },
+  { id: 'sub_leader', label: 'Sub-Leader' },
+  { id: 'supporter', label: 'Campaign Supporter' },
 ];

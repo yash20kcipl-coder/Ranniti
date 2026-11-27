@@ -19,6 +19,8 @@ export const TENANT_MASTER_ENDPOINTS: Record<TenantMasterCategoryKey, string> = 
   religions: API_ENDPOINTS.TENANT.MASTERS.RELIGIONS,
   castes: API_ENDPOINTS.TENANT.MASTERS.CASTES,
   parties: API_ENDPOINTS.TENANT.MASTERS.PARTIES,
+  professionCategories: API_ENDPOINTS.TENANT.MASTERS.PROFESSION_CATEGORIES,
+  professions: API_ENDPOINTS.TENANT.MASTERS.PROFESSIONS,
 };
 
 export const DEFAULT_TENANT_MASTER_CATEGORIES: TenantMasterCategoryKey[] = [
@@ -59,7 +61,12 @@ export const useTenantMasterData = (
       categories.forEach((cat) => {
         const isLoaded = (master.loadedCategories as any)?.[cat];
         const isFetching = (master.fetchingCategories as any)?.[cat];
-        if (!isLoaded && !isFetching) {
+        const isPaginatedPage = Boolean(master.pagination?.[cat]?.page && master.pagination[cat]?.limit);
+        const isPartialPage = Boolean(
+          master.pagination?.[cat]?.total &&
+          (master as any)[cat]?.length < master.pagination[cat].total
+        );
+        if ((!isLoaded || isPartialPage || isPaginatedPage) && !isFetching) {
           const endpoint = TENANT_MASTER_ENDPOINTS[cat];
           if (endpoint) {
             dispatch(fetchMasterCategoryData(cat, endpoint, false));

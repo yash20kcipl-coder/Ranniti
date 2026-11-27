@@ -1,0 +1,18 @@
+state_code,pc_code,pc_name,ac_code,ac_name,booth_code,booth_name,party,candidate,votes,vote_share,turnout,margin,election_year,election_type
+MP,29,Betul,131,Betul,1,Govt Higher Secondary School Betul,BJP,Jyoti Dhurve,124500,58.4,72.5,14.8,2024,LS
+MP,29,Betul,132,Ghoradongri,2,Primary School Ghoradongri,BJP,Jyoti Dhurve,118200,56.1,74.2,12.3,2024,LS
+MP,29,Betul,133,Bhainsdehi,3,Community Hall Bhainsdehi,INC,Ramu Tekam,98400,48.2,69.8,4.2,2024,LS
+MP,29,Betul,134,Multai,4,Town Hall Multai,BJP,Jyoti Dhurve,132000,61.2,75.1,18.5,2024,LS
+MP,29,Betul,135,Amla,5,Railway High School Amla,BJP,Jyoti Dhurve,110400,54.8,70.4,11.0,2024,LS
+GJ,24,Surat,167,Surat City,1,SMC Primary School Dumas,BJP,Mukesh Dalal,145000,68.5,62.4,32.1,2024,LS
+GJ,24,Surat,168,Choryasi,2,Community Center Magdalla,BJP,Mukesh Dalal,152000,71.0,64.8,35.4,2024,LS
+UP,77,Varanasi,388,Varanasi North,1,Central Hindu School Kamachha,BJP,Narendra Modi,162000,59.8,66.2,15.6,2024,LS
+UP,77,Varanasi,389,Varanasi South,2,Harishchandra College Maidagin,BJP,Narendra Modi,158000,62.4,64.9,18.2,2024,LS
+UP,77,Varanasi,390,Varanasi Cantt,3,Govt Inter College Nadesar,BJP,Narendra Modi,174000,64.1,67.5,21.0,2024,LS
+KL,4,Wayanad,16,Mananthavady,1,Govt UP School Thavinhal,INC,Rahul Gandhi,128000,61.5,78.4,24.5,2024,LS
+KL,4,Wayanad,17,Sulthan Bathery,2,St Joseph HSS Meenangadi,INC,Rahul Gandhi,135000,63.8,79.2,28.1,2024,LS
+MH,34,Baramati,211,Baramati City,1,Vidya Pratishthan School,NCP,Supriya Sule,142000,52.4,69.5,5.8,2024,LS
+MH,34,Baramati,212,Indapur,2,National High School Indapur,NCP,Supriya Sule,138000,51.8,71.2,4.6,2024,LS
+WB,19,Kolkata Dakshin,158,Bhowanipore,1,St Paul School Cathedral Road,AITC,Mala Roy,115000,54.2,61.8,9.4,2024,LS
+TN,3,Chennai South,22,Virugampakkam,1,AVM Matriculation School,DMK,Thamizhachi Thangapandian,129000,53.6,58.9,12.8,2024,LS
+AP,25,Chittoor,170,Tirupati,1,SPW Degree College Tirupati,TDP,Daggumalla Prasada Rao,148000,56.4,76.8,14.2,2024,LS

@@ -10,6 +10,7 @@ import Storage, { STORAGE_KEYS } from '../utils/storage';
 const BaseUrl = `${Url.BaseUrl}/api/v1`;
 
 const apiClient = axios.create({
+    timeout: 45000,
     baseURL: BaseUrl,
     headers: { 'Content-Type': 'application/json' },
 });

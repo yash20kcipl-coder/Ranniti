@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { FormInput } from '@/components/common/FormInput';
+import { formatTitleCase } from '@/utils/textUtils';
 
 interface PcFormModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export const PcFormModal: React.FC<PcFormModalProps> = ({
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      await onSave({ name, pcNumber: Number(pcNumber), stateId });
+      await onSave({ name: formatTitleCase(name.trim()), pcNumber: Number(pcNumber), stateId });
     } finally {
       setSubmitting(false);
     }

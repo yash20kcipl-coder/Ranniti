@@ -1,6 +1,7 @@
 import { Modal } from '@/components/common/Modal';
 import React, { useState, useEffect } from 'react';
 import { FormInput } from '@/components/common/FormInput';
+import { formatTitleCase } from '@/utils/textUtils';
 
 interface TalukaFormModalProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ export const TalukaFormModal: React.FC<TalukaFormModalProps> = ({
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      await onSave({ name, stateId, districtId });
+      await onSave({ name: formatTitleCase(name.trim()), stateId, districtId });
     } finally {
       setSubmitting(false);
     }

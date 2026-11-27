@@ -24,6 +24,7 @@ Configuration entity storing organization/campaign settings including Push Notif
 | `polling_date` | `DATE` | Yes | `NULL` | Scheduled election polling date |
 | `election_type` | `VARCHAR(50)` | Yes | `'Assembly'` | Election type (Lok Sabha, Assembly, Municipal) |
 | `field_rules` | `JSONB` | No | `{"geofencingEnabled": true, ...}` | Mobile survey rules, GPS geofencing, offline mode |
+| `survey_field_points` | `JSONB` | No | `{"mobile_no": {"points": 15, ...}}` | Dynamically configured field scoring points for voter surveys |
 | `created_at` | `TIMESTAMPTZ` | No | `NOW()` | Creation timestamp |
 | `updated_at` | `TIMESTAMPTZ` | No | `NOW()` | Update timestamp |
 
