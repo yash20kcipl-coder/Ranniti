@@ -4,6 +4,7 @@ import { Request, Response } from 'express';
 import { logger } from '../../utils/logger';
 import { ApiResponse } from '../../utils/apiResponse';
 import { BulkUploadManager } from '../../bulkUpload';
+import { readRecordsFromExcel } from '../../utils/excelReader';
 import { importJobTracker } from '../../services/importJobTracker';
 
 export class TenantBulkController {
@@ -21,6 +22,27 @@ export class TenantBulkController {
     } catch (err: any) {
       logger.error('[TenantBulkController] Error fetching import jobs:', err);
       const errResp = ApiResponse.error(err.message || 'Failed to fetch import jobs', 500);
+      res.status(errResp.statusCode).json(errResp.body);
+    }
+  }
+
+  /**
+   * DELETE /api/v1/tenant/bulk-import/jobs/:jobId
+   * Dismiss/delete a tenant import job from memory
+   */
+  static async deleteImportJob(req: Request, res: Response): Promise<void> {
+    try {
+      const jobIdStr = Array.isArray(req.params.jobId) ? req.params.jobId[0] : req.params.jobId;
+      const tenantDbName = req.tenantDbName;
+      const deleted = importJobTracker.deleteJob(jobIdStr, tenantDbName);
+      if (!deleted) {
+        res.status(404).json(ApiResponse.error(`Import job with ID '${jobIdStr}' not found.`, 404));
+        return;
+      }
+      res.status(200).json(ApiResponse.success(null, 'Import job dismissed successfully.'));
+    } catch (err: any) {
+      logger.error('[TenantBulkController] Error deleting import job:', err);
+      const errResp = ApiResponse.error(err.message || 'Failed to delete import job', 500);
       res.status(errResp.statusCode).json(errResp.body);
     }
   }
@@ -57,6 +79,10 @@ export class TenantBulkController {
   static async startBulkImport(req: Request, res: Response): Promise<void> {
     try {
       const categoryStr = Array.isArray(req.params.category) ? req.params.category[0] : req.params.category;
+      if (categoryStr && (categoryStr.toLowerCase().trim() === 'elections' || categoryStr.toLowerCase().trim() === 'election')) {
+        res.status(403).json(ApiResponse.error('Elections cannot be imported by tenants. Elections are centrally created and assigned by Super Admin.', 403));
+        return;
+      }
       const { records, context = {} } = req.body;
       const tenantDbName = req.tenantDbName;
 
@@ -112,6 +138,11 @@ export class TenantBulkController {
 
     try {
       const categoryStr = Array.isArray(req.params.category) ? req.params.category[0] : req.params.category;
+      if (categoryStr && (categoryStr.toLowerCase().trim() === 'elections' || categoryStr.toLowerCase().trim() === 'election')) {
+        if (uploadedPath) fs.unlink(uploadedPath, () => { });
+        res.status(403).json(ApiResponse.error('Elections cannot be imported by tenants. Elections are centrally created and assigned by Super Admin.', 403));
+        return;
+      }
       const tenantDbName = req.tenantDbName;
 
       if (!tenantDbName) {
@@ -147,53 +178,7 @@ export class TenantBulkController {
       // Fire and forget background worker
       setImmediate(async () => {
         try {
-          const records: Record<string, any>[] = [];
-
-          const workbookReader = new ExcelJS.stream.xlsx.WorkbookReader(uploadedPath, {
-            sharedStrings: 'cache',
-            hyperlinks: 'ignore',
-            styles: 'ignore',
-            worksheets: 'emit',
-          });
-
-          let headers: string[] = [];
-          let firstRow = true;
-          let sheetFound = false;
-          let currentRowNumber = 1;
-
-          for await (const worksheetReader of workbookReader) {
-            if (sheetFound) break;
-            sheetFound = true;
-
-            for await (const row of worksheetReader) {
-              currentRowNumber++;
-              const values = (row as ExcelJS.Row).values as any[];
-              const cells = Array.isArray(values) ? values.slice(1) : [];
-
-              if (firstRow) {
-                headers = cells.map((v) => (v != null ? String(v).trim() : ''));
-                firstRow = false;
-                continue;
-              }
-
-              const rowObj: Record<string, any> = { __rowIndex: currentRowNumber };
-              for (let i = 0; i < headers.length; i++) {
-                const key = headers[i];
-                if (!key) continue;
-                const val = cells[i];
-                if (val && typeof val === 'object' && val.richText) {
-                  rowObj[key] = val.richText.map((rt: any) => rt.text).join('');
-                } else if (val && typeof val === 'object' && val.text != null) {
-                  rowObj[key] = val.text;
-                } else {
-                  rowObj[key] = val != null ? val : '';
-                }
-              }
-
-              const hasData = Object.entries(rowObj).some(([k, v]) => k !== '__rowIndex' && v !== '' && v != null);
-              if (hasData) records.push(rowObj);
-            }
-          }
+          const records = await readRecordsFromExcel(uploadedPath);
 
           job.totalRecords = records.length;
 
@@ -316,6 +301,10 @@ export class TenantBulkController {
   static async downloadSampleTemplate(req: Request, res: Response): Promise<void> {
     try {
       const categoryStr = Array.isArray(req.params.category) ? req.params.category[0] : req.params.category;
+      if (categoryStr && (categoryStr.toLowerCase().trim() === 'elections' || categoryStr.toLowerCase().trim() === 'election')) {
+        res.status(403).json(ApiResponse.error('Elections cannot be imported by tenants. Elections are centrally created and assigned by Super Admin.', 403));
+        return;
+      }
       const buffer = await BulkUploadManager.getSampleExcelTemplate(categoryStr, {
         ...req.query,
         tenantDbName: req.tenantDbName,
