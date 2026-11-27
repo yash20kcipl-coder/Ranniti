@@ -29,6 +29,9 @@ export class VoterProvisionService {
       await tenantPool.query(`
         -- Secondary B-tree & Functional Indexes
         DROP INDEX IF EXISTS idx_voters_booth_serial;
+        DROP INDEX IF EXISTS idx_voters_booth_serial_id;
+        DROP INDEX IF EXISTS idx_voters_booth_num_serial_id;
+        DROP INDEX IF EXISTS idx_voters_ac_booth_num_serial_id;
         DROP INDEX IF EXISTS idx_voters_state_id;
         DROP INDEX IF EXISTS idx_voters_district_id;
         DROP INDEX IF EXISTS idx_voters_pc_id;
@@ -109,6 +112,9 @@ export class VoterProvisionService {
       // 1. Rebuild secondary B-tree and functional indexes in a single optimized DDL batch
       await client.query(`
         CREATE INDEX IF NOT EXISTS idx_voters_booth_serial ON voters(booth_id, serial_no);
+        CREATE INDEX IF NOT EXISTS idx_voters_booth_serial_id ON voters(booth_id, serial_no ASC NULLS LAST, id ASC);
+        CREATE INDEX IF NOT EXISTS idx_voters_booth_num_serial_id ON voters(booth_number ASC NULLS LAST, serial_no ASC NULLS LAST, id ASC);
+        CREATE INDEX IF NOT EXISTS idx_voters_ac_booth_num_serial_id ON voters(ac_id, booth_number ASC NULLS LAST, serial_no ASC NULLS LAST, id ASC);
         CREATE INDEX IF NOT EXISTS idx_voters_state_id ON voters(state_id);
         CREATE INDEX IF NOT EXISTS idx_voters_district_id ON voters(district_id);
         CREATE INDEX IF NOT EXISTS idx_voters_pc_id ON voters(pc_id);
@@ -152,7 +158,7 @@ export class VoterProvisionService {
       await client.query(`ANALYZE voters;`);
       logger.info('[VoterProvisionService] Successfully built all secondary & search indexes, analyzed voters table.');
     } finally {
-      await client.query(`RESET statement_timeout;`).catch(() => {});
+      await client.query(`RESET statement_timeout;`).catch(() => { });
       client.release();
     }
   }
@@ -253,7 +259,7 @@ export class VoterProvisionService {
             await client.query('ROLLBACK');
             throw err;
           } finally {
-            await client.query('RESET statement_timeout').catch(() => {});
+            await client.query('RESET statement_timeout').catch(() => { });
             client.release();
           }
 
@@ -330,22 +336,22 @@ export class VoterProvisionService {
           const infBatch: Record<string, any>[] = infRes.rows;
           if (!infBatch || infBatch.length === 0) break;
 
-        const SUB_INF = 1000;
-        const client = await tenantPool.connect();
-        try {
-          await client.query('BEGIN');
-          for (let offset = 0; offset < infBatch.length; offset += SUB_INF) {
-            const subInf = infBatch.slice(offset, offset + SUB_INF);
-            const valueTuples: string[] = [];
-            const params: any[] = [];
-            let p = 1;
-            for (const iv of subInf) {
-              valueTuples.push(`($${p++}, $${p++}::uuid, $${p++}::uuid)`);
-              params.push(iv.epic_no, iv.family_influencer_id || null, iv.social_influencer_id || null);
-            }
+          const SUB_INF = 1000;
+          const client = await tenantPool.connect();
+          try {
+            await client.query('BEGIN');
+            for (let offset = 0; offset < infBatch.length; offset += SUB_INF) {
+              const subInf = infBatch.slice(offset, offset + SUB_INF);
+              const valueTuples: string[] = [];
+              const params: any[] = [];
+              let p = 1;
+              for (const iv of subInf) {
+                valueTuples.push(`($${p++}, $${p++}::uuid, $${p++}::uuid)`);
+                params.push(iv.epic_no, iv.family_influencer_id || null, iv.social_influencer_id || null);
+              }
 
-            await client.query(
-              `UPDATE voters AS v
+              await client.query(
+                `UPDATE voters AS v
                SET family_influencer_id = CASE
                      WHEN f.id IS NOT NULL THEN vals.fam_id
                      ELSE NULL
@@ -363,26 +369,26 @@ export class VoterProvisionService {
                    OR
                    (vals.soc_id IS NOT NULL AND s.id IS NOT NULL)
                  )`,
-              params
-            );
+                params
+              );
+            }
+            await client.query('COMMIT');
+          } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+          } finally {
+            client.release();
           }
-          await client.query('COMMIT');
-        } catch (err) {
-          await client.query('ROLLBACK');
-          throw err;
-        } finally {
-          client.release();
-        }
 
-        lastInfId = infBatch[infBatch.length - 1].id;
-        if (infBatch.length < INF_CHUNK_SIZE) break;
+          lastInfId = infBatch[infBatch.length - 1].id;
+          if (infBatch.length < INF_CHUNK_SIZE) break;
+        }
       }
-    }
 
       logger.info(`[VoterProvisionService] Finished restoring influencer links.`);
       return copiedCount;
     } finally {
-      await masterClient.query('RESET statement_timeout').catch(() => {});
+      await masterClient.query('RESET statement_timeout').catch(() => { });
       masterClient.release();
     }
   }
@@ -413,7 +419,7 @@ export class VoterProvisionService {
       await this.buildSearchIndexes(pool, tenantId, 100);
       return { count };
     } finally {
-      await pool.end().catch(() => {});
+      await pool.end().catch(() => { });
     }
   }
 

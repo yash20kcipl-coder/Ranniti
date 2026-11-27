@@ -6,6 +6,7 @@ import {
   fetchTenantVoterStats as fetchVoterStats,
   deleteTenantVoterItem as deleteVoterItem,
   exportTenantVotersData as exportVotersData,
+  exportTenantVotersPdfData as exportVotersPdfData,
   fetchTenantInfluencerOptions as fetchInfluencerOptions,
   fetchTenantBoothOptions,
 } from '@/redux/actions/voterTenant';
@@ -27,15 +28,18 @@ import {
   buildVoterFilterFields,
   buildVoterFilterPresets,
   buildVoterTableColumns,
+  formatBoothOption,
   VoterStatsCards,
   VoterRowActions,
   VoterModals,
+  ExportVotersModal,
 } from '@/components/common/voter/list';
 
 export const VotersPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const isInitialMountRef = React.useRef(true);
+  const lastFilterKeyRef = React.useRef<string>('');
   const {
     voters,
     loading,
@@ -97,6 +101,8 @@ export const VotersPage: React.FC = () => {
   const [socialInfluencers, setSocialInfluencers] = useState<any[]>([]);
   const [selectedVoter, setSelectedVoter] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Direct AC change handler for filter component
   const handleAcChange = (newAcId: string) => {
@@ -114,6 +120,19 @@ export const VotersPage: React.FC = () => {
     setFamilyInfluencers([]);
     setSocialInfluencers([]);
     dispatch(fetchTenantBoothOptions({ acId: newAcId || undefined }));
+  };
+
+  // Remote search handler for booth dropdown
+  const handleBoothSearch = async (query: string, acFilter?: string) => {
+    const results = await dispatch(
+      fetchTenantBoothOptions({
+        acId: acFilter || undefined,
+        search: query,
+        limit: 50,
+        saveToStore: false,
+      })
+    );
+    return (results || []).map(formatBoothOption);
   };
 
   // Direct Booth change handler for filter component
@@ -176,17 +195,33 @@ export const VotersPage: React.FC = () => {
   }, 50, [masterData.acs, filterParams.acId]);
 
   useDebouncedEffect(() => {
+    const currentFilterKey = JSON.stringify(filterParams);
     if (isInitialMountRef.current) {
       isInitialMountRef.current = false;
-      if (initialized && voters && voters.length > 0) return;
+      if (initialized && voters && voters.length > 0) {
+        lastFilterKeyRef.current = currentFilterKey;
+        return;
+      }
     }
 
     const { activePage } = syncPage();
-    const params = { ...getApiParams(), page: activePage };
+    const baseParams = { ...getApiParams(), page: activePage };
+    const isPaginationOnlyChange =
+      lastFilterKeyRef.current !== '' &&
+      lastFilterKeyRef.current === currentFilterKey &&
+      typeof pagination?.total === 'number' &&
+      pagination.total > 0;
 
-    dispatch(setVoterFilters(params));
-    dispatch(fetchVotersData(params));
-    dispatch(fetchVoterStats(params));
+    lastFilterKeyRef.current = currentFilterKey;
+    dispatch(setVoterFilters(baseParams));
+    dispatch(
+      fetchVotersData(
+        isPaginationOnlyChange ? { ...baseParams, cachedTotal: pagination.total } : baseParams
+      )
+    );
+    if (!isPaginationOnlyChange) {
+      dispatch(fetchVoterStats(baseParams));
+    }
   }, 200, [dispatch, page, limit, filterParams]);
 
   const handleOpenDelete = (voter: any) => {
@@ -202,8 +237,22 @@ export const VotersPage: React.FC = () => {
     } catch (_) { }
   };
 
-  const handleExportVoters = () => {
-    dispatch(exportVotersData(getApiParams()));
+  const handleExportExcel = async (extraParams: Record<string, any> = {}) => {
+    setIsExporting(true);
+    try {
+      await dispatch(exportVotersData({ ...getApiParams(), ...extraParams }));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPdf = async ({ boothId: exportBoothId, language, includePhotos, boothLabel }: { boothId: string; language: 'gu' | 'en'; includePhotos: boolean; boothLabel?: string }) => {
+    setIsExporting(true);
+    try {
+      await dispatch(exportVotersPdfData({ boothId: exportBoothId, language, includePhotos, boothLabel }));
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleInfluencerSuccess = () => {
@@ -252,6 +301,7 @@ export const VotersPage: React.FC = () => {
       onBoothChange: handleBoothChange,
       onAcDraftChange: handleAcDraftChange,
       onBoothDraftChange: handleBoothDraftChange,
+      onBoothSearch: handleBoothSearch,
     },
     filterMasterBundle,
     { isTenant: true }
@@ -264,8 +314,8 @@ export const VotersPage: React.FC = () => {
         title="Voter Directory"
         icon={<Vote className="w-6 h-6" />}
         subtitle="Electoral directory, booth assignment, extended fields, and campaign overlays"
-        onExportClick={handleExportVoters}
-        exportLabel="Export Excel"
+        onExportClick={() => setIsExportModalOpen(true)}
+        exportLabel="Export"
         onAddClick={() => navigate('/dashboard/voters/new')}
         addLabel="Add Voter"
       />
@@ -347,6 +397,26 @@ export const VotersPage: React.FC = () => {
         setLinkTargetVoterIds={setLinkTargetVoterIds}
         linkInfluencerType={linkInfluencerType}
         onInfluencerSuccess={handleInfluencerSuccess}
+      />
+
+      <ExportVotersModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        acOptions={masterData.acs || []}
+        currentAcId={filterParams.acId}
+        onFetchBooths={(fetchAcId) =>
+          dispatch(
+            fetchTenantBoothOptions({
+              acId: fetchAcId || undefined,
+              limit: 500,
+              saveToStore: false,
+            })
+          )
+        }
+        currentBoothId={filterParams.boothId}
+        onExportExcel={handleExportExcel}
+        onExportPdf={handleExportPdf}
+        isLoading={isExporting}
       />
     </div>
   );

@@ -15,6 +15,7 @@ Primary database entity for storing voter information across electoral constitue
 | `pc_id`                | `UUID`         | Yes      | `NULL`              | Foreign Key -> `parliamentary_constituencies(id)`                       |
 | `ac_id`                | `UUID`         | Yes      | `NULL`              | Foreign Key -> `assembly_constituencies(id)`                            |
 | `booth_id`             | `UUID`         | Yes      | `NULL`              | Foreign Key -> `booths(id)`                                             |
+| `booth_number`         | `INTEGER`      | Yes      | `NULL`              | Denormalized booth number synced from `booths.booth_number` via triggers for index-backed sorting |
 | `ward_id`              | `UUID`         | Yes      | `NULL`              | Foreign Key -> `wards(id)` (Electoral ward assignment)                  |
 | `village_id`           | `UUID`         | Yes      | `NULL`              | Foreign Key -> `villages(id)` (Independent rural village reference)     |
 | `serial_no`            | `INT`          | Yes      | `NULL`              | Electoral serial number within booth                                    |
@@ -65,6 +66,9 @@ Primary database entity for storing voter information across electoral constitue
 | :--- | :--- | :--- | :--- |
 | `idx_voters_epic_no` | `B-Tree (Unique)` | `epic_no` | Fast unique identifier lookup |
 | `idx_voters_booth_serial` | `B-Tree` | `(booth_id, serial_no)` | Fast booth electoral roll order listing |
+| `idx_voters_booth_serial_id` | `B-Tree` | `(booth_id, serial_no ASC NULLS LAST, id ASC)` | Deterministic index-ordered single-booth pagination |
+| `idx_voters_booth_num_serial_id` | `B-Tree` | `(booth_number ASC NULLS LAST, serial_no ASC NULLS LAST, id ASC)` | Index-ordered global voter pagination without joining `booths` |
+| `idx_voters_ac_booth_num_serial_id` | `B-Tree` | `(ac_id, booth_number ASC NULLS LAST, serial_no ASC NULLS LAST, id ASC)` | Index-ordered AC-scoped voter pagination without joining `booths` |
 | `idx_voters_ac_id` | `B-Tree` | `ac_id` | Constituency level filtering |
 | `idx_voters_ac_id_id` | `B-Tree` | `(ac_id, id)` | High-throughput keyset pagination during tenant provisioning |
 | `idx_voters_religion_id` | `B-Tree` | `religion_id` | Demographic filtering by religion |

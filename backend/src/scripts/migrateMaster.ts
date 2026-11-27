@@ -27,6 +27,7 @@ const migrationFiles = [
   'create_master_voter_sync_queue_table.sql',
   'standardize_gariyadhar_labels.sql',
   'remove_pincode_village_entry.sql',
+  'add_booth_number_to_voters.sql',
 ];
 
 export async function runMasterMigrations(): Promise<void> {

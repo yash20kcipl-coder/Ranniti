@@ -452,7 +452,7 @@ export class TenantApiService {
     tenantDbName?: string | null
   ) {
     const isFiltered = !!params?.search;
-    const cacheKey = !isFiltered ? `ranniti:tenant:${tenantDbName || 'master'}:user:${userId}:booth_options_v4:${JSON.stringify(params || {})}` : null;
+    const cacheKey = !isFiltered ? `ranniti:tenant:${tenantDbName || 'master'}:user:${userId}:booth_options_v5:${JSON.stringify(params || {})}` : null;
 
     const fetchBoothOptions = async () => {
       const sqlParams: any[] = [];
@@ -500,7 +500,7 @@ export class TenantApiService {
       if (params?.search && params.search.trim()) {
         sqlParams.push(`%${params.search.trim()}%`);
         const p = `$${sqlParams.length}`;
-        conditions.push(`(b.name ILIKE ${p} OR CAST(b.booth_number AS TEXT) ILIKE ${p})`);
+        conditions.push(`(b.name ILIKE ${p} OR CAST(b.booth_number AS TEXT) ILIKE ${p} OR a.name ILIKE ${p} OR pc.name ILIKE ${p})`);
       }
 
       if (conditions.length === 0) {
@@ -517,9 +517,13 @@ export class TenantApiService {
           b.booth_number AS "boothNumber", 
           b.name, 
           b.ac_id AS "acId",
+          a.name AS "acName",
+          pc.name AS "pcName",
           b.ward_id AS "wardId",
           w.name AS "wardName"
         FROM booths b
+        LEFT JOIN assembly_constituencies a ON a.id = b.ac_id
+        LEFT JOIN parliamentary_constituencies pc ON pc.id = a.pc_id
         LEFT JOIN wards w ON w.id = b.ward_id
         ${whereClause}
         ORDER BY b.booth_number ASC
@@ -1476,17 +1480,27 @@ export class TenantApiService {
     const countRes = await executeTenantQuery(`SELECT COUNT(*)::int as total FROM voters v ${whereClause}`, params, tenantDbName);
     const total = countRes.rows[0]?.total || 0;
 
+    const cteSortClause = filters.boothId
+      ? 'v.serial_no ASC NULLS LAST, v.id ASC'
+      : 'v.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.id ASC';
+
     params.push(limit, offset);
     const queryStr = `
+      WITH paged_voters AS (
+        SELECT v.id
+        FROM voters v
+        ${whereClause}
+        ORDER BY ${cteSortClause}
+        LIMIT $${params.length - 1} OFFSET $${params.length}
+      )
       SELECT v.id, v.epic_no as "epicNo", v.voter_name as "voterName", v.gender, v.age,
              v.mobile_number as "mobileNumber", v.address, v.ac_id as "acId", v.booth_id as "boothId",
              b.name as "boothName", a.name as "acName"
-      FROM voters v
+      FROM paged_voters pv
+      JOIN voters v ON pv.id = v.id
       LEFT JOIN booths b ON b.id = v.booth_id
       LEFT JOIN assembly_constituencies a ON a.id = v.ac_id
-      ${whereClause}
       ORDER BY b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.id ASC
-      LIMIT $${params.length - 1} OFFSET $${params.length}
     `;
 
     const dataRes = await executeTenantQuery(queryStr, params, tenantDbName);

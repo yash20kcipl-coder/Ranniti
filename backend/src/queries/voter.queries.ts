@@ -282,8 +282,13 @@ export class VoterQueries {
     }
 
     // Fetch Data using Late Row Fetching (Deferred Joins)
-    // The CTE filters and sorts IDs only, ensuring 11 joins and lateral counts run only on the paged 25 rows
-    const sortClause = 'b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, b.name ASC NULLS LAST, v.id ASC';
+    // The CTE filters and sorts IDs using single-table indexes on voters (no booths join),
+    // ensuring 11 joins and lateral counts run only on the paged 25 rows.
+    const hasBoothFilter = Boolean(params.boothId && params.boothId !== 'All' && params.boothId !== 'all');
+    const cteSortClause = hasBoothFilter
+      ? 'v.serial_no ASC NULLS LAST, v.id ASC'
+      : 'v.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.id ASC';
+    const outerSortClause = 'b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST, b.name ASC NULLS LAST, v.id ASC';
 
     const countSql = `SELECT COUNT(*)::int AS total FROM voters v ${whereClause}`;
 
@@ -291,9 +296,8 @@ export class VoterQueries {
       WITH paged_voters AS (
         SELECT v.id
         FROM voters v
-        LEFT JOIN booths b ON v.booth_id = b.id
         ${whereClause}
-        ORDER BY ${sortClause}
+        ORDER BY ${cteSortClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       )
       SELECT 
@@ -386,7 +390,7 @@ export class VoterQueries {
       LEFT JOIN LATERAL (
         SELECT COUNT(*)::int AS cnt FROM voters sv WHERE sv.social_influencer_id = v.id
       ) sic ON true
-      ORDER BY ${sortClause}
+      ORDER BY ${outerSortClause}
     `;
 
     const dataParams = [...values, limit, offset, ...extraDataParams];
@@ -2032,6 +2036,55 @@ export class VoterQueries {
       limit,
       totalPages: Math.ceil(total / limit) || 1,
     };
+  }
+
+  static async getBoothDetailsForPdf(boothId: string, tenantDbName?: string | null): Promise<any> {
+    const sql = `
+      SELECT 
+        b.id,
+        b.name,
+        b.booth_number AS "boothNumber",
+        ac.name AS "acName",
+        ac.ac_number AS "acNumber",
+        pc.name AS "pcName"
+      FROM booths b
+      LEFT JOIN assembly_constituencies ac ON b.ac_id = ac.id
+      LEFT JOIN parliamentary_constituencies pc ON ac.pc_id = pc.id
+      WHERE b.id = $1
+    `;
+    const res = await executeVoterQuery(sql, [boothId], tenantDbName);
+    return res.rows[0] || null;
+  }
+
+  static async getBoothVotersForPdf(boothId: string, tenantDbName?: string | null): Promise<any[]> {
+    const sql = `
+      SELECT 
+        v.id,
+        v.epic_no AS "epicNo",
+        v.serial_no AS "serialNo",
+        v.section_no AS "sectionNo",
+        v.house_no AS "houseNo",
+        v.first_name AS "firstName",
+        v.middle_name AS "middleName",
+        v.surname AS "surname",
+        v.eng_first_name AS "engFirstName",
+        v.eng_middle_name AS "engMiddleName",
+        v.eng_surname AS "engSurname",
+        v.relation AS "relation",
+        v.guardian_name AS "guardianName",
+        v.gender,
+        v.age,
+        v.avatar,
+        v.village,
+        v.full_address AS "fullAddress",
+        v.status,
+        v.is_dead AS "isDead"
+      FROM voters v
+      WHERE v.booth_id = $1
+      ORDER BY v.section_no ASC NULLS LAST, v.serial_no ASC NULLS LAST, v.created_at ASC
+    `;
+    const res = await executeVoterQuery(sql, [boothId], tenantDbName);
+    return res.rows;
   }
 }
 
