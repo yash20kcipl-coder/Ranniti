@@ -54,22 +54,6 @@ export class TenantElectionController {
   });
 
   /**
-   * POST /api/v1/tenant/elections
-   * Restrict election creation to Super Admin
-   */
-  createElection = asyncHandler(async (_req: Request, _res: Response): Promise<void> => {
-    throw ApiError.forbidden('Elections must be created and assigned by Super Admin. Please contact your system administrator.');
-  });
-
-  /**
-   * PUT /api/v1/tenant/elections/:id
-   * Restrict election update to Super Admin
-   */
-  updateElection = asyncHandler(async (_req: Request, _res: Response): Promise<void> => {
-    throw ApiError.forbidden('Elections can only be edited by Super Admin. Please contact your system administrator.');
-  });
-
-  /**
    * PATCH /api/v1/tenant/elections/:id/set-default
    * Set target election as the single default campaign election
    */
@@ -121,14 +105,6 @@ export class TenantElectionController {
     const synced = await electionQueries.syncTenantDefaultElection(pool);
     const response = ApiResponse.success(synced, 'Default election synchronized based on date successfully');
     res.status(response.statusCode).json(response.body);
-  });
-
-  /**
-   * DELETE /api/v1/tenant/elections/:id
-   * Restrict election deletion to Super Admin
-   */
-  deleteElection = asyncHandler(async (_req: Request, _res: Response): Promise<void> => {
-    throw ApiError.forbidden('Elections can only be deleted by Super Admin. Please contact your system administrator.');
   });
 
   /**

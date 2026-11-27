@@ -1,8 +1,6 @@
 import type {
   Election,
   ElectionFilters,
-  CreateElectionPayload,
-  UpdateElectionPayload,
   BoothTurnoutItem,
   HourlyTurnoutItem,
 } from '@/types/election.types';
@@ -116,40 +114,6 @@ export const fetchTenantElectionById = (id: string) => {
 };
 
 /**
- * Create a new election
- */
-export const createTenantElection = (payload: CreateElectionPayload) => {
-  return async (dispatch: AppDispatch) => {
-    try {
-      const res = await api.post('/tenant/elections', payload);
-      const created = res.data?.data || res.data;
-      dispatch(fetchTenantElections());
-      return created;
-    } catch (err) {
-      dispatch(errorHandler(err));
-      throw err;
-    }
-  };
-};
-
-/**
- * Update existing election
- */
-export const updateTenantElection = (id: string, payload: UpdateElectionPayload) => {
-  return async (dispatch: AppDispatch) => {
-    try {
-      const res = await api.put(`/tenant/elections/${id}`, payload);
-      const updated = res.data?.data || res.data;
-      dispatch(fetchTenantElections());
-      return updated;
-    } catch (err) {
-      dispatch(errorHandler(err));
-      throw err;
-    }
-  };
-};
-
-/**
  * Set target election as the single active/default campaign election
  */
 export const setDefaultTenantElection = (id: string) => {
@@ -199,21 +163,6 @@ export const fetchDefaultElection = () => {
         dispatch(setDefaultElection(data));
       }
       return data;
-    } catch (err) {
-      dispatch(errorHandler(err));
-      throw err;
-    }
-  };
-};
-
-/**
- * Delete election
- */
-export const deleteTenantElection = (id: string) => {
-  return async (dispatch: AppDispatch) => {
-    try {
-      await api.delete(`/tenant/elections/${id}`);
-      dispatch(fetchTenantElections());
     } catch (err) {
       dispatch(errorHandler(err));
       throw err;
