@@ -31,6 +31,7 @@ export const hasScreenAccess = (accessConfig: any, screenName: string): boolean 
     screenName === SCREENS.SPLASH ||
     screenName === SCREENS.LOGIN ||
     screenName === SCREENS.PROFILE ||
+    screenName === SCREENS.SWITCH_PROFILE ||
     screenName === SCREENS.SETTINGS
   ) {
     return true;

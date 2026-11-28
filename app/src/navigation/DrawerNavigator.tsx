@@ -3,6 +3,7 @@ import { SCREENS } from './constants';
 import Dashboard from '../screens/Dashboard';
 import { useAppTheme } from '../hooks/useAppTheme';
 import ProfileScreen from '../screens/ProfileModule';
+import SwitchProfileScreen from '../screens/ProfileModule/SwitchProfileScreen';
 import CustomDrawer from '../components/CustomDrawer';
 import AddTeamMemberScreen from '../screens/TeamModule';
 import AssignedBoothsScreen from '../screens/BoothModule';
@@ -43,6 +44,7 @@ export const DrawerNavigator = () => {
       <Drawer.Screen name={SCREENS.CONTACT_SYNC} component={ContactSyncScreen} options={{ title: 'Contact Sync Voters' }} />
       <Drawer.Screen name={SCREENS.TEAM_MANAGEMENT} component={AddTeamMemberScreen} options={{ title: 'Team Management' }} />
       <Drawer.Screen name={SCREENS.PROFILE} component={ProfileScreen} options={{ title: 'My Profile' }} />
+      <Drawer.Screen name={SCREENS.SWITCH_PROFILE} component={SwitchProfileScreen} options={{ title: 'Switch Profile' }} />
     </Drawer.Navigator>
   );
 };

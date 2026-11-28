@@ -8,6 +8,7 @@ import { FontFamily } from '../../utils/typography';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { AttachmentPickerModal } from '../AttachmentPickerModal';
 import { MaterialDesignIcons } from '../MaterialDesignIcons';
+import { useLanguage } from '../../languages';
 
 interface AttachmentsInputComponentProps extends FormInputProps {
   theme: Theme;
@@ -23,6 +24,7 @@ export const AttachmentsInput: React.FC<AttachmentsInputComponentProps> = ({
   renderLabel,
 }) => {
   const [showPicker, setShowPicker] = useState(false);
+  const { t } = useLanguage();
 
   const attachments: Attachment[] = Array.isArray(value) ? value : [];
 
@@ -123,10 +125,10 @@ export const AttachmentsInput: React.FC<AttachmentsInputComponentProps> = ({
           </View>
           <View style={{ flex: 1, gap: 3 }}>
             <Text style={{ color: theme.colors.primary, fontFamily: FontFamily.medium, fontSize: rfValue(13) }}>
-              Upload attachment sheets
+              {t('uploadAttachmentSheets')}
             </Text>
             <Text style={{ color: theme.colors.textSecondary, fontSize: rfValue(11), fontFamily: FontFamily.body }}>
-              Images, videos or documents up to 10MB
+              {t('attachmentSizeHint')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -263,7 +265,7 @@ export const AttachmentsInput: React.FC<AttachmentsInputComponentProps> = ({
           >
             <MaterialDesignIcons name="plus" size={18} color={theme.colors.primary} />
             <Text style={{ fontSize: rfValue(12), fontFamily: FontFamily.medium, color: theme.colors.primary }}>
-              Add Attachment / File
+              {t('addAttachmentFile')}
             </Text>
           </TouchableOpacity>
         </View>

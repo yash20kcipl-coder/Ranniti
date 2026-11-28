@@ -448,7 +448,15 @@ export const VoterListScreen: React.FC<any> = ({ navigation, route }) => {
         onClose={() => setPartyModalVoterId(null)}
         currentPartyId={currentModalVoter?.partyId || null}
         currentPartyName={currentModalVoter?.partyId ? (currentModalVoter?.partyName || currentModalVoter?.supportingParty) : ''}
-        voterName={currentModalVoter ? (currentModalVoter.name || currentModalVoter.englishName) : undefined}
+        voterName={
+          currentModalVoter
+            ? (currentModalVoter.englishName || currentModalVoter.name) +
+              (currentModalVoter.hindiName &&
+              currentModalVoter.hindiName !== (currentModalVoter.englishName || currentModalVoter.name)
+                ? ` (${currentModalVoter.hindiName})`
+                : '')
+            : undefined
+        }
       />
 
       {/* WhatsApp / SMS Template Picker Bottom Sheet Modal */}

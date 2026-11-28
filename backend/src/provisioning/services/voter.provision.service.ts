@@ -4,6 +4,7 @@ import { query as masterQuery, dbPool } from '../../queries/dbPool';
 import { TenantQueries } from '../../queries/tenant.queries';
 import { getTenantDbPool } from '../../utils/tenantDbProvisioner';
 import { resolveConstituencyScope } from '../helpers/scopeResolver';
+import { syncBoothTotalVotersForAcs } from '../../utils/boothCountSync';
 
 export interface VoterCopyProgressCallback {
   (
@@ -386,6 +387,7 @@ export class VoterProvisionService {
       }
 
       logger.info(`[VoterProvisionService] Finished restoring influencer links.`);
+      await syncBoothTotalVotersForAcs(acIds, null, tenantPool);
       return copiedCount;
     } finally {
       await masterClient.query('RESET statement_timeout').catch(() => { });

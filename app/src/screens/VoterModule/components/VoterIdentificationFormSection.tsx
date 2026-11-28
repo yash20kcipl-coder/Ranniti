@@ -144,7 +144,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
           error={errors.epicNo}
           value={formData.epicNo}
           autoCapitalize="characters"
-          placeholder="e.g. RJ14829102"
+          placeholder={t('epicPlaceholder')}
           editable={canEditDemographics && !isEpicLocked}
           locked={isEpicLocked}
           label={`${t('epicVoterId')} *`}
@@ -160,7 +160,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
           <View style={styles.flex1}>
             <AppTextInput
               label={`${t('firstNameEng')}`}
-              placeholder="First Name"
+              placeholder={t('firstNameEng')}
               value={formData.engFirstName}
               editable={canEditDemographics && !isEngFirstLocked}
               locked={isEngFirstLocked}
@@ -171,7 +171,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
           <View style={styles.flex1}>
             <AppTextInput
               label={t('middleNameEng')}
-              placeholder="Middle Name"
+              placeholder={t('middleNameEng')}
               value={formData.engMiddleName}
               editable={canEditDemographics && !isEngMiddleLocked}
               locked={isEngMiddleLocked}
@@ -182,7 +182,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
 
         <AppTextInput
           label={t('surnameEng')}
-          placeholder="Surname"
+          placeholder={t('surnameEng')}
           value={formData.engSurname}
           editable={canEditDemographics && !isEngSurnameLocked}
           locked={isEngSurnameLocked}
@@ -280,7 +280,7 @@ export const VoterIdentificationFormSection: React.FC<VoterIdentificationFormSec
           >
             <AppTextInput
               label={t('dob')}
-              placeholder="YYYY-MM-DD"
+              placeholder={t('dateFormatPlaceholder')}
               value={formData.dob}
               editable={false}
               locked={isDobLocked}

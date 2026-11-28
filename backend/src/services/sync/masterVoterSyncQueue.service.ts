@@ -3,6 +3,7 @@ import { query as masterQuery, dbPool } from '../../queries/dbPool';
 import { TenantPoolManager } from '../pool/tenantPoolManager';
 import { VoterProvisionService } from '../../provisioning/services/voter.provision.service';
 import { CacheService } from '../cache.service';
+import { syncBoothTotalVotersForAcs, syncTenantTotalVoters } from '../../utils/boothCountSync';
 
 export interface EnqueueSyncOptions {
   acIds: string[];
@@ -331,7 +332,9 @@ export class MasterVoterSyncQueueService {
       logger.info(`[MasterVoterSyncQueue] Rebuilding indexes on '${tenantDbName}' for ${totalSyncedSoFar} voters...`);
       await VoterProvisionService.buildSearchIndexes(tenantPool, tenantId, 95);
 
-      // 4. Invalidate tenant caches
+      // 4. Recalculate booths.total_voters for the synced AC in the tenant DB & invalidate caches
+      await syncBoothTotalVotersForAcs([acId], tenantDbName, tenantPool);
+      await syncTenantTotalVoters(tenantDbName);
       await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName}:*`).catch(() => { });
 
       // 5. Mark job completed

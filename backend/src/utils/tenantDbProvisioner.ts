@@ -181,6 +181,8 @@ export class TenantDbProvisioner {
       'remove_pincode_village_entry.sql',
       'standardize_volunteer_role_labels.sql',
       'add_booth_number_to_voters.sql',
+      'add_ac_social_influencer_flag.sql',
+      'use_single_social_influencer_scope.sql',
     ];
 
     const candidateDirs = [

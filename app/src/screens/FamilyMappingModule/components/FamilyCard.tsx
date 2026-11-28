@@ -54,6 +54,12 @@ export const FamilyCard: React.FC<FamilyCardProps> = memo(({
   const statusColor = allVoted ? '#16A34A' : noneVoted ? '#94A3B8' : '#D97706';
   const statusBg = allVoted ? '#DCFCE7' : noneVoted ? '#F1F5F9' : '#FEF3C7';
 
+  const headDisplayName = item.headName || item.headLocalName || '';
+  const headNativeSub =
+    item.headLocalName && item.headName && item.headLocalName !== item.headName
+      ? item.headLocalName
+      : '';
+
   return (
     <View style={styles.card}>
       {/* Head Header Row */}
@@ -61,7 +67,8 @@ export const FamilyCard: React.FC<FamilyCardProps> = memo(({
         {/* Avatar with Status Ring */}
         <View style={styles.avatarWrapper}>
           <SafeImage
-            alt={item.headName}
+            name={headDisplayName}
+            alt={headDisplayName}
             src={item.headPhoto}
             placeholderType="avatar"
             style={styles.headPhoto}
@@ -86,8 +93,13 @@ export const FamilyCard: React.FC<FamilyCardProps> = memo(({
           </View>
 
           <Text style={[styles.headName, { color: theme.colors.text }]} numberOfLines={1}>
-            {item.headName}
+            {headDisplayName}
           </Text>
+          {Boolean(headNativeSub) && (
+            <Text style={[styles.headSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              {headNativeSub}
+            </Text>
+          )}
 
           <Text style={[styles.headSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>
             {item.headEpic ? `EPIC: ${item.headEpic}` : ''}
@@ -146,8 +158,13 @@ export const FamilyCard: React.FC<FamilyCardProps> = memo(({
                 {/* Member Details */}
                 <View style={styles.memberTextCol}>
                   <Text style={[styles.memberName, { color: theme.colors.text }]} numberOfLines={1}>
-                    {member.name}
+                    {member.engName || member.name}
                   </Text>
+                  {Boolean(member.name && member.engName && member.name !== member.engName) && (
+                    <Text style={[styles.memberSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                      {member.name}
+                    </Text>
+                  )}
                   <View style={styles.memberMetaRow}>
                     {Boolean(member.epicNo) && (
                       <View style={styles.epicPill}>

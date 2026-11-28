@@ -5,6 +5,7 @@ import { getShadow } from '../utils/shadow';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useLanguage } from '../languages';
 import ImagePicker from 'react-native-image-crop-picker';
 import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
@@ -30,6 +31,7 @@ export const AttachmentPickerModal: React.FC<AttachmentPickerModalProps> = ({
   mediaTypesOnly = false,
 }) => {
   const { theme, styles } = useAppTheme(getStyles);
+  const { t } = useLanguage();
   const [loadingText, setLoadingText] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
 
@@ -299,8 +301,8 @@ export const AttachmentPickerModal: React.FC<AttachmentPickerModalProps> = ({
           {/* Header Indicator */}
           <View style={styles.indicator} />
 
-          <Text style={styles.title}>Select Source</Text>
-          <Text style={styles.subtitle}>Choose how you want to upload your document</Text>
+          <Text style={styles.title}>{t('selectSource')}</Text>
+          <Text style={styles.subtitle}>{t('chooseUploadSourceDesc')}</Text>
 
           <View style={styles.optionsContainer}>
             {/* Option 1: Document */}
@@ -312,7 +314,7 @@ export const AttachmentPickerModal: React.FC<AttachmentPickerModalProps> = ({
               <View style={[styles.iconWrapper, { backgroundColor: theme.colors.primary + '15' }]}>
                 <MaterialDesignIcons name="file-document-outline" size={24} color={theme.colors.primary} />
               </View>
-              <Text style={styles.optionLabel}>Document</Text>
+              <Text style={styles.optionLabel}>{t('documentLabel')}</Text>
             </TouchableOpacity>
 
             {/* Option 2: Gallery */}
@@ -324,7 +326,7 @@ export const AttachmentPickerModal: React.FC<AttachmentPickerModalProps> = ({
               <View style={[styles.iconWrapper, { backgroundColor: theme.colors.info + '15' }]}>
                 <MaterialDesignIcons name="image-outline" size={24} color={theme.colors.info} />
               </View>
-              <Text style={styles.optionLabel}>Gallery</Text>
+              <Text style={styles.optionLabel}>{t('galleryLabel')}</Text>
             </TouchableOpacity>
 
             {/* Option 3: Camera */}
@@ -336,7 +338,7 @@ export const AttachmentPickerModal: React.FC<AttachmentPickerModalProps> = ({
               <View style={[styles.iconWrapper, { backgroundColor: theme.colors.warning + '15' }]}>
                 <MaterialDesignIcons name="camera-outline" size={24} color={theme.colors.warning} />
               </View>
-              <Text style={styles.optionLabel}>Camera</Text>
+              <Text style={styles.optionLabel}>{t('cameraLabel')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -356,7 +358,7 @@ export const AttachmentPickerModal: React.FC<AttachmentPickerModalProps> = ({
               </View>
             </View>
             <Text style={styles.loaderText}>{loadingText}</Text>
-            <Text style={styles.loaderSubtext}>Please do not close the app or go back</Text>
+            <Text style={styles.loaderSubtext}>{t('doNotCloseAppWarning')}</Text>
           </View>
         </Modal>
       )}

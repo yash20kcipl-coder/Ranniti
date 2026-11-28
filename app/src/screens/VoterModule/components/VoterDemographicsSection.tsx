@@ -34,7 +34,7 @@ export const VoterDemographicsSection: React.FC<VoterDemographicsSectionProps> =
       {/* Group 1: Personal & Bio */}
       <View style={styles.groupContainer}>
         <Text style={[styles.groupSubtitle, { color: theme.colors.textSecondary }]}>
-          PERSONAL & BIO
+          {t('personalAndBio')}
         </Text>
 
         <View style={styles.grid}>
@@ -119,7 +119,7 @@ export const VoterDemographicsSection: React.FC<VoterDemographicsSectionProps> =
             <View style={[styles.fullTile, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
               <View style={styles.tileHeader}>
                 <MaterialDesignIcons name="email-outline" size={15} color={theme.colors.textSecondary} />
-                <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Email</Text>
+                <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{t('email')}</Text>
               </View>
               <Text style={[styles.value, { color: theme.colors.text }]}>
                 {voter.email}
@@ -132,7 +132,7 @@ export const VoterDemographicsSection: React.FC<VoterDemographicsSectionProps> =
       {/* Group 2: Social & Profession */}
       <View style={styles.groupContainer}>
         <Text style={[styles.groupSubtitle, { color: theme.colors.textSecondary }]}>
-          SOCIAL & OCCUPATION
+          {t('socialAndOccupation')}
         </Text>
 
         <View style={styles.grid}>
@@ -192,7 +192,7 @@ export const VoterDemographicsSection: React.FC<VoterDemographicsSectionProps> =
       {/* Group 3: Residential Address */}
       <View style={styles.groupContainer}>
         <Text style={[styles.groupSubtitle, { color: theme.colors.textSecondary }]}>
-          ADDRESS & RESIDENCE
+          {t('addressAndResidence')}
         </Text>
 
         <View style={styles.grid}>

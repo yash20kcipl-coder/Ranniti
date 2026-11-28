@@ -88,12 +88,12 @@ export function resolveBreadcrumbs(pathname: string): { title: string; breadcrum
   }
 
   // ── 3a. Volunteer Survey Scores ───────────────────────────────────────────
-  if (path.startsWith('/dashboard/surveys')) {
+  if (path.startsWith('/dashboard/reports/surveys') || path.startsWith('/dashboard/surveys')) {
     return {
       title: 'Voter Surveys & Feedback',
       breadcrumbs: [
         { label: 'Platform', href: '/dashboard' },
-        { label: 'Field & Voters', href: '/dashboard/surveys' },
+        { label: 'Reports', href: '/dashboard/reports/volunteer-outreach' },
         { label: 'Surveys & Feedback' },
       ],
     };

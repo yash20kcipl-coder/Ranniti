@@ -23,7 +23,7 @@ export class MobileVoterController {
       casteId: (query.casteId && query.casteId !== 'All') ? (query.casteId as string) : '',
       ageGroup: (query.ageGroup as string) || '',
       isFamilyInfluencer: query.isFamilyInfluencer !== undefined ? String(query.isFamilyInfluencer) === 'true' : undefined,
-      isSocialInfluencer: query.isSocialInfluencer !== undefined ? String(query.isSocialInfluencer) === 'true' : undefined,
+      socialInfluencerScope: (query.socialInfluencerScope as string) || (String(query.isSocialInfluencer) === 'true' ? 'any' : undefined),
       influencerRole: (query.influencerRole && query.influencerRole !== 'all') ? (query.influencerRole as string) : '',
       society: (query.society as string) || '',
       page: query.page ? parseInt(query.page as string, 10) : 1,
@@ -135,6 +135,7 @@ export class MobileVoterController {
     const params = {
       influencerId: req.query.influencerId as string,
       boothId: req.query.boothId as string,
+      acWise: req.query.acWise as string,
       search: req.query.search as string,
       sectionNo: req.query.sectionNo ? Number(req.query.sectionNo) : undefined,
       gender: req.query.gender as string,
@@ -169,17 +170,23 @@ export class MobileVoterController {
 
   bulkAssignInfluencer = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const user = req.mobileUser!;
-    const { influencerId, influencerType, voterIds } = req.body;
+    const { influencerId, influencerType, voterIds = [], socialInfluencerScope } = req.body;
 
     const count = await mobileVoterService.bulkAssignInfluencer(user, {
       influencerId,
       influencerType,
       voterIds,
+      socialInfluencerScope,
     });
+
+    const message =
+      voterIds.length === 0 && influencerType === 'social'
+        ? 'Social influencer tag updated successfully'
+        : `${count} voters successfully linked to influencer`;
 
     const response = ApiResponse.success(
       { updatedCount: count },
-      `${count} voters successfully linked to influencer`
+      message
     );
     res.status(response.statusCode).json(response.body);
   });

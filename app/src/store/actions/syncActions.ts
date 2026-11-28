@@ -15,7 +15,7 @@ import {
 } from './master';
 import { AppDispatch } from '../store';
 import apiClient from '../../api/apiClient';
-import { getLocalVersions, saveLocalVersion } from '../../utils/syncManager';
+import { clearLocalVersions, getLocalVersions, saveLocalVersion } from '../../utils/syncManager';
 
 export const checkAndSyncDatasetsAction = () => {
   return async (dispatch: AppDispatch) => {
@@ -106,3 +106,31 @@ export const checkAndSyncDatasetsAction = () => {
       }
     };
   };
+
+/**
+ * Single-call Redis-backed bootstrap sync for profile switches and fresh tenant sessions.
+ * Clears local dataset versions and hydrates fresh master data from Redis.
+ */
+export const bootstrapTenantSyncAction = () => {
+  return async (dispatch: AppDispatch) => {
+    try {
+      await clearLocalVersions();
+      const res = await apiClient.post('/sync/bootstrap', { clientVersions: {} });
+      const payload = res?.data?.data || res?.data || {};
+      const { syncedDatasets = [], serverVersions = {} } = payload;
+
+      for (const key of syncedDatasets) {
+        if (serverVersions[key]) {
+          await saveLocalVersion(key, serverVersions[key]);
+        }
+      }
+
+      // Also ensure Redux master stores are hydrated cleanly
+      await (checkAndSyncDatasetsAction() as any)(dispatch);
+      return { syncedDatasets, serverVersions };
+    } catch (e) {
+      console.warn('Bootstrap tenant sync degraded. Falling back to manifest sync.', e);
+      return await (checkAndSyncDatasetsAction() as any)(dispatch);
+    }
+  };
+};

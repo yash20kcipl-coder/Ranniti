@@ -50,16 +50,24 @@ export class TalukaImportService {
     await MasterCacheInvalidator.invalidate('talukas');
     try {
       const { MasterQueries } = await import('../../queries/master.queries');
-      const allTalukas = await MasterQueries.getTalukas().catch(() => []);
       const { MasterBroadcastSync } = await import('../../services/sync/masterBroadcastSync.service');
-      await MasterBroadcastSync.broadcastBatchToAllTenants(
-        'talukas',
-        allTalukas.map((t: any) => ({
-          id: t.id,
-          name: t.name,
-          district_id: t.districtId || t.district_id,
-        }))
-      );
+      const affectedDistrictIds = new Set<string>(districtMap.values());
+      if (context?.districtId) affectedDistrictIds.add(context.districtId);
+
+      for (const districtId of affectedDistrictIds) {
+        const districtTalukas = await MasterQueries.getTalukas({ districtId }).catch(() => []);
+        if (districtTalukas.length > 0) {
+          await MasterBroadcastSync.broadcastBatchToDistrictTenants(
+            'talukas',
+            districtTalukas.map((t: any) => ({
+              id: t.id,
+              name: t.name,
+              district_id: t.districtId || t.district_id,
+            })),
+            districtId
+          );
+        }
+      }
     } catch (broadcastErr) {
       const { logger } = await import('../../utils/logger');
       logger.error('[TalukaImportService] Failed to broadcast talukas to tenants:', broadcastErr);

@@ -352,6 +352,9 @@ export class AdminUserService {
     if (targetDbName) {
       await TenantPoolManager.query(targetDbName, `DELETE FROM user_booth_assignments WHERE user_id = $1`, [id]);
       await TenantPoolManager.query(targetDbName, `DELETE FROM tenant_users WHERE id = $1`, [id]);
+      const { VolunteerAuthQueries } = await import('../../queries/auth/volunteerAuth.queries');
+      await VolunteerAuthQueries.invalidateMobileTenantCache(currentUser.mobile);
+      await VolunteerAuthQueries.invalidateMobileTenantCache(currentUser.email);
       return;
     }
 

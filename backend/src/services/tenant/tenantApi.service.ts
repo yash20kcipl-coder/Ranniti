@@ -7,6 +7,7 @@ import { TenantBoothService } from './booth.service';
 import { query as mainQuery } from '../../queries/dbPool';
 import { TenantPoolManager } from '../pool/tenantPoolManager';
 import { MasterAutoSyncService } from '../sync/masterAutoSync.service';
+import { invalidateTenantDashboardCache } from '../../utils/boothCountSync';
 
 async function executeTenantQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
   if (tenantDbName && tenantDbName.trim()) {
@@ -647,7 +648,7 @@ export class TenantApiService {
             b.booth_number AS "boothNumber", 
             b.name, 
             b.location_building AS "locationBuilding", 
-            b.total_voters AS "totalVoters", 
+            (SELECT COUNT(*)::int FROM voters v WHERE v.booth_id = b.id) AS "totalVoters", 
             b.created_at AS "createdAt", 
             b.updated_at AS "updatedAt"
           ${baseFrom}${whereClause}
@@ -677,7 +678,7 @@ export class TenantApiService {
           b.booth_number AS "boothNumber", 
           b.name, 
           b.location_building AS "locationBuilding", 
-          b.total_voters AS "totalVoters", 
+          (SELECT COUNT(*)::int FROM voters v WHERE v.booth_id = b.id) AS "totalVoters", 
           b.created_at AS "createdAt", 
           b.updated_at AS "updatedAt"
         ${baseFrom}${whereClause}
@@ -729,6 +730,7 @@ export class TenantApiService {
     );
 
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:booth*`);
+    await invalidateTenantDashboardCache(tenantDbName);
     return newBooth;
   }
 
@@ -757,6 +759,7 @@ export class TenantApiService {
       MasterAutoSyncService.syncEntityToMaster(tenantPool, 'booth', id, 'UPDATE', res.rows[0]).catch(() => { });
     }
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:booth*`);
+    await invalidateTenantDashboardCache(tenantDbName);
     return res.rows[0];
   }
 
@@ -772,6 +775,7 @@ export class TenantApiService {
       MasterAutoSyncService.syncEntityToMaster(tenantPool, 'booth', id, 'DELETE', { id }).catch(() => { });
     }
     await CacheService.invalidatePattern(`ranniti:tenant:${tenantDbName || '*'}:booth*`);
+    await invalidateTenantDashboardCache(tenantDbName);
   }
 
   // --- GEOGRAPHY REFERENCE ---

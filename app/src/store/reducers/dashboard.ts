@@ -2,6 +2,82 @@ export const SET_DASHBOARD_METRICS = "SET_DASHBOARD_METRICS";
 export const SET_DASHBOARD_LOADING = "SET_DASHBOARD_LOADING";
 export const INCREMENT_DASHBOARD_VOTE = "INCREMENT_DASHBOARD_VOTE";
 export const DECREMENT_DASHBOARD_VOTE = "DECREMENT_DASHBOARD_VOTE";
+export const SET_SURVEY_SCORE_DATA = "SET_SURVEY_SCORE_DATA";
+export const SET_SURVEY_SCORE_LOADING = "SET_SURVEY_SCORE_LOADING";
+export const SET_MEMBER_SURVEY_SCORE = "SET_MEMBER_SURVEY_SCORE";
+export const SET_MEMBER_SURVEY_SCORE_LOADING = "SET_MEMBER_SURVEY_SCORE_LOADING";
+
+export interface SurveyFieldRule {
+  label: string;
+  points: number;
+  category: 'contact' | 'political' | 'demographic' | 'status' | 'address' | 'profile' | 'identification';
+  enabled: boolean;
+  requirePreviouslyEmpty?: boolean;
+}
+
+export interface SurveyRecentUpdate {
+  id: string;
+  voterId: string;
+  voterName: string;
+  voterEpicNo: string;
+  fieldName: string;
+  fieldLabel: string;
+  oldValue: string | null;
+  newValue: string | null;
+  pointsAwarded: number;
+  createdAt: string;
+}
+
+export interface VolunteerSurveyStatsPayload {
+  volunteer: {
+    id: string;
+    name: string;
+    mobile: string;
+    avatar: string | null;
+    role: string;
+    status: string;
+  } | null;
+  summary: {
+    totalScore: number;
+    votersSurveyed: number;
+    fieldsUpdated: number;
+    contactPoints: number;
+    politicalPoints: number;
+    demographicPoints: number;
+    statusPoints: number;
+  };
+  fieldCounts: Record<string, number>;
+  recentUpdates: SurveyRecentUpdate[];
+}
+
+export interface TeamSurveyScoreRow {
+  rank: number;
+  volunteerId: string;
+  name: string;
+  mobile: string;
+  avatar: string | null;
+  role: string;
+  totalScore: number;
+  votersSurveyed: number;
+  fieldsUpdated: number;
+  contactPoints: number;
+  politicalPoints: number;
+  demographicPoints: number;
+  statusPoints: number;
+  lastActiveAt: string | null;
+}
+
+export interface SurveyScoreState {
+  rank: number;
+  totalVolunteers: number;
+  timeRange: 'today' | '7d' | '30d' | 'all';
+  myStats: VolunteerSurveyStatsPayload | null;
+  rules: Record<string, SurveyFieldRule>;
+  teamScores: TeamSurveyScoreRow[];
+  loading: boolean;
+  selectedMemberStats: VolunteerSurveyStatsPayload | null;
+  memberLoading: boolean;
+}
 
 export interface PoliticalViewCount {
   favorable: number;
@@ -48,6 +124,7 @@ export interface DashboardState {
   } | null;
   syncedContactsVotersCount: number;
   politicalViews: PoliticalViewCount;
+  surveyScore: SurveyScoreState;
   loading: boolean;
 }
 
@@ -89,6 +166,17 @@ const initialDashboardState: DashboardState = {
     pendingTotal: 0,
     grandTotal: 0,
   },
+  surveyScore: {
+    rank: 0,
+    totalVolunteers: 0,
+    timeRange: '30d',
+    myStats: null,
+    rules: {},
+    teamScores: [],
+    loading: false,
+    selectedMemberStats: null,
+    memberLoading: false,
+  },
   loading: true,
 };
 
@@ -120,6 +208,40 @@ const dashboardReducer = (state = initialDashboardState, action: any): Dashboard
         ...state,
         ...action.payload,
         loading: false,
+      };
+    case SET_SURVEY_SCORE_LOADING:
+      return {
+        ...state,
+        surveyScore: {
+          ...state.surveyScore,
+          loading: action.payload,
+        },
+      };
+    case SET_SURVEY_SCORE_DATA:
+      return {
+        ...state,
+        surveyScore: {
+          ...state.surveyScore,
+          ...action.payload,
+          loading: false,
+        },
+      };
+    case SET_MEMBER_SURVEY_SCORE_LOADING:
+      return {
+        ...state,
+        surveyScore: {
+          ...state.surveyScore,
+          memberLoading: action.payload,
+        },
+      };
+    case SET_MEMBER_SURVEY_SCORE:
+      return {
+        ...state,
+        surveyScore: {
+          ...state.surveyScore,
+          selectedMemberStats: action.payload,
+          memberLoading: false,
+        },
       };
     default:
       return state;

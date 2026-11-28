@@ -147,7 +147,7 @@ export const VoterFormPage: React.FC = () => {
     familyInfluencerId: '',
     socialInfluencerId: '',
     isFamilyInfluencer: false,
-    isSocialInfluencer: false,
+    socialInfluencerScope: null as 'booth' | 'ac' | null,
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -162,7 +162,7 @@ export const VoterFormPage: React.FC = () => {
           if (voter) {
             setVoterMeta(voter);
             const isFam = Boolean(voter.isFamilyInfluencer || Number(voter.familyInfluencedCount) > 0);
-            const isSoc = Boolean(voter.isSocialInfluencer || Number(voter.socialInfluencedCount) > 0);
+            const socialScope = voter.socialInfluencerScope || (Number(voter.socialInfluencedCount) > 0 ? 'booth' : null);
 
             const loadedBoothId = voter.boothId ? String(voter.boothId) : '';
             let resolvedAcId = voter.acId ? String(voter.acId) : '';
@@ -231,7 +231,7 @@ export const VoterFormPage: React.FC = () => {
               familyInfluencerId: isFam ? '' : (voter.familyInfluencerId ? String(voter.familyInfluencerId) : ''),
               socialInfluencerId: voter.socialInfluencerId ? String(voter.socialInfluencerId) : '',
               isFamilyInfluencer: isFam,
-              isSocialInfluencer: isSoc,
+              socialInfluencerScope: socialScope,
             });
 
             if (voter.fullAddress && voter.fullAddress === voter.voterAddress) {
@@ -728,7 +728,7 @@ export const VoterFormPage: React.FC = () => {
       familyInfluencerId: formData.familyInfluencerId ? formData.familyInfluencerId : null,
       socialInfluencerId: formData.socialInfluencerId ? formData.socialInfluencerId : null,
       isFamilyInfluencer: formData.isFamilyInfluencer,
-      isSocialInfluencer: formData.isSocialInfluencer,
+      socialInfluencerScope: formData.socialInfluencerScope || null,
     };
 
     try {
@@ -1157,12 +1157,15 @@ export const VoterFormPage: React.FC = () => {
             name: [voterMeta.engFirstName, voterMeta.engMiddleName, voterMeta.engSurname].filter(Boolean).join(' ') || voterMeta.epicNo,
             engName: [voterMeta.engFirstName, voterMeta.engMiddleName, voterMeta.engSurname].filter(Boolean).join(' ') || voterMeta.epicNo,
             epicNo: voterMeta.epicNo,
+            acId: voterMeta.acId,
+            acName: voterMeta.acName,
             boothId: voterMeta.boothId,
             boothName: voterMeta.boothName,
             sectionNo: voterMeta.sectionNo,
             houseNo: voterMeta.houseNo,
             avatar: voterMeta.avatar,
             socialInfluencedCount: voterMeta.socialInfluencedCount,
+            socialInfluencerScope: voterMeta.socialInfluencerScope || null,
           }}
           onSuccess={() => {
             if (id) {
@@ -1194,7 +1197,7 @@ export const VoterFormPage: React.FC = () => {
                   familyInfluencerId: data.familyInfluencerId ? String(data.familyInfluencerId) : '',
                   socialInfluencerId: data.socialInfluencerId ? String(data.socialInfluencerId) : '',
                   isFamilyInfluencer: Boolean(data.isFamilyInfluencer || Number(data.familyInfluencedCount) > 0),
-                  isSocialInfluencer: Boolean(data.isSocialInfluencer || Number(data.socialInfluencedCount) > 0),
+                  socialInfluencerScope: data.socialInfluencerScope || (Number(data.socialInfluencedCount) > 0 ? 'booth' : null),
                 }));
               }
             });

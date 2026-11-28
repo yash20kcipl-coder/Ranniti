@@ -138,7 +138,7 @@ export const FieldCompletenessCard: React.FC<FieldCompletenessCardProps> = ({ da
         <CardFooterLink
           hint="Volunteers earn points for filling in missing details"
           label="Volunteer surveys"
-          to="/dashboard/surveys"
+          to="/dashboard/reports/surveys"
         />
       }
       className="flex flex-col justify-between h-full min-h-[620px]"

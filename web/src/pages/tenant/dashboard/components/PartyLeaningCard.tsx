@@ -271,7 +271,7 @@ export const PartyLeaningCard: React.FC<PartyLeaningCardProps> = ({ data, loadin
             </p>
             <button
               type="button"
-              onClick={() => navigate('/dashboard/surveys')}
+              onClick={() => navigate('/dashboard/reports/surveys')}
               className="inline-flex items-center justify-center min-h-[40px] px-4 rounded-[10px] bg-[#4338CA] hover:bg-indigo-800 text-white text-[13px] font-semibold transition-colors cursor-pointer shrink-0 whitespace-nowrap"
             >
               Open surveys

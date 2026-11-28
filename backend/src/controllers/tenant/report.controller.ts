@@ -16,13 +16,14 @@ export class TenantReportController {
       return;
     }
 
-    const { page, limit, search, role, boothId, startDate, endDate } = req.query;
+    const { page, limit, search, role, volunteerId, boothId, startDate, endDate } = req.query;
 
     const result = await tenantReportService.getVoterSyncReport(tenantDbName, {
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 25,
       search: search ? String(search) : undefined,
       role: role ? String(role) : undefined,
+      volunteerId: volunteerId ? String(volunteerId) : undefined,
       boothId: boothId ? String(boothId) : undefined,
       startDate: startDate ? String(startDate) : undefined,
       endDate: endDate ? String(endDate) : undefined,
@@ -120,12 +121,13 @@ export class TenantReportController {
       return;
     }
 
-    const { search, role, boothId, startDate, endDate } = req.query;
+    const { search, role, volunteerId, boothId, startDate, endDate } = req.query;
     await tenantReportService.exportVoterSyncExcel(
       tenantDbName,
       {
         search: search ? String(search) : undefined,
         role: role ? String(role) : undefined,
+        volunteerId: volunteerId ? String(volunteerId) : undefined,
         boothId: boothId ? String(boothId) : undefined,
         startDate: startDate ? String(startDate) : undefined,
         endDate: endDate ? String(endDate) : undefined,

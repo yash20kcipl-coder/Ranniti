@@ -8,6 +8,7 @@ import {
   UserX,
   AlertTriangle,
   Phone,
+  Globe,
 } from 'lucide-react';
 import {
   GENDER_OPTIONS,
@@ -553,13 +554,13 @@ export function buildVoterFilterFields(
         setFilter('influencerRole', val);
         if (val === 'family') {
           setFilter('isFamilyInfluencer', 'true');
-          setFilter('isSocialInfluencer', '');
+          setFilter('socialInfluencerScope', '');
         } else if (val === 'social') {
           setFilter('isFamilyInfluencer', '');
-          setFilter('isSocialInfluencer', 'true');
+          setFilter('socialInfluencerScope', 'any');
         } else {
           setFilter('isFamilyInfluencer', '');
-          setFilter('isSocialInfluencer', '');
+          setFilter('socialInfluencerScope', '');
         }
       },
       options: [
@@ -591,7 +592,7 @@ export function buildVoterFilterFields(
 
 export function buildVoterFilterPresets(state: VoterFilterState): FilterPreset[] {
   const { filterParams, setFilter } = state;
-  const { gender, influencerRole, isFamilyInfluencer, isSocialInfluencer, isDead, ageGroup } = filterParams;
+  const { gender, influencerRole, isFamilyInfluencer, socialInfluencerScope, isDead, ageGroup } = filterParams;
 
   return [
     {
@@ -618,7 +619,7 @@ export function buildVoterFilterPresets(state: VoterFilterState): FilterPreset[]
         const next = influencerRole === 'family' || isFamilyInfluencer === 'true' ? '' : 'family';
         setFilter('influencerRole', next);
         setFilter('isFamilyInfluencer', next ? 'true' : '');
-        setFilter('isSocialInfluencer', '');
+        setFilter('socialInfluencerScope', '');
       },
       isActiveDraft: (draft) => draft.influencerRole === 'family' || draft.isFamilyInfluencer === 'true',
       applyDraft: (draft) => {
@@ -627,28 +628,50 @@ export function buildVoterFilterPresets(state: VoterFilterState): FilterPreset[]
           ...draft,
           influencerRole: isAct ? '' : 'family',
           isFamilyInfluencer: isAct ? '' : 'true',
-          isSocialInfluencer: '',
+          socialInfluencerScope: '',
         };
       },
     },
     {
       label: 'Social Influencers',
       icon: <Sparkles className="w-3.5 h-3.5 text-amber-400" />,
-      active: influencerRole === 'social' || isSocialInfluencer === 'true',
+      active: influencerRole === 'social' || socialInfluencerScope === 'any' || socialInfluencerScope === 'booth' || socialInfluencerScope === 'ac',
       apply: () => {
-        const next = influencerRole === 'social' || isSocialInfluencer === 'true' ? '' : 'social';
+        const isAct = influencerRole === 'social' || Boolean(socialInfluencerScope);
+        const next = isAct ? '' : 'social';
         setFilter('influencerRole', next);
         setFilter('isFamilyInfluencer', '');
-        setFilter('isSocialInfluencer', next ? 'true' : '');
+        setFilter('socialInfluencerScope', next ? 'any' : '');
       },
-      isActiveDraft: (draft) => draft.influencerRole === 'social' || draft.isSocialInfluencer === 'true',
+      isActiveDraft: (draft) => draft.influencerRole === 'social' || Boolean(draft.socialInfluencerScope),
       applyDraft: (draft) => {
-        const isAct = draft.influencerRole === 'social' || draft.isSocialInfluencer === 'true';
+        const isAct = draft.influencerRole === 'social' || Boolean(draft.socialInfluencerScope);
         return {
           ...draft,
           influencerRole: isAct ? '' : 'social',
           isFamilyInfluencer: '',
-          isSocialInfluencer: isAct ? '' : 'true',
+          socialInfluencerScope: isAct ? '' : 'any',
+        };
+      },
+    },
+    {
+      label: 'AC-Wise Social',
+      icon: <Globe className="w-3.5 h-3.5 text-indigo-500" />,
+      active: socialInfluencerScope === 'ac',
+      apply: () => {
+        const next = socialInfluencerScope === 'ac' ? '' : 'ac';
+        setFilter('socialInfluencerScope', next);
+        setFilter('influencerRole', next ? 'social' : '');
+        setFilter('isFamilyInfluencer', '');
+      },
+      isActiveDraft: (draft) => draft.socialInfluencerScope === 'ac',
+      applyDraft: (draft) => {
+        const isAct = draft.socialInfluencerScope === 'ac';
+        return {
+          ...draft,
+          socialInfluencerScope: isAct ? '' : 'ac',
+          influencerRole: isAct ? '' : 'social',
+          isFamilyInfluencer: '',
         };
       },
     },
@@ -878,7 +901,8 @@ export function buildVoterTableColumns(): Column<any>[] {
       header: 'Influencer',
       render: (row: any) => {
         const isFamilyInf = row.isFamilyInfluencer || Number(row.familyInfluencedCount) > 0;
-        const isSocialInf = row.isSocialInfluencer || Number(row.socialInfluencedCount) > 0;
+        const socialScope = row.socialInfluencerScope || (Number(row.socialInfluencedCount) > 0 ? 'booth' : null);
+        const isSocialInf = Boolean(socialScope);
 
         if (!isFamilyInf && !isSocialInf) {
           return <span className="text-slate-400 dark:text-slate-600 font-mono text-[11px]">—</span>;
@@ -905,22 +929,33 @@ export function buildVoterTableColumns(): Column<any>[] {
               </span>
             )}
             {isSocialInf && (
-              <span
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-700/60 text-[9.5px] font-semibold shadow-2xs"
-                title={
-                  Number(row.socialInfluencedCount) > 0
-                    ? `Social Influencer for ${row.socialInfluencedCount} voter${row.socialInfluencedCount > 1 ? 's' : ''}`
-                    : 'Social Influencer (Community Leader)'
-                }
-              >
-                <Sparkles size={11} className="shrink-0 text-amber-600 dark:text-amber-400" />
-                <span>Social Leader</span>
-                {Number(row.socialInfluencedCount) > 0 && (
-                  <span className="px-1 py-0.2 rounded-xs bg-amber-200/90 dark:bg-amber-900 text-[8.5px] font-bold font-mono text-amber-800 dark:text-amber-200 ml-0.5">
-                    {row.socialInfluencedCount}
+              <div className="inline-flex items-center gap-1 flex-wrap">
+                <span
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-700/60 text-[9.5px] font-semibold shadow-2xs"
+                  title={
+                    Number(row.socialInfluencedCount) > 0
+                      ? `Social Influencer for ${row.socialInfluencedCount} voter${row.socialInfluencedCount > 1 ? 's' : ''}`
+                      : 'Social Influencer (Community Leader)'
+                  }
+                >
+                  <Sparkles size={11} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>Social Leader</span>
+                  {Number(row.socialInfluencedCount) > 0 && (
+                    <span className="px-1 py-0.2 rounded-xs bg-amber-200/90 dark:bg-amber-900 text-[8.5px] font-bold font-mono text-amber-800 dark:text-amber-200 ml-0.5">
+                      {row.socialInfluencedCount}
+                    </span>
+                  )}
+                </span>
+                {socialScope === 'ac' && (
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-700/60 text-[9px] font-bold shadow-2xs"
+                    title="AC-Wise Social Influencer (All Booths in AC)"
+                  >
+                    <Globe size={10} className="shrink-0 text-indigo-600 dark:text-indigo-400" />
+                    <span>AC-Wise</span>
                   </span>
                 )}
-              </span>
+              </div>
             )}
           </div>
         );

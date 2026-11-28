@@ -59,11 +59,11 @@ export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, 
 
         <View style={styles.infoCol}>
           <Text style={[styles.nameText, { color: theme.colors.text }]} numberOfLines={1}>
-            {hindiName}
+            {englishName || hindiName}
           </Text>
-          {Boolean(englishName) && (
+          {Boolean(hindiName && englishName && hindiName !== englishName) && (
             <Text style={[styles.engNameText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-              {englishName}
+              {hindiName}
             </Text>
           )}
 
@@ -123,13 +123,14 @@ export const VoterDetailHeader: React.FC<VoterDetailHeaderProps> = ({ voter, t, 
       </View>
 
       {/* Influencer Highlight Banner */}
-      {(Boolean(voter.isSocialInfluencer) || Boolean(voter.isFamilyInfluencer) || Boolean(voter.isFamilyHead)) && (
+      {(Boolean(voter.socialInfluencerScope) || Boolean(voter.isFamilyInfluencer) || Boolean(voter.isFamilyHead)) && (
         <View style={styles.influencerBanner}>
-          {Boolean(voter.isSocialInfluencer) && (
+          {Boolean(voter.socialInfluencerScope) && (
             <View style={[styles.influencerChip, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
               <MaterialDesignIcons name="star-circle" size={15} color="#D97706" />
               <Text style={[styles.influencerChipText, { color: '#B45309' }]}>
                 {t('socialInfluencer')}
+                {voter.socialInfluencerScope === 'ac' ? ` • ${t('acWise')}` : ''}
                 {voter.socialInfluencedCount ? ` • ${voter.socialInfluencedCount} ${t('votersCount')}` : ''}
               </Text>
             </View>

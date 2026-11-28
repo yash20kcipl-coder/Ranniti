@@ -157,21 +157,23 @@ export class MasterService {
 
   async createTaluka(districtId: string, name: string): Promise<Taluka> {
     const created = await MasterQueries.createTaluka(districtId, name);
-    MasterBroadcastSync.broadcastToAllTenants('talukas', created).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
+    MasterBroadcastSync.broadcastToDistrictTenants('talukas', created, created.districtId || districtId).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
     return created;
   }
 
   async updateTaluka(id: string, districtId?: string, name?: string): Promise<Taluka> {
     const updated = await MasterQueries.updateTaluka(id, districtId, name);
     if (!updated) throw ApiError.notFound('Taluka not found');
-    MasterBroadcastSync.broadcastToAllTenants('talukas', updated).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
+    MasterBroadcastSync.broadcastToDistrictTenants('talukas', updated, updated.districtId).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
     return updated;
   }
 
   async deleteTaluka(id: string): Promise<void> {
+    const existing = await MasterQueries.getTalukaById(id);
+    if (!existing) throw ApiError.notFound('Taluka not found');
     const deleted = await MasterQueries.deleteTaluka(id);
     if (!deleted) throw ApiError.notFound('Taluka not found');
-    MasterBroadcastSync.broadcastDeleteToAllTenants('talukas', id).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
+    MasterBroadcastSync.broadcastDeleteToDistrictTenants('talukas', id, existing.districtId).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
   }
 
   // Villages
@@ -187,21 +189,37 @@ export class MasterService {
 
   async createVillage(talukaId: string, name: string): Promise<Village> {
     const created = await MasterQueries.createVillage(talukaId, name);
-    MasterBroadcastSync.broadcastToAllTenants('villages', created).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
+    MasterQueries.getTalukaById(created.talukaId || talukaId)
+      .then(async (taluka) => {
+        if (!taluka?.districtId) return;
+        await MasterBroadcastSync.broadcastToDistrictTenants('talukas', taluka, taluka.districtId);
+        await MasterBroadcastSync.broadcastToDistrictTenants('villages', created, taluka.districtId);
+      })
+      .catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
     return created;
   }
 
   async updateVillage(id: string, talukaId?: string, name?: string): Promise<Village> {
     const updated = await MasterQueries.updateVillage(id, talukaId, name);
     if (!updated) throw ApiError.notFound('Village not found');
-    MasterBroadcastSync.broadcastToAllTenants('villages', updated).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
+    MasterQueries.getTalukaById(updated.talukaId)
+      .then(async (taluka) => {
+        if (!taluka?.districtId) return;
+        await MasterBroadcastSync.broadcastToDistrictTenants('talukas', taluka, taluka.districtId);
+        await MasterBroadcastSync.broadcastToDistrictTenants('villages', updated, taluka.districtId);
+      })
+      .catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
     return updated;
   }
 
   async deleteVillage(id: string): Promise<void> {
+    const existing = await MasterQueries.getVillageById(id);
+    if (!existing) throw ApiError.notFound('Village not found');
     const deleted = await MasterQueries.deleteVillage(id);
     if (!deleted) throw ApiError.notFound('Village not found');
-    MasterBroadcastSync.broadcastDeleteToAllTenants('villages', id).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
+    if (existing.districtId) {
+      MasterBroadcastSync.broadcastDeleteToDistrictTenants('villages', id, existing.districtId).catch((err) => logger.error('[MasterService] Broadcast sync error:', err));
+    }
   }
 
   // Parliamentary Constituencies (PC)

@@ -11,7 +11,7 @@ import {
   fetchSuperAdminInfluencerOptions,
   bulkAssignSuperAdminInfluencerAction,
 } from '@/redux/actions/voterSuperAdmin';
-import { Crown, Sparkles, Search, X, UserCheck, Check } from 'lucide-react';
+import { Crown, Sparkles, Search, X, UserCheck, Check, Globe } from 'lucide-react';
 import { SafeImage } from '../SafeImage';
 
 export interface LinkToInfluencerModalProps {
@@ -189,7 +189,15 @@ export const LinkToInfluencerModal: React.FC<LinkToInfluencerModalProps> = ({
                         {isFamily ? (
                           <Crown className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                         ) : (
-                          <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <>
+                            <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            {inf.socialInfluencerScope === 'ac' && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 text-[9px] font-bold">
+                                <Globe className="w-2.5 h-2.5" />
+                                AC-Wise
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
 

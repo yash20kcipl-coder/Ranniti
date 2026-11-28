@@ -2,6 +2,7 @@ import React from 'react';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useLanguage } from '../languages';
 import ScrollableFilterPills, { FilterOption } from './ScrollableFilterPills';
 import { MaterialDesignIcons } from './MaterialDesignIcons';
 import { View, StyleSheet, TouchableOpacity, TextInput, StyleProp, ViewStyle } from 'react-native';
@@ -25,7 +26,7 @@ export const SearchAndFilterHeader: React.FC<SearchAndFilterHeaderProps> = ({
   containerStyle,
   search,
   onChangeSearch,
-  placeholder = 'Search...',
+  placeholder: placeholderProp,
   onFilterPress,
   options,
   activeId,
@@ -33,6 +34,8 @@ export const SearchAndFilterHeader: React.FC<SearchAndFilterHeaderProps> = ({
   children,
 }) => {
   const { styles } = useAppTheme(getStyles);
+  const { t } = useLanguage();
+  const placeholder = placeholderProp ?? t('search');
 
   return (
     <View style={[styles.container, containerStyle]}>

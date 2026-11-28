@@ -5,5 +5,6 @@ import { mobileDashboardController } from '../../controllers/mobile/mobileDashbo
 const router = Router();
 
 router.get('/', authenticateMobileUser, mobileDashboardController.getMetrics);
+router.get('/survey-score', authenticateMobileUser, mobileDashboardController.getSurveyScore);
 
 export const mobileDashboardRoutes = router;

@@ -146,7 +146,7 @@ export const SuperAdminVoterFormPage: React.FC = () => {
     annualIncome: '',
 
     isFamilyInfluencer: false,
-    isSocialInfluencer: false,
+    socialInfluencerScope: null as 'booth' | 'ac' | null,
     influencerCategory: '',
     influencerNotes: '',
     influencerRole: '',
@@ -441,7 +441,7 @@ export const SuperAdminVoterFormPage: React.FC = () => {
           annualIncome: data.annualIncome || '',
 
           isFamilyInfluencer: Boolean(data.isFamilyInfluencer || Number(data.familyInfluencedCount) > 0),
-          isSocialInfluencer: Boolean(data.isSocialInfluencer || Number(data.socialInfluencedCount) > 0),
+          socialInfluencerScope: data.socialInfluencerScope || (Number(data.socialInfluencedCount) > 0 ? 'booth' : null),
           influencerCategory: data.influencerCategory || '',
           influencerNotes: data.influencerNotes || '',
           influencerRole: data.influencerRole || '',
@@ -789,7 +789,7 @@ export const SuperAdminVoterFormPage: React.FC = () => {
         profession: formData.profession?.trim() || null,
         isDead: Boolean(formData.isDead),
         isFamilyInfluencer: Boolean(formData.isFamilyInfluencer),
-        isSocialInfluencer: Boolean(formData.isSocialInfluencer),
+        socialInfluencerScope: formData.socialInfluencerScope || null,
         influenceReachCount: Number(formData.influenceReachCount) || 0,
       };
 
@@ -817,10 +817,13 @@ export const SuperAdminVoterFormPage: React.FC = () => {
       id: voterMeta.id,
       name: [voterMeta.engFirstName, voterMeta.engSurname].filter(Boolean).join(' ') || voterMeta.voterName || 'Voter',
       epicNo: voterMeta.epicNo,
+      acId: voterMeta.acId,
+      acName: voterMeta.acName,
       boothId: voterMeta.boothId,
       boothName: voterMeta.boothName,
       sectionNo: voterMeta.sectionNo,
       houseNo: voterMeta.houseNo,
+      socialInfluencerScope: voterMeta.socialInfluencerScope || null,
     }
     : null;
 

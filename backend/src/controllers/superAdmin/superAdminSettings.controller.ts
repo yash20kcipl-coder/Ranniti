@@ -72,6 +72,7 @@ export class SuperAdminSettingsController {
       throw ApiError.badRequest('Invalid points configuration payload');
     }
     const updated = await settingsQueries.updateSurveyFieldPoints(pointsConfig, null);
+    await settingsQueries.syncSurveyFieldPointsToAllTenants(updated);
     const response = ApiResponse.success(updated, 'Master survey field points updated successfully');
     res.status(response.statusCode).json(response.body);
   });
@@ -82,6 +83,7 @@ export class SuperAdminSettingsController {
    */
   resetSurveyFieldPoints = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const reset = await settingsQueries.resetSurveyFieldPoints(null);
+    await settingsQueries.syncSurveyFieldPointsToAllTenants(reset);
     const response = ApiResponse.success(reset, 'Master survey field points reset to defaults successfully');
     res.status(response.statusCode).json(response.body);
   });

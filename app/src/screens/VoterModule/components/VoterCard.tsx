@@ -102,15 +102,15 @@ export const VoterCard: React.FC<VoterCardProps> = memo(({
               </View>
             )}
 
-            {/* Main Title: Hindi Name */}
+            {/* Main Title: English Name */}
             <Text style={styles.voterName} numberOfLines={1}>
-              {hindiName}
+              {englishName || hindiName}
             </Text>
 
-            {/* Subtitle: English Name */}
-            {Boolean(englishName && englishName !== hindiName) && (
+            {/* Subtitle: Hindi / Native Name */}
+            {Boolean(hindiName && englishName && hindiName !== englishName) && (
               <Text style={styles.englishNameText} numberOfLines={1}>
-                {englishName}
+                {hindiName}
               </Text>
             )}
 

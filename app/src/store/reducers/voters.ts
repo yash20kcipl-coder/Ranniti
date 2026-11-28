@@ -97,7 +97,7 @@ export interface Voter {
   familyInfluencerId?: string;
   familyInfluencerName?: string;
   familyInfluencedCount?: number;
-  isSocialInfluencer?: boolean;
+  socialInfluencerScope?: 'booth' | 'ac' | null;
   socialInfluencerId?: string;
   socialInfluencerName?: string;
   socialInfluencerEpic?: string;

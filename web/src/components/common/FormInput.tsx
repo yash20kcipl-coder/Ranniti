@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FileUploadInput } from './FileUploadInput';
+import { DatePicker } from './DatePicker';
 import { Eye, EyeOff, Check, AlertCircle, ChevronDown, Search, X, Loader2 } from 'lucide-react';
 
 export interface Option {
@@ -12,7 +13,7 @@ export interface Option {
 export interface FormInputProps {
   label?: string;
   name?: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'select' | 'multiselect' | 'textarea' | 'file' | 'checkbox' | 'switch' | 'date' | 'autocomplete';
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'select' | 'multiselect' | 'textarea' | 'file' | 'checkbox' | 'switch' | 'date' | 'daterange' | 'autocomplete';
   searchable?: boolean;
   value?: any;
   onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }) => void;
@@ -751,7 +752,11 @@ export const FormInput: React.FC<FormInputProps> = ({
       ? `px-3 py-2 text-xs leading-relaxed font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 ${radiusClass}`
       : `h-9 px-3 text-xs leading-tight font-slab placeholder:text-slate-400 dark:placeholder:text-slate-500 ${radiusClass}`;
 
-  const isFilled = value !== undefined && value !== null && String(value).trim() !== '' && value !== false;
+  const isFilled = value !== undefined && value !== null && value !== false && (
+    typeof value === 'object'
+      ? Boolean(value.startDate || value.endDate)
+      : String(value).trim() !== ''
+  );
 
   const stateStyles = error
     ? 'border-red-400 focus:border-red-400 bg-red-50/30 dark:bg-red-950/20 text-slate-900 dark:text-slate-100'
@@ -898,20 +903,34 @@ export const FormInput: React.FC<FormInputProps> = ({
 
       case 'date':
         return (
-          <div className="relative">
-            {icon && <div className={`absolute ${isSm ? 'left-2.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none`}>{icon}</div>}
-            <input
-              type="date"
-              name={name}
-              value={value ?? ''}
-              onChange={onChange}
-              onBlur={onBlur}
-              placeholder={placeholder}
-              required={required}
-              disabled={disabled}
-              className={`${baseInputStyles} ${icon ? (isSm ? 'pl-8' : 'pl-10') : ''} pr-8 font-slab text-xs [color-scheme:light] dark:[color-scheme:dark] cursor-pointer`}
-            />
-          </div>
+          <DatePicker
+            name={name}
+            mode="single"
+            value={value ?? ''}
+            onChange={onChange}
+            placeholder={placeholder}
+            disabled={disabled}
+            icon={icon}
+            size={size}
+            baseInputStyles={baseInputStyles}
+            clearable={clearable ?? true}
+          />
+        );
+
+      case 'daterange':
+        return (
+          <DatePicker
+            name={name}
+            mode="range"
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            disabled={disabled}
+            icon={icon}
+            size={size}
+            baseInputStyles={baseInputStyles}
+            clearable={clearable ?? true}
+          />
         );
 
       default:

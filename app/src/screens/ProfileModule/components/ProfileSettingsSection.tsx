@@ -5,11 +5,12 @@ import { rfValue } from '../../../utils/responsive';
 import { FontFamily } from '../../../utils/typography';
 import { getFormattedAppVersion } from '../../../utils/version';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { LanguageCode } from '../../../languages';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 
 interface ProfileSettingsSectionProps {
   language: string;
-  setLanguage: (lang: 'en' | 'hi') => void;
+  setLanguage: (lang: LanguageCode) => void;
   t: (key: any) => string;
   theme: Theme;
 }
@@ -94,6 +95,33 @@ export const ProfileSettingsSection: React.FC<ProfileSettingsSectionProps> = ({
               <MaterialDesignIcons name="check-circle" size={16} color="#FFFFFF" />
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[
+              styles.langBtn,
+              language === 'gu'
+                ? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
+                : { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+            ]}
+            onPress={() => setLanguage('gu')}
+          >
+            <View style={styles.langBtnContent}>
+              <Text style={styles.flagEmoji}>🇮🇳</Text>
+              <Text
+                style={[
+                  styles.langText,
+                  { color: language === 'gu' ? '#FFFFFF' : theme.colors.text },
+                  language === 'gu' && { fontFamily: FontFamily.bold },
+                ]}
+              >
+                {t('gujarati')}
+              </Text>
+            </View>
+            {language === 'gu' && (
+              <MaterialDesignIcons name="check-circle" size={16} color="#FFFFFF" />
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -143,15 +171,17 @@ const styles = StyleSheet.create({
   },
   langRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   langBtn: {
-    flex: 1,
+    flexGrow: 1,
+    minWidth: '30%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderRadius: 14,
     borderWidth: 1,
   },

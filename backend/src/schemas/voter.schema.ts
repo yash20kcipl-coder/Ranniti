@@ -96,7 +96,7 @@ export const createVoterSchema = z.object({
     familyInfluencerId: preprocessUuid(),
     socialInfluencerId: preprocessUuid(),
     isFamilyInfluencer: preprocessBool(),
-    isSocialInfluencer: preprocessBool(),
+    socialInfluencerScope: z.enum(['booth', 'ac']).nullable().optional(),
   }),
 });
 
@@ -128,7 +128,7 @@ export const voterQuerySchema = z.object({
     familyInfluencerId: z.string().optional(),
     socialInfluencerId: z.string().optional(),
     isFamilyInfluencer: z.string().optional(),
-    isSocialInfluencer: z.string().optional(),
+    socialInfluencerScope: z.string().optional(),
     influencerStatus: z.string().optional(),
     influencerRole: z.string().optional(),
     type: z.string().optional(),
@@ -140,7 +140,8 @@ export const bulkAssignInfluencerSchema = z.object({
   body: z.object({
     influencerId: z.string().uuid('Valid Influencer ID is required').optional().nullable(),
     influencerType: z.enum(['family', 'social'], { required_error: 'Influencer type must be family or social' }),
-    voterIds: z.array(z.string().uuid()).min(1, 'At least one voter ID must be provided'),
+    voterIds: z.array(z.string().uuid()).optional().default([]),
+    socialInfluencerScope: z.enum(['booth', 'ac']).nullable().optional(),
   }),
 });
 
@@ -164,6 +165,7 @@ export const socialCandidatesQuerySchema = z.object({
   query: z.object({
     influencerId: z.string().min(1, 'Influencer ID is required'),
     boothId: z.string().optional(),
+    acWise: z.string().optional(),
     search: z.string().optional(),
     sectionNo: z.string().optional(),
     gender: z.string().optional(),

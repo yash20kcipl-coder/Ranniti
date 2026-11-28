@@ -26,6 +26,12 @@ export const SyncedContactCard: React.FC<SyncedContactCardProps> = ({
 
   const phoneToCall = item.mobileNo || item.devicePhone;
   const boothDisplay = item.boothName || (item.boothNo ? `${t('booth')} #${item.boothNo}` : '');
+  const englishName = item.englishName || item.name || '';
+  const hindiName = item.hindiName || '';
+  const voterDisplayName =
+    englishName && hindiName && englishName !== hindiName
+      ? `${englishName} (${hindiName})`
+      : englishName || hindiName;
 
   return (
     <View style={styles.card}>
@@ -34,7 +40,7 @@ export const SyncedContactCard: React.FC<SyncedContactCardProps> = ({
           uri={item.avatar}
           placeholderType="avatar"
           style={styles.avatar}
-          name={item.hindiName || item.englishName || item.name}
+          name={englishName || hindiName}
         />
 
         <View style={styles.infoCol}>
@@ -55,7 +61,7 @@ export const SyncedContactCard: React.FC<SyncedContactCardProps> = ({
           <View style={styles.voterRollRow}>
             <Text style={styles.voterRollLabel}>{t('voterRollName')}:</Text>
             <Text style={styles.voterName} numberOfLines={1}>
-              {item.hindiName || item.englishName || item.name}
+              {voterDisplayName}
             </Text>
           </View>
 

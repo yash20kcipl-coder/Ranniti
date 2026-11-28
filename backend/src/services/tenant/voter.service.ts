@@ -182,18 +182,21 @@ export class VoterService {
 
     const updatedVoter = await VoterQueries.updateVoter(id, data, tenantDbName);
 
+    let pointsEarned = 0;
     if (volunteerId && existingVoter && updatedVoter) {
       const { SurveyScoringService } = await import('./surveyScoring.service');
-      SurveyScoringService.recordVoterFieldUpdates({
+      pointsEarned = await SurveyScoringService.recordVoterFieldUpdates({
         volunteerId,
         voterId: id,
         boothId: updatedVoter.boothId,
         oldVoter: existingVoter,
         updatedVoter,
         tenantDbName,
-      }).catch((err) => {
-        logger.warn(`[VoterService] Non-fatal error recording survey field updates: ${err.message}`);
       });
+    }
+
+    if (updatedVoter && pointsEarned > 0) {
+      (updatedVoter as any).pointsEarned = pointsEarned;
     }
 
     return updatedVoter;
@@ -218,10 +221,11 @@ export class VoterService {
     influencerId: string | null,
     influencerType: 'family' | 'social',
     voterIds: string[],
-    tenantDbName?: string | null
+    tenantDbName?: string | null,
+    socialInfluencerScope?: 'booth' | 'ac' | null
   ): Promise<number> {
     logger.info(`[VoterService] Bulk assigning ${voterIds.length} voters to ${influencerType} influencer ID: ${influencerId}`);
-    return await VoterQueries.bulkAssignInfluencer(influencerId, influencerType, voterIds, tenantDbName);
+    return await VoterQueries.bulkAssignInfluencer(influencerId, influencerType, voterIds, tenantDbName, socialInfluencerScope);
   }
 
   static async exportVotersStream(res: any, params: VoterFilterParams): Promise<void> {

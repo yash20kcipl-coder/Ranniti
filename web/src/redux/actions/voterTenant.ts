@@ -243,6 +243,7 @@ export const exportTenantVotersData = (params: Record<string, any> = {}) => {
     influencerId: string | null;
     influencerType: 'family' | 'social';
     voterIds: string[];
+    socialInfluencerScope?: 'booth' | 'ac' | null;
   }) => {
     return async (dispatch: AppDispatch) => {
       try {

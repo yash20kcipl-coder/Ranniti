@@ -53,7 +53,7 @@ Primary database entity for storing voter information across electoral constitue
 | `family_influencer_id` | `UUID`         | Yes      | `NULL`              | Foreign Key -> `voters(id)` (Family Influencer / Head link)              |
 | `social_influencer_id` | `UUID`         | Yes      | `NULL`              | Foreign Key -> `voters(id)` (Social Influencer link)                    |
 | `is_family_influencer` | `BOOLEAN`      | Yes      | `FALSE`             | Explicit Family Influencer / Head of House role flag                    |
-| `is_social_influencer` | `BOOLEAN`      | Yes      | `FALSE`             | Explicit Social / Community Influencer role flag                        |
+| `social_influencer_scope` | `VARCHAR(10)` | Yes    | `NULL`              | Social Influencer scope (`NULL` = none, `'booth'` = booth-wise, `'ac'` = AC-wise) |
 | `family_id`            | `VARCHAR(50)`  | Yes      | `NULL`              | Canonical Family ID / Household code (e.g. FAM-B042-H12A)               |
 | `created_at`           | `TIMESTAMPTZ`  | No       | `NOW()`             | Record creation timestamp                                               |
 | `updated_at`           | `TIMESTAMPTZ`  | No       | `NOW()`             | Record update timestamp                                                 |
@@ -78,6 +78,7 @@ Primary database entity for storing voter information across electoral constitue
 | `idx_voters_party_id` | `B-Tree` | `party_id` | Party affiliation filtering |
 | `idx_voters_family_influencer_id` | `B-Tree` | `family_influencer_id` | Fast family influencer relationship lookup |
 | `idx_voters_social_influencer_id` | `B-Tree` | `social_influencer_id` | Fast social influencer relationship lookup |
+| `idx_voters_social_inf_scope` | `B-Tree (Partial)` | `social_influencer_scope WHERE social_influencer_scope IS NOT NULL` | Fast lookup of booth-wise and AC-wise social influencers |
 | `idx_voters_state_id` | `B-Tree` | `state_id` | Covering foreign key index for state filtering |
 | `idx_voters_district_id` | `B-Tree` | `district_id` | Covering foreign key index for district filtering |
 | `idx_voters_pc_id` | `B-Tree` | `pc_id` | Covering foreign key index for parliamentary constituency filtering |

@@ -89,6 +89,10 @@ export function navigateToDashboard(role?: string) {
   resetArray([SCREENS.MAIN]);
 }
 
+export function navigateToSwitchProfile() {
+  resetArray([{ name: SCREENS.MAIN, params: { screen: SCREENS.SWITCH_PROFILE } }]);
+}
+
 
 export function navigatToVoters(paramsOrRole?: any) {
   if (paramsOrRole && typeof paramsOrRole === 'object' && paramsOrRole.boothId) {

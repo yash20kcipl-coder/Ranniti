@@ -12,6 +12,7 @@ import { SafeImage } from './SafeImage';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useLanguage } from '../languages';
 import { MaterialDesignIcons } from './MaterialDesignIcons';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Dropdown, IDropdownRef } from 'react-native-element-dropdown';
@@ -65,7 +66,7 @@ interface DropdownItemData<T> extends DropdownOption<T> {
 export function AppDropdown<T extends string | number = string>({
   label,
   labelRightAction,
-  placeholder = 'Select an option...',
+  placeholder: placeholderProp,
   icon,
   value,
   options,
@@ -73,11 +74,11 @@ export function AppDropdown<T extends string | number = string>({
   isOpen: controlledIsOpen,
   onToggle,
   searchable = true,
-  searchPlaceholder = 'Search options...',
+  searchPlaceholder: searchPlaceholderProp,
   searchIcon = 'magnify',
   clearable = false,
   onClear,
-  clearText = 'Clear',
+  clearText: clearTextProp,
   maxHeight = 360,
   loading = false,
   disabled = false,
@@ -88,6 +89,10 @@ export function AppDropdown<T extends string | number = string>({
   testID,
 }: AppDropdownProps<T>) {
   const { theme } = useAppTheme();
+  const { t } = useLanguage();
+  const placeholder = placeholderProp ?? t('selectAnOption');
+  const searchPlaceholder = searchPlaceholderProp ?? t('search');
+  const clearText = clearTextProp ?? t('clear');
   const dropdownRef = useRef<IDropdownRef>(null);
   const [isFocused, setIsFocused] = useState(false);
   const isOpenRef = useRef(false);
@@ -325,7 +330,7 @@ export function AppDropdown<T extends string | number = string>({
       ListEmptyComponent: (
         <View style={styles.emptyContainer}>
           <MaterialDesignIcons name="alert-circle-outline" size={22} color="#94A3B8" />
-          <Text style={styles.emptyText}>No options found</Text>
+          <Text style={styles.emptyText}>{t('noOptionsFound')}</Text>
         </View>
       ),
       ListHeaderComponent:

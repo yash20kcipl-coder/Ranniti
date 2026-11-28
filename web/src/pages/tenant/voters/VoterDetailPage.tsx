@@ -49,7 +49,7 @@ export const VoterDetailPage: React.FC = () => {
   const [linkInfluencerType, setLinkInfluencerType] = useState<'family' | 'social'>('family');
 
   const isFamilyHead = Boolean(voter?.isFamilyInfluencer || Number(voter?.familyInfluencedCount) > 0);
-  const isSocialLeader = Boolean(voter?.isSocialInfluencer || Number(voter?.socialInfluencedCount) > 0);
+  const isSocialLeader = Boolean(voter?.socialInfluencerScope || Number(voter?.socialInfluencedCount) > 0);
 
   const handleToggleFamilyRole = async () => {
     if (!voter || !id) return;
@@ -72,7 +72,7 @@ export const VoterDetailPage: React.FC = () => {
     if (!voter || !id) return;
     try {
       const nextVal = !isSocialLeader;
-      await dispatch(updateVoterItem(voter.id, { isSocialInfluencer: nextVal }));
+      await dispatch(updateVoterItem(voter.id, { socialInfluencerScope: nextVal ? 'booth' : null }));
       toast.success(nextVal ? 'Designated as Social Influencer' : 'Removed Social Influencer role');
       dispatch(fetchVoterById(id)).then((data) => setVoter(data));
     } catch (err: any) {
@@ -353,12 +353,15 @@ export const VoterDetailPage: React.FC = () => {
             name: [voter.engFirstName, voter.engMiddleName, voter.engSurname].filter(Boolean).join(' ') || voter.epicNo,
             engName: [voter.engFirstName, voter.engMiddleName, voter.engSurname].filter(Boolean).join(' ') || voter.epicNo,
             epicNo: voter.epicNo,
+            acId: voter.acId,
+            acName: voter.acName,
             boothId: voter.boothId,
             boothName: voter.boothName,
             sectionNo: voter.sectionNo,
             houseNo: voter.houseNo,
             avatar: voter.avatar,
             socialInfluencedCount: voter.socialInfluencedCount,
+            socialInfluencerScope: voter.socialInfluencerScope || null,
           }}
           onSuccess={() => {
             if (id) dispatch(fetchVoterById(id)).then((data) => setVoter(data));

@@ -28,6 +28,8 @@ const migrationFiles = [
   'standardize_gariyadhar_labels.sql',
   'remove_pincode_village_entry.sql',
   'add_booth_number_to_voters.sql',
+  'add_survey_field_points_to_campaign_settings.sql',
+  'add_ac_social_influencer_flag.sql',
 ];
 
 export async function runMasterMigrations(): Promise<void> {

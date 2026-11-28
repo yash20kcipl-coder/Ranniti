@@ -2,6 +2,7 @@ export * from './SectionContainer';
 export * from './DashboardSkeleton';
 export * from './PrimaryMetricsGrid';
 export * from './DashboardProfileCard';
+export * from './DashboardBoothFilter';
 export * from './RoleHierarchySection';
 export * from './PoliticalViewsSection';
 export * from './TurnoutAnalyticsSection';

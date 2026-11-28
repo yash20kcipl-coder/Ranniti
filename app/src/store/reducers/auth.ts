@@ -80,9 +80,11 @@ const initialState = {
   loading: false,
   selectedStudentId: null,
   access: null as any,
+  linkedProfiles: [] as any[],
 };
 
 export const SET_ACCESS_CONFIG = "SET_ACCESS_CONFIG";
+export const SET_LINKED_PROFILES = "SET_LINKED_PROFILES";
 
 const authReducer = (state = initialState, action: any) => {
   switch (action.type) {
@@ -111,6 +113,11 @@ const authReducer = (state = initialState, action: any) => {
         ...state,
         access: action.payload,
       };
+    case SET_LINKED_PROFILES:
+      return {
+        ...state,
+        linkedProfiles: Array.isArray(action.payload) ? action.payload : [],
+      };
     case LOG_OUT:
       return {
         ...initialState,
@@ -118,6 +125,7 @@ const authReducer = (state = initialState, action: any) => {
         token: null,
         user: null,
         access: null,
+        linkedProfiles: [],
       };
     default:
       return state;

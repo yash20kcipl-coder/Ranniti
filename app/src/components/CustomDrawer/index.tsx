@@ -3,10 +3,10 @@ import { SafeImage } from '../SafeImage';
 import { customDrawerStyles } from './styles';
 import { useLanguage } from '../../languages';
 import { getAppVersion } from '../../utils/version';
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useSelector, useDispatch } from 'react-redux';
-import { logoutAction } from '../../store/actions/auth';
+import { logoutAction, fetchLinkedProfilesAction } from '../../store/actions/auth';
 import { ThemeContext } from '../../context/ThemeContext';
 import { MaterialDesignIcons } from '../MaterialDesignIcons';
 import { hasScreenAccess } from '../../utils/permissionUtils';
@@ -29,9 +29,15 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
   const dispatch = useDispatch();
   const { mode, setMode } = useContext(ThemeContext);
   const isDarkMode = mode === 'dark';
-  const { user, access } = useSelector((state: any) => state.auth);
+  const { user, access, linkedProfiles } = useSelector((state: any) => state.auth);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const { theme, styles } = useAppTheme<ReturnType<typeof customDrawerStyles>>(customDrawerStyles);
+
+  useEffect(() => {
+    if (user?.id || user?.userId) {
+      dispatch(fetchLinkedProfilesAction() as any);
+    }
+  }, [dispatch, user?.id, user?.userId]);
 
   // Compute active route robustly across drawer and root stack screens
   const drawerCurrentRoute = (state?.routes?.[state?.index ?? 0]?.name || '').toLowerCase();
@@ -68,9 +74,13 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
   };
 
   // Group drawer menu items by category, filtered by user's role and tab access permissions
+  const hasMultipleProfiles = Array.isArray(linkedProfiles) && linkedProfiles.length > 1;
   const menuCategories = React.useMemo(() => {
     const categories: { [key: string]: any[] } = {};
     DRAWER_MENU.forEach((item: any) => {
+      if (item.name === SCREENS.SWITCH_PROFILE && !hasMultipleProfiles) {
+        return;
+      }
       if (!hasScreenAccess(access, item.name)) {
         return;
       }
@@ -81,7 +91,7 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
       categories[cat].push(item);
     });
     return categories;
-  }, [access]);
+  }, [access, hasMultipleProfiles]);
 
   return (
     <View style={styles.container}>
@@ -129,7 +139,9 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
         {Object.entries(menuCategories).map(([category, items]) => (
           <View key={category}>
             <View style={styles.categoryHeader}>
-              <Text style={styles.categoryHeaderText}>{category}</Text>
+              <Text style={styles.categoryHeaderText}>
+                {items[0]?.categoryKey ? t(items[0].categoryKey) : category}
+              </Text>
             </View>
 
             {items.map((item: any) => {
@@ -155,7 +167,7 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
                     />
                   </View>
                   <Text style={[styles.drawerItemText, isActive && styles.drawerItemTextActive]}>
-                    {item.label}
+                    {item.labelKey ? t(item.labelKey) : item.label}
                   </Text>
 
                   {item.badge && (
@@ -180,11 +192,11 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
             activeOpacity={0.7}
           >
             <MaterialDesignIcons name="logout" size={18} color={theme.colors.error} />
-            <Text style={styles.logoutText}>Logout</Text>
+            <Text style={styles.logoutText}>{t('logout')}</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>{t('appName')} Campaign OS • v{getAppVersion()}</Text>
+        <Text style={styles.version}>{t('appName')} {t('campaignOs')} • v{getAppVersion()}</Text>
       </View>
 
       {/* Logout Confirmation Modal */}
@@ -196,9 +208,9 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
         <View style={styles.modalIconContainer}>
           <MaterialDesignIcons name="alert" size={28} color={theme.colors.error} />
         </View>
-        <Text style={styles.modalTitle}>Confirm Logout</Text>
+        <Text style={styles.modalTitle}>{t('confirmLogout')}</Text>
         <Text style={styles.modalDescription}>
-          Are you sure you want to end your campaign session and log out of Ranniti?
+          {t('logoutConfirmMessage')}
         </Text>
         <View style={styles.modalButtonRow}>
           <TouchableOpacity
@@ -206,14 +218,14 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
             onPress={() => setLogoutModalVisible(false)}
             activeOpacity={0.8}
           >
-            <Text style={styles.cancelBtnText}>Cancel</Text>
+            <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.confirmBtn}
             onPress={handleConfirmLogout}
             activeOpacity={0.8}
           >
-            <Text style={styles.confirmBtnText}>Logout</Text>
+            <Text style={styles.confirmBtnText}>{t('logout')}</Text>
           </TouchableOpacity>
         </View>
       </Modal>

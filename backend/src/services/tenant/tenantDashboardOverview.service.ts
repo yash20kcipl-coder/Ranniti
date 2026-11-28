@@ -168,7 +168,7 @@ export class TenantDashboardOverviewService {
           COUNT(*) FILTER (WHERE family_id IS NOT NULL AND TRIM(family_id) != '')::int AS "familyFilled",
           COUNT(*) FILTER (WHERE house_no IS NOT NULL AND TRIM(house_no) != '')::int AS "houseNoFilled",
           COUNT(*) FILTER (WHERE profession IS NOT NULL AND TRIM(profession) != '')::int AS "professionFilled",
-          COUNT(*) FILTER (WHERE is_family_influencer = TRUE OR family_influencer_id IS NOT NULL OR is_social_influencer = TRUE OR social_influencer_id IS NOT NULL)::int AS "influencerFilled"
+          COUNT(*) FILTER (WHERE is_family_influencer = TRUE OR family_influencer_id IS NOT NULL OR social_influencer_scope IS NOT NULL OR social_influencer_id IS NOT NULL)::int AS "influencerFilled"
         FROM voters
         ${simpleVoterWhere}
         `,

@@ -58,7 +58,8 @@ export class MobileFamilyMappingController {
 
       const allMembers = [membersRes.head, ...membersRes.members].map(m => ({
         id: m.id,
-        name: m.name,
+        name: m.name || '',
+        engName: m.engName || '',
         relation: m.familyRelation || (m.id === fam.headId ? 'Head' : 'Member'),
         age: m.age || 0,
         gender: m.gender || '',
@@ -70,7 +71,8 @@ export class MobileFamilyMappingController {
 
       return {
         familyId: fam.familyId || fam.headId,
-        headName: fam.headLocalName || fam.headName || '',
+        headName: fam.headName || fam.headLocalName || '',
+        headLocalName: fam.headLocalName || '',
         headMobile: fam.headMobileNo || '',
         headEpic: fam.headEpicNo || '',
         headPhoto: fam.headAvatar || '',

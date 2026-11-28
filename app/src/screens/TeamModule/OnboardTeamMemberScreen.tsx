@@ -363,7 +363,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>{t('selectRole')} *</Text>
           </View>
           <Text style={styles.sectionSubtitle}>
-            Choose volunteer responsibility level allowed under your hierarchy
+            {t('chooseVolunteerLevelDesc')}
           </Text>
 
           <View style={styles.roleGrid}>
@@ -455,7 +455,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <MaterialDesignIcons name="account-details" size={20} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Volunteer Credentials</Text>
+            <Text style={styles.sectionTitle}>{t('cadreCredentials')}</Text>
           </View>
 
           {/* Avatar / Profile Photo Picker */}
@@ -486,14 +486,14 @@ export const OnboardTeamMemberScreen: React.FC = () => {
 
             <AppTextInput
               label={t('fullName') + ' *'}
-              placeholder="e.g. Ramesh Chandra"
+              placeholder={t('leaderNamePlaceholder')}
               value={name}
               onChangeText={setName}
             />
 
             <AppTextInput
               label={t('phoneNumber') + ' *'}
-              placeholder="10-digit mobile number"
+              placeholder={t('mobilePlaceholder')}
               keyboardType="phone-pad"
               maxLength={10}
               value={mobile}
@@ -501,8 +501,8 @@ export const OnboardTeamMemberScreen: React.FC = () => {
             />
 
             <AppTextInput
-              label={t('email') + ' (Optional)'}
-              placeholder="e.g. ramesh@ranniti.in (optional)"
+              label={t('email')}
+              placeholder={t('leaderEmailPlaceholder')}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -555,7 +555,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
           <View style={styles.sectionHeaderRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
               <MaterialDesignIcons name="vote" size={20} color={theme.colors.primary} />
-              <Text style={styles.sectionTitle}>Territory Assignment</Text>
+              <Text style={styles.sectionTitle}>{t('territoryAssignment')}</Text>
             </View>
             <View style={[styles.boothBadge, selectedBoothIds.length > 0 && styles.boothBadgeActive]}>
               <Text style={[styles.boothBadgeText, selectedBoothIds.length > 0 && styles.boothBadgeTextActive]}>
@@ -698,7 +698,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
           <MaterialDesignIcons name="search" size={18} color={theme.colors.textSecondary} />
           <TextInput
             style={styles.parentSearchInput}
-            placeholder="Search leader by name or mobile..."
+            placeholder={t('searchLeaderPlaceholder')}
             placeholderTextColor={theme.colors.textSecondary}
             value={parentSearch}
             onChangeText={setParentSearch}
@@ -729,7 +729,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
               >
                 <View style={styles.parentItemAvatar}>
                   <Text style={styles.parentItemAvatarText}>
-                    {item.name ? item.name.charAt(0).toUpperCase() : 'L'}
+                    {(item.name?.match(/[A-Za-z]/)?.[0] || item.name?.charAt(0) || 'L').toUpperCase()}
                   </Text>
                 </View>
                 <View style={styles.parentItemTextCol}>
@@ -745,7 +745,7 @@ export const OnboardTeamMemberScreen: React.FC = () => {
           ListEmptyComponent={
             <View style={styles.parentEmptyBox}>
               <MaterialDesignIcons name="account-off" size={28} color={theme.colors.textSecondary} />
-              <Text style={styles.parentEmptyText}>No matching supervisors found</Text>
+              <Text style={styles.parentEmptyText}>{t('noMatchingSupervisors')}</Text>
             </View>
           }
         />

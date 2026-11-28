@@ -45,12 +45,12 @@ export const appHeaderStyles = (theme: Theme) =>
     actionBtn: {
       width: 38,
       height: 38,
-      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+      borderWidth: .5,
       borderRadius: 14,
-      justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 1,
+      justifyContent: 'center',
       borderColor: 'rgba(255, 255, 255, 0.12)',
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
     },
     actionBtnPrimary: {
       backgroundColor: 'rgba(255, 255, 255, 0.18)',
@@ -98,7 +98,7 @@ export const appHeaderStyles = (theme: Theme) =>
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: 10,
-      borderWidth: 1,
+      borderWidth: .5,
       borderColor: 'rgba(30, 64, 175, 0.15)',
     },
     badgeContainerPrimary: {
@@ -131,7 +131,7 @@ export const appHeaderStyles = (theme: Theme) =>
       backgroundColor: '#F1F5F9',
       borderRadius: 20,
       padding: 2,
-      borderWidth: 1,
+      borderWidth: .5,
       borderColor: '#E2E8F0',
     },
     langTogglePillPrimary: {
@@ -140,7 +140,7 @@ export const appHeaderStyles = (theme: Theme) =>
     },
     langSegment: {
       paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingVertical: 8,
       borderRadius: 16,
     },
     langSegmentActive: {
@@ -153,7 +153,7 @@ export const appHeaderStyles = (theme: Theme) =>
     },
     langText: {
       fontFamily: FontFamily.bold,
-      fontSize: rfValue(10.5),
+      fontSize: rfValue(12),
     },
     langTextActive: {
       color: '#FFFFFF',

@@ -62,7 +62,7 @@ export const VolunteerOutreachReportPage: React.FC = () => {
     loading: modalLoading,
   } = useAppSelector((state) => state.reports.outreachVoters);
 
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('30d');
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('all');
   const [roleFilter, setRoleFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
 

@@ -2,12 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { en, TranslationKeys } from './en';
 import { hi } from './hi';
+import { gu } from './gu';
 
-export type LanguageCode = 'en' | 'hi';
+export type LanguageCode = 'en' | 'hi' | 'gu';
 
 const translations: Record<LanguageCode, Record<TranslationKeys, string>> = {
   en,
   hi,
+  gu,
 };
 
 const LANGUAGE_STORAGE_KEY = '@ranniti_app_language';
@@ -29,7 +31,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     AsyncStorage.getItem(LANGUAGE_STORAGE_KEY).then((storedLang) => {
-      if (storedLang === 'en' || storedLang === 'hi') {
+      if (storedLang === 'en' || storedLang === 'hi' || storedLang === 'gu') {
         setLanguageState(storedLang);
       }
     });
@@ -53,4 +55,4 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 export const useLanguage = () => useContext(LanguageContext);
 
-export { en, hi };
+export { en, hi, gu };

@@ -139,7 +139,7 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
     familyInfluencerId: existingVoter?.familyInfluencerId ? String(existingVoter.familyInfluencerId) : '',
     socialInfluencerId: existingVoter?.socialInfluencerId ? String(existingVoter.socialInfluencerId) : '',
     isFamilyInfluencer: Boolean(existingVoter?.isFamilyInfluencer || existingVoter?.isFamilyHead),
-    isSocialInfluencer: Boolean(existingVoter?.isSocialInfluencer),
+    socialInfluencerScope: (existingVoter?.socialInfluencerScope || null) as 'booth' | 'ac' | null,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -220,6 +220,7 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
               casteId: freshVoter.casteId ? String(freshVoter.casteId) : '',
               familyInfluencerId: freshVoter.familyInfluencerId ? String(freshVoter.familyInfluencerId) : '',
               socialInfluencerId: freshVoter.socialInfluencerId ? String(freshVoter.socialInfluencerId) : '',
+              socialInfluencerScope: freshVoter.socialInfluencerScope || null,
               guardianName: freshVoter.guardianName || freshVoter.relativeName || prev.guardianName,
               relativeName: freshVoter.relativeName || freshVoter.guardianName || prev.relativeName,
               relation: freshVoter.relation || prev.relation,
@@ -815,7 +816,7 @@ export const AddEditVoterScreen: React.FC<any> = ({ navigation, route }) => {
       // Party & Influencers
       partyId: formData.partyId || null,
       isFamilyInfluencer: Boolean(formData.isFamilyInfluencer),
-      isSocialInfluencer: Boolean(formData.isSocialInfluencer),
+      socialInfluencerScope: formData.socialInfluencerScope || null,
       familyInfluencerId: formData.isFamilyInfluencer ? null : (formData.familyInfluencerId || null),
       socialInfluencerId: formData.socialInfluencerId || null,
 

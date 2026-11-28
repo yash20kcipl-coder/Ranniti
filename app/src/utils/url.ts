@@ -13,8 +13,7 @@ const getLocalHost = () => {
 };
 
 const Url = {
-  // BaseUrl: getLocalHost(),
-  BaseUrl: 'https://api.ranniti.app',
+  BaseUrl: __DEV__ ? getLocalHost() : 'https://api.ranniti.app',
 };
 
 export default Url;

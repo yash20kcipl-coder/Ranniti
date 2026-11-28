@@ -38,7 +38,7 @@ export const VolunteerReportingSection: React.FC<VolunteerReportingSectionProps>
               {member.parentLeaderName || 'Campaign Leadership Team'}
             </Text>
             <Text style={[styles.leaderRole, { color: theme.colors.textSecondary }]}>
-              Senior Campaign Coordinator
+              {t('seniorCampaignCoordinator')}
             </Text>
           </View>
         </View>

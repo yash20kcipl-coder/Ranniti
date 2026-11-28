@@ -52,6 +52,24 @@ export class TalukaProvisionService {
     const rows = res.rows;
 
     await bulkUpsert(tenantPool, this.TABLE_NAME, this.COLUMNS, rows);
+
+    if (hasDistricts || hasAcs) {
+      const validIds = rows.map((r: any) => r.id);
+      if (validIds.length > 0) {
+        await tenantPool.query(
+          `DELETE FROM ${this.TABLE_NAME}
+           WHERE NOT (id = ANY($1::uuid[]))
+             AND id NOT IN (SELECT DISTINCT taluka_id FROM villages WHERE taluka_id IS NOT NULL)`,
+          [validIds]
+        );
+      } else {
+        await tenantPool.query(
+          `DELETE FROM ${this.TABLE_NAME}
+           WHERE id NOT IN (SELECT DISTINCT taluka_id FROM villages WHERE taluka_id IS NOT NULL)`
+        );
+      }
+    }
+
     logger.info(`[TalukaProvisionService] Synced ${rows.length} talukas.`);
 
     return { count: rows.length };

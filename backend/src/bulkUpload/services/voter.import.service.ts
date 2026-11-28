@@ -1,15 +1,14 @@
 import { logger } from '../../utils/logger';
-import { query } from '../../queries/dbPool';
+import { formatTitleCase } from '../../utils/textUtils';
 import { BulkImporter } from '../../utils/bulkImporter';
 import { VoterQueries } from '../../queries/voter.queries';
-import { CacheService } from '../../services/cache.service';
-import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { LookupResolverService } from '../lookupResolver.service';
 import { normalizeRelation } from '../../utils/relationNormalizer';
 import { calculateAge, formatDateForDb } from '../../utils/dateUtils';
-import { formatTitleCase } from '../../utils/textUtils';
+import { MasterCacheInvalidator } from '../../services/cacheInvalidation.service';
 import { FamilyMappingService } from '../../services/tenant/familyMapping.service';
 import { BulkImportProgressCallback, BulkImportContext, BulkImportServiceResult } from '../types';
+import { syncBoothTotalVoters, syncTenantTotalVoters, invalidateTenantDashboardCache } from '../../utils/boothCountSync';
 
 export class VoterImportService {
   static async import(
@@ -370,32 +369,14 @@ export class VoterImportService {
 
     // Recalculate & synchronize total_voters for all affected booths
     if (allAffectedBoothIds.size > 0) {
-      try {
-        const boothIdList = Array.from(allAffectedBoothIds);
-        logger.info(`[VoterImportService] Updating total_voters count for ${boothIdList.length} affected booths...`);
-        const updateCountSql = `
-          UPDATE booths b
-          SET total_voters = sub.voter_count,
-              updated_at = NOW()
-          FROM (
-            SELECT booth_id, COUNT(*)::int AS voter_count
-            FROM voters
-            WHERE booth_id = ANY($1::uuid[])
-            GROUP BY booth_id
-          ) sub
-          WHERE b.id = sub.booth_id;
-        `;
-        if (context?.tenantDbName) {
-          const { TenantPoolManager } = await import('../../services/pool/tenantPoolManager');
-          await TenantPoolManager.query(context.tenantDbName, updateCountSql, [boothIdList]);
-        } else {
-          await query(updateCountSql, [boothIdList]);
-        }
-        await MasterCacheInvalidator.invalidate(['booths', 'voters'], context?.tenantDbName);
-        logger.info(`[VoterImportService] Successfully updated total_voters count for affected booths.`);
-      } catch (err: any) {
-        logger.error(`[VoterImportService] Failed to update total_voters count on affected booths:`, err);
+      const boothIdList = Array.from(allAffectedBoothIds);
+      logger.info(`[VoterImportService] Updating total_voters count for ${boothIdList.length} affected booths...`);
+      await syncBoothTotalVoters(boothIdList, context?.tenantDbName);
+      await MasterCacheInvalidator.invalidate(['voters'], context?.tenantDbName);
+      if (context?.tenantDbName) {
+        syncTenantTotalVoters(context.tenantDbName).catch(() => { });
       }
+      logger.info(`[VoterImportService] Successfully updated total_voters count for affected booths.`);
 
       // Auto-trigger family mapping in the background post-import (non-blocking)
       setImmediate(async () => {
@@ -414,6 +395,9 @@ export class VoterImportService {
           logger.error(`[VoterImportService] Post-import background family mapping error:`, familyErr);
         }
       });
+    } else if (context?.tenantDbName) {
+      await invalidateTenantDashboardCache(context.tenantDbName);
+      syncTenantTotalVoters(context.tenantDbName).catch(() => { });
     }
 
     // Auto-enqueue voter sync to assigned tenants if this was a Master DB import

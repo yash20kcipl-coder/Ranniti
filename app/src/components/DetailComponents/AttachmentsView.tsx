@@ -4,6 +4,7 @@ import { Theme } from '../../constants/theme';
 import { rfValue } from '../../utils/responsive';
 import { FontFamily } from '../../utils/typography';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useLanguage } from '../../languages';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialDesignIcons } from '../MaterialDesignIcons';
 import { Attachment } from '../../core/config';
@@ -19,6 +20,7 @@ export const AttachmentsView: React.FC<AttachmentsViewProps> = ({
   accentColor,
 }) => {
   const { theme, styles } = useAppTheme(getStyles);
+  const { t } = useLanguage();
   const activeColor = accentColor || theme.colors.primary;
 
   const processedAttachments = useMemo<Attachment[]>(() => {
@@ -56,7 +58,7 @@ export const AttachmentsView: React.FC<AttachmentsViewProps> = ({
       {/* Media Attachments Section (Images, Videos) */}
       {mediaAttachments.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Media Attachments</Text>
+          <Text style={styles.sectionLabel}>{t('mediaAttachments')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaScroll}>
             {mediaAttachments.map((att) => (
               <TouchableOpacity
@@ -95,7 +97,7 @@ export const AttachmentsView: React.FC<AttachmentsViewProps> = ({
       {/* Document Attachments Section */}
       {documentAttachments.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Reference Documents</Text>
+          <Text style={styles.sectionLabel}>{t('referenceDocuments')}</Text>
           <View style={styles.documentsList}>
             {documentAttachments.map((att) => (
               <View key={att.id} style={styles.documentItem}>

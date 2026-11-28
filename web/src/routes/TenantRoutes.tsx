@@ -71,8 +71,8 @@ export const TenantRoutes: React.FC = () => {
       {/* Tenant Volunteers & Cadre */}
       <Route path="volunteers" element={<TenantVolunteersPage />} />
 
-      {/* Tenant Volunteer Surveys & Gamification Scoring */}
-      <Route path="surveys" element={<TenantVolunteerSurveysPage />} />
+      {/* Tenant Volunteer Surveys & Gamification Scoring (Redirect legacy path to Reports sub-tab) */}
+      <Route path="surveys" element={<Navigate to="/dashboard/reports/surveys" replace />} />
 
       {/* Tenant Web Portal Users (Standalone Page) */}
       <Route path="users" element={<TenantWebUsersPage />} />
@@ -82,6 +82,7 @@ export const TenantRoutes: React.FC = () => {
       <Route path="reports/volunteer-outreach" element={<VolunteerOutreachReportPage />} />
       <Route path="reports/voter-sync" element={<VoterSyncReportPage />} />
       <Route path="reports/voting" element={<VotingReportPage />} />
+      <Route path="reports/surveys" element={<TenantVolunteerSurveysPage />} />
 
       {/* Tenant Import Hub */}
       <Route path="imports" element={<ImportsManagementPage />} />

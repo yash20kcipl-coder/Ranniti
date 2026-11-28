@@ -52,16 +52,43 @@ export class VillageImportService {
     await MasterCacheInvalidator.invalidate('villages');
     try {
       const { MasterQueries } = await import('../../queries/master.queries');
-      const allVillages = await MasterQueries.getVillages().catch(() => []);
       const { MasterBroadcastSync } = await import('../../services/sync/masterBroadcastSync.service');
-      await MasterBroadcastSync.broadcastBatchToAllTenants(
-        'villages',
-        allVillages.map((v: any) => ({
-          id: v.id,
-          name: v.name,
-          taluka_id: v.talukaId || v.taluka_id,
-        }))
-      );
+      const affectedDistrictIds = new Set<string>(districtMap.values());
+      if (context?.districtId) affectedDistrictIds.add(context.districtId);
+      if (context?.talukaId && affectedDistrictIds.size === 0) {
+        const parentTaluka = await MasterQueries.getTalukaById(context.talukaId).catch(() => null);
+        if (parentTaluka?.districtId) affectedDistrictIds.add(parentTaluka.districtId);
+      }
+
+      for (const districtId of affectedDistrictIds) {
+        // Ensure parent talukas (including any newly created by ensureTalukasExist) exist in scoped tenants first
+        const districtTalukas = await MasterQueries.getTalukas({ districtId }).catch(() => []);
+        if (districtTalukas.length > 0) {
+          await MasterBroadcastSync.broadcastBatchToDistrictTenants(
+            'talukas',
+            districtTalukas.map((t: any) => ({
+              id: t.id,
+              name: t.name,
+              district_id: t.districtId || t.district_id,
+            })),
+            districtId
+          );
+        }
+
+        const villagesRes = await MasterQueries.getVillages({ districtId }).catch(() => []);
+        const districtVillages = Array.isArray(villagesRes) ? villagesRes : villagesRes?.villages || [];
+        if (districtVillages.length > 0) {
+          await MasterBroadcastSync.broadcastBatchToDistrictTenants(
+            'villages',
+            districtVillages.map((v: any) => ({
+              id: v.id,
+              name: v.name,
+              taluka_id: v.talukaId || v.taluka_id,
+            })),
+            districtId
+          );
+        }
+      }
     } catch (broadcastErr) {
       const { logger } = await import('../../utils/logger');
       logger.error('[VillageImportService] Failed to broadcast villages to tenants:', broadcastErr);

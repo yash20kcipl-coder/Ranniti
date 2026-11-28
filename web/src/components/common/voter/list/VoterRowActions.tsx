@@ -98,10 +98,13 @@ export const VoterRowActions: React.FC<VoterRowActionsProps> = ({
                         id: row.id,
                         name: voterName,
                         epicNo: row.epicNo,
+                        acId: row.acId,
+                        acName: row.acName,
                         boothId: row.boothId,
                         boothName: row.boothName,
                         sectionNo: row.sectionNo,
                         houseNo: row.houseNo,
+                        socialInfluencerScope: row.socialInfluencerScope || null,
                       });
                     }}
                     className="w-full text-left px-2.5 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/50 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"

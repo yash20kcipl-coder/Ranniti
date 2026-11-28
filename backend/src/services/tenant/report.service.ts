@@ -9,6 +9,7 @@ export interface VoterSyncReportFilters {
   limit?: number;
   search?: string;
   role?: string;
+  volunteerId?: string;
   boothId?: string;
   startDate?: string;
   endDate?: string;
@@ -105,6 +106,12 @@ export class TenantReportService {
     if (filters.role && filters.role.trim() && filters.role !== 'all') {
       conditions.push(`u.role = $${paramIdx}`);
       params.push(filters.role.trim());
+      paramIdx++;
+    }
+
+    if (filters.volunteerId && filters.volunteerId.trim() && filters.volunteerId !== 'all') {
+      conditions.push(`usc.user_id = $${paramIdx}::uuid`);
+      params.push(filters.volunteerId.trim());
       paramIdx++;
     }
 

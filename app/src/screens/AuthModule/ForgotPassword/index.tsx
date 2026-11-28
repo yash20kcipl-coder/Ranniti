@@ -11,12 +11,14 @@ import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 
 import toast from '../../../utils/toast';
 import { useDispatch } from 'react-redux';
+import { useLanguage } from '../../../languages';
 import { APP_CONFIG } from '../../../core/config';
 import { forgotPasswordAction, resetPasswordAction } from '../../../store/actions/auth';
 
 const ForgotPassword = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch<any>();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const { theme, styles } = useAppTheme<ReturnType<typeof forgotPasswordStyles>>(forgotPasswordStyles);
 
@@ -86,8 +88,8 @@ const ForgotPassword = () => {
             {step === 1 ? (
               <>
                 <AppTextInput
-                  label="Email / Admission Number"
-                  placeholder="e.g. name@example.com"
+                  label={t('emailOrAdmissionNo')}
+                  placeholder={t('emailExamplePlaceholder')}
                   value={identifier}
                   onChangeText={setIdentifier}
                   icon="email-outline"
@@ -96,7 +98,7 @@ const ForgotPassword = () => {
                 />
 
                 <Button
-                  title="Send Verification Code"
+                  title={t('sendVerificationCode')}
                   onPress={handleSendOTP}
                   loading={loading}
                   disabled={!identifier}
@@ -106,7 +108,7 @@ const ForgotPassword = () => {
             ) : (
               <>
                 <AppTextInput
-                  label="Verification Code (OTP)"
+                  label={t('verificationCodeOtp')}
                   placeholder="e.g. 123456"
                   value={otp}
                   onChangeText={setOtp}
@@ -116,7 +118,7 @@ const ForgotPassword = () => {
                 />
 
                 <AppTextInput
-                  label="New Password"
+                  label={t('newPassword')}
                   placeholder="••••••••"
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -134,7 +136,7 @@ const ForgotPassword = () => {
                 />
 
                 <AppTextInput
-                  label="Confirm Password"
+                  label={t('confirmPassword')}
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -152,7 +154,7 @@ const ForgotPassword = () => {
                 />
 
                 <Button
-                  title="Update Password"
+                  title={t('updatePassword')}
                   onPress={handleResetPassword}
                   loading={loading}
                   disabled={!otp || !newPassword || !confirmPassword || otp.length < 5}

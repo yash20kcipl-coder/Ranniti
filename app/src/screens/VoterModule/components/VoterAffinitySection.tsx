@@ -27,7 +27,7 @@ export const VoterAffinitySection: React.FC<VoterAffinitySectionProps> = ({
 }) => {
   const partyDisplayName = voter.partyName || voter.partyAbbreviation || voter.supportingParty || 'Undecided';
   const hasInfluenceProfile =
-    Boolean(voter.isSocialInfluencer) ||
+    Boolean(voter.socialInfluencerScope) ||
     Boolean(voter.isFamilyInfluencer) ||
     Boolean(voter.isFamilyHead) ||
     Boolean(voter.familyInfluencerName) ||
@@ -130,12 +130,13 @@ export const VoterAffinitySection: React.FC<VoterAffinitySectionProps> = ({
             </View>
 
             {/* Social Influencer Metric */}
-            {Boolean(voter.isSocialInfluencer) && (
+            {Boolean(voter.socialInfluencerScope) && (
               <View style={styles.metricItem}>
                 <View style={[styles.metricDot, { backgroundColor: '#D97706' }]} />
                 <Text style={styles.metricLabel}>{t('socialInfluencer')}:</Text>
                 <Text style={styles.metricValue}>
                   {voter.socialInfluencedCount ? `${t('influencesVoters')} ${voter.socialInfluencedCount} ${t('votersCount')}` : 'Active'}
+                  {voter.socialInfluencerScope === 'ac' ? ` (${t('acWise')})` : ''}
                 </Text>
               </View>
             )}

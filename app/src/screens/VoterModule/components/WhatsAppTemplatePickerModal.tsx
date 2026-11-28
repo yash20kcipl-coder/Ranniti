@@ -309,7 +309,10 @@ export const WhatsAppTemplatePickerModal: React.FC<WhatsAppTemplatePickerModalPr
   );
 
   const voterDisplayName = voter
-    ? (voter.englishName || voter.name) + (voter.hindiName ? ` (${voter.hindiName})` : '')
+    ? (voter.englishName || voter.name) +
+      (voter.hindiName && voter.hindiName !== (voter.englishName || voter.name)
+        ? ` (${voter.hindiName})`
+        : '')
     : '';
 
   const renderTemplateItem: ListRenderItem<MobileWhatsAppTemplate> = ({ item }) => {
@@ -377,7 +380,7 @@ export const WhatsAppTemplatePickerModal: React.FC<WhatsAppTemplatePickerModalPr
               <Text
                 style={[styles.langBadgeText, { color: theme.colors.textSecondary }]}
               >
-                {item.language === 'hi' ? 'हिन्दी' : item.language.toUpperCase()}
+                {item.language === 'hi' ? 'हिन्दी' : item.language === 'gu' ? 'ગુજરાતી' : item.language.toUpperCase()}
               </Text>
             </View>
           </View>
@@ -629,19 +632,19 @@ export const WhatsAppTemplatePickerModal: React.FC<WhatsAppTemplatePickerModalPr
           ]}
         >
           <View style={styles.pillItem}>
-            <Text style={[styles.pillLabel, { color: theme.colors.textSecondary }]}>EPIC</Text>
+            <Text style={[styles.pillLabel, { color: theme.colors.textSecondary }]}>{t('familyEpic')}</Text>
             <Text style={[styles.pillValue, { color: theme.colors.text }]}>
               {voter.epicNo || '-'}
             </Text>
           </View>
           <View style={styles.pillItem}>
-            <Text style={[styles.pillLabel, { color: theme.colors.textSecondary }]}>Booth</Text>
+            <Text style={[styles.pillLabel, { color: theme.colors.textSecondary }]}>{t('booth')}</Text>
             <Text style={[styles.pillValue, { color: theme.colors.text }]}>
               #{voter.boothNo || '-'}
             </Text>
           </View>
           <View style={styles.pillItem}>
-            <Text style={[styles.pillLabel, { color: theme.colors.textSecondary }]}>Serial</Text>
+            <Text style={[styles.pillLabel, { color: theme.colors.textSecondary }]}>{t('serialNo')}</Text>
             <Text
               style={[
                 styles.pillValue,
@@ -653,7 +656,7 @@ export const WhatsAppTemplatePickerModal: React.FC<WhatsAppTemplatePickerModalPr
           </View>
           {data?.election?.electionDate && (
             <View style={styles.pillItem}>
-              <Text style={[styles.pillLabel, { color: theme.colors.textSecondary }]}>Poll Date</Text>
+              <Text style={[styles.pillLabel, { color: theme.colors.textSecondary }]}>{t('pollDate')}</Text>
               <Text style={[styles.pillValue, { color: theme.colors.text }]}>
                 {data.election.electionDate}
               </Text>

@@ -94,7 +94,10 @@ export const VoterFamilyModal: React.FC<VoterFamilyModalProps> = ({
   }, [visible, fetchFamily]);
 
   const renderMember = ({ item }: { item: FamilyMember }) => {
-    const displayName = item.name || item.engName || '—';
+    const engName = item.engName || '';
+    const nativeName = item.name || '';
+    const displayName = engName || nativeName || '—';
+    const hasNativeSub = Boolean(nativeName && engName && nativeName !== engName);
     const genderIcon = GENDER_ICON[item.gender || ''] || 'account';
     const isHead = item.isFamilyInfluencer;
     const roleLabel = isHead ? t('familyHead') : t('familyMember');
@@ -146,6 +149,11 @@ export const VoterFamilyModal: React.FC<VoterFamilyModalProps> = ({
                 </View>
               )}
             </View>
+            {hasNativeSub && (
+              <Text style={[styles.memberMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                {nativeName}
+              </Text>
+            )}
             <Text style={[styles.memberMeta, { color: theme.colors.textSecondary }]}>
               {roleLabel}
               {item.age ? `  ·  ${item.age} ${t('familyYearsOld')}` : ''}

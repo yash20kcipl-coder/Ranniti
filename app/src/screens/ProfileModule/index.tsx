@@ -6,7 +6,7 @@ import { RootState } from '../../store/store';
 import { useLanguage } from '../../languages';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { profileStyles } from './styles';
-import { logoutAction, fetchProfileAndRoleAccessAction } from '../../store/actions/auth';
+import { logoutAction, fetchProfileAndRoleAccessAction, fetchLinkedProfilesAction, switchProfileAction } from '../../store/actions/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { AppHeader } from '../../components/AppHeader';
 import { SafeView } from '../../components/SafeView';
@@ -15,6 +15,7 @@ import { ProfileHeaderCard } from './components/ProfileHeaderCard';
 import { ProfileContactSection } from './components/ProfileContactSection';
 import { ProfileJurisdictionSection } from './components/ProfileJurisdictionSection';
 import { ProfileSettingsSection } from './components/ProfileSettingsSection';
+import { ProfileSwitchSection, LinkedProfileItem } from './components/ProfileSwitchSection';
 import { ProfileLogoutSection } from './components/ProfileLogoutSection';
 import { ProfileSkeleton } from './components/ProfileSkeleton';
 
@@ -23,24 +24,32 @@ export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t, language, setLanguage } = useLanguage();
   const user = useSelector((state: RootState) => state.auth.user);
+  const linkedProfiles = useSelector((state: RootState) => state.auth.linkedProfiles || []);
   const { theme, styles } = useAppTheme<ReturnType<typeof profileStyles>>(profileStyles);
 
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!user);
+  const [profilesLoading, setProfilesLoading] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [pendingSwitchProfile, setPendingSwitchProfile] = useState<LinkedProfileItem | null>(null);
+  const [isSwitchingProfile, setIsSwitchingProfile] = useState(false);
 
   const canGoBack = Boolean(navigation?.canGoBack && navigation.canGoBack());
 
-  // Hydrate user profile on initial screen mount
+  // Hydrate user profile & linked profiles on initial screen mount
   useEffect(() => {
     let mounted = true;
-    dispatch(fetchProfileAndRoleAccessAction())
-      .finally(() => {
-        if (mounted) {
-          setInitialLoading(false);
-        }
-      });
+    setProfilesLoading(true);
+    Promise.all([
+      dispatch(fetchProfileAndRoleAccessAction()),
+      dispatch(fetchLinkedProfilesAction()),
+    ]).finally(() => {
+      if (mounted) {
+        setInitialLoading(false);
+        setProfilesLoading(false);
+      }
+    });
     return () => {
       mounted = false;
     };
@@ -49,11 +58,24 @@ export const ProfileScreen: React.FC = () => {
   // Pull-to-refresh handler
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    dispatch(fetchProfileAndRoleAccessAction())
-      .finally(() => {
-        setRefreshing(false);
-      });
+    Promise.all([
+      dispatch(fetchProfileAndRoleAccessAction()),
+      dispatch(fetchLinkedProfilesAction()),
+    ]).finally(() => {
+      setRefreshing(false);
+    });
   }, [dispatch]);
+
+  const handleConfirmSwitchProfile = async () => {
+    if (!pendingSwitchProfile) return;
+    setIsSwitchingProfile(true);
+    try {
+      await dispatch(switchProfileAction(pendingSwitchProfile.tenantDbName));
+    } finally {
+      setIsSwitchingProfile(false);
+      setPendingSwitchProfile(null);
+    }
+  };
 
   // Logout confirmation action
   const handleConfirmLogout = async () => {
@@ -126,7 +148,16 @@ export const ProfileScreen: React.FC = () => {
               theme={theme}
             />
 
-            {/* 5. Safe Logout Trigger */}
+            {/* 5. Campaign Profile Switcher (visible when mobile is registered in 2+ tenants) */}
+            <ProfileSwitchSection
+              profiles={linkedProfiles}
+              loading={profilesLoading}
+              onSelectProfile={(profile) => setPendingSwitchProfile(profile)}
+              t={t}
+              theme={theme}
+            />
+
+            {/* 6. Safe Logout Trigger */}
             <ProfileLogoutSection
               onPressLogout={() => setShowLogoutModal(true)}
               t={t}
@@ -135,6 +166,24 @@ export const ProfileScreen: React.FC = () => {
           </>
         )}
       </ScrollView>
+
+      {/* Confirmation Modal for Profile Switch (Rule 24) */}
+      <ConfirmModal
+        visible={Boolean(pendingSwitchProfile)}
+        variant="info"
+        title={t('confirmSwitchProfile')}
+        message={
+          pendingSwitchProfile
+            ? `${pendingSwitchProfile.organizationName} (${pendingSwitchProfile.roleName || pendingSwitchProfile.role})\n\n${t('switchProfileConfirmMsg')}`
+            : t('switchProfileConfirmMsg')
+        }
+        confirmText={t('switchAction')}
+        cancelText={t('cancel')}
+        icon="account-switch-outline"
+        loading={isSwitchingProfile}
+        onConfirm={handleConfirmSwitchProfile}
+        onClose={() => !isSwitchingProfile && setPendingSwitchProfile(null)}
+      />
 
       {/* Confirmation Modal for Logout (Rule 24) */}
       <ConfirmModal

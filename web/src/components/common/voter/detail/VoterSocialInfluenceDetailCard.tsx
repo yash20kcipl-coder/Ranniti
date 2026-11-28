@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, UserPlus, Unlink } from 'lucide-react';
+import { Sparkles, UserPlus, Unlink, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export interface VoterSocialInfluenceDetailCardProps {
@@ -23,7 +23,7 @@ export const VoterSocialInfluenceDetailCard: React.FC<VoterSocialInfluenceDetail
   handleToggleSocialRole,
   handleUnlinkSocialLeader,
 }) => {
-  const isSocialLeader = isSocialLeaderProp ?? Boolean(voter?.isSocialInfluencer || Number(voter?.socialInfluencedCount) > 0);
+  const isSocialLeader = isSocialLeaderProp ?? Boolean(voter?.socialInfluencerScope || Number(voter?.socialInfluencedCount) > 0);
   return (
     <div
       className={`p-4 sm:p-4.5 rounded-2xl border shadow-sm dark:shadow-none transition-all space-y-3 ${
@@ -56,10 +56,18 @@ export const VoterSocialInfluenceDetailCard: React.FC<VoterSocialInfluenceDetail
         </div>
 
         {isSocialLeader ? (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 flex items-center gap-1 shrink-0">
-            <Sparkles className="w-3 h-3" />
-            Social Leader
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {voter?.socialInfluencerScope === 'ac' && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 flex items-center gap-1 shrink-0">
+                <Globe className="w-3 h-3" />
+                AC-Wise
+              </span>
+            )}
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 flex items-center gap-1 shrink-0">
+              <Sparkles className="w-3 h-3" />
+              Social Leader
+            </span>
+          </div>
         ) : voter.socialInfluencerId ? (
           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 shrink-0">
             Connected

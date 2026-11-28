@@ -288,6 +288,32 @@ export const settingsQueries = {
   },
 
   /**
+   * Broadcast survey field scoring points to all active Tenant DBs
+   */
+  async syncSurveyFieldPointsToAllTenants(pointsConfig: SurveyFieldPointsConfig): Promise<void> {
+    const tenantsRes = await executeSettingsQuery(
+      `SELECT tenant_db_name AS db_name FROM tenants WHERE status IN ('ready', 'active') AND tenant_db_name IS NOT NULL`,
+      [],
+      null
+    );
+    const dbNames: string[] = (tenantsRes.rows || []).map((r: any) => r.db_name).filter(Boolean);
+    if (dbNames.length === 0) return;
+
+    await Promise.allSettled(
+      dbNames.map(async (dbName) => {
+        const current = await this.getSettings(dbName);
+        const sql = `
+          UPDATE campaign_settings
+          SET survey_field_points = $1::jsonb, updated_at = NOW()
+          WHERE id = $2
+        `;
+        await executeSettingsQuery(sql, [JSON.stringify(pointsConfig), current.id], dbName);
+        await CacheService.del(`ranniti:settings:${dbName}`);
+      })
+    );
+  },
+
+  /**
    * Get all WhatsApp templates
    */
   async getWhatsAppTemplates(

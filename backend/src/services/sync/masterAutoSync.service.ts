@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { query as masterQuery } from '../../queries/dbPool';
 import { logger } from '../../utils/logger';
+import { syncBoothTotalVoters } from '../../utils/boothCountSync';
 
 export class MasterAutoSyncService {
   /**
@@ -34,7 +35,7 @@ export class MasterAutoSyncService {
         } else if (entityType === 'booth') {
           sql = `DELETE FROM booths WHERE id = $1`;
         } else if (entityType === 'voter') {
-          sql = `DELETE FROM voters WHERE id = $1`;
+          sql = `DELETE FROM voters WHERE id = $1 RETURNING booth_id`;
         }
         params = [entityId];
       } else if (entityType === 'ac') {
@@ -107,7 +108,7 @@ export class MasterAutoSyncService {
             gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
             profession_type, profession, religion_id, caste_id, subcaste_name,
             status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
-            party_id, family_id, is_family_influencer, is_social_influencer, created_at, updated_at
+            party_id, family_id, is_family_influencer, social_influencer_scope, created_at, updated_at
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
             $11, $12, $13, $14, $15, $16,
@@ -154,7 +155,7 @@ export class MasterAutoSyncService {
             party_id = COALESCE(EXCLUDED.party_id, voters.party_id),
             family_id = COALESCE(EXCLUDED.family_id, voters.family_id),
             is_family_influencer = COALESCE(EXCLUDED.is_family_influencer, voters.is_family_influencer),
-            is_social_influencer = COALESCE(EXCLUDED.is_social_influencer, voters.is_social_influencer),
+            social_influencer_scope = EXCLUDED.social_influencer_scope,
             updated_at = EXCLUDED.updated_at
           WHERE voters.updated_at IS NULL OR EXCLUDED.updated_at >= voters.updated_at;
         `;
@@ -198,12 +199,26 @@ export class MasterAutoSyncService {
           payload.partyId || payload.party_id || null,
           payload.familyId || payload.family_id || null,
           payload.isFamilyInfluencer ?? payload.is_family_influencer ?? false,
-          payload.isSocialInfluencer ?? payload.is_social_influencer ?? false,
+          payload.socialInfluencerScope ?? payload.social_influencer_scope ?? null,
           timestamp,
         ];
       }
 
-      await masterQuery(sql, params);
+      let prevMasterBoothId: string | null = null;
+      if (entityType === 'voter' && action === 'UPDATE') {
+        const prevRes = await masterQuery(`SELECT booth_id FROM voters WHERE id = $1`, [entityId]).catch(() => ({ rows: [] as any[] }));
+        prevMasterBoothId = prevRes.rows[0]?.booth_id || null;
+      }
+
+      const execRes = await masterQuery(sql, params);
+      if (entityType === 'voter') {
+        const affectedBoothIds = [
+          prevMasterBoothId,
+          payload.boothId || payload.booth_id || null,
+          execRes.rows?.[0]?.booth_id || null,
+        ];
+        await syncBoothTotalVoters(affectedBoothIds, null);
+      }
       logger.info(`[MasterAutoSync] Successfully synced ${entityType} (${entityId}) [${action}] to Master DB`);
       return true;
     } catch (err: any) {
@@ -286,7 +301,7 @@ export class MasterAutoSyncService {
           row.voterAddress || row.voter_address || null,
           row.partyId || row.party_id || null,
           row.isFamilyInfluencer ?? row.is_family_influencer ?? false,
-          row.isSocialInfluencer ?? row.is_social_influencer ?? false,
+          row.socialInfluencerScope ?? row.social_influencer_scope ?? null,
           row.updatedAt || row.updated_at || new Date()
         );
       }
@@ -300,7 +315,7 @@ export class MasterAutoSyncService {
           gender, dob, age, mobile_no, email, aadhaar_no, pan_no,
           profession_type, profession, religion_id, caste_id, subcaste_name,
           status, is_dead, blood_group, taluka, village, full_address, voter_address,
-          party_id, is_family_influencer, is_social_influencer, created_at, updated_at
+          party_id, is_family_influencer, social_influencer_scope, created_at, updated_at
         ) VALUES ${valueTuples.join(', ')}
         ON CONFLICT (epic_no) DO UPDATE SET
           mobile_no = COALESCE(EXCLUDED.mobile_no, voters.mobile_no),
@@ -317,7 +332,7 @@ export class MasterAutoSyncService {
           blood_group = COALESCE(EXCLUDED.blood_group, voters.blood_group),
           party_id = COALESCE(EXCLUDED.party_id, voters.party_id),
           is_family_influencer = COALESCE(EXCLUDED.is_family_influencer, voters.is_family_influencer),
-          is_social_influencer = COALESCE(EXCLUDED.is_social_influencer, voters.is_social_influencer),
+          social_influencer_scope = EXCLUDED.social_influencer_scope,
           updated_at = EXCLUDED.updated_at
         WHERE voters.updated_at IS NULL OR EXCLUDED.updated_at >= voters.updated_at;
       `;

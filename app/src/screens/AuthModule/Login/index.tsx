@@ -17,7 +17,6 @@ import { AppTextInput } from '../../../components/AppTextInput';
 import { OtpVerifySection } from './components/OtpVerifySection';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { navigateToDashboard } from '../../../navigation/navigationUtils';
 import { MaterialDesignIcons } from '../../../components/MaterialDesignIcons';
 import { sendOtpAction, verifyOtpAction, verifyMpinAction, fetchProfileAndRoleAccessAction } from '../../../store/actions/auth';
 
@@ -121,9 +120,7 @@ const Login = () => {
   };
 
   const handleMpinSuccess = async () => {
-    const storedRole = await Storage.get(STORAGE_KEYS.ROLE);
     await dispatch(fetchProfileAndRoleAccessAction(true));
-    navigateToDashboard(storedRole || 'supporter');
   };
 
   const handleResetMpin = async () => {

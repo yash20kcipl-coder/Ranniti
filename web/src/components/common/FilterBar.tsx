@@ -20,7 +20,7 @@ export interface FilterPreset {
 export interface FilterField {
   key: string;
   label: string;
-  type?: 'select' | 'text' | 'date' | 'pills' | 'notice';
+  type?: 'select' | 'text' | 'date' | 'daterange' | 'pills' | 'notice';
   category?: string;
   categoryIcon?: React.ReactNode;
   gridSpan?: 1 | 2; // 1 = half width (1 col in 2-col grid), 2 = full width (2 cols)
@@ -92,6 +92,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     if (field.excludeFromCount) return false;
     if (field.defaultValue !== undefined) {
       return val !== field.defaultValue && val !== '' && val !== null && val !== undefined;
+    }
+    if (val && typeof val === 'object' && ('startDate' in val || 'endDate' in val)) {
+      return Boolean(val.startDate || val.endDate);
     }
     return val !== '' && val !== null && val !== undefined;
   };
@@ -219,13 +222,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const handleResetDraft = () => {
     const resetDraft: Record<string, any> = {};
     filters.forEach((f) => {
-      resetDraft[f.key] = '';
+      resetDraft[f.key] = f.type === 'daterange' ? { startDate: '', endDate: '' } : '';
     });
     setDraftValues(resetDraft);
     if (onReset) {
       onReset();
     } else {
-      filters.forEach((f) => f.onChange(''));
+      filters.forEach((f) => f.onChange(f.type === 'daterange' ? { startDate: '', endDate: '' } : ''));
     }
     filters.forEach((f) => {
       if (f.onDraftRevert) {
@@ -519,7 +522,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           {inlineFilters.map((field) => {
             const activeFilterValues = filters.reduce((acc, f) => ({ ...acc, [f.key]: f.value }), {});
             return (
-              <div key={field.key} className="w-full sm:w-auto sm:min-w-[180px] md:min-w-[200px] max-w-[260px]">
+              <div
+                key={field.key}
+                className={`w-full sm:w-auto sm:min-w-[180px] md:min-w-[200px] ${
+                  field.type === 'daterange' ? 'max-w-[280px]' : 'max-w-[260px]'
+                }`}
+              >
                 <FormInput
                   size="md"
                   name={field.key}

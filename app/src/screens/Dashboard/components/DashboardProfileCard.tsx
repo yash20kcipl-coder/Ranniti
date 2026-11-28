@@ -1,13 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Shield, ChevronRight, MapPin } from 'lucide-react-native';
+import { ChevronRight } from 'lucide-react-native';
 import { SafeImage } from '../../../components/SafeImage';
 import { useAppTheme } from '../../../hooks/useAppTheme';
-import { getShadow } from '../../../utils/shadow';
 import { rfValue } from '../../../utils/responsive';
 import { FontFamily } from '../../../utils/typography';
 import { useLanguage } from '../../../languages';
-import { Theme } from '../../../constants/theme';
 
 export interface DashboardProfileUser {
   name?: string;
@@ -25,14 +23,17 @@ export interface DashboardProfileUser {
 interface DashboardProfileCardProps {
   user?: DashboardProfileUser | null;
   onPressProfile?: () => void;
+  mode?: 'dark' | 'light';
 }
 
 export const DashboardProfileCard: React.FC<DashboardProfileCardProps> = ({
   user,
   onPressProfile,
+  mode = 'dark',
 }) => {
   const { t } = useLanguage();
-  const { theme, styles } = useAppTheme(createStyles);
+  const { theme } = useAppTheme();
+  const isLight = mode === 'light';
 
   const userName = user?.name || 'NA';
   const userAvatar = user?.avatar || user?.profilePic;
@@ -46,151 +47,129 @@ export const DashboardProfileCard: React.FC<DashboardProfileCardProps> = ({
 
   return (
     <TouchableOpacity
-      activeOpacity={0.88}
+      activeOpacity={0.85}
       onPress={onPressProfile}
-      style={[styles.card, { borderTopColor: theme.colors.secondary, borderTopWidth: 4 }]}
+      style={styles.heroRow}
     >
-      <View style={styles.contentRow}>
-        <View style={styles.avatarWrapper}>
-          <SafeImage
-            name={userName}
-            uri={userAvatar}
-            style={styles.avatar}
-            placeholderType="avatar"
-            containerStyles={styles.avatarContainer}
-          />
-          <View style={styles.onlineBadge} />
-        </View>
+      <View style={styles.avatarWrapper}>
+        <SafeImage
+          name={userName}
+          uri={userAvatar}
+          style={styles.avatar}
+          placeholderType="avatar"
+          bgColor={"rgba(255,255,255,0.14)"}
+          containerStyles={[
+            styles.heroAvatarContainer,
+            isLight
+              ? { borderColor: 'rgba(255,255,255,0.40)', backgroundColor: 'rgba(255,255,255,0.14)' }
+              : { borderColor: 'rgba(255,255,255,0.40)', backgroundColor: 'rgba(255,255,255,0.14)' },
+          ]}
+        />
+        <View
+          style={[
+            styles.onlineBadge,
+            { borderColor: isLight ? '#FFFFFF' : theme.colors.primary },
+          ]}
+        />
+      </View>
 
-        <View style={styles.infoCol}>
-          <View style={styles.metaRow}>
-            <Text style={styles.userName} numberOfLines={1}>
-              {userName}
-            </Text>
-
-            <View style={styles.roleBadge}>
-              <Shield size={10} color={theme.colors.primary} />
-              <Text style={styles.roleText} numberOfLines={1}>
-                {roleName}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.locationContainer}>
-            <MapPin size={12} strokeWidth={2.5} color={theme.colors.textSecondary} />
-            <Text style={styles.areaText} numberOfLines={1}>
-              {locationName}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.actionBtn}>
-          <ChevronRight size={18} color={theme.colors.primary} />
+      <View style={styles.heroInfo}>
+        <Text
+          style={[
+            styles.heroName,
+            { color: isLight ? '#0F172A' : '#FFFFFF' },
+          ]}
+          numberOfLines={1}
+        >
+          {userName}
+        </Text>
+        <View style={styles.subRow}>
+          <Text
+            style={[
+              styles.heroRole,
+              { color: isLight ? '#D97706' : '#FBBF24' },
+            ]}
+            numberOfLines={1}
+          >
+            {roleName}
+          </Text>
+          <Text
+            style={[
+              styles.dotSep,
+              { color: isLight ? '#94A3B8' : 'rgba(255,255,255,0.6)' },
+            ]}
+          >
+            •
+          </Text>
+          <Text
+            style={[
+              styles.heroLocation,
+              { color: isLight ? '#475569' : 'rgba(255,255,255,0.85)' },
+            ]}
+            numberOfLines={1}
+          >
+            {locationName}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 };
 
-const createStyles = (theme: Theme) =>
-  StyleSheet.create({
-    card: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: theme.colors.cardBorder || theme.colors.border,
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      overflow: 'hidden',
-      position: 'relative',
-      ...getShadow(4, theme.colors.shadowColor, 0.08),
-    },
-    topAccent: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 3,
-      backgroundColor: theme.colors.primary,
-    },
-    contentRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-    },
-    avatarWrapper: {
-      position: 'relative',
-    },
-    avatar: {
-      borderRadius: 1000,
-    },
-    avatarContainer: {
-      width: 60,
-      height: 60,
-      borderWidth: 2,
-      borderRadius: 30,
-      borderColor: theme.colors.primary,
-      backgroundColor: theme.colors.inputBackground,
-    },
-    onlineBadge: {
-      position: 'absolute',
-      bottom: 2,
-      right: 2,
-      width: 13,
-      height: 13,
-      borderRadius: 7,
-      backgroundColor: '#10B981',
-      borderWidth: 2.5,
-      borderColor: theme.colors.surface,
-    },
-    infoCol: {
-      flex: 1,
-      gap: 2,
-      justifyContent: 'center',
-    },
-    userName: {
-      fontFamily: FontFamily.bold,
-      fontSize: rfValue(16),
-      color: theme.colors.text,
-      letterSpacing: -0.3,
-    },
-    metaRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: 8,
-    },
-    roleBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      backgroundColor: theme.colors.vegBackground,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 8,
-    },
-    roleText: {
-      fontFamily: FontFamily.bold,
-      fontSize: rfValue(10),
-      color: theme.colors.primary,
-    },
-    locationContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    areaText: {
-      fontSize: rfValue(12),
-      fontFamily: FontFamily.bold,
-      color: theme.colors.textSecondary,
-    },
-    actionBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: theme.colors.inputBackground,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-  });
-
+const styles = StyleSheet.create({
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 15,
+  },
+  avatarWrapper: {
+    position: 'relative',
+  },
+  avatar: {
+    borderRadius: 1000,
+  },
+  heroAvatarContainer: {
+    width: 46,
+    height: 46,
+    borderWidth: .5,
+    borderRadius: 23,
+  },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+  },
+  heroInfo: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  heroName: {
+    fontSize: rfValue(16),
+    fontFamily: FontFamily.bold,
+  },
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroRole: {
+    fontSize: rfValue(12),
+    fontFamily: FontFamily.bold,
+  },
+  dotSep: {
+    fontSize: rfValue(12),
+  },
+  heroLocation: {
+    fontSize: rfValue(12),
+    fontFamily: FontFamily.medium,
+  },
+});

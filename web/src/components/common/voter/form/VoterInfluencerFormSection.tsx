@@ -2,7 +2,7 @@ import React from 'react';
 import SectionContainer from '../SectionContainer';
 import FormInput from '@/components/common/FormInput';
 import type { Option } from '@/components/common/FormInput';
-import { Users, Flag, Crown, Sparkles, UserPlus, Unlink } from 'lucide-react';
+import { Users, Flag, Crown, Sparkles, UserPlus, Unlink, Globe } from 'lucide-react';
 
 export interface VoterInfluencerFormSectionProps {
   formData: any;
@@ -315,7 +315,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
 
           {/* CARD 2: Community & Social Influence */}
           <div
-            className={`p-4 md:p-5 rounded-xl border shadow-xs transition-all space-y-4 ${formData.isSocialInfluencer
+            className={`p-4 md:p-5 rounded-xl border shadow-xs transition-all space-y-4 ${formData.socialInfluencerScope
               ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-500/30'
               : formData.socialInfluencerId
                 ? 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800'
@@ -326,7 +326,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div
-                  className={`p-1.5 rounded-lg ${formData.isSocialInfluencer
+                  className={`p-1.5 rounded-lg ${formData.socialInfluencerScope
                     ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300'
                     : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                     }`}
@@ -343,11 +343,19 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
                 </div>
               </div>
 
-              {formData.isSocialInfluencer ? (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  Social Leader
-                </span>
+              {formData.socialInfluencerScope ? (
+                <div className="flex items-center gap-1.5">
+                  {formData.socialInfluencerScope === 'ac' && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 flex items-center gap-1">
+                      <Globe className="w-3 h-3" />
+                      AC-Wise
+                    </span>
+                  )}
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    Social Leader
+                  </span>
+                </div>
               ) : formData.socialInfluencerId ? (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
                   Connected
@@ -360,7 +368,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
             </div>
 
             {/* State 1: Voter is a Social Leader */}
-            {formData.isSocialInfluencer ? (
+            {formData.socialInfluencerScope ? (
               <div className="space-y-3">
                 <div className="p-3.5 rounded-xl bg-amber-100/60 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -377,6 +385,36 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
                       : 'Recognized as community leader. No community voters linked yet.'}
                   </p>
                 </div>
+
+                {/* AC-Wise Scope Toggle */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev: any) => ({
+                      ...prev,
+                      socialInfluencerScope: prev.socialInfluencerScope === 'ac' ? 'booth' : 'ac',
+                    }))
+                  }
+                  className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold transition-all flex items-center justify-between cursor-pointer ${
+                    formData.socialInfluencerScope === 'ac'
+                      ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-200 border-indigo-300 dark:border-indigo-500/40'
+                      : 'bg-white dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Globe className={`w-4 h-4 ${formData.socialInfluencerScope === 'ac' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
+                    <span>AC-Wise Social Influencer (All Booths)</span>
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      formData.socialInfluencerScope === 'ac'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {formData.socialInfluencerScope === 'ac' ? 'AC-Wise' : 'Booth-Wise'}
+                  </span>
+                </button>
 
                 <div className="space-y-2">
                   {isEditMode ? (
@@ -400,7 +438,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
                   <button
                     type="button"
                     onClick={() => {
-                      setFormData((prev: any) => ({ ...prev, isSocialInfluencer: false }));
+                      setFormData((prev: any) => ({ ...prev, socialInfluencerScope: null }));
                     }}
                     className="w-full py-1 text-center text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
                   >
@@ -519,7 +557,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
                         } else {
                           setFormData((prev: any) => ({
                             ...prev,
-                            isSocialInfluencer: true,
+                            socialInfluencerScope: 'booth',
                           }));
                         }
                       }}

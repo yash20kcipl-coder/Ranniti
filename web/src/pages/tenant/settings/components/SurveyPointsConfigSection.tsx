@@ -18,9 +18,9 @@ import {
   Users,
   MapPin,
   ShieldCheck,
-  Calculator,
   Sparkles,
   Lock,
+  BarChart3,
 } from 'lucide-react';
 
 const CATEGORY_META: Record<
@@ -88,11 +88,6 @@ export const SurveyPointsConfigSection: React.FC<SurveyPointsConfigSectionProps>
   const [formConfig, setFormConfig] = useState<SurveyFieldPointsConfig>({});
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
-  const [simulatedFields, setSimulatedFields] = useState<Record<string, boolean>>({
-    mobile_no: true,
-    party_id: true,
-    caste_id: true,
-  });
 
   const isSuperAdminMode = mode === 'super-admin' && !readOnly;
 
@@ -158,7 +153,8 @@ export const SurveyPointsConfigSection: React.FC<SurveyPointsConfigSectionProps>
     setTimeout(() => setSaveSuccessNotice(false), 4000);
   };
 
-  // Group fields by category
+  // Group fields by category in a consistent display order (PostgreSQL JSONB does not preserve key order)
+  const CATEGORY_ORDER = ['contact', 'political', 'demographic', 'status', 'address', 'identification', 'profile'];
   const groupedFields = Object.entries(formConfig).reduce(
     (acc, [fieldKey, rule]) => {
       const cat = rule.category || 'profile';
@@ -168,13 +164,11 @@ export const SurveyPointsConfigSection: React.FC<SurveyPointsConfigSectionProps>
     },
     {} as Record<string, Array<{ fieldKey: string; rule: SurveyFieldPointRule }>>
   );
-
-  // Compute simulation points
-  const simulatedScore = Object.entries(simulatedFields).reduce((sum, [fieldKey, isSelected]) => {
-    if (!isSelected) return sum;
-    const rule = formConfig[fieldKey];
-    return rule && rule.enabled ? sum + (rule.points || 0) : sum;
-  }, 0);
+  const orderedCategories = Object.entries(groupedFields).sort(([a], [b]) => {
+    const idxA = CATEGORY_ORDER.indexOf(a);
+    const idxB = CATEGORY_ORDER.indexOf(b);
+    return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+  });
 
   const totalMaxPossibleScore = Object.values(formConfig).reduce((sum, rule) => {
     return rule.enabled ? sum + (rule.points || 0) : sum;
@@ -254,7 +248,7 @@ export const SurveyPointsConfigSection: React.FC<SurveyPointsConfigSectionProps>
               Loading survey point rules...
             </div>
           ) : (
-            Object.entries(groupedFields).map(([category, items]) => {
+            orderedCategories.map(([category, items]) => {
               const meta = CATEGORY_META[category] || CATEGORY_META.profile;
               return (
                 <div
@@ -350,8 +344,8 @@ export const SurveyPointsConfigSection: React.FC<SurveyPointsConfigSectionProps>
           )}
         </div>
 
-        {/* Right Column: Live Points Simulator & Campaign Summary */}
-        <div className="space-y-6">
+        {/* Right Column: Sticky Scoring Summary & Category Breakdown */}
+        <div className="space-y-5 lg:sticky lg:top-6 self-start">
           {/* Summary Metric Card */}
           <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm space-y-4">
             <h3 className="font-semibold text-sm text-slate-900 dark:text-white flex items-center gap-2">
@@ -360,16 +354,16 @@ export const SurveyPointsConfigSection: React.FC<SurveyPointsConfigSectionProps>
             </h3>
 
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="text-xs text-slate-500 dark:text-slate-400">Enabled Fields</span>
-                <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Enabled Fields</span>
+                <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5 font-mono">
                   {enabledCount} <span className="text-xs font-normal text-slate-400">/ {Object.keys(formConfig).length}</span>
                 </p>
               </div>
 
-              <div className="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900">
-                <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Max Profile Score</span>
-                <p className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mt-0.5">
+              <div className="p-3.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900">
+                <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium whitespace-nowrap">Max Profile Score</span>
+                <p className="text-xl font-bold text-indigo-700 dark:text-indigo-300 mt-0.5 font-mono">
                   {totalMaxPossibleScore} <span className="text-xs font-normal">pts</span>
                 </p>
               </div>
@@ -380,60 +374,56 @@ export const SurveyPointsConfigSection: React.FC<SurveyPointsConfigSectionProps>
             </p>
           </div>
 
-          {/* Interactive Calculator / Simulator */}
+          {/* Category Points Breakdown */}
           <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h3 className="font-semibold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-emerald-500" />
-                Live Survey Simulator
+                <BarChart3 className="w-4 h-4 text-indigo-500 shrink-0" />
+                Category Breakdown
               </h3>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-mono font-medium">
-                Simulated Score
+              <span className="text-[11px] font-mono text-slate-400">
+                {totalMaxPossibleScore} pts total
               </span>
             </div>
 
-            <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md text-center">
-              <span className="text-xs uppercase tracking-wider font-semibold opacity-90">
-                Estimated Volunteer Reward
-              </span>
-              <div className="text-3xl font-extrabold mt-1">
-                +{simulatedScore} <span className="text-base font-normal">Points</span>
-              </div>
-              <p className="text-xs opacity-80 mt-1">
-                Based on currently selected simulated field updates
-              </p>
-            </div>
+            <div className="space-y-3">
+              {orderedCategories.map(([category, items]) => {
+                const meta = CATEGORY_META[category] || CATEGORY_META.profile;
+                const catPoints = items.reduce(
+                  (sum, { rule }) => (rule.enabled ? sum + (rule.points || 0) : sum),
+                  0
+                );
+                const enabledInCat = items.filter(({ rule }) => rule.enabled).length;
+                const pct =
+                  totalMaxPossibleScore > 0
+                    ? Math.round((catPoints / totalMaxPossibleScore) * 100)
+                    : 0;
 
-            {/* Simulation Checkbox List */}
-            <div className="space-y-2 pt-1 max-h-60 overflow-y-auto pr-1">
-              {Object.entries(formConfig).map(([fieldKey, rule]) => (
-                <label
-                  key={fieldKey}
-                  className={`flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition ${
-                    simulatedFields[fieldKey]
-                      ? 'bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 font-medium'
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(simulatedFields[fieldKey])}
-                      onChange={(e) =>
-                        setSimulatedFields((prev) => ({
-                          ...prev,
-                          [fieldKey]: e.target.checked,
-                        }))
-                      }
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span>{rule.label}</span>
+                return (
+                  <div key={category} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {meta.icon}
+                        <span className="font-medium text-slate-700 dark:text-slate-300 truncate">
+                          {meta.label}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                          ({enabledInCat}/{items.length})
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white shrink-0 ml-2">
+                        {catPoints} pts <span className="text-[10px] font-normal text-slate-400">({pct}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <span className="font-semibold font-mono">
-                    {rule.enabled ? `+${rule.points} pts` : 'Disabled'}
-                  </span>
-                </label>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

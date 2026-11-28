@@ -45,6 +45,19 @@ export interface SurveyAuditFeedRow {
   createdAt: string;
 }
 
+export interface VolunteerRecentUpdate {
+  id: string;
+  voterId: string;
+  voterName: string;
+  voterEpicNo: string;
+  fieldName: string;
+  fieldLabel: string;
+  oldValue: string | null;
+  newValue: string | null;
+  pointsAwarded: number;
+  createdAt: string;
+}
+
 export interface VolunteerSurveyDetailData {
   volunteer: any;
   summary: {
@@ -57,6 +70,7 @@ export interface VolunteerSurveyDetailData {
     statusPoints: number;
   };
   fieldCounts: Record<string, number>;
+  recentUpdates?: VolunteerRecentUpdate[];
 }
 
 export const setSurveyLeaderboard = (data: { leaderboard: VolunteerLeaderboardRow[]; totalCount: number }) => ({

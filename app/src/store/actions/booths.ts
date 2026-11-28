@@ -25,7 +25,8 @@ export const resetBoothsAction = () => ({
 export const fetchAssignedBoothsAction = (
   page: number = 1,
   isLoadMore: boolean = false,
-  searchQuery?: string
+  searchQuery?: string,
+  limit: number = 25
 ) => {
   return async (dispatch: Dispatch, getState: () => RootState) => {
     const currentState = getState().booths;
@@ -41,7 +42,7 @@ export const fetchAssignedBoothsAction = (
     try {
       const params: any = {
         page: targetPage,
-        limit: 25,
+        limit,
       };
 
       if (search && search.trim()) {

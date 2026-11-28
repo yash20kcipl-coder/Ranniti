@@ -110,7 +110,7 @@ export const VolunteerDetailHeader: React.FC<VolunteerDetailHeaderProps> = ({
             style={[styles.actionBtn, { backgroundColor: '#F3E8FF', borderColor: '#E9D5FF' }]}
           >
             <MaterialDesignIcons name="email-outline" size={16} color="#7E22CE" />
-            <Text style={[styles.actionBtnText, { color: '#7E22CE' }]}>Email</Text>
+            <Text style={[styles.actionBtnText, { color: '#7E22CE' }]}>{t('email')}</Text>
           </TouchableOpacity>
         )}
       </View>

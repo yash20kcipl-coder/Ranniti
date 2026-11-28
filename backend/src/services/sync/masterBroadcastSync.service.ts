@@ -8,8 +8,23 @@ export class MasterBroadcastSync {
   /**
    * Helper to retrieve active tenant database names from tenants table
    */
-  private static async getActiveTenantDbNames(acId?: string, pcId?: string): Promise<string[]> {
+  private static async getActiveTenantDbNames(acId?: string, pcId?: string, districtId?: string): Promise<string[]> {
     try {
+      if (districtId) {
+        const sqlTenants = `
+          SELECT DISTINCT t.tenant_db_name AS db_name
+          FROM tenants t
+          WHERE t.status IN ('ready', 'active')
+            AND t.tenant_db_name IS NOT NULL
+            AND EXISTS (
+              SELECT 1 FROM assembly_constituencies a
+              WHERE a.district_id = $1::uuid
+                AND (a.id = ANY(t.ac_ids) OR a.pc_id = ANY(t.pc_ids))
+            )
+        `;
+        const res = await masterQuery(sqlTenants, [districtId]);
+        return (res.rows || []).map((r: any) => r.db_name).filter(Boolean);
+      }
       if (acId) {
         const sqlTenants = `
           SELECT tenant_db_name AS db_name
@@ -334,6 +349,75 @@ export class MasterBroadcastSync {
       });
     } catch (err) {
       logger.error(`[BroadcastSync] Error in scoped delete broadcast of ${tableName}:`, err);
+    }
+  }
+
+  /**
+   * Broadcasts a single record (taluka, village) strictly to tenants assigned to that district
+   */
+  static async broadcastToDistrictTenants(
+    tableName: string,
+    recordData: Record<string, any>,
+    districtId: string,
+    primaryKeyField = 'id'
+  ): Promise<void> {
+    if (!districtId) return;
+    try {
+      const tenantDbNames = await this.getActiveTenantDbNames(undefined, undefined, districtId);
+      if (tenantDbNames.length === 0) return;
+      const normalized = await this.normalizeRecordForTable(tableName, recordData);
+      await this.broadcastSingleToPools(tenantDbNames, tableName, normalized, primaryKeyField);
+    } catch (err) {
+      logger.error(`[BroadcastSync] Error in district-scoped broadcast of ${tableName}:`, err);
+    }
+  }
+
+  /**
+   * Broadcasts an array of records (talukas, villages) to tenants assigned to that district
+   */
+  static async broadcastBatchToDistrictTenants(
+    tableName: string,
+    records: Record<string, any>[],
+    districtId: string,
+    primaryKeyField = 'id'
+  ): Promise<void> {
+    if (!districtId || !records || records.length === 0) return;
+    try {
+      const tenantDbNames = await this.getActiveTenantDbNames(undefined, undefined, districtId);
+      if (tenantDbNames.length === 0) return;
+      const normalizedList = await Promise.all(records.map(r => this.normalizeRecordForTable(tableName, r)));
+      await this.broadcastBatchToPools(tenantDbNames, tableName, normalizedList, primaryKeyField);
+    } catch (err) {
+      logger.error(`[BroadcastSync] Error in district-scoped batch broadcast of ${tableName}:`, err);
+    }
+  }
+
+  /**
+   * Broadcasts deletion of a record (taluka, village) to tenants assigned to that district
+   */
+  static async broadcastDeleteToDistrictTenants(
+    tableName: string,
+    id: string,
+    districtId: string,
+    primaryKeyField = 'id'
+  ): Promise<void> {
+    if (!districtId) return;
+    try {
+      const tenantDbNames = await this.getActiveTenantDbNames(undefined, undefined, districtId);
+      if (tenantDbNames.length === 0) return;
+      await this.runInChunks(tenantDbNames, 5, async (tenantDbName) => {
+        try {
+          await TenantPoolManager.getPool(tenantDbName).query(
+            `DELETE FROM ${tableName} WHERE "${primaryKeyField}" = $1`,
+            [id]
+          );
+          logger.info(`[BroadcastSync] District-scoped propagated DELETE for ${tableName} (${id}) to ${tenantDbName}`);
+        } catch (err: any) {
+          logger.error(`[BroadcastSync] District-scoped delete error for ${tableName} on ${tenantDbName}:`, err);
+        }
+      });
+    } catch (err) {
+      logger.error(`[BroadcastSync] Error in district-scoped delete broadcast of ${tableName}:`, err);
     }
   }
 }

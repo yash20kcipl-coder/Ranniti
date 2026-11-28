@@ -43,7 +43,7 @@ export const VolunteerDetailScreen: React.FC<any> = ({ navigation, route }) => {
         <View style={styles.emptyContainer}>
           <MaterialDesignIcons name="account-search-outline" size={48} color={theme.colors.textSecondary} />
           <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-            No volunteer information available.
+            {t('noVolunteerInfoAvailable')}
           </Text>
         </View>
       </View>

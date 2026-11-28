@@ -3,6 +3,7 @@ import { attachFileUrls } from '../../utils/fileUrl';
 import { ApiResponse } from '../../utils/apiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { mobileTeamService } from '../../services/mobile/mobileTeam.service';
+import { SurveyScoringService } from '../../services/tenant/surveyScoring.service';
 
 export class MobileTeamController {
   onboardTeamMember = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -87,6 +88,22 @@ export class MobileTeamController {
     const memberId = String(req.params.id);
     const result = await mobileTeamService.deleteTeamMember(currentUser, memberId);
     const response = ApiResponse.success(result, 'Team member deleted successfully');
+    res.status(response.statusCode).json(response.body);
+  });
+
+  getMemberSurveyScore = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const currentUser = req.mobileUser!;
+    const memberId = String(req.params.id);
+    const result = await SurveyScoringService.getSubordinateSurveyStats(
+      currentUser.id,
+      currentUser.role,
+      memberId,
+      currentUser.tenantDbName
+    );
+    if (result.volunteer) {
+      result.volunteer = attachFileUrls(result.volunteer, ['avatar'], req);
+    }
+    const response = ApiResponse.success(result, 'Team member survey score retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });
 }

@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { appHeaderStyles } from './styles';
 import { goBack } from '../../navigation';
 import { useLanguage } from '../../languages';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { Menu, ChevronLeft, ArrowLeft } from 'lucide-react-native';
+import { Menu, ChevronLeft, ArrowLeft, Globe, ChevronDown, Check } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { View, Text, Image, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleProp, ViewStyle, Modal as RNModal, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 
 const RANNITI_LOGO = require('../../assets/images/ranniti-logo.png');
 
@@ -22,6 +22,7 @@ export interface AppHeaderProps {
   onBack?: () => void;
   onMenu?: () => void;
   rightElement?: React.ReactNode;
+  bottomContent?: React.ReactNode;
   variant?: 'default' | 'primary' | 'transparent';
   style?: StyleProp<ViewStyle>;
   noShadow?: boolean;
@@ -40,6 +41,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onBack,
   onMenu,
   rightElement,
+  bottomContent,
   variant = 'primary',
   style,
   noShadow = false,
@@ -49,10 +51,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const navigation = useNavigation<any>();
   const { styles, theme } = useAppTheme(appHeaderStyles);
   const { language, setLanguage } = useLanguage();
+  const [langModalVisible, setLangModalVisible] = useState(false);
 
-  const handleToggleLanguage = () => {
-    setLanguage(language === 'en' ? 'hi' : 'en');
-  };
+  const LANGUAGE_OPTIONS: Array<{ code: 'en' | 'hi' | 'gu'; short: string; label: string; native: string }> = [
+    { code: 'en', short: 'EN', label: 'English', native: 'English' },
+    { code: 'hi', short: 'हिं', label: 'Hindi', native: 'हिन्दी' },
+    { code: 'gu', short: 'ગુ', label: 'Gujarati', native: 'ગુજરાતી' },
+  ];
+
+  const activeLang = LANGUAGE_OPTIONS.find((l) => l.code === language) || LANGUAGE_OPTIONS[0];
 
   const canGoBack = navigation && typeof navigation.canGoBack === 'function' && navigation.canGoBack();
   const isPrimary = variant === 'primary';
@@ -174,51 +181,189 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             {showLanguageToggle && (
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={handleToggleLanguage}
-                style={[styles.langTogglePill, isPrimary && styles.langTogglePillPrimary]}
+                onPress={() => setLangModalVisible(true)}
+                style={[
+                  localStyles.langBtn,
+                  isPrimary
+                    ? localStyles.langBtnPrimary
+                    : { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+                ]}
               >
-                <View
+                <Globe size={13} color={isPrimary ? '#FFFFFF' : theme.colors.primary} />
+                <Text
                   style={[
-                    styles.langSegment,
-                    language === 'en' && (isPrimary ? styles.langSegmentActivePrimary : styles.langSegmentActive),
+                    localStyles.langBtnText,
+                    { color: isPrimary ? '#FFFFFF' : theme.colors.text },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.langText,
-                      language === 'en'
-                        ? (isPrimary ? styles.langTextActivePrimary : styles.langTextActive)
-                        : (isPrimary ? styles.langTextInactivePrimary : styles.langTextInactive),
-                    ]}
-                  >
-                    EN
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.langSegment,
-                    language === 'hi' && (isPrimary ? styles.langSegmentActivePrimary : styles.langSegmentActive),
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.langText,
-                      language === 'hi'
-                        ? (isPrimary ? styles.langTextActivePrimary : styles.langTextActive)
-                        : (isPrimary ? styles.langTextInactivePrimary : styles.langTextInactive),
-                    ]}
-                  >
-                    हिं
-                  </Text>
-                </View>
+                  {activeLang.short}
+                </Text>
+                <ChevronDown size={12} color={isPrimary ? 'rgba(255,255,255,0.8)' : theme.colors.textSecondary} />
               </TouchableOpacity>
             )}
             {rightElement}
           </View>
         )}
       </View>
-    </View>
+      {bottomContent}
+
+      {/* Language Selection Bottom Sheet Popup */}
+      <RNModal
+        visible={langModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setLangModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setLangModalVisible(false)}>
+          <View style={localStyles.modalBackdrop}>
+            <TouchableWithoutFeedback>
+              <View
+                style={[
+                  localStyles.modalCard,
+                  { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+                ]}
+              >
+                <View style={localStyles.sheetHandle} />
+                <View style={localStyles.langList}>
+                  {LANGUAGE_OPTIONS.map((opt) => {
+                    const selected = opt.code === language;
+                    return (
+                      <TouchableOpacity
+                        key={opt.code}
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          setLanguage(opt.code);
+                          setLangModalVisible(false);
+                        }}
+                        style={[
+                          localStyles.langRow,
+                          {
+                            borderColor: selected ? theme.colors.primary : theme.colors.border,
+                            backgroundColor: selected
+                              ? theme.colors.primary + '12'
+                              : theme.colors.background,
+                          },
+                        ]}
+                      >
+                        <View style={localStyles.langRowLeft}>
+                          <View
+                            style={[
+                              localStyles.shortBadge,
+                              {
+                                backgroundColor: selected
+                                  ? theme.colors.primary
+                                  : theme.colors.border,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                localStyles.shortBadgeText,
+                                { color: selected ? '#FFFFFF' : theme.colors.text },
+                              ]}
+                            >
+                              {opt.short}
+                            </Text>
+                          </View>
+                          <Text style={[localStyles.langNative, { color: theme.colors.text }]}>
+                            {opt.native}
+                          </Text>
+                        </View>
+                        {selected && <Check size={16} color={theme.colors.primary} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </RNModal>
+    </View >
   );
 };
+
+const localStyles = StyleSheet.create({
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 18,
+    borderWidth: .5,
+  },
+  langBtnPrimary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  langBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    width: '100%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 28,
+    gap: 14,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  langList: {
+    gap: 8,
+  },
+  langRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 11,
+    borderRadius: 18,
+    borderWidth: .5,
+  },
+  langRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  shortBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shortBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  langNative: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+});
 
 export default AppHeader;

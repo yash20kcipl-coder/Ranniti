@@ -89,7 +89,13 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
     );
   }
 
+  const englishName = voter.englishName || '';
   const hindiName = voter.hindiName || voter.name;
+  const displayName = englishName || hindiName;
+  const modalVoterName =
+    englishName && hindiName && englishName !== hindiName
+      ? `${englishName} (${hindiName})`
+      : displayName;
   const canEdit =
     hasVoterPermission(access, 'canEditContact') ||
     hasVoterPermission(access, 'canEditDemographics') ||
@@ -131,7 +137,7 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
       {/* AppHeader Component */}
       <AppHeader
         statusBar="hidden"
-        title={hindiName || t('voterDetails')}
+        title={displayName || t('voterDetails')}
         subtitle={voter.epicNo ? `${t('epicNumber')}: ${voter.epicNo}` : undefined}
         showBack={true}
         onBack={() => navigation.goBack()}
@@ -201,7 +207,7 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
         onClose={() => setPartyModalVisible(false)}
         currentPartyId={voter.partyId || null}
         currentPartyName={voter.partyId ? (voter.partyName || voter.supportingParty) : ''}
-        voterName={hindiName || voter.englishName}
+        voterName={modalVoterName}
         canEdit={canEditInclination}
         onSelectParty={handleSelectParty}
       />
@@ -210,7 +216,7 @@ export const VoterDetailScreen: React.FC<any> = ({ navigation, route }) => {
       <VoterFamilyModal
         visible={familyModalVisible}
         voterId={voter.id}
-        voterName={hindiName || voter.englishName}
+        voterName={modalVoterName}
         onClose={() => setFamilyModalVisible(false)}
       />
     </View>

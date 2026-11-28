@@ -12,6 +12,7 @@ import {
 import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchVoterSyncReport, exportReportExcel } from '@/redux/actions/reports';
+import { fetchTenantVolunteers } from '@/redux/actions/volunteer';
 import type { VoterSyncReportItem } from '@/redux/reducers/reports';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -22,7 +23,8 @@ import {
   TableMonoText,
   type Column,
 } from '@/components/common/DataTable';
-import { FilterBar, type FilterField } from '@/components/common/FilterBar';
+import { FilterBar, type FilterField, type Option } from '@/components/common/FilterBar';
+import type { DateRangeValue } from '@/components/common/DatePicker';
 import { SafeImage } from '@/components/common/SafeImage';
 import { CountUp } from '@/components/common/CountUp';
 import { formatPhoneNumber } from '@/utils/phoneUtils';
@@ -40,13 +42,22 @@ export const VoterSyncReportPage: React.FC = () => {
   const { items, total, page, limit, totalPages, summary, loading } = useAppSelector(
     (state) => state.reports.voterSync
   );
+  const volunteers = useAppSelector((state) => state.volunteer.volunteers);
 
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [volunteerId, setVolunteerId] = useState('');
+  const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: '', endDate: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  useDebouncedEffect(
+    () => {
+      dispatch(fetchTenantVolunteers());
+    },
+    150,
+    [dispatch]
+  );
 
   useDebouncedEffect(
     () => {
@@ -56,14 +67,27 @@ export const VoterSyncReportPage: React.FC = () => {
       };
       if (search.trim()) filters.search = search.trim();
       if (role) filters.role = role;
-      if (startDate) filters.startDate = startDate;
-      if (endDate) filters.endDate = endDate;
+      if (volunteerId) filters.volunteerId = volunteerId;
+      if (dateRange.startDate) filters.startDate = dateRange.startDate;
+      if (dateRange.endDate) filters.endDate = dateRange.endDate;
 
       dispatch(fetchVoterSyncReport(filters));
     },
     200,
-    [dispatch, search, role, startDate, endDate, currentPage, pageSize]
+    [dispatch, search, role, volunteerId, dateRange, currentPage, pageSize]
   );
+
+  const volunteerOptions: Option[] = useMemo(() => {
+    const filtered = role ? volunteers.filter((v) => v.role === role) : volunteers;
+    return [
+      { label: 'All Volunteers', value: '' },
+      ...filtered.map((v) => ({
+        label: v.name,
+        value: v.id,
+        subtitle: v.mobile ? formatPhoneNumber(v.mobile) : undefined,
+      })),
+    ];
+  }, [volunteers, role]);
 
   const filterFields: FilterField[] = useMemo(
     () => [
@@ -77,38 +101,49 @@ export const VoterSyncReportPage: React.FC = () => {
         options: VOLUNTEER_ROLE_OPTIONS,
         onChange: (val) => {
           setRole(val);
+          if (val && volunteerId) {
+            const match = volunteers.find((v) => v.id === volunteerId);
+            if (match && match.role !== val) {
+              setVolunteerId('');
+            }
+          }
           setCurrentPage(1);
         },
       },
       {
-        key: 'startDate',
-        label: 'Synced From',
-        type: 'date',
-        value: startDate,
+        key: 'volunteerId',
+        label: 'Volunteer',
+        type: 'select',
+        value: volunteerId,
+        defaultValue: '',
+        isPrimary: true,
+        placeholder: 'All Volunteers',
+        options: volunteerOptions,
         onChange: (val) => {
-          setStartDate(val);
+          setVolunteerId(val);
           setCurrentPage(1);
         },
       },
       {
-        key: 'endDate',
-        label: 'Synced To',
-        type: 'date',
-        value: endDate,
+        key: 'dateRange',
+        label: 'Synced Date',
+        type: 'daterange',
+        value: dateRange,
+        placeholder: 'Select date range',
         onChange: (val) => {
-          setEndDate(val);
+          setDateRange(val || { startDate: '', endDate: '' });
           setCurrentPage(1);
         },
       },
     ],
-    [role, startDate, endDate]
+    [role, volunteerId, volunteerOptions, volunteers, dateRange]
   );
 
   const handleReset = () => {
     setSearch('');
     setRole('');
-    setStartDate('');
-    setEndDate('');
+    setVolunteerId('');
+    setDateRange({ startDate: '', endDate: '' });
     setCurrentPage(1);
   };
 
@@ -117,8 +152,9 @@ export const VoterSyncReportPage: React.FC = () => {
       const filters: Record<string, any> = {};
       if (search.trim()) filters.search = search.trim();
       if (role) filters.role = role;
-      if (startDate) filters.startDate = startDate;
-      if (endDate) filters.endDate = endDate;
+      if (volunteerId) filters.volunteerId = volunteerId;
+      if (dateRange.startDate) filters.startDate = dateRange.startDate;
+      if (dateRange.endDate) filters.endDate = dateRange.endDate;
 
       await dispatch(
         exportReportExcel('/tenant/reports/voter-sync/export', filters, 'Voter_Sync_Report.xlsx')

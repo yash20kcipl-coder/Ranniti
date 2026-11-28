@@ -3,8 +3,10 @@ import toast from "../../utils/toast";
 import apiClient from "../../api/apiClient";
 import { SCREENS } from "../../navigation/constants";
 import Storage, { STORAGE_KEYS } from "../../utils/storage";
-import { LOG_IN, LOG_OUT, SET_AUTH_LOADING } from "../reducers/auth";
-import { navigateToDashboard, reset } from "../../navigation/navigationUtils";
+import { LOG_IN, LOG_OUT, SET_AUTH_LOADING, SET_LINKED_PROFILES } from "../reducers/auth";
+import { navigateToDashboard, navigateToSwitchProfile, reset } from "../../navigation/navigationUtils";
+import { clearLocalVersions } from "../../utils/syncManager";
+import { bootstrapTenantSyncAction } from "./syncActions";
 
 export const sendOtpAction = (
   mobile: string,
@@ -43,11 +45,13 @@ export const verifyOtpAction = (
   payload: {
     mobile: string;
     otp: string;
+    tenantDbName?: string;
     fcmToken?: string;
     deviceId?: string;
   },
   setLoading: (loading: boolean) => void,
-  onSuccess?: (user: any) => void
+  onSuccess?: (user: any) => void,
+  onRequiresSelection?: (data: { selectionToken?: string; profiles: any[] }) => void
 ) => {
   return async (dispatch: any) => {
     setLoading(true);
@@ -57,9 +61,21 @@ export const verifyOtpAction = (
       const response = await apiClient.post("mobile/auth/verify-otp", {
         mobile: payload.mobile,
         otp: payload.otp,
+        ...(payload.tenantDbName ? { tenantDbName: payload.tenantDbName } : {}),
       });
 
-      const { token, user, access } = response.data?.data || {};
+      const resData = response.data?.data || {};
+      if (resData.requiresTenantSelection && Array.isArray(resData.profiles)) {
+        if (onRequiresSelection) {
+          onRequiresSelection({
+            selectionToken: resData.selectionToken,
+            profiles: resData.profiles,
+          });
+        }
+        return;
+      }
+
+      const { token, user, access } = resData;
 
       if (token && user) {
         (globalThis as any).token = token;
@@ -156,9 +172,11 @@ export const verifyMpinAction = (
   payload: {
     mobile: string;
     mpin: string;
+    tenantDbName?: string;
   },
   setLoading: (loading: boolean) => void,
-  onSuccess?: (user: any) => void
+  onSuccess?: (user: any) => void,
+  onRequiresSelection?: (data: { profiles: any[] }) => void
 ) => {
   return async (dispatch: any) => {
     setLoading(true);
@@ -168,9 +186,18 @@ export const verifyMpinAction = (
       const response = await apiClient.post("mobile/auth/verify-mpin", {
         mobile: payload.mobile,
         mpin: payload.mpin,
+        ...(payload.tenantDbName ? { tenantDbName: payload.tenantDbName } : {}),
       });
 
-      const { token, user, access } = response.data?.data || {};
+      const resData = response.data?.data || {};
+      if (resData.requiresTenantSelection && Array.isArray(resData.profiles)) {
+        if (onRequiresSelection) {
+          onRequiresSelection({ profiles: resData.profiles });
+        }
+        return;
+      }
+
+      const { token, user, access } = resData;
 
       if (token && user) {
         (globalThis as any).token = token;
@@ -281,7 +308,14 @@ export const fetchProfileAndRoleAccessAction = (navigate?: boolean) => {
         await Storage.save("ACCESS_CONFIG", access);
         dispatch({ type: "SET_ACCESS_CONFIG", payload: access });
       }
-      if (navigate) { navigateToDashboard(user.role || "supporter") }
+      const profiles = await (fetchLinkedProfilesAction() as any)(dispatch);
+      if (navigate) {
+        if (Array.isArray(profiles) && profiles.length > 1) {
+          navigateToSwitchProfile();
+        } else {
+          navigateToDashboard(user.role || "supporter");
+        }
+      }
     } catch (error: any) {
       console.error("Initialization profile/role fetch error:", error);
       const status = error?.response?.status || error?.response?.data?.status;
@@ -291,6 +325,115 @@ export const fetchProfileAndRoleAccessAction = (navigate?: boolean) => {
         dispatch({ type: LOG_OUT });
       }
       throw error;
+    }
+  };
+};
+
+export const completeOtpProfileSelectionAction = (
+  selectionToken: string,
+  targetTenantDbName: string,
+  setLoading: (loading: boolean) => void,
+  onSuccess?: (user: any) => void
+) => {
+  return async (dispatch: any) => {
+    setLoading(true);
+    dispatch({ type: SET_AUTH_LOADING, payload: true });
+    try {
+      const response = await apiClient.post("mobile/auth/select-profile", {
+        selectionToken,
+        targetTenantDbName,
+      });
+      const { token, user, access } = response.data?.data || {};
+      if (token && user) {
+        (globalThis as any).token = token;
+        await Storage.save(STORAGE_KEYS.TOKEN, token);
+        await Storage.save(STORAGE_KEYS.USER_DATA, user);
+        await Storage.save(STORAGE_KEYS.ROLE, user.role || "supporter");
+        if (access) {
+          await Storage.save("ACCESS_CONFIG", access);
+        }
+        dispatch({
+          type: LOG_IN,
+          payload: {
+            token,
+            role: user.role || "supporter",
+            user,
+            access,
+          },
+        });
+        toast.success(`Welcome, ${user.name || "Volunteer"}!`);
+        if (onSuccess) onSuccess(user);
+      } else {
+        toast.error("Invalid profile selection response from server.");
+      }
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || "Failed to select campaign profile.";
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+      dispatch({ type: SET_AUTH_LOADING, payload: false });
+    }
+  };
+};
+
+export const fetchLinkedProfilesAction = () => {
+  return async (dispatch: Dispatch) => {
+    try {
+      const res = await apiClient.get("mobile/auth/profiles");
+      const profiles = res?.data?.data?.profiles || [];
+      dispatch({ type: SET_LINKED_PROFILES, payload: profiles });
+      return profiles;
+    } catch {
+      return [];
+    }
+  };
+};
+
+export const switchProfileAction = (
+  targetTenantDbName: string,
+  onSuccess?: (user: any) => void
+) => {
+  return async (dispatch: any) => {
+    dispatch({ type: SET_AUTH_LOADING, payload: true });
+    try {
+      const response = await apiClient.post("mobile/auth/switch-profile", {
+        targetTenantDbName,
+      });
+      const { token, user, access } = response.data?.data || {};
+      if (!token || !user) {
+        throw new Error("Invalid switch-profile response");
+      }
+
+      await clearLocalVersions();
+      (globalThis as any).token = token;
+      await Storage.save(STORAGE_KEYS.TOKEN, token);
+      await Storage.save(STORAGE_KEYS.USER_DATA, user);
+      await Storage.save(STORAGE_KEYS.ROLE, user.role || "supporter");
+      if (access) {
+        await Storage.save("ACCESS_CONFIG", access);
+      }
+
+      dispatch({
+        type: LOG_IN,
+        payload: {
+          token,
+          role: user.role || "supporter",
+          user,
+          access,
+        },
+      });
+
+      await dispatch(bootstrapTenantSyncAction());
+      await dispatch(fetchLinkedProfilesAction());
+      toast.success(`Switched to ${user.name || "profile"}`);
+      navigateToDashboard(user.role || "supporter");
+      if (onSuccess) onSuccess(user);
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || "Failed to switch campaign profile.";
+      toast.error(errorMsg);
+      throw error;
+    } finally {
+      dispatch({ type: SET_AUTH_LOADING, payload: false });
     }
   };
 };

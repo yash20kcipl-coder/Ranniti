@@ -13,12 +13,12 @@ interface VolunteerPermissionsSectionProps {
   theme: Theme;
 }
 
-const SCREEN_NAME_MAP: Record<string, { label: string; icon: string }> = {
-  voter_search: { label: 'Voters Directory', icon: 'account-search-outline' },
-  family_tree: { label: 'Family Mapping', icon: 'account-group-outline' },
-  booth_analytics: { label: 'Booth Analytics', icon: 'chart-bar' },
-  gate_meetings: { label: 'Influencer Mapping', icon: 'star-outline' },
-  team_management: { label: 'Team Management', icon: 'shield-account-outline' },
+const SCREEN_NAME_MAP: Record<string, { labelKey: string; icon: string }> = {
+  voter_search: { labelKey: 'voterListTitle', icon: 'account-search-outline' },
+  family_tree: { labelKey: 'familyMappingTitle', icon: 'account-group-outline' },
+  booth_analytics: { labelKey: 'boothAnalytics', icon: 'chart-bar' },
+  gate_meetings: { labelKey: 'influencerTitle', icon: 'star-outline' },
+  team_management: { labelKey: 'teamManagementTitle', icon: 'shield-account-outline' },
 };
 
 export const VolunteerPermissionsSection: React.FC<VolunteerPermissionsSectionProps> = ({
@@ -40,26 +40,25 @@ export const VolunteerPermissionsSection: React.FC<VolunteerPermissionsSectionPr
       <View style={styles.screensGrid}>
         {screens.length > 0 ? (
           screens.map((screenKey) => {
-            const meta = SCREEN_NAME_MAP[screenKey] || {
-              label: screenKey.replace(/_/g, ' '),
-              icon: 'cellphone',
-            };
+            const meta = SCREEN_NAME_MAP[screenKey];
+            const label = meta ? t(meta.labelKey) : screenKey.replace(/_/g, ' ');
+            const icon = meta ? meta.icon : 'cellphone';
 
             return (
               <View
                 key={screenKey}
                 style={[styles.screenPill, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
               >
-                <MaterialDesignIcons name={meta.icon as any} size={14} color={theme.colors.primary} />
+                <MaterialDesignIcons name={icon as any} size={14} color={theme.colors.primary} />
                 <Text style={[styles.screenText, { color: theme.colors.text }]} numberOfLines={1}>
-                  {meta.label}
+                  {label}
                 </Text>
               </View>
             );
           })
         ) : (
           <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-            Standard permissions assigned
+            {t('standardPermissionsAssigned')}
           </Text>
         )}
       </View>

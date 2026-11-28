@@ -1,3 +1,4 @@
+import { useLanguage } from '../languages';
 import {
   View,
   TextInput,
@@ -44,7 +45,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChangeText,
   onClear,
-  placeholder = 'Search...',
+  placeholder: placeholderProp,
   onFocus,
   onBlur,
   tags,
@@ -54,6 +55,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   ...rest
 }) => {
   const { theme, styles } = useAppTheme(getStyles);
+  const { t } = useLanguage();
+  const placeholder = placeholderProp ?? t('search');
   const inputRef = useRef<any>(null);
 
   // Focus animation shared values

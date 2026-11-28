@@ -71,7 +71,7 @@ export const SuperAdminVotersPage: React.FC = () => {
   const [familyInfluencerId, setFamilyInfluencerId] = useState<string>(() => savedFilters?.familyInfluencerId || '');
   const [socialInfluencerId, setSocialInfluencerId] = useState<string>(() => savedFilters?.socialInfluencerId || '');
   const [isFamilyInfluencer, setIsFamilyInfluencer] = useState<string>(() => savedFilters?.isFamilyInfluencer || '');
-  const [isSocialInfluencer, setIsSocialInfluencer] = useState<string>(() => savedFilters?.isSocialInfluencer || '');
+  const [socialInfluencerScope, setSocialInfluencerScope] = useState<string>(() => savedFilters?.socialInfluencerScope || '');
   const [influencerStatus, setInfluencerStatus] = useState<string>(() => savedFilters?.influencerStatus || '');
   const [influencerRole, setInfluencerRole] = useState<string>(() => savedFilters?.influencerRole || '');
 
@@ -179,7 +179,7 @@ export const SuperAdminVotersPage: React.FC = () => {
   const prevFilterDepsRef = React.useRef({
     search, stateId, districtId, pcId, acId, boothId, gender, voterType,
     status, isDead, partyId, religionId, casteId, ageGroup, familyInfluencerId,
-    socialInfluencerId, isFamilyInfluencer, isSocialInfluencer, influencerStatus, influencerRole,
+    socialInfluencerId, isFamilyInfluencer, socialInfluencerScope, influencerStatus, influencerRole,
   });
 
   // Fetch Voters Data & Stats
@@ -195,7 +195,7 @@ export const SuperAdminVotersPage: React.FC = () => {
       const currentFilters = {
         search, stateId, districtId, pcId, acId, boothId, gender, voterType,
         status, isDead, partyId, religionId, casteId, ageGroup, familyInfluencerId,
-        socialInfluencerId, isFamilyInfluencer, isSocialInfluencer, influencerStatus, influencerRole,
+        socialInfluencerId, isFamilyInfluencer, socialInfluencerScope, influencerStatus, influencerRole,
       };
 
       let activePage = page;
@@ -217,7 +217,7 @@ export const SuperAdminVotersPage: React.FC = () => {
     [
       dispatch, page, limit, search, stateId, districtId, pcId, acId, boothId,
       gender, voterType, status, isDead, partyId, religionId, casteId, ageGroup,
-      familyInfluencerId, socialInfluencerId, isFamilyInfluencer, isSocialInfluencer,
+      familyInfluencerId, socialInfluencerId, isFamilyInfluencer, socialInfluencerScope,
       influencerStatus, influencerRole,
     ]
   );
@@ -225,7 +225,7 @@ export const SuperAdminVotersPage: React.FC = () => {
   const getCurrentFilterParams = () => ({
     search, stateId, districtId, pcId, acId, boothId, gender, voterType,
     status, isDead, partyId, religionId, casteId, ageGroup, familyInfluencerId,
-    socialInfluencerId, isFamilyInfluencer, isSocialInfluencer, influencerStatus, influencerRole,
+    socialInfluencerId, isFamilyInfluencer, socialInfluencerScope, influencerStatus, influencerRole,
     page, limit,
   });
 
@@ -261,7 +261,7 @@ export const SuperAdminVotersPage: React.FC = () => {
     };
 
     const handleInfluencerSuccess = () => {
-      const params = { page, limit, search, boothId, influencerStatus, isFamilyInfluencer, isSocialInfluencer };
+      const params = { page, limit, search, boothId, influencerStatus, isFamilyInfluencer, socialInfluencerScope };
       dispatch(fetchSuperAdminVotersData(params));
       dispatch(fetchSuperAdminVoterStats(params));
     };
@@ -285,7 +285,7 @@ export const SuperAdminVotersPage: React.FC = () => {
       gender, ageGroup, religionId, casteId,
       status, isDead, voterType, partyId,
       familyInfluencerId, socialInfluencerId,
-      isFamilyInfluencer, isSocialInfluencer,
+      isFamilyInfluencer, socialInfluencerScope,
       influencerRole, influencerStatus,
     };
 
@@ -294,7 +294,7 @@ export const SuperAdminVotersPage: React.FC = () => {
       gender: setGender, ageGroup: setAgeGroup, religionId: setReligionId, casteId: setCasteId,
       status: setStatus, isDead: setIsDead, voterType: setVoterType, partyId: setPartyId,
       familyInfluencerId: setFamilyInfluencerId, socialInfluencerId: setSocialInfluencerId,
-      isFamilyInfluencer: setIsFamilyInfluencer, isSocialInfluencer: setIsSocialInfluencer,
+      isFamilyInfluencer: setIsFamilyInfluencer, socialInfluencerScope: setSocialInfluencerScope,
       influencerRole: setInfluencerRole, influencerStatus: setInfluencerStatus,
     };
 

@@ -2,6 +2,7 @@ import { SCREENS } from './constants';
 import Splash from '../screens/Splash';
 import Login from '../screens/AuthModule/Login';
 import ElectionPollingScreen from '../screens/ElectionModule';
+import SurveyPointsScreen from '../screens/SurveyPointsModule';
 import VoterDetailScreen from '../screens/VoterModule/VoterDetailScreen';
 import AddEditVoterScreen from '../screens/VoterModule/AddEditVoterScreen';
 import VolunteerDetailScreen from '../screens/TeamModule/VolunteerDetailScreen';
@@ -35,6 +36,10 @@ export const routes = [
   {
     name: SCREENS.ELECTION_POLLING,
     component: ElectionPollingScreen,
+  },
+  {
+    name: SCREENS.SURVEY_POINTS,
+    component: SurveyPointsScreen,
   },
 ];
 

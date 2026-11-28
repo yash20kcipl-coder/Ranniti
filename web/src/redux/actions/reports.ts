@@ -21,6 +21,7 @@ export interface VoterSyncReportFilters {
   limit?: number;
   search?: string;
   role?: string;
+  volunteerId?: string;
   boothId?: string;
   startDate?: string;
   endDate?: string;

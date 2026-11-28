@@ -67,7 +67,7 @@ export interface Voter {
   socialInfluencerName?: string | null;
   socialInfluencerEpic?: string | null;
   socialInfluencedCount?: number;
-  isSocialInfluencer?: boolean;
+  socialInfluencerScope?: 'booth' | 'ac' | null;
 
   familyId?: string | null;
   familyRelation?: string | null;
@@ -142,7 +142,7 @@ export interface VoterFilterParams {
   familyInfluencerId?: string;
   socialInfluencerId?: string;
   isFamilyInfluencer?: boolean | string;
-  isSocialInfluencer?: boolean | string;
+  socialInfluencerScope?: 'booth' | 'ac' | 'any' | string;
   influencerStatus?: string;
   influencerRole?: string;
   cachedTotal?: number;
@@ -202,6 +202,7 @@ export interface FamilyCandidateParams {
 export interface SocialCandidateParams {
   influencerId: string;
   boothId?: string;
+  acWise?: boolean | string;
   search?: string;
   sectionNo?: number | string;
   gender?: string;

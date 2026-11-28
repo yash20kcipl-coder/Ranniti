@@ -1,3 +1,4 @@
+import { useLanguage } from '../languages';
 import {
   View,
   TextInput,
@@ -56,7 +57,7 @@ export const SearchWithFilters: React.FC<SearchWithFiltersProps> = ({
   inputStyle,
   search,
   onChangeSearch,
-  placeholder = 'Search...',
+  placeholder: placeholderProp,
   variant = 'standard',
   onFilterPress,
   options,
@@ -64,6 +65,8 @@ export const SearchWithFilters: React.FC<SearchWithFiltersProps> = ({
   onSelectOption,
 }) => {
   const { theme, styles } = useAppTheme(getStyles);
+  const { t } = useLanguage();
+  const placeholder = placeholderProp ?? t('search');
   const inputRef = useRef<any>(null);
 
   // Focus animation shared values

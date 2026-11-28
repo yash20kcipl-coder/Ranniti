@@ -49,7 +49,6 @@ export const navItems: NavItem[] = [
   // Field & Voters
   { path: '/dashboard/voters', label: 'Voter Directory', icon: Vote, section: 'field' },
   { path: '/dashboard/volunteers', label: 'Volunteers', icon: UserCheck, section: 'field' },
-  // { path: '/dashboard/surveys', label: 'Surveys & Feedback', icon: Award, section: 'field' },
 
   // Team & Administration
   { path: '/dashboard/users', label: 'Team & Staff', icon: Users, section: 'administration' },
@@ -64,6 +63,7 @@ export const reportSubItems = [
   { path: '/dashboard/reports/volunteer-outreach', label: 'Volunteer Outreach', icon: Activity },
   { path: '/dashboard/reports/voter-sync', label: 'Voter Sync', icon: Smartphone },
   { path: '/dashboard/reports/voting', label: 'Voting Report', icon: Vote },
+  { path: '/dashboard/reports/surveys', label: 'Surveys & Feedback', icon: Award },
 ];
 
 export const masterSections = [
@@ -405,7 +405,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 .filter((item) => {
                   if (item.section !== 'field') return false;
                   if (item.path === '/dashboard/volunteers') return !isSuperAdmin;
-                  if (item.path === '/dashboard/surveys') return !isSuperAdmin;
                   return true;
                 })
                 .map((item) => {

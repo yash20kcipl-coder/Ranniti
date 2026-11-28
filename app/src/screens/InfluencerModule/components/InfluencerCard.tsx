@@ -44,8 +44,8 @@ export const InfluencerCard: React.FC<InfluencerCardProps> = ({ item }) => {
         <View style={styles.avatarWrapper}>
           <SafeImage
             src={item.photo || item.avatar}
-            name={item.name}
-            alt={item.name}
+            name={item.englishName || item.name}
+            alt={item.englishName || item.name}
             placeholderType="avatar"
             style={styles.photo}
           />
@@ -57,10 +57,16 @@ export const InfluencerCard: React.FC<InfluencerCardProps> = ({ item }) => {
         <View style={styles.infoCol}>
           {/* Badges Row */}
           <View style={styles.badgeRow}>
-            {item.isSocialInfluencer && (
+            {Boolean(item.socialInfluencerScope) && (
               <View style={[styles.typeBadge, styles.socialBadge]}>
                 <MaterialDesignIcons name="account-star" size={10} color="#4338CA" />
                 <Text style={styles.socialBadgeText}>{t('socialInfluencer') || 'Social'}</Text>
+              </View>
+            )}
+            {item.socialInfluencerScope === 'ac' && (
+              <View style={[styles.typeBadge, { backgroundColor: '#E0E7FF', borderColor: '#C7D2FE' }]}>
+                <MaterialDesignIcons name="earth" size={10} color="#4338CA" />
+                <Text style={[styles.socialBadgeText, { color: '#3730A3' }]}>{t('acWise')}</Text>
               </View>
             )}
             {item.isFamilyInfluencer && (
@@ -77,8 +83,13 @@ export const InfluencerCard: React.FC<InfluencerCardProps> = ({ item }) => {
           </View>
 
           <Text style={[styles.nameText, { color: theme.colors.text }]} numberOfLines={1}>
-            {item.name}
+            {item.englishName || item.name}
           </Text>
+          {Boolean(item.hindiName && (item.englishName || item.name) && item.hindiName !== (item.englishName || item.name)) && (
+            <Text style={[styles.professionText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              {item.hindiName}
+            </Text>
+          )}
 
           <View style={styles.professionRow}>
             <MaterialDesignIcons name="briefcase-outline" size={12} color={theme.colors.textSecondary} />
@@ -201,8 +212,13 @@ export const InfluencerCard: React.FC<InfluencerCardProps> = ({ item }) => {
               >
                 <View style={styles.voterDetails}>
                   <Text style={[styles.voterNameText, { color: theme.colors.text }]} numberOfLines={1}>
-                    {voter.name}
+                    {voter.englishName || voter.name}
                   </Text>
+                  {Boolean(voter.hindiName && (voter.englishName || voter.name) && voter.hindiName !== (voter.englishName || voter.name)) && (
+                    <Text style={[styles.boothText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                      {voter.hindiName}
+                    </Text>
+                  )}
                   <View style={styles.voterMetaRow}>
                     <View style={styles.epicPill}>
                       <Text style={styles.epicText}>{voter.epicNo || 'NO EPIC'}</Text>

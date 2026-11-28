@@ -211,6 +211,7 @@ export class MobileVoterService {
       influencerId: string | null;
       influencerType: 'family' | 'social';
       voterIds: string[];
+      socialInfluencerScope?: 'booth' | 'ac' | null;
     }
   ) {
     const roleAccess = await mobileAccessService.getRoleAccessConfig({
@@ -226,7 +227,8 @@ export class MobileVoterService {
       payload.influencerId || null,
       payload.influencerType,
       payload.voterIds,
-      user.tenantDbName
+      user.tenantDbName,
+      payload.socialInfluencerScope
     );
   }
 
@@ -328,7 +330,7 @@ export class MobileVoterService {
 
     // Family / Social Influencer field guard for creation
     const familyKeys = [
-      'familyInfluencerId', 'socialInfluencerId', 'isFamilyInfluencer', 'isSocialInfluencer',
+      'familyInfluencerId', 'socialInfluencerId', 'isFamilyInfluencer', 'socialInfluencerScope',
       'influencerRole', 'familyId'
     ];
     const specifiesFamily = familyKeys.some(key => Boolean((voterData as any)[key]));
@@ -410,7 +412,7 @@ export class MobileVoterService {
 
     // Family / Social Influencer field guard
     const familyKeys = [
-      'familyInfluencerId', 'socialInfluencerId', 'isFamilyInfluencer', 'isSocialInfluencer',
+      'familyInfluencerId', 'socialInfluencerId', 'isFamilyInfluencer', 'socialInfluencerScope',
       'influencerRole', 'familyId'
     ];
     const modifiesFamily = familyKeys.some(key => key in updateData);

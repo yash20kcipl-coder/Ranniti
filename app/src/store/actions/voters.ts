@@ -118,7 +118,7 @@ export const mapApiVoterToVoter = (item: any): Voter => {
     familyInfluencerId: item.familyInfluencerId || undefined,
     familyInfluencerName: item.familyInfluencerName || '',
     familyInfluencedCount: Number(item.familyInfluencedCount) || 0,
-    isSocialInfluencer: Boolean(item.isSocialInfluencer),
+    socialInfluencerScope: item.socialInfluencerScope || null,
     socialInfluencerId: item.socialInfluencerId || undefined,
     socialInfluencerName: item.socialInfluencerName || '',
     socialInfluencerEpic: item.socialInfluencerEpic || '',
@@ -170,7 +170,7 @@ export const fetchVotersAction = (
       if (filters.influencerRole && filters.influencerRole !== 'all') {
         params.influencerRole = filters.influencerRole;
         if (filters.influencerRole === 'family') params.isFamilyInfluencer = true;
-        if (filters.influencerRole === 'social') params.isSocialInfluencer = true;
+        if (filters.influencerRole === 'social') params.socialInfluencerScope = 'any';
       }
       if (filters.society) params.society = filters.society;
 
@@ -446,7 +446,7 @@ export const addVoterAction = (newVoter: Record<string, any>, onSuccess?: (creat
         // Party & Influencers
         partyId: v.partyId || null,
         isFamilyInfluencer: Boolean(v.isFamilyInfluencer),
-        isSocialInfluencer: Boolean(v.isSocialInfluencer),
+        socialInfluencerScope: v.socialInfluencerScope || null,
         familyInfluencerId: v.isFamilyInfluencer ? null : (v.familyInfluencerId || null),
         socialInfluencerId: v.socialInfluencerId || null,
 
@@ -521,7 +521,7 @@ export const updateVoterAction = (voterData: Record<string, any>, onSuccess?: (u
         // Party & Influencers
         ...(v.partyId !== undefined && { partyId: v.partyId || null }),
         ...(v.isFamilyInfluencer !== undefined && { isFamilyInfluencer: Boolean(v.isFamilyInfluencer) }),
-        ...(v.isSocialInfluencer !== undefined && { isSocialInfluencer: Boolean(v.isSocialInfluencer) }),
+        ...(v.socialInfluencerScope !== undefined && { socialInfluencerScope: v.socialInfluencerScope || null }),
         ...(v.familyInfluencerId !== undefined && {
           familyInfluencerId: v.isFamilyInfluencer ? null : (v.familyInfluencerId || null),
         }),
@@ -547,7 +547,15 @@ export const updateVoterAction = (voterData: Record<string, any>, onSuccess?: (u
       const rawVoter = response?.data?.data || response?.data || { ...v, ...payload };
       const mapped = mapApiVoterToVoter(rawVoter);
       dispatch({ type: UPDATE_VOTER_DETAILS, payload: mapped });
-      toast.success("Voter profile updated successfully!");
+      const pointsEarned = Number(rawVoter?.pointsEarned || 0);
+      if (pointsEarned > 0) {
+        toast.success(`Voter updated! +${pointsEarned} survey pts earned`);
+        import("./dashboard").then(({ fetchMySurveyScoreAction }) => {
+          (dispatch as any)(fetchMySurveyScoreAction());
+        }).catch(() => {});
+      } else {
+        toast.success("Voter profile updated successfully!");
+      }
       if (onSuccess) onSuccess(mapped);
       return mapped;
     } catch (e: any) {

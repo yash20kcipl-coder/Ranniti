@@ -4,18 +4,22 @@ export const SET_INFLUENCERS_LOADING = "SET_INFLUENCERS_LOADING";
 export interface SocialInfluencer {
   id: string;
   name: string;
+  englishName?: string;
+  hindiName?: string;
   profession: string;
   mobile: string;
   photo?: string;
   avatar?: string;
   supportingParty?: string;
   influenceArea?: string;
-  isSocialInfluencer?: boolean;
+  socialInfluencerScope?: 'booth' | 'ac' | null;
   isFamilyInfluencer?: boolean;
   influencedVotersCount: number;
   influencedVoters: Array<{
     id: string;
     name: string;
+    englishName?: string;
+    hindiName?: string;
     epicNo: string;
     mobile?: string;
     boothNo?: string;

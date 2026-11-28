@@ -265,7 +265,7 @@ async function runVoterFilterTests() {
   testCases.push({ filterName: 'influencerRole (social)', params: { influencerRole: 'social' } });
   testCases.push({ filterName: 'influencerRole (any)', params: { influencerRole: 'any' } });
   testCases.push({ filterName: 'isFamilyInfluencer (true)', params: { isFamilyInfluencer: true } });
-  testCases.push({ filterName: 'isSocialInfluencer (true)', params: { isSocialInfluencer: true } });
+  testCases.push({ filterName: 'socialInfluencerScope (any)', params: { socialInfluencerScope: 'any' } });
 
   // B. Multi-Filter Combinations (400+ test cases)
   const acList = distinctAcs.length > 0 ? distinctAcs : [''];
@@ -466,9 +466,9 @@ async function runVoterFilterTests() {
     if (params.influencerRole === 'family') {
       conditions.push(`(v.is_family_influencer = TRUE OR v.family_influencer_id IS NOT NULL)`);
     } else if (params.influencerRole === 'social') {
-      conditions.push(`(v.is_social_influencer = TRUE OR v.social_influencer_id IS NOT NULL)`);
+      conditions.push(`(v.social_influencer_scope IS NOT NULL OR v.social_influencer_id IS NOT NULL)`);
     } else if (params.influencerRole === 'any') {
-      conditions.push(`(v.is_family_influencer = TRUE OR v.is_social_influencer = TRUE OR v.family_influencer_id IS NOT NULL OR v.social_influencer_id IS NOT NULL)`);
+      conditions.push(`(v.is_family_influencer = TRUE OR v.social_influencer_scope IS NOT NULL OR v.family_influencer_id IS NOT NULL OR v.social_influencer_id IS NOT NULL)`);
     } else {
       if (params.isFamilyInfluencer !== undefined && params.isFamilyInfluencer !== '') {
         const isFam = params.isFamilyInfluencer === true || params.isFamilyInfluencer === 'true';
@@ -477,10 +477,11 @@ async function runVoterFilterTests() {
         }
       }
 
-      if (params.isSocialInfluencer !== undefined && params.isSocialInfluencer !== '') {
-        const isSoc = params.isSocialInfluencer === true || params.isSocialInfluencer === 'true';
-        if (isSoc) {
-          conditions.push(`(v.is_social_influencer = TRUE OR v.social_influencer_id IS NOT NULL)`);
+      if (params.socialInfluencerScope !== undefined && params.socialInfluencerScope !== '') {
+        if (params.socialInfluencerScope === 'ac' || params.socialInfluencerScope === 'booth') {
+          conditions.push(`(v.social_influencer_scope = '${params.socialInfluencerScope}' OR v.social_influencer_id IS NOT NULL)`);
+        } else {
+          conditions.push(`(v.social_influencer_scope IS NOT NULL OR v.social_influencer_id IS NOT NULL)`);
         }
       }
     }

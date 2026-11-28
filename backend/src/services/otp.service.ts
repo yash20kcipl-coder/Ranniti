@@ -2,8 +2,11 @@ import { ApiError } from '../utils/apiError';
 import { generateJwtToken } from '../utils/jwt';
 import { OtpQueries } from '../queries/otp.queries';
 import { AuthQueries } from '../queries/auth.queries';
-import { ALLOWED_MOBILE_ROLES } from './mobileAuth.service';
+import { VolunteerAuthQueries } from '../queries/auth/volunteerAuth.queries';
+import { ALLOWED_MOBILE_ROLES, MobileLoginResult } from './mobileAuth.service';
 import { mobileAccessService } from './mobile/mobileAccess.service';
+import { SyncManifestService } from './syncManifest.service';
+import { query as masterQuery } from '../queries/dbPool';
 
 export class OtpService {
   /**
@@ -15,17 +18,21 @@ export class OtpService {
       throw ApiError.badRequest('Invalid mobile number. Please enter a 10-digit mobile number.');
     }
 
-    // 0. Verify user exists and belongs to an authorized mobile role
-    const user = await AuthQueries.findTenantUserByEmail(cleanMobile);
-    if (!user) {
+    // 0. Verify at least one active, authorized mobile-role account exists across tenants
+    const allProfiles = await VolunteerAuthQueries.findAllVolunteersByIdentifier(cleanMobile);
+    if (allProfiles.length === 0) {
       throw ApiError.notFound('No registered volunteer account found for this mobile number.');
     }
 
-    if (user.status !== 'active') {
-      throw ApiError.forbidden(`Account is ${user.status}. Please contact your campaign administrator.`);
-    }
+    const activeMobileProfiles = allProfiles.filter(
+      (p) => p.status === 'active' && ALLOWED_MOBILE_ROLES.includes(p.role as any)
+    );
 
-    if (!ALLOWED_MOBILE_ROLES.includes(user.role as any)) {
+    if (activeMobileProfiles.length === 0) {
+      const first = allProfiles[0];
+      if (first.status !== 'active') {
+        throw ApiError.forbidden(`Account is ${first.status}. Please contact your campaign administrator.`);
+      }
       throw ApiError.forbidden('Admin and Super Admin accounts must log in via the Web Portal.');
     }
 
@@ -90,11 +97,7 @@ export class OtpService {
   /**
    * Verify OTP and log in user (with max 5 failed attempts limit)
    */
-  static async verifyOtp(mobile: string, otpCode: string, tenantDbName?: string): Promise<{
-    user: any;
-    token: string;
-    access: any;
-  }> {
+  static async verifyOtp(mobile: string, otpCode: string, tenantDbName?: string): Promise<MobileLoginResult> {
     const cleanMobile = mobile.trim();
     const cleanOtp = otpCode.trim();
 
@@ -130,8 +133,30 @@ export class OtpService {
     // 4. Mark OTP as verified
     await OtpQueries.markVerified(activeOtp.id);
 
-    // 5. Lookup user account by mobile number
-    const user = await AuthQueries.findTenantUserByEmail(cleanMobile, tenantDbName);
+    // 5. Lookup user account(s) by mobile number
+    let targetTenantDbName = tenantDbName;
+    if (!targetTenantDbName) {
+      const allProfiles = await VolunteerAuthQueries.findAllVolunteersByIdentifier(cleanMobile);
+      if (allProfiles.length === 0) {
+        throw ApiError.notFound('No registered volunteer account found for this mobile number.');
+      }
+
+      const activeMobileProfiles = allProfiles.filter(
+        (p) => p.status === 'active' && ALLOWED_MOBILE_ROLES.includes(p.role as any)
+      );
+
+      if (activeMobileProfiles.length === 0) {
+        const first = allProfiles[0];
+        if (first.status !== 'active') {
+          throw ApiError.forbidden(`Account is ${first.status}. Please contact your campaign administrator.`);
+        }
+        throw ApiError.forbidden('Admin and Super Admin accounts must log in via the Web Portal.');
+      }
+
+      targetTenantDbName = activeMobileProfiles[0].tenantDbName;
+    }
+
+    const user = await AuthQueries.findTenantUserByEmail(cleanMobile, targetTenantDbName);
     if (!user) {
       throw ApiError.notFound('No registered volunteer account found for this mobile number.');
     }
@@ -160,7 +185,23 @@ export class OtpService {
       customAccessibleTabs: user.accessibleTabs,
     });
 
+    let serverVersions: Record<string, number> | undefined;
+    if (user.tenantDbName) {
+      try {
+        const tRes = await masterQuery(
+          `SELECT id FROM tenants WHERE tenant_db_name = $1 LIMIT 1`,
+          [user.tenantDbName]
+        );
+        const tenantId = tRes.rows[0]?.id;
+        if (tenantId) {
+          serverVersions = await SyncManifestService.getManifestVersions(tenantId);
+        }
+      } catch {
+        // Non-blocking
+      }
+    }
+
     const { passwordHash, ...userWithoutPassword } = user;
-    return { user: userWithoutPassword, token, access };
+    return { user: userWithoutPassword, token, access, serverVersions };
   }
 }

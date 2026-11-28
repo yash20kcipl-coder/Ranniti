@@ -7,6 +7,7 @@ import { mobileTeamController } from '../../controllers/mobile/mobileTeam.contro
 const router = Router();
 
 router.get('/', authenticateMobileUser, mobileTeamController.getTeamMembers);
+router.get('/:id/survey-score', authenticateMobileUser, mobileTeamController.getMemberSurveyScore);
 router.post('/', authenticateMobileUser, validate(onboardTeamMemberSchema), mobileTeamController.onboardTeamMember);
 router.put('/:id', authenticateMobileUser, mobileTeamController.updateTeamMember);
 router.delete('/:id', authenticateMobileUser, mobileTeamController.deleteTeamMember);

@@ -198,11 +198,10 @@ export class TenantSettingsController {
 
   /**
    * GET /api/v1/tenant/settings/survey-field-points
-   * Retrieve dynamic survey field scoring points
+   * Retrieve platform-wide dynamic survey field scoring points from Master DB
    */
-  getSurveyFieldPoints = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const tenantDbName = req.tenantDbName || req.user?.tenantDbName;
-    const points = await settingsQueries.getSurveyFieldPoints(tenantDbName);
+  getSurveyFieldPoints = asyncHandler(async (_req: Request, res: Response): Promise<void> => {
+    const points = await settingsQueries.getSurveyFieldPoints(null);
     const response = ApiResponse.success(points, 'Survey field points retrieved successfully');
     res.status(response.statusCode).json(response.body);
   });

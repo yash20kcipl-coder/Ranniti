@@ -5,6 +5,7 @@ import { MaterialDesignIcons } from './MaterialDesignIcons';
 import MdSearchBar from './MdSearchBar';
 import ScrollableFilterPills, { FilterOption } from './ScrollableFilterPills';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useLanguage } from '../languages';
 import { getShadow } from '../utils/shadow';
 import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
@@ -42,7 +43,7 @@ export interface SearchHeaderWithFilterProps {
 export const SearchHeaderWithFilter: React.FC<SearchHeaderWithFilterProps> = ({
   value,
   onChangeText,
-  placeholder = 'Search...',
+  placeholder: placeholderProp,
   onFilterPress,
   onBackPress,
   showBackButton,
@@ -65,6 +66,8 @@ export const SearchHeaderWithFilter: React.FC<SearchHeaderWithFilterProps> = ({
 }) => {
   const { top } = useSafeAreaInsets();
   const { styles } = useAppTheme(getStyles);
+  const { t } = useLanguage();
+  const placeholder = placeholderProp ?? t('search');
 
   const shouldShowBack = Boolean(onBackPress) || Boolean(showBackButton);
 

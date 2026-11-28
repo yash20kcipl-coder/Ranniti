@@ -8,6 +8,8 @@ import {
   MapPin,
   Building2,
   UserCheck,
+  Unlink,
+  XCircle,
 } from 'lucide-react';
 import { Modal } from '../Modal';
 import toast from 'react-hot-toast';
@@ -19,10 +21,12 @@ import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import {
   fetchFamilyCandidatesAction,
   bulkAssignTenantInfluencerAction,
+  updateTenantVoterItem,
 } from '@/redux/actions/voterTenant';
 import {
   fetchSuperAdminFamilyCandidatesAction,
   bulkAssignSuperAdminInfluencerAction,
+  updateSuperAdminVoterItem,
 } from '@/redux/actions/voterSuperAdmin';
 
 export interface FamilyInfluencerTarget {
@@ -75,6 +79,8 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
   // Status & Data State
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
+  const [removingTag, setRemovingTag] = useState(false);
 
   const [voterCandidates, setVoterCandidates] = useState<any[]>([]);
   const [selectedVoterIds, setSelectedVoterIds] = useState<string[]>([]);
@@ -199,6 +205,78 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
     }
   };
 
+  const selectedLinkedIds = voterCandidates
+    .filter((v) => selectedVoterIds.includes(v.id) && v.isAlreadyLinked)
+    .map((v) => v.id);
+
+  const handleUnlinkSelected = async () => {
+    if (!influencer || selectedLinkedIds.length === 0) return;
+    try {
+      setUnlinking(true);
+      const assignAction = isSuperAdminResolved
+        ? bulkAssignSuperAdminInfluencerAction
+        : bulkAssignTenantInfluencerAction;
+
+      await dispatch(
+        assignAction({
+          influencerId: null,
+          influencerType: 'family',
+          voterIds: selectedLinkedIds,
+        })
+      );
+
+      const unlinkedFromThis = voterCandidates.filter(
+        (v) => selectedLinkedIds.includes(v.id) && v.familyInfluencerId === influencer.id
+      ).length;
+
+      setVoterCandidates((prev) =>
+        prev.map((v) =>
+          selectedLinkedIds.includes(v.id)
+            ? { ...v, isAlreadyLinked: false, familyInfluencerId: null, familyInfluencerName: null }
+            : v
+        )
+      );
+      setSelectedVoterIds((prev) => prev.filter((id) => !selectedLinkedIds.includes(id)));
+
+      if (unlinkedFromThis > 0) {
+        setLiveInfluencerMeta((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                familyInfluencedCount: Math.max(0, Number(prev.familyInfluencedCount || 0) - unlinkedFromThis),
+              }
+            : prev
+        );
+      }
+
+      toast.success(`Unlinked ${selectedLinkedIds.length} family member(s).`);
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to unlink family member(s)');
+    } finally {
+      setUnlinking(false);
+    }
+  };
+
+  const handleRemoveFamilyTag = async () => {
+    if (!influencer) return;
+    try {
+      setRemovingTag(true);
+      const updateAction = isSuperAdminResolved
+        ? updateSuperAdminVoterItem
+        : updateTenantVoterItem;
+
+      await dispatch(updateAction(influencer.id, { isFamilyInfluencer: false }));
+      toast.success('Family influencer removed.');
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to remove family influencer');
+    } finally {
+      setRemovingTag(false);
+    }
+  };
+
   const isAllPageSelected =
     voterCandidates.length > 0 &&
     voterCandidates.every((v) => selectedVoterIds.includes(v.id));
@@ -281,6 +359,18 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
                   <Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   <span>{linkedCount} linked member(s)</span>
                 </span>
+                {Number(linkedCount) > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveFamilyTag}
+                    disabled={removingTag || submitting}
+                    title="Remove Family Influencer role and unlink all members"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/15 dark:hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>{removingTag ? 'Removing...' : 'Remove Family Influencer'}</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -624,6 +714,17 @@ export const FamilyInfluencerAssignModal: React.FC<FamilyInfluencerAssignModalPr
           </span>
 
           <div className="flex items-center gap-2">
+            {selectedLinkedIds.length > 0 && (
+              <button
+                type="button"
+                onClick={handleUnlinkSelected}
+                disabled={unlinking || submitting}
+                className="py-2 px-4 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-xs font-semibold text-rose-700 dark:text-rose-300 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Unlink className="w-3.5 h-3.5" />
+                <span>{unlinking ? 'Unlinking...' : `Unlink Selected (${selectedLinkedIds.length})`}</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}

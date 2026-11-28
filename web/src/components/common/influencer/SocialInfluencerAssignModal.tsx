@@ -8,6 +8,9 @@ import {
   CheckCircle2,
   GraduationCap,
   UserCheck,
+  Globe,
+  Unlink,
+  XCircle,
 } from 'lucide-react';
 import { Modal } from '../Modal';
 import toast from 'react-hot-toast';
@@ -19,10 +22,12 @@ import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import {
   fetchSocialCandidatesAction,
   bulkAssignTenantInfluencerAction,
+  updateTenantVoterItem,
 } from '@/redux/actions/voterTenant';
 import {
   fetchSuperAdminSocialCandidatesAction,
   bulkAssignSuperAdminInfluencerAction,
+  updateSuperAdminVoterItem,
 } from '@/redux/actions/voterSuperAdmin';
 
 export interface SocialInfluencerTarget {
@@ -30,12 +35,15 @@ export interface SocialInfluencerTarget {
   name: string;
   engName?: string;
   epicNo?: string;
+  acId?: string;
+  acName?: string;
   boothId?: string;
   boothName?: string;
   sectionNo?: string | number;
   houseNo?: string;
   avatar?: string;
   socialInfluencedCount?: number;
+  socialInfluencerScope?: 'booth' | 'ac' | null;
 }
 
 export interface SocialInfluencerAssignModalProps {
@@ -60,6 +68,7 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
 
   // Search & Filter State (Defaulting Unassigned to true for network building)
   const [search, setSearch] = useState('');
+  const [acWise, setAcWise] = useState(false);
   const [sameSectionOnly, setSameSectionOnly] = useState(false);
   const [unassignedOnly, setUnassignedOnly] = useState(false);
   const [genderFilter, setGenderFilter] = useState('');
@@ -74,23 +83,29 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
   // Status & Data State
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
+  const [removingTag, setRemovingTag] = useState(false);
 
   const [voterCandidates, setVoterCandidates] = useState<any[]>([]);
   const [selectedVoterIds, setSelectedVoterIds] = useState<string[]>([]);
   const [liveInfluencerMeta, setLiveInfluencerMeta] = useState<any>(null);
+  const preloadedLinkedRef = React.useRef<Set<string>>(new Set());
 
   // Reset defaults on modal open
   React.useEffect(() => {
     if (isOpen) {
       setSearch('');
+      setAcWise(influencer?.socialInfluencerScope === 'ac');
       setSameSectionOnly(false);
       setUnassignedOnly(false);
       setGenderFilter('');
       setVoterTypeFilter('');
       setPage(1);
       setSelectedVoterIds([]);
+      setLiveInfluencerMeta(null);
+      preloadedLinkedRef.current = new Set();
     }
-  }, [isOpen, influencer?.id]);
+  }, [isOpen, influencer?.id, influencer?.socialInfluencerScope]);
 
   // Reset and fetch candidate voters using dedicated social-candidates API
   useDebouncedEffect(
@@ -108,6 +123,7 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
         fetchAction({
           influencerId: influencer.id,
           boothId: influencer.boothId || undefined,
+          acWise: acWise ? 'true' : 'false',
           search: search.trim() || undefined,
           sectionNo: sameSectionOnly ? (targetSectionNo !== undefined ? targetSectionNo : undefined) : undefined,
           unassignedOnly: unassignedOnly ? 'true' : undefined,
@@ -126,6 +142,15 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
           setTotalCount(total);
           setTotalPages(pages);
 
+          // Pre-select voters already linked to this influencer (once per voter per modal open)
+          const newlySeenLinked = list
+            .filter((v: any) => v.socialInfluencerId === influencer.id && !preloadedLinkedRef.current.has(v.id))
+            .map((v: any) => v.id);
+          if (newlySeenLinked.length > 0) {
+            newlySeenLinked.forEach((vid: string) => preloadedLinkedRef.current.add(vid));
+            setSelectedVoterIds((prev) => Array.from(new Set([...prev, ...newlySeenLinked])));
+          }
+
           if (res?.influencer) {
             setLiveInfluencerMeta(res.influencer);
           }
@@ -137,6 +162,7 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
     [
       isOpen,
       influencer?.id,
+      acWise,
       search,
       sameSectionOnly,
       unassignedOnly,
@@ -166,10 +192,6 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
 
   const handleSubmit = async () => {
     if (!influencer) return;
-    if (selectedVoterIds.length === 0) {
-      toast.error('Please select at least one network member to link.');
-      return;
-    }
 
     try {
       setSubmitting(true);
@@ -183,16 +205,102 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
           influencerId: influencer.id,
           influencerType: 'social',
           voterIds: selectedVoterIds,
+          socialInfluencerScope: acWise ? 'ac' : 'booth',
         })
       );
 
-      toast.success(`Successfully linked ${selectedVoterIds.length} network member(s)!`);
+      if (selectedVoterIds.length > 0) {
+        toast.success(`Successfully linked ${selectedVoterIds.length} network member(s)!`);
+      } else {
+        toast.success(acWise ? 'Marked as AC-Wise Social Influencer!' : 'Marked as Social Influencer!');
+      }
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
       toast.error(err.message || 'Failed to update social influencer assignment');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUnlinkVoters = async (voterIdsToUnlink: string[]) => {
+    if (!influencer || voterIdsToUnlink.length === 0) return;
+    try {
+      setUnlinkingId(voterIdsToUnlink.length === 1 ? voterIdsToUnlink[0] : 'bulk');
+      const assignAction = isSuperAdminResolved
+        ? bulkAssignSuperAdminInfluencerAction
+        : bulkAssignTenantInfluencerAction;
+
+      await dispatch(
+        assignAction({
+          influencerId: null,
+          influencerType: 'social',
+          voterIds: voterIdsToUnlink,
+        })
+      );
+
+      const unlinkedFromThis = voterCandidates.filter(
+        (v) => voterIdsToUnlink.includes(v.id) && v.socialInfluencerId === influencer.id
+      ).length;
+
+      setVoterCandidates((prev) =>
+        prev.map((v) =>
+          voterIdsToUnlink.includes(v.id)
+            ? { ...v, isAlreadyLinked: false, socialInfluencerId: null, socialInfluencerName: null }
+            : v
+        )
+      );
+      setSelectedVoterIds((prev) => prev.filter((id) => !voterIdsToUnlink.includes(id)));
+
+      if (unlinkedFromThis > 0) {
+        const nextCount = Math.max(0, Number((liveInfluencerMeta?.socialInfluencedCount ?? influencer?.socialInfluencedCount) || 0) - unlinkedFromThis);
+        setLiveInfluencerMeta((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                socialInfluencedCount: nextCount,
+                ...(nextCount === 0 ? { socialInfluencerScope: null } : {}),
+              }
+            : prev
+        );
+        if (nextCount === 0) {
+          setAcWise(false);
+        }
+      }
+
+      toast.success(
+        voterIdsToUnlink.length === 1
+          ? 'Voter unlinked from social influencer.'
+          : `Unlinked ${voterIdsToUnlink.length} voter(s) from social influencer.`
+      );
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to unlink voter(s)');
+    } finally {
+      setUnlinkingId(null);
+    }
+  };
+
+  const selectedLinkedIds = voterCandidates
+    .filter((v) => selectedVoterIds.includes(v.id) && v.isAlreadyLinked)
+    .map((v) => v.id);
+
+  const handleRemoveSocialTag = async () => {
+    if (!influencer) return;
+    try {
+      setRemovingTag(true);
+      const updateAction = isSuperAdminResolved
+        ? updateSuperAdminVoterItem
+        : updateTenantVoterItem;
+
+      await dispatch(updateAction(influencer.id, { socialInfluencerScope: null }));
+      toast.success('Social influencer tag removed.');
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to remove social influencer tag');
+    } finally {
+      setRemovingTag(false);
     }
   };
 
@@ -207,10 +315,10 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
 
   return (
     <Modal
-      isOpen={isOpen && Boolean(influencer)}
+      maxWidth="7xl"
       onClose={onClose}
       title="Set Social Influencer"
-      maxWidth="5xl"
+      isOpen={isOpen && Boolean(influencer)}
     >
       <div className="space-y-4 py-1">
 
@@ -246,6 +354,12 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                         {infMeta.epicNo}
                       </span>
                     )}
+                    {acWise && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold border border-indigo-200 dark:border-indigo-500/30">
+                        <Globe className="w-3 h-3" />
+                        AC-Wise
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-600 dark:text-slate-300">
@@ -271,6 +385,18 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                   <Users className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   <span>{linkedCount} linked network voter(s)</span>
                 </span>
+                {Boolean(infMeta?.socialInfluencerScope || influencer?.socialInfluencerScope || linkedCount > 0) && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveSocialTag}
+                    disabled={removingTag || submitting}
+                    title="Remove Social Influencer role and unlink all followers"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/15 dark:hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>{removingTag ? 'Removing...' : 'Remove Social Influencer'}</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -308,6 +434,22 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
 
           {/* Quick Filter Chips */}
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setAcWise(!acWise);
+                setPage(1);
+              }}
+              className={`py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${acWise
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/30 border border-indigo-500'
+                : 'bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none'
+                }`}
+              title="Toggle between Booth-wise and whole AC-wise voter matching"
+            >
+              <Globe className={`w-3.5 h-3.5 ${acWise ? 'text-white' : 'text-indigo-500 dark:text-indigo-400'}`} />
+              <span>AC-Wise (All Booths)</span>
+            </button>
+
             {influencerSectionNo && (
               <button
                 type="button"
@@ -472,7 +614,9 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                 ) : voterCandidates.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-8 text-center text-slate-500 dark:text-slate-400">
-                      No matching community network voters found in this polling booth.
+                      {acWise
+                        ? 'No matching community network voters found in this AC.'
+                        : 'No matching community network voters found in this polling booth.'}
                     </td>
                   </tr>
                 ) : (
@@ -500,7 +644,14 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
                           {voter.serialNo ? `#${voter.serialNo}` : '-'}
                         </td>
                         <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300 font-mono">
-                          {voter.sectionNo || '-'}
+                          <div className="flex flex-col">
+                            <span>{voter.sectionNo || '-'}</span>
+                            {acWise && (voter.boothNumber || voter.boothName) && (
+                              <span className="text-[9.5px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                                {voter.boothNumber ? `B#${voter.boothNumber}` : voter.boothName}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-2.5 px-3">
                           <div className="flex flex-col leading-tight">
@@ -615,6 +766,17 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
           </span>
 
           <div className="flex items-center gap-2">
+            {selectedLinkedIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleUnlinkVoters(selectedLinkedIds)}
+                disabled={unlinkingId !== null || submitting}
+                className="py-2 px-4 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-xs font-semibold text-rose-700 dark:text-rose-300 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Unlink className="w-3.5 h-3.5" />
+                <span>{unlinkingId === 'bulk' ? 'Unlinking...' : `Unlink Selected (${selectedLinkedIds.length})`}</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -625,13 +787,21 @@ export const SocialInfluencerAssignModal: React.FC<SocialInfluencerAssignModalPr
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={submitting || selectedVoterIds.length === 0}
-              className="py-2 px-5 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-md transition-all disabled:opacity-50 flex items-center gap-1.5"
+              disabled={submitting}
+              className="py-2 px-5 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-md transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
             >
               {submitting && (
                 <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               )}
-              <span>{submitting ? 'Linking...' : `Link Selected (${selectedVoterIds.length})`}</span>
+              <span>
+                {submitting
+                  ? 'Saving...'
+                  : selectedVoterIds.length > 0
+                    ? `Link Selected (${selectedVoterIds.length})`
+                    : acWise
+                      ? 'Save AC-Wise Tag'
+                      : 'Save Social Influencer'}
+              </span>
             </button>
           </div>
         </div>

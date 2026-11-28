@@ -12,7 +12,7 @@ const FIELD_MAP: Record<string, keyof Voter> = {
   email: 'email',
   party_id: 'partyId',
   is_family_influencer: 'isFamilyInfluencer',
-  is_social_influencer: 'isSocialInfluencer',
+  is_social_influencer: 'socialInfluencerScope',
   caste_id: 'casteId',
   subcaste_name: 'subcasteName',
   religion_id: 'religionId',
@@ -297,6 +297,18 @@ export class SurveyScoringService {
       statusPoints: number;
     };
     fieldCounts: Record<string, number>;
+    recentUpdates: Array<{
+      id: string;
+      voterId: string;
+      voterName: string;
+      voterEpicNo: string;
+      fieldName: string;
+      fieldLabel: string;
+      oldValue: string | null;
+      newValue: string | null;
+      pointsAwarded: number;
+      createdAt: string;
+    }>;
   }> {
     const userRes = await this.executeQuery(
       `SELECT id, name, mobile, avatar, role, status FROM tenant_users WHERE id = $1`,
@@ -335,6 +347,66 @@ export class SurveyScoringService {
       fieldCounts[row.field_name] = row.count;
     }
 
+    const recentRes = await this.executeQuery(
+      `SELECT
+        vfu.id,
+        vfu.voter_id AS "voterId",
+        COALESCE(NULLIF(TRIM(CONCAT_WS(' ', v.eng_first_name, v.eng_middle_name, v.eng_surname)), ''), v.first_name, 'Voter') AS "voterName",
+        v.epic_no AS "voterEpicNo",
+        vfu.field_name AS "fieldName",
+        CASE
+          WHEN vfu.field_name = 'caste_id' THEN COALESCE(c_old.name, vfu.old_value)
+          WHEN vfu.field_name = 'religion_id' THEN COALESCE(r_old.name, vfu.old_value)
+          WHEN vfu.field_name = 'party_id' THEN COALESCE(p_old.abbreviation, p_old.name, vfu.old_value)
+          ELSE vfu.old_value
+        END AS "oldValue",
+        CASE
+          WHEN vfu.field_name = 'caste_id' THEN COALESCE(c_new.name, vfu.new_value)
+          WHEN vfu.field_name = 'religion_id' THEN COALESCE(r_new.name, vfu.new_value)
+          WHEN vfu.field_name = 'party_id' THEN COALESCE(p_new.abbreviation, p_new.name, vfu.new_value)
+          ELSE vfu.new_value
+        END AS "newValue",
+        vfu.points_awarded AS "pointsAwarded",
+        vfu.created_at AS "createdAt"
+      FROM volunteer_field_updates vfu
+      LEFT JOIN voters v ON v.id = vfu.voter_id
+      LEFT JOIN castes c_old ON vfu.field_name = 'caste_id' AND c_old.id::text = vfu.old_value
+      LEFT JOIN castes c_new ON vfu.field_name = 'caste_id' AND c_new.id::text = vfu.new_value
+      LEFT JOIN religions r_old ON vfu.field_name = 'religion_id' AND r_old.id::text = vfu.old_value
+      LEFT JOIN religions r_new ON vfu.field_name = 'religion_id' AND r_new.id::text = vfu.new_value
+      LEFT JOIN parties p_old ON vfu.field_name = 'party_id' AND p_old.id::text = vfu.old_value
+      LEFT JOIN parties p_new ON vfu.field_name = 'party_id' AND p_new.id::text = vfu.new_value
+      WHERE vfu.volunteer_id = $1
+      ORDER BY vfu.created_at DESC
+      LIMIT 20`,
+      [volunteerId],
+      tenantDbName
+    );
+
+    const formatUpdateVal = (fieldName: string, val: string | null): string | null => {
+      if (!val) return val;
+      if (fieldName === 'dob') {
+        const parsed = new Date(val);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+      }
+      return val;
+    };
+
+    const recentUpdates = recentRes.rows.map((r: any) => ({
+      id: r.id,
+      voterId: r.voterId,
+      voterName: r.voterName,
+      voterEpicNo: r.voterEpicNo || '',
+      fieldName: r.fieldName,
+      fieldLabel: DEFAULT_SURVEY_FIELD_POINTS[r.fieldName]?.label || r.fieldName.replace(/_/g, ' '),
+      oldValue: formatUpdateVal(r.fieldName, r.oldValue),
+      newValue: formatUpdateVal(r.fieldName, r.newValue),
+      pointsAwarded: Number(r.pointsAwarded) || 0,
+      createdAt: r.createdAt,
+    }));
+
     return {
       volunteer,
       summary: statsRes.rows[0] || {
@@ -347,7 +419,116 @@ export class SurveyScoringService {
         statusPoints: 0,
       },
       fieldCounts,
+      recentUpdates,
     };
+  }
+
+  /**
+   * Mobile App: Get volunteer's own survey score, campaign rank, live point rules, and subordinate team scores
+   */
+  static async getMobileSurveyDashboard(
+    options: {
+      userId: string;
+      role: string;
+      timeRange?: 'today' | '7d' | '30d' | 'all';
+    },
+    tenantDbName?: string | null
+  ) {
+    const timeRange = options.timeRange || '30d';
+    const [myStats, leaderboardData, rules] = await Promise.all([
+      this.getVolunteerStats(options.userId, tenantDbName),
+      this.getLeaderboard({ timeRange }, tenantDbName),
+      settingsQueries.getSurveyFieldPoints(null),
+    ]);
+
+    const myEntry = leaderboardData.leaderboard.find((r) => r.volunteerId === options.userId);
+    const rank = myEntry?.rank ?? (leaderboardData.leaderboard.length + 1);
+
+    let timeFilterSql = '';
+    if (timeRange === 'today') {
+      timeFilterSql = `AND vfu.created_at >= CURRENT_DATE`;
+    } else if (timeRange === '7d') {
+      timeFilterSql = `AND vfu.created_at >= NOW() - INTERVAL '7 days'`;
+    } else if (timeRange === '30d') {
+      timeFilterSql = `AND vfu.created_at >= NOW() - INTERVAL '30 days'`;
+    }
+
+    const teamSql = `
+      SELECT
+        u.id AS "volunteerId",
+        u.name,
+        u.mobile,
+        u.avatar,
+        u.role,
+        COALESCE(SUM(vfu.points_awarded), 0)::int AS "totalScore",
+        COUNT(DISTINCT vfu.voter_id)::int AS "votersSurveyed",
+        COUNT(vfu.id)::int AS "fieldsUpdated",
+        COALESCE(SUM(CASE WHEN vfu.field_name IN ('mobile_no', 'email') THEN vfu.points_awarded ELSE 0 END), 0)::int AS "contactPoints",
+        COALESCE(SUM(CASE WHEN vfu.field_name IN ('party_id', 'is_family_influencer', 'is_social_influencer') THEN vfu.points_awarded ELSE 0 END), 0)::int AS "politicalPoints",
+        COALESCE(SUM(CASE WHEN vfu.field_name IN ('caste_id', 'subcaste_name', 'religion_id', 'profession', 'dob') THEN vfu.points_awarded ELSE 0 END), 0)::int AS "demographicPoints",
+        COALESCE(SUM(CASE WHEN vfu.field_name IN ('status', 'is_dead', 'full_address', 'blood_group', 'aadhaar_no', 'pan_no') THEN vfu.points_awarded ELSE 0 END), 0)::int AS "statusPoints",
+        MAX(vfu.created_at) AS "lastActiveAt"
+      FROM tenant_users u
+      LEFT JOIN volunteer_field_updates vfu
+        ON u.id = vfu.volunteer_id ${timeFilterSql}
+      WHERE u.status = 'active'
+        AND (u.parent_leader_id = $1 OR ($2 = 'pc_leader' AND u.role = 'ac_leader' AND u.id != $1))
+      GROUP BY u.id, u.name, u.mobile, u.avatar, u.role
+      ORDER BY "totalScore" DESC, "votersSurveyed" DESC, u.name ASC
+    `;
+
+    const teamRes = await this.executeQuery(teamSql, [options.userId, options.role], tenantDbName);
+    const teamScores = teamRes.rows.map((row: any, idx: number) => ({
+      rank: idx + 1,
+      volunteerId: row.volunteerId,
+      name: row.name,
+      mobile: row.mobile,
+      avatar: row.avatar || null,
+      role: row.role,
+      totalScore: Number(row.totalScore) || 0,
+      votersSurveyed: Number(row.votersSurveyed) || 0,
+      fieldsUpdated: Number(row.fieldsUpdated) || 0,
+      contactPoints: Number(row.contactPoints) || 0,
+      politicalPoints: Number(row.politicalPoints) || 0,
+      demographicPoints: Number(row.demographicPoints) || 0,
+      statusPoints: Number(row.statusPoints) || 0,
+      lastActiveAt: row.lastActiveAt || null,
+    }));
+
+    return {
+      rank,
+      totalVolunteers: leaderboardData.totalCount,
+      timeRange,
+      myStats,
+      rules,
+      teamScores,
+    };
+  }
+
+  /**
+   * Mobile App: Get single subordinate volunteer's survey scorecard (with hierarchy check)
+   */
+  static async getSubordinateSurveyStats(
+    leaderId: string,
+    leaderRole: string,
+    memberId: string,
+    tenantDbName?: string | null
+  ) {
+    if (leaderId !== memberId) {
+      const checkRes = await this.executeQuery(
+        `SELECT id FROM tenant_users
+         WHERE id = $1
+           AND (parent_leader_id = $2 OR ($3 = 'pc_leader' AND role = 'ac_leader'))`,
+        [memberId, leaderId, leaderRole],
+        tenantDbName
+      );
+      if (checkRes.rows.length === 0) {
+        const { ApiError } = await import('../../utils/apiError');
+        throw ApiError.forbidden('Access denied: Volunteer is not in your reporting hierarchy');
+      }
+    }
+
+    return await this.getVolunteerStats(memberId, tenantDbName);
   }
 
   /**

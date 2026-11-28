@@ -190,7 +190,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
 
   // Memoized dropdown options for AppDropdown
   const acOptions: DropdownOption[] = React.useMemo(() => [
-    { id: '', label: 'All ACs in Parliamentary Constituency' },
+    { id: '', label: t('allAcsInPc') },
     ...acs.map((a) => ({
       id: a.id,
       label: `${a.name}${a.acNumber ? ` (#${a.acNumber})` : ''}`,
@@ -198,7 +198,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
   ], [acs]);
 
   const boothOptions: DropdownOption[] = React.useMemo(() => [
-    { id: 'All', label: 'All Polling Booths' },
+    { id: 'All', label: t('allPollingBooths') },
     ...booths.map((b) => ({
       id: b.id || b.name,
       label: `${b.boothNumber ? `Booth #${b.boothNumber} - ` : ''}${b.name}`,
@@ -206,7 +206,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
   ], [booths]);
 
   const acBoothOptions: DropdownOption[] = React.useMemo(() => [
-    { id: 'All', label: 'All Booths in Constituency' },
+    { id: 'All', label: t('allBoothsInConstituency') },
     ...booths.map((b) => ({
       id: b.id || b.name,
       label: `${b.boothNumber ? `Booth #${b.boothNumber} - ` : ''}${b.name}`,
@@ -214,7 +214,7 @@ export const VoterFilterModal: React.FC<VoterFilterModalProps> = ({
   ], [booths]);
 
   const partyOptions: DropdownOption[] = React.useMemo(() => [
-    { id: 'All', label: 'All Political Parties' },
+    { id: 'All', label: t('allPoliticalParties') },
     ...parties.map((p) => ({
       id: p.id || p.name,
       label: p.name,

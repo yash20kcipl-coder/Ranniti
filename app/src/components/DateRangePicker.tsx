@@ -5,6 +5,7 @@ import { rfValue } from '../utils/responsive';
 import { FontFamily } from '../utils/typography';
 import { Theme } from '../constants/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useLanguage } from '../languages';
 import { DateSelectionModal } from './DateSelectionModal';
 import { getShadow } from '../utils/shadow';
 import { formatDate } from '../utils/dateUtils';
@@ -22,9 +23,11 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   startDate,
   endDate,
   onSelectDates,
-  label = 'Duration',
+  label,
 }) => {
   const { theme, styles } = useAppTheme(getStyles);
+  const { t } = useLanguage();
+  const resolvedLabel = label ?? t('duration');
   const [showCalendar, setShowCalendar] = useState(false);
   return (
     <>
@@ -33,11 +36,11 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         onPress={() => setShowCalendar(true)}
         style={styles.formGroup}
       >
-        <Text style={styles.formGroupLabel}>{label}</Text>
+        <Text style={styles.formGroupLabel}>{resolvedLabel}</Text>
 
         <View style={styles.datePickerContainer}>
           <View style={styles.dateColumn}>
-            <Text style={styles.dateSubLabel}>start date</Text>
+            <Text style={styles.dateSubLabel}>{t('startDate')}</Text>
             <View style={styles.dateSubRow}>
               <MaterialDesignIcons name="calendar-import" size={16} color={theme.colors.primary} />
               <Text style={styles.dateValueText}>
@@ -51,7 +54,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           </View>
 
           <View style={styles.dateColumn}>
-            <Text style={styles.dateSubLabel}>end date</Text>
+            <Text style={styles.dateSubLabel}>{t('endDate')}</Text>
             <View style={styles.dateSubRow}>
               <MaterialDesignIcons name="calendar-export" size={16} color={theme.colors.primary} />
               <Text style={styles.dateValueText}>

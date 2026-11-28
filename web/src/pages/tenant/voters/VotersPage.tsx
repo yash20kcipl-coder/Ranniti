@@ -80,7 +80,7 @@ export const VotersPage: React.FC = () => {
       familyInfluencerId: savedFilters?.familyInfluencerId ?? '',
       socialInfluencerId: savedFilters?.socialInfluencerId ?? '',
       isFamilyInfluencer: savedFilters?.isFamilyInfluencer ?? '',
-      isSocialInfluencer: savedFilters?.isSocialInfluencer ?? '',
+      socialInfluencerScope: savedFilters?.socialInfluencerScope ?? '',
       influencerStatus: savedFilters?.influencerStatus ?? '',
       influencerRole: savedFilters?.influencerRole ?? '',
     },
@@ -262,7 +262,7 @@ export const VotersPage: React.FC = () => {
       search: filterParams.search,
       influencerStatus: filterParams.influencerStatus,
       isFamilyInfluencer: filterParams.isFamilyInfluencer,
-      isSocialInfluencer: filterParams.isSocialInfluencer,
+      socialInfluencerScope: filterParams.socialInfluencerScope,
     });
     dispatch(fetchVotersData(params));
     dispatch(fetchVoterStats(params));

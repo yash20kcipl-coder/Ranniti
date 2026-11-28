@@ -572,7 +572,7 @@ export class FamilyMappingService {
         ROUND(
           ((1 + COALESCE(fic.cnt, 0)) * 2.0) +
           (COALESCE(sent.supporters, 0) * 3.0) +
-          (CASE WHEN v.is_social_influencer = TRUE THEN 10 ELSE 0 END) +
+          (CASE WHEN v.social_influencer_scope IS NOT NULL THEN 10 ELSE 0 END) +
           (CASE WHEN v.mobile_no IS NOT NULL AND LENGTH(v.mobile_no) >= 10 THEN 5 ELSE 0 END),
           1
         ) AS "influenceScore"
@@ -647,7 +647,7 @@ export class FamilyMappingService {
         p.name AS "partyName",
         p.symbol_logo AS "partySymbol",
         v.is_family_influencer AS "isFamilyInfluencer",
-        v.is_social_influencer AS "isSocialInfluencer",
+        v.social_influencer_scope AS "socialInfluencerScope",
         b.name AS "boothName",
         b.booth_number AS "boothNumber"
       FROM voters v
@@ -683,7 +683,7 @@ export class FamilyMappingService {
         v.party_id AS "partyId",
         p.name AS "partyName",
         p.symbol_logo AS "partySymbol",
-        v.is_social_influencer AS "isSocialInfluencer"
+        v.social_influencer_scope AS "socialInfluencerScope"
       FROM voters v
       LEFT JOIN parties p ON v.party_id = p.id
       WHERE v.family_influencer_id = $1 AND (v.is_dead IS NOT TRUE)
@@ -702,7 +702,7 @@ export class FamilyMappingService {
       (
         totalMembers * 2.0 +
         supporters * 3.0 +
-        (head.isSocialInfluencer ? 10 : 0) +
+        (head.socialInfluencerScope ? 10 : 0) +
         (head.mobileNo && head.mobileNo.length >= 10 ? 5 : 0)
       ).toFixed(1)
     );

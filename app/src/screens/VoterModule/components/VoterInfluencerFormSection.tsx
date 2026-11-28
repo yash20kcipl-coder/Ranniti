@@ -49,7 +49,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
   const handleSocialInfluencerToggle = (value: boolean) => {
     setFormData((prev: any) => ({
       ...prev,
-      isSocialInfluencer: value,
+      socialInfluencerScope: value ? (prev.socialInfluencerScope || 'booth') : null,
     }));
   };
 
@@ -237,10 +237,10 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
           style={[
             styles.subCard,
             {
-              backgroundColor: formData.isSocialInfluencer
+              backgroundColor: formData.socialInfluencerScope
                 ? theme.colors.primary + '0A'
                 : theme.colors.background,
-              borderColor: formData.isSocialInfluencer
+              borderColor: formData.socialInfluencerScope
                 ? theme.colors.primary + '30'
                 : theme.colors.border,
             },
@@ -251,7 +251,7 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
               <MaterialDesignIcons
                 name="star-circle-outline"
                 size={18}
-                color={formData.isSocialInfluencer ? theme.colors.primary : theme.colors.textSecondary}
+                color={formData.socialInfluencerScope ? theme.colors.primary : theme.colors.textSecondary}
               />
               <View style={styles.subCardTitleTexts}>
                 <Text style={[styles.subCardTitle, { color: theme.colors.text }]}>
@@ -265,15 +265,15 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
 
             {/* Toggle Switch */}
             <Switch
-              value={Boolean(formData.isSocialInfluencer)}
+              value={Boolean(formData.socialInfluencerScope)}
               onValueChange={handleSocialInfluencerToggle}
               disabled={!canManageFamily}
               trackColor={{ false: theme.colors.border, true: theme.colors.primary + '80' }}
-              thumbColor={formData.isSocialInfluencer ? theme.colors.primary : '#f4f3f4'}
+              thumbColor={formData.socialInfluencerScope ? theme.colors.primary : '#f4f3f4'}
             />
           </View>
 
-          {formData.isSocialInfluencer ? (
+          {formData.socialInfluencerScope ? (
             <View style={styles.stateContainer}>
               <View
                 style={[
@@ -299,6 +299,46 @@ export const VoterInfluencerFormSection: React.FC<VoterInfluencerFormSectionProp
                     : t('socialLeaderDescription') || 'Community leader. Other voters can be mapped under this influencer.'}
                 </Text>
               </View>
+
+              {/* AC-Wise Scope Toggle */}
+              <View
+                  style={[
+                    styles.subCardHeader,
+                    {
+                      paddingVertical: 8,
+                      paddingHorizontal: 10,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: formData.socialInfluencerScope === 'ac' ? '#6366F150' : theme.colors.border,
+                      backgroundColor: formData.socialInfluencerScope === 'ac' ? '#6366F112' : theme.colors.surface,
+                    },
+                  ]}
+                >
+                  <View style={styles.subCardTitleRow}>
+                    <MaterialDesignIcons
+                      name="earth"
+                      size={16}
+                      color={formData.socialInfluencerScope === 'ac' ? '#4F46E5' : theme.colors.textSecondary}
+                    />
+                    <View style={styles.subCardTitleTexts}>
+                      <Text style={[styles.subCardTitle, { color: theme.colors.text, fontSize: 12 }]}>
+                        {t('acWiseSocialInfluencer')}
+                      </Text>
+                      <Text style={[styles.subCardSubtitle, { color: theme.colors.textSecondary, fontSize: 11 }]}>
+                        {t('acWiseSocialDesc')}
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={formData.socialInfluencerScope === 'ac'}
+                    onValueChange={(val) =>
+                      setFormData((prev: any) => ({ ...prev, socialInfluencerScope: val ? 'ac' : 'booth' }))
+                    }
+                    disabled={!canManageFamily}
+                    trackColor={{ false: theme.colors.border, true: '#6366F180' }}
+                    thumbColor={formData.socialInfluencerScope === 'ac' ? '#4F46E5' : '#f4f3f4'}
+                  />
+                </View>
 
               {/* Action to Manage Followers */}
               {isEditMode ? (

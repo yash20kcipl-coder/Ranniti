@@ -923,10 +923,16 @@ useEffect(() => {
   if (showStateContext && selectedState) {
     const statePcFilter = ['==', ['upcase', ['coalesce', ['get', 'st_name'], '']], selectedState.toUpperCase()] as any;
     if (map.getLayer('pc-fill-layer')) {
-      map.setLayoutProperty('pc-fill-layer', 'visibility', 'none');
+      map.setLayoutProperty('pc-fill-layer', 'visibility', 'visible');
+      map.setFilter('pc-fill-layer', statePcFilter);
+      map.setPaintProperty('pc-fill-layer', 'fill-color', '#cbd5e1');
+      map.setPaintProperty('pc-fill-layer', 'fill-opacity', 0.55);
     }
     if (map.getLayer('pc-border-layer')) {
-      map.setLayoutProperty('pc-border-layer', 'visibility', 'none');
+      map.setLayoutProperty('pc-border-layer', 'visibility', borderStyle !== 'none' ? 'visible' : 'none');
+      map.setFilter('pc-border-layer', statePcFilter);
+      map.setPaintProperty('pc-border-layer', 'line-width', 0.7);
+      map.setPaintProperty('pc-border-layer', 'line-opacity', 0.6);
     }
     if (map.getLayer('pc-highlight-layer')) {
       map.setLayoutProperty('pc-highlight-layer', 'visibility', 'none');
@@ -941,19 +947,9 @@ useEffect(() => {
 
     if (map.getLayer('ac-fill-layer')) {
       map.setLayoutProperty('ac-fill-layer', 'visibility', 'visible');
-      map.setFilter('ac-fill-layer', statePcFilter);
-      map.setPaintProperty('ac-fill-layer', 'fill-color', [
-        'case',
-        assignedAcCondition,
-        mapService.getColorExpression(metric),
-        '#cbd5e1',
-      ] as any);
-      map.setPaintProperty('ac-fill-layer', 'fill-opacity', [
-        'case',
-        assignedAcCondition,
-        opacity,
-        0.55,
-      ] as any);
+      map.setFilter('ac-fill-layer', assignedAcCondition);
+      map.setPaintProperty('ac-fill-layer', 'fill-color', mapService.getColorExpression(metric));
+      map.setPaintProperty('ac-fill-layer', 'fill-opacity', opacity);
     }
 
     if (map.getLayer('ac-border-layer')) {

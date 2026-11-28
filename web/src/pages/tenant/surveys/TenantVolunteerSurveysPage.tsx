@@ -3,31 +3,44 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { useDebouncedEffect } from '@/hooks/useDebouncedEffect';
 import {
   fetchSurveyLeaderboard,
-  fetchSurveyAuditFeed,
   fetchVolunteerSurveyStats,
   exportSurveyLeaderboard,
   type VolunteerLeaderboardRow,
 } from '@/redux/actions/survey';
+import { fetchTenantBoothOptions } from '@/redux/actions/voterTenant';
+import { VOLUNTEER_ROLE_OPTIONS } from '@/constants/dropdownOptions';
+import { formatPhoneNumber } from '@/utils/phoneUtils';
+import type { Option } from '@/components/common/FormInput';
 import { Modal } from '@/components/common/Modal';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SafeImage } from '@/components/common/SafeImage';
-import { TabContainer, type TabItem } from '@/components/common/TabContainer';
 import { DataTable, type Column } from '@/components/common/DataTable';
 import { FilterBar, type FilterField } from '@/components/common/FilterBar';
 import { TableActions, TableActionButton } from '@/components/common/TableActions';
 import { VolunteerScorecardModal } from './components/VolunteerScorecardModal';
-import { SurveyAuditFeedTable } from './components/SurveyAuditFeedTable';
 import { SurveyPointsConfigSection } from '@/pages/tenant/settings/components/SurveyPointsConfigSection';
 import {
   Award,
   Download,
   Settings,
-  Trophy,
-  History,
   Eye,
+  Users,
+  CheckCircle2,
+  Sparkles,
+  Phone,
+  Vote,
+  Shield,
+  UserCheck,
+  UserCog,
 } from 'lucide-react';
 
-type SurveyTabKey = 'leaderboard' | 'audit-feed';
+const ROLE_BADGES: Record<string, { label: string; color: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
+  pc_leader: { label: 'PC Leader', color: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800', icon: Shield },
+  ac_leader: { label: 'AC Leader', color: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800', icon: Award },
+  sub_leader: { label: 'Sub-Leader', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800', icon: Users },
+  supporter: { label: 'Volunteer', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', icon: UserCheck },
+  tenant_user: { label: 'Tenant User', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700', icon: UserCog },
+};
 
 export const TenantVolunteerSurveysPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -35,33 +48,48 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
   const {
     leaderboard,
     leaderboardLoading,
-    auditItems,
-    auditLoading,
-    auditPage,
-    auditLimit,
-    totalAuditCount,
     selectedVolunteerStats,
     volunteerStatsLoading,
   } = useAppSelector((state) => state.survey);
 
-  const [activeTab, setActiveTab] = useState<SurveyTabKey>('leaderboard');
   const [timeRange, setTimeRange] = useState<'today' | '7d' | '30d' | 'all'>('30d');
+  const [boothId, setBoothId] = useState<string>('');
+  const [role, setRole] = useState<string>('');
+  const [boothOptions, setBoothOptions] = useState<Option[]>([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [rulesModalOpen, setRulesModalOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  // Load booth options once on mount per Rule 13
+  useDebouncedEffect(
+    () => {
+      dispatch(fetchTenantBoothOptions({ saveToStore: false }))
+        .then((opts: any) => {
+          if (Array.isArray(opts)) {
+            setBoothOptions(opts);
+          }
+        })
+        .catch(() => { });
+    },
+    150,
+    [dispatch]
+  );
+
   // Debounced API fetch per Rule 13
   useDebouncedEffect(
     () => {
-      if (activeTab === 'leaderboard') {
-        dispatch(fetchSurveyLeaderboard({ timeRange, search }));
-      } else {
-        dispatch(fetchSurveyAuditFeed({ search, page: auditPage, limit: auditLimit }));
-      }
+      dispatch(
+        fetchSurveyLeaderboard({
+          timeRange,
+          boothId: boothId || undefined,
+          role: role || undefined,
+          search,
+        })
+      );
     },
     200,
-    [activeTab, timeRange, search, auditPage]
+    [timeRange, boothId, role, search]
   );
 
   const handleOpenVolunteerModal = (volunteerId: string) => {
@@ -72,11 +100,48 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
   const handleExport = async () => {
     try {
       setExporting(true);
-      await dispatch(exportSurveyLeaderboard({ timeRange, search }));
+      await dispatch(
+        exportSurveyLeaderboard({
+          timeRange,
+          boothId: boothId || undefined,
+          role: role || undefined,
+          search,
+        })
+      );
     } finally {
       setExporting(false);
     }
   };
+
+  const handleResetFilters = () => {
+    setTimeRange('30d');
+    setBoothId('');
+    setRole('');
+    setSearch('');
+  };
+
+  const kpiStats = useMemo(() => {
+    let totalPoints = 0;
+    let totalVoters = 0;
+    let totalFields = 0;
+    let activeVolunteers = 0;
+
+    for (const row of leaderboard) {
+      totalPoints += row.totalScore || 0;
+      totalVoters += row.votersSurveyed || 0;
+      totalFields += row.fieldsUpdated || 0;
+      if ((row.fieldsUpdated || 0) > 0) {
+        activeVolunteers += 1;
+      }
+    }
+
+    return {
+      totalPoints,
+      totalVoters,
+      totalFields,
+      activeVolunteers,
+    };
+  }, [leaderboard]);
 
   const leaderboardFilterFields: FilterField[] = useMemo(
     () => [
@@ -87,7 +152,7 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
         value: timeRange,
         defaultValue: '30d',
         excludeFromCount: true,
-        onChange: (val) => setTimeRange(val as any),
+        onChange: (val) => setTimeRange((val || '30d') as any),
         options: [
           { label: 'Today', value: 'today' },
           { label: 'Last 7 Days', value: '7d' },
@@ -96,8 +161,28 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
         ],
         isPrimary: true,
       },
+      {
+        key: 'role',
+        label: 'Role Tier',
+        type: 'select',
+        value: role,
+        placeholder: 'All Roles',
+        onChange: (val) => setRole(val || ''),
+        options: VOLUNTEER_ROLE_OPTIONS,
+        isPrimary: true,
+      },
+      {
+        key: 'boothId',
+        label: 'Polling Booth',
+        type: 'select',
+        value: boothId,
+        placeholder: 'All Booths',
+        onChange: (val) => setBoothId(val || ''),
+        options: boothOptions,
+        isPrimary: false,
+      },
     ],
-    [timeRange]
+    [timeRange, boothId, role, boothOptions]
   );
 
   const leaderboardColumns: Column<VolunteerLeaderboardRow>[] = useMemo(
@@ -106,6 +191,7 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
         key: 'rank',
         header: 'Rank',
         align: 'center',
+        width: '64px',
         render: (row) => {
           const rankBadgeColor =
             row.rank === 1
@@ -114,12 +200,12 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
                 ? 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border-slate-300'
                 : row.rank === 3
                   ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300 border-orange-300'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200';
+                  : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700';
 
           return (
             <div className="flex justify-center">
               <span
-                className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-black border ${rankBadgeColor}`}
+                className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black border ${rankBadgeColor}`}
               >
                 {row.rank}
               </span>
@@ -132,81 +218,133 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
         header: 'Volunteer',
         sortable: true,
         render: (row) => (
-          <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => handleOpenVolunteerModal(row.volunteerId)}
+            className="flex items-center gap-2.5 text-left group cursor-pointer"
+          >
             <SafeImage
               src={row.avatar}
               alt={row.name}
-              className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-800"
+              className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-800 shrink-0"
               fallbackText={row.name}
             />
             <div className="flex flex-col min-w-0 justify-center gap-0.5">
-              <span className="font-semibold text-[10.5px] text-slate-900 dark:text-white leading-tight truncate max-w-[180px]">
+              <span className="font-semibold text-[11px] text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight truncate max-w-[160px]">
                 {row.name}
               </span>
-              <span className="text-[9.5px] text-slate-400 font-mono">
-                {row.mobile}
+              <span className="text-[10px] text-slate-400 font-mono">
+                {formatPhoneNumber(row.mobile)}
               </span>
             </div>
-          </div>
+          </button>
         ),
       },
       {
         key: 'role',
         header: 'Role Tier',
-        render: (row) => (
-          <span className="text-[9.5px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-            {row.role}
-          </span>
-        ),
+        render: (row) => {
+          const cfg = ROLE_BADGES[row.role] || {
+            label: row.role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+            color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+            icon: UserCheck,
+          };
+          const RoleIcon = cfg.icon;
+          return (
+            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md border whitespace-nowrap ${cfg.color}`}>
+              <RoleIcon size={11} className="shrink-0" />
+              {cfg.label}
+            </span>
+          );
+        },
       },
       {
         key: 'totalScore',
-        header: 'Total Score',
+        header: 'Score',
         sortable: true,
         align: 'center',
-        render: (row) => (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-            <Award className="w-3 h-3 text-indigo-500" />
-            {row.totalScore} pts
-          </span>
-        ),
+        render: (row) => {
+          const hasScore = row.totalScore > 0;
+          return (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold font-mono border whitespace-nowrap ${hasScore
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                  : 'bg-slate-50 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200/80 dark:border-slate-700/80'
+                }`}
+            >
+              <Award className={`w-3 h-3 ${hasScore ? 'text-indigo-500' : 'text-slate-400'}`} />
+              {row.totalScore} pts
+            </span>
+          );
+        },
       },
       {
         key: 'votersSurveyed',
-        header: 'Voters Surveyed',
+        header: 'Voters',
         sortable: true,
         align: 'center',
         render: (row) => (
-          <span className="font-mono text-[10px] font-semibold text-slate-900 dark:text-white">
+          <span
+            className={`font-mono text-[11px] font-semibold ${row.votersSurveyed > 0
+                ? 'text-slate-900 dark:text-white'
+                : 'text-slate-400 dark:text-slate-500'
+              }`}
+          >
             {row.votersSurveyed}
           </span>
         ),
       },
       {
         key: 'fieldsUpdated',
-        header: 'Fields Updated',
+        header: 'Fields',
         sortable: true,
         align: 'center',
         render: (row) => (
-          <span className="font-mono text-[10px] font-medium text-slate-600 dark:text-slate-300">
+          <span
+            className={`font-mono text-[11px] font-medium ${row.fieldsUpdated > 0
+                ? 'text-slate-700 dark:text-slate-300'
+                : 'text-slate-400 dark:text-slate-500'
+              }`}
+          >
             {row.fieldsUpdated}
           </span>
         ),
       },
       {
         key: 'categoryPoints',
-        header: 'Category Points',
+        header: 'Breakdown',
         align: 'center',
         render: (row) => (
-          <div className="inline-flex items-center justify-center gap-1.5 text-[10px]">
-            <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-mono" title="Contact Points">
-              📞 {row.contactPoints}
+          <div className="inline-flex items-center justify-center gap-1 text-[10px]">
+            <span
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono border ${row.contactPoints > 0
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800'
+                  : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200/60 dark:border-slate-800'
+                }`}
+              title="Contact Points (Mobile, Email)"
+            >
+              <Phone className="w-2.5 h-2.5" />
+              {row.contactPoints}
             </span>
-            <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-mono" title="Political Leaning Points">
-              🗳️ {row.politicalPoints}
+            <span
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono border ${row.politicalPoints > 0
+                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/70 dark:border-amber-800'
+                  : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200/60 dark:border-slate-800'
+                }`}
+              title="Political Points (Party, Influencers)"
+            >
+              <Vote className="w-2.5 h-2.5" />
+              {row.politicalPoints}
             </span>
-            <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-mono" title="Demographic Points">
-              👥 {row.demographicPoints}
+            <span
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono border ${row.demographicPoints > 0
+                  ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200/70 dark:border-indigo-800'
+                  : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200/60 dark:border-slate-800'
+                }`}
+              title="Demographic Points (Caste, Religion, Profession)"
+            >
+              <Users className="w-2.5 h-2.5" />
+              {row.demographicPoints}
             </span>
           </div>
         ),
@@ -214,21 +352,6 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
     ],
     []
   );
-
-  const navTabs: TabItem<SurveyTabKey>[] = [
-    {
-      id: 'leaderboard',
-      label: 'Volunteer Leaderboard',
-      icon: Trophy,
-      count: leaderboard.length,
-    },
-    {
-      id: 'audit-feed',
-      label: 'Live Field Updates Feed',
-      icon: History,
-      count: totalAuditCount,
-    },
-  ];
 
   return (
     <div className="space-y-6">
@@ -260,58 +383,89 @@ export const TenantVolunteerSurveysPage: React.FC = () => {
         }
       />
 
-      {/* Tab Container */}
-      <TabContainer<SurveyTabKey>
-        tabs={navTabs}
-        activeTab={activeTab}
-        onTabChange={(tabId) => setActiveTab(tabId)}
-        views={{
-          leaderboard: (
-            <DataTable
-              columns={leaderboardColumns}
-              data={leaderboard}
-              loading={leaderboardLoading}
-              showHeader={false}
-              selectable={false}
-              filterBar={
-                <FilterBar
-                  embedded
-                  filters={leaderboardFilterFields}
-                  showDrawerButton={false}
-                  showResetButton={false}
-                  searchValue={search}
-                  onSearchChange={setSearch}
-                  searchPlaceholder="Search volunteer by name or phone..."
-                />
-              }
-              actions={(row) => (
-                <TableActions
-                  extra={
-                    <TableActionButton
-                      variant="custom"
-                      icon={Eye}
-                      title="View Score Breakdown"
-                      onClick={() => handleOpenVolunteerModal(row.volunteerId)}
-                      className="bg-indigo-50/90 text-indigo-600 border border-indigo-200/90 hover:bg-indigo-600 hover:text-white dark:bg-slate-800 dark:text-indigo-400 dark:border-slate-700"
-                    />
-                  }
-                />
-              )}
-            />
-          ),
-          'audit-feed': (
-            <SurveyAuditFeedTable
-              items={auditItems}
-              loading={auditLoading}
-              page={auditPage}
-              limit={auditLimit}
-              totalCount={totalAuditCount}
-              search={search}
-              onSearchChange={setSearch}
-              onPageChange={(p) => dispatch(fetchSurveyAuditFeed({ search, page: p, limit: auditLimit }))}
-            />
-          ),
-        }}
+      {/* Survey KPI Summary Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center shrink-0">
+            <Award className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Total Points Awarded</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white font-mono">
+              {kpiStats.totalPoints.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Voters Surveyed</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white font-mono">
+              {kpiStats.totalVoters.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Fields Enriched</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white font-mono">
+              {kpiStats.totalFields.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-900 flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Active Surveyors</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white font-mono">
+              {kpiStats.activeVolunteers.toLocaleString()} <span className="text-xs font-normal text-slate-400">/ {leaderboard.length}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Volunteer Survey Leaderboard Table */}
+      <DataTable
+        columns={leaderboardColumns}
+        data={leaderboard}
+        loading={leaderboardLoading}
+        showHeader={false}
+        selectable={false}
+        filterBar={
+          <FilterBar
+            embedded
+            filters={leaderboardFilterFields}
+            showDrawerButton={boothOptions.length > 0}
+            showResetButton={Boolean(boothId || role || search || timeRange !== '30d')}
+            onReset={handleResetFilters}
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search volunteer by name or phone..."
+          />
+        }
+        actions={(row) => (
+          <TableActions
+            extra={
+              <TableActionButton
+                variant="custom"
+                icon={Eye}
+                title="View Score Breakdown"
+                onClick={() => handleOpenVolunteerModal(row.volunteerId)}
+                className="bg-indigo-50/90 text-indigo-600 border border-indigo-200/90 hover:bg-indigo-600 hover:text-white dark:bg-slate-800 dark:text-indigo-400 dark:border-slate-700"
+              />
+            }
+          />
+        )}
       />
 
       {/* Volunteer Detailed Scorecard Modal */}

@@ -1255,7 +1255,7 @@ export class MasterQueries {
           b.booth_number AS "boothNumber", 
           b.name, 
           b.location_building AS "locationBuilding", 
-          b.total_voters AS "totalVoters", 
+          (SELECT COUNT(*)::int FROM voters v WHERE v.booth_id = b.id) AS "totalVoters", 
           b.created_at AS "createdAt", 
           b.updated_at AS "updatedAt" 
         FROM booths b
@@ -1301,7 +1301,7 @@ export class MasterQueries {
         b.booth_number AS "boothNumber", 
         b.name, 
         b.location_building AS "locationBuilding", 
-        b.total_voters AS "totalVoters", 
+        (SELECT COUNT(*)::int FROM voters v WHERE v.booth_id = b.id) AS "totalVoters", 
         b.created_at AS "createdAt", 
         b.updated_at AS "updatedAt" 
       FROM booths b

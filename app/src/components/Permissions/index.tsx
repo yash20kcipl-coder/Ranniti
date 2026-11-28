@@ -4,6 +4,7 @@ import { MaterialDesignIcons } from '../MaterialDesignIcons';
 import { checkMultiple, requestMultiple, openSettings } from 'react-native-permissions';
 import permissionsConfig from './permissionsConfig';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useLanguage } from '../../languages';
 import { Theme } from '../../constants/theme';
 import { FontFamily } from '../../utils/typography';
 import { rfValue } from '../../utils/responsive';
@@ -22,6 +23,7 @@ export const PermissionsPopUp: React.FC<PermissionsPopUpProps> = ({
 }) => {
   const [visible, setVisible] = useState(false);
   const { theme, styles } = useAppTheme(getStyles);
+  const { t } = useLanguage();
   const [permissionState, setPermissionState] = useState({
     title: '',
     description: '',
@@ -162,7 +164,7 @@ export const PermissionsPopUp: React.FC<PermissionsPopUpProps> = ({
               onPress={handleClose}
               style={[styles.btn, styles.cancelBtn]}
             >
-              <Text style={[styles.btnText, styles.cancelBtnText]}>Cancel</Text>
+              <Text style={[styles.btnText, styles.cancelBtnText]}>{t('cancel')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

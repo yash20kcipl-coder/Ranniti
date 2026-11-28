@@ -31,7 +31,7 @@ export class VoterController {
       familyInfluencerId: req.query.familyInfluencerId as string,
       socialInfluencerId: req.query.socialInfluencerId as string,
       isFamilyInfluencer: req.query.isFamilyInfluencer as string,
-      isSocialInfluencer: req.query.isSocialInfluencer as string,
+      socialInfluencerScope: (req.query.socialInfluencerScope as string) || (req.query.isSocialInfluencer === 'true' ? 'any' : undefined),
       influencerStatus: req.query.influencerStatus as string,
       influencerRole: req.query.influencerRole as string,
       cachedTotal: req.query.cachedTotal ? parseInt(req.query.cachedTotal as string, 10) : undefined,
@@ -132,14 +132,19 @@ export class VoterController {
   });
 
   static bulkAssignInfluencer = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { influencerId, influencerType, voterIds } = req.body;
+    const { influencerId, influencerType, voterIds = [], socialInfluencerScope } = req.body;
     const count = await VoterService.bulkAssignInfluencer(
       influencerId || null,
       influencerType,
       voterIds,
-      (req.tenantDbName || req.user?.tenantDbName)
+      (req.tenantDbName || req.user?.tenantDbName),
+      socialInfluencerScope
     );
-    const response = ApiResponse.success({ updatedCount: count }, `${count} voters successfully linked to influencer`);
+    const message =
+      voterIds.length === 0 && influencerType === 'social'
+        ? 'Social influencer tag updated successfully'
+        : `${count} voters successfully linked to influencer`;
+    const response = ApiResponse.success({ updatedCount: count }, message);
     res.status(response.statusCode).json(response.body);
   });
 
@@ -160,7 +165,7 @@ export class VoterController {
       casteId: req.query.casteId as string,
       partyId: req.query.partyId as string,
       isFamilyInfluencer: req.query.isFamilyInfluencer as string,
-      isSocialInfluencer: req.query.isSocialInfluencer as string,
+      socialInfluencerScope: req.query.socialInfluencerScope as string,
     };
 
     await VoterService.exportVotersStream(res, filterParams);
@@ -228,6 +233,7 @@ export class VoterController {
     const params: SocialCandidateParams = {
       influencerId: req.query.influencerId as string,
       boothId: req.query.boothId as string,
+      acWise: req.query.acWise as string,
       search: req.query.search as string,
       sectionNo: req.query.sectionNo ? Number(req.query.sectionNo) : undefined,
       gender: req.query.gender as string,

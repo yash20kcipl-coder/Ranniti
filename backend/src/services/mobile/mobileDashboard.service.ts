@@ -49,8 +49,9 @@ export class MobileDashboardService {
     assignedPcId?: string | null;
     assignedAcId?: string | null;
     assignedBoothIds?: string[];
+    boothId?: string;
   }): Promise<MobileDashboardMetrics> {
-    const { userId, role, tenantDbName, assignedPcId, assignedAcId } = params;
+    const { userId, role, tenantDbName, assignedPcId, assignedAcId, boothId } = params;
     let assignedBoothIds = params.assignedBoothIds;
 
     // Helper for executing query against tenant pool
@@ -98,7 +99,8 @@ export class MobileDashboardService {
     }
 
     // Determine booth / AC / PC filter clause for tenant voters SQL query:
-    // If assignedBoothIds are specified, they ALWAYS take precedence over broad AC/PC scope
+    // If assignedBoothIds are specified, they ALWAYS take precedence over broad AC/PC scope.
+    // If an explicit boothId filter is requested, scope within user's allowed booths / AC / PC.
     const hasBoothFilter = assignedBoothIds && assignedBoothIds.length > 0;
     const hasAcFilter = Boolean(assignedAcId);
     const hasPcFilter = Boolean(assignedPcId);
@@ -106,7 +108,26 @@ export class MobileDashboardService {
     let whereClause = 'WHERE 1=1';
     const queryParams: any[] = [];
 
-    if (hasBoothFilter) {
+    if (boothId) {
+      if (hasBoothFilter) {
+        if (assignedBoothIds!.includes(boothId)) {
+          queryParams.push(boothId);
+          whereClause += ` AND booth_id = $${queryParams.length}`;
+        } else {
+          whereClause += ' AND 1=0';
+        }
+      } else {
+        queryParams.push(boothId);
+        whereClause += ` AND booth_id = $${queryParams.length}`;
+        if (hasAcFilter) {
+          queryParams.push(assignedAcId);
+          whereClause += ` AND ac_id = $${queryParams.length}`;
+        } else if (hasPcFilter) {
+          queryParams.push(assignedPcId);
+          whereClause += ` AND pc_id = $${queryParams.length}`;
+        }
+      }
+    } else if (hasBoothFilter) {
       queryParams.push(assignedBoothIds);
       whereClause += ` AND booth_id = ANY($${queryParams.length})`;
     } else if (hasAcFilter) {
@@ -122,7 +143,7 @@ export class MobileDashboardService {
       `SELECT COUNT(*)::int AS total,
               COUNT(CASE WHEN status = 'VOTED' THEN 1 END)::int AS voted_count,
               COUNT(CASE WHEN is_family_influencer = true THEN 1 END)::int AS family_influencers,
-              COUNT(CASE WHEN is_social_influencer = true THEN 1 END)::int AS social_influencers,
+              COUNT(CASE WHEN social_influencer_scope IS NOT NULL THEN 1 END)::int AS social_influencers,
               COUNT(CASE WHEN LOWER(gender) IN ('male', 'm') THEN 1 END)::int AS male_count,
               COUNT(CASE WHEN LOWER(gender) IN ('female', 'f') THEN 1 END)::int AS female_count,
               COUNT(CASE WHEN LOWER(gender) NOT IN ('male', 'm', 'female', 'f') AND gender IS NOT NULL THEN 1 END)::int AS other_gender,
@@ -142,11 +163,22 @@ export class MobileDashboardService {
     // 2b. Query Synced Contacts Count from user_synced_contacts table (voters synced from mobile address book)
     let syncedContactsVotersCount = 0;
     try {
-      const syncRes = await executeTenantQuery(
-        `SELECT COUNT(DISTINCT voter_id)::int AS count FROM user_synced_contacts WHERE user_id = $1`,
-        [userId]
-      );
-      syncedContactsVotersCount = parseInt(syncRes.rows[0]?.count || '0', 10);
+      if (boothId) {
+        const syncRes = await executeTenantQuery(
+          `SELECT COUNT(DISTINCT usc.voter_id)::int AS count
+           FROM user_synced_contacts usc
+           JOIN voters v ON v.id = usc.voter_id
+           WHERE usc.user_id = $1 AND v.booth_id = $2`,
+          [userId, boothId]
+        );
+        syncedContactsVotersCount = parseInt(syncRes.rows[0]?.count || '0', 10);
+      } else {
+        const syncRes = await executeTenantQuery(
+          `SELECT COUNT(DISTINCT voter_id)::int AS count FROM user_synced_contacts WHERE user_id = $1`,
+          [userId]
+        );
+        syncedContactsVotersCount = parseInt(syncRes.rows[0]?.count || '0', 10);
+      }
     } catch {
       syncedContactsVotersCount = 0;
     }
@@ -247,7 +279,21 @@ export class MobileDashboardService {
             let turnoutWhere = 'WHERE ves.election_id = $1 AND ves.has_voted = true';
             const turnoutParams: any[] = [resolved.id];
 
-            if (hasBoothFilter) {
+            if (boothId) {
+              if (hasBoothFilter && !assignedBoothIds!.includes(boothId)) {
+                turnoutWhere += ' AND 1=0';
+              } else {
+                turnoutParams.push(boothId);
+                turnoutWhere += ` AND ves.booth_id = $${turnoutParams.length}`;
+                if (!hasBoothFilter && hasAcFilter) {
+                  turnoutParams.push(assignedAcId);
+                  turnoutWhere += ` AND v.ac_id = $${turnoutParams.length}`;
+                } else if (!hasBoothFilter && hasPcFilter) {
+                  turnoutParams.push(assignedPcId);
+                  turnoutWhere += ` AND v.pc_id = $${turnoutParams.length}`;
+                }
+              }
+            } else if (hasBoothFilter) {
               turnoutParams.push(assignedBoothIds);
               turnoutWhere += ` AND ves.booth_id = ANY($${turnoutParams.length})`;
             } else if (hasAcFilter) {

@@ -27,6 +27,7 @@ export interface CustomImageProps extends Omit<ImageProps, 'source' | 'src' | 'a
   showLoader?: boolean;
   containerStyles?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  bgColor?: string
 }
 
 const AVATAR_COLORS = [
@@ -55,11 +56,18 @@ const getInitials = (text?: string | null): string => {
   if (!text) return '';
   const clean = text.trim();
   if (!clean || clean.toLowerCase() === 'na' || clean.toLowerCase() === 'null') return '';
-  const parts = clean.split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+  // Extract ASCII English words so avatars always display English text initials
+  const englishParts = clean
+    .split(/\s+/)
+    .map((part) => part.replace(/[^A-Za-z0-9]/g, ''))
+    .filter((part) => /[A-Za-z]/.test(part));
+  if (englishParts.length >= 2) {
+    return (englishParts[0][0] + englishParts[1][0]).toUpperCase();
   }
-  return clean.slice(0, 2).toUpperCase();
+  if (englishParts.length === 1) {
+    return englishParts[0].slice(0, 2).toUpperCase();
+  }
+  return '';
 };
 
 /**
@@ -79,6 +87,7 @@ export const SafeImage: React.FC<CustomImageProps> = ({
   style,
   containerStyles,
   textStyle,
+  bgColor,
   ...rest
 }) => {
   const activeUri = uri || src;
@@ -105,18 +114,20 @@ export const SafeImage: React.FC<CustomImageProps> = ({
     ? inheritedRadius
     : (placeholderType === 'avatar' ? 9999 : 0);
 
-  // Profile avatar initials calculation
+  // Profile avatar initials calculation (always prefer English text across name/fallbackText/alt)
   const isAvatar = placeholderType === 'avatar' || Boolean(name);
   const profileName = name || fallbackText || alt;
-  const initials = isAvatar ? getInitials(profileName) : '';
+  const initials = isAvatar
+    ? getInitials(name) || getInitials(fallbackText) || getInitials(alt)
+    : '';
   const avatarBgColor = getAvatarBgColor(profileName);
 
   const dimension =
     typeof flatStyle?.width === 'number'
       ? flatStyle.width
       : typeof flatStyle?.height === 'number'
-      ? flatStyle.height
-      : 48;
+        ? flatStyle.height
+        : 48;
   const fontSize = Math.max(12, Math.round(dimension * 0.38));
 
   const showInitialsFallback = (!isRemote || error) && initials.length > 0;
@@ -128,7 +139,7 @@ export const SafeImage: React.FC<CustomImageProps> = ({
           style={[
             StyleSheet.absoluteFill,
             styles.initialsContainer,
-            { backgroundColor: avatarBgColor, borderRadius: skeletonRadius },
+            { backgroundColor: bgColor || avatarBgColor, borderRadius: skeletonRadius },
           ]}
         >
           <Text

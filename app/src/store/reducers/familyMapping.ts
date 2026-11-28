@@ -5,6 +5,7 @@ export const SET_FAMILY_LOADING = "SET_FAMILY_LOADING";
 export interface FamilyGroup {
   familyId: string;
   headName: string;
+  headLocalName?: string;
   headMobile: string;
   headEpic: string;
   headPhoto?: string;
@@ -13,6 +14,7 @@ export interface FamilyGroup {
   members: Array<{
     id: string;
     name: string;
+    engName?: string;
     relation: string;
     age: number;
     gender: string;

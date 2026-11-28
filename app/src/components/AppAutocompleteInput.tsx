@@ -51,7 +51,7 @@ export const AppAutocompleteInput: React.FC<AppAutocompleteInputProps> = ({
   onSelectSuggestion,
   suggestions = [],
   onRemoteSearch,
-  placeholder = 'Select or type...',
+  placeholder,
   icon,
   disabled = false,
   error,

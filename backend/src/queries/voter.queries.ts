@@ -4,6 +4,7 @@ import { getTenantDbPool } from '../utils/tenantDbProvisioner';
 import { normalizeRelation } from '../utils/relationNormalizer';
 import { TenantPoolManager } from '../services/pool/tenantPoolManager';
 import { MasterAutoSyncService } from '../services/sync/masterAutoSync.service';
+import { syncBoothTotalVoters, syncTenantTotalVoters, invalidateTenantDashboardCache } from '../utils/boothCountSync';
 import { Voter, VoterFilterParams, VoterStats, InfluencerOption, FamilyCandidateParams, SocialCandidateParams, SocietyGroupItem } from '../models/voter.model';
 
 async function executeVoterQuery(sqlStr: string, queryValues: any[] = [], tenantDbName?: string | null) {
@@ -41,6 +42,12 @@ function toNullableString(val: any): string | null {
     return trimmed === '' ? null : trimmed;
   }
   return String(val);
+}
+
+function toSocialScope(val: any): 'booth' | 'ac' | null {
+  if (val === 'ac') return 'ac';
+  if (val === 'booth' || val === true) return 'booth';
+  return null;
 }
 
 function toNullableBool(val: any): boolean | null {
@@ -241,19 +248,25 @@ export class VoterQueries {
     if (params.influencerRole === 'family') {
       conditions.push(`v.is_family_influencer = TRUE`);
     } else if (params.influencerRole === 'social') {
-      conditions.push(`v.is_social_influencer = TRUE`);
+      conditions.push(`v.social_influencer_scope IS NOT NULL`);
     } else if (params.influencerRole === 'any') {
-      conditions.push(`(v.is_family_influencer = TRUE OR v.is_social_influencer = TRUE)`);
+      conditions.push(`(v.is_family_influencer = TRUE OR v.social_influencer_scope IS NOT NULL)`);
     } else {
       const isFam = params.isFamilyInfluencer === true || params.isFamilyInfluencer === 'true';
-      const isSoc = params.isSocialInfluencer === true || params.isSocialInfluencer === 'true';
+      const socScope = params.socialInfluencerScope;
 
-      if (isFam && isSoc) {
-        conditions.push(`(v.is_family_influencer = TRUE OR v.is_social_influencer = TRUE)`);
+      if (isFam && socScope) {
+        if (socScope === 'ac' || socScope === 'booth') {
+          conditions.push(`(v.is_family_influencer = TRUE OR v.social_influencer_scope = '${socScope}')`);
+        } else {
+          conditions.push(`(v.is_family_influencer = TRUE OR v.social_influencer_scope IS NOT NULL)`);
+        }
       } else if (isFam) {
         conditions.push(`v.is_family_influencer = TRUE`);
-      } else if (isSoc) {
-        conditions.push(`v.is_social_influencer = TRUE`);
+      } else if (socScope === 'ac' || socScope === 'booth') {
+        conditions.push(`v.social_influencer_scope = '${socScope}'`);
+      } else if (socScope === 'any' || socScope === 'true') {
+        conditions.push(`v.social_influencer_scope IS NOT NULL`);
       }
     }
 
@@ -363,7 +376,7 @@ export class VoterQueries {
         CONCAT_WS(' ', NULLIF(si.eng_first_name, ''), NULLIF(si.eng_middle_name, ''), NULLIF(si.eng_surname, '')) AS "socialInfluencerName",
         si.epic_no AS "socialInfluencerEpic",
         COALESCE(sic.cnt, 0) AS "socialInfluencedCount",
-        (COALESCE(v.is_social_influencer, FALSE) OR COALESCE(sic.cnt, 0) > 0) AS "isSocialInfluencer",
+        COALESCE(v.social_influencer_scope, CASE WHEN COALESCE(sic.cnt, 0) > 0 THEN 'booth' ELSE NULL END) AS "socialInfluencerScope",
 
         ${uscSelect}
         v.family_id AS "familyId",
@@ -483,7 +496,7 @@ export class VoterQueries {
         COALESCE(NULLIF(CONCAT_WS(' ', NULLIF(si.eng_first_name, ''), NULLIF(si.eng_middle_name, ''), NULLIF(si.eng_surname, '')), ''), CONCAT_WS(' ', NULLIF(si.first_name, ''), NULLIF(si.middle_name, ''), NULLIF(si.surname, ''))) AS "socialInfluencerName",
         si.epic_no AS "socialInfluencerEpic",
         COALESCE(sic.cnt, 0) AS "socialInfluencedCount",
-        (COALESCE(v.is_social_influencer, FALSE) OR COALESCE(sic.cnt, 0) > 0) AS "isSocialInfluencer",
+        COALESCE(v.social_influencer_scope, CASE WHEN COALESCE(sic.cnt, 0) > 0 THEN 'booth' ELSE NULL END) AS "socialInfluencerScope",
 
         v.family_id AS "familyId",
 
@@ -523,7 +536,7 @@ export class VoterQueries {
         profession_type, profession, religion_id, caste_id, subcaste_name,
         status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
         party_id, family_influencer_id, social_influencer_id,
-        is_family_influencer, is_social_influencer, family_id
+        is_family_influencer, social_influencer_scope, family_id
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14, $15, $16, $17,
@@ -538,7 +551,7 @@ export class VoterQueries {
         surname, eng_surname AS "engSurname", relation, guardian_name AS "guardianName", gender, dob, age, mobile_no AS "mobileNo", email,
         aadhaar_no AS "aadhaarNo", pan_no AS "panNo", profession_type AS "professionType", profession,
         NULL::text AS "voterType", status, is_dead AS "isDead", blood_group AS "bloodGroup", avatar,
-        is_family_influencer AS "isFamilyInfluencer", is_social_influencer AS "isSocialInfluencer",
+        is_family_influencer AS "isFamilyInfluencer", social_influencer_scope AS "socialInfluencerScope",
         family_id AS "familyId",
         created_at AS "createdAt", updated_at AS "updatedAt"`,
       [
@@ -583,14 +596,20 @@ export class VoterQueries {
         toNullableUuid(data.familyInfluencerId),
         toNullableUuid(data.socialInfluencerId),
         toNullableBool(data.isFamilyInfluencer) || false,
-        toNullableBool(data.isSocialInfluencer) || false,
+        toSocialScope(data.socialInfluencerScope),
         toNullableString(data.familyId),
       ],
       tenantDbName
     );
 
     const created = res.rows[0];
+    if (created && data.boothId) {
+      await syncBoothTotalVoters([data.boothId], tenantDbName);
+    } else if (created && tenantDbName) {
+      await invalidateTenantDashboardCache(tenantDbName);
+    }
     if (created && tenantDbName && tenantDbName.trim()) {
+      syncTenantTotalVoters(tenantDbName).catch(() => { });
       const tenantPool = getTenantDbPool(tenantDbName.trim());
       MasterAutoSyncService.syncEntityToMaster(tenantPool, 'voter', created.id, 'CREATE', {
         ...created,
@@ -636,7 +655,7 @@ export class VoterQueries {
         profession_type, profession, religion_id, caste_id, subcaste_name,
         status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
         party_id, family_influencer_id, social_influencer_id,
-        is_family_influencer, is_social_influencer, family_id
+        is_family_influencer, social_influencer_scope, family_id
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14, $15, $16, $17,
@@ -683,7 +702,7 @@ export class VoterQueries {
         voter_address = EXCLUDED.voter_address,
         party_id = EXCLUDED.party_id,
         is_family_influencer = EXCLUDED.is_family_influencer,
-        is_social_influencer = EXCLUDED.is_social_influencer,
+        social_influencer_scope = EXCLUDED.social_influencer_scope,
         family_id = COALESCE(EXCLUDED.family_id, voters.family_id),
         updated_at = NOW()
       RETURNING 
@@ -692,7 +711,7 @@ export class VoterQueries {
         surname, eng_surname AS "engSurname", relation, guardian_name AS "guardianName", gender, dob, age, mobile_no AS "mobileNo", email,
         aadhaar_no AS "aadhaarNo", pan_no AS "panNo", profession_type AS "professionType", profession,
         NULL::text AS "voterType", status, is_dead AS "isDead", blood_group AS "bloodGroup", avatar,
-        is_family_influencer AS "isFamilyInfluencer", is_social_influencer AS "isSocialInfluencer",
+        is_family_influencer AS "isFamilyInfluencer", social_influencer_scope AS "socialInfluencerScope",
         family_id AS "familyId",
         created_at AS "createdAt", updated_at AS "updatedAt"`,
       [
@@ -737,14 +756,20 @@ export class VoterQueries {
         toNullableUuid(data.familyInfluencerId),
         toNullableUuid(data.socialInfluencerId),
         toNullableBool(data.isFamilyInfluencer) || false,
-        toNullableBool(data.isSocialInfluencer) || false,
+        toSocialScope(data.socialInfluencerScope),
         toNullableString(data.familyId),
       ],
       tenantDbName
     );
 
     const upserted = res.rows[0];
+    if (upserted && data.boothId) {
+      await syncBoothTotalVoters([data.boothId], tenantDbName);
+    } else if (upserted && tenantDbName) {
+      await invalidateTenantDashboardCache(tenantDbName);
+    }
     if (upserted && tenantDbName && tenantDbName.trim()) {
+      syncTenantTotalVoters(tenantDbName).catch(() => { });
       const tenantPool = getTenantDbPool(tenantDbName.trim());
       MasterAutoSyncService.syncEntityToMaster(tenantPool, 'voter', upserted.id, 'CREATE', {
         ...upserted,
@@ -828,7 +853,7 @@ export class VoterQueries {
         toNullableUuid(data.familyInfluencerId),
         toNullableUuid(data.socialInfluencerId),
         toNullableBool(data.isFamilyInfluencer) || false,
-        toNullableBool(data.isSocialInfluencer) || false,
+        toSocialScope(data.socialInfluencerScope),
         toNullableString(data.familyId)
       );
 
@@ -843,7 +868,7 @@ export class VoterQueries {
         profession_type, profession, religion_id, caste_id, subcaste_name,
         status, is_dead, blood_group, avatar, taluka, village, full_address, voter_address,
         party_id, family_influencer_id, social_influencer_id,
-        is_family_influencer, is_social_influencer, family_id
+        is_family_influencer, social_influencer_scope, family_id
       ) VALUES 
       ${valueTuples.join(',\n')}
       ON CONFLICT (epic_no) DO UPDATE SET
@@ -884,7 +909,7 @@ export class VoterQueries {
         voter_address = EXCLUDED.voter_address,
         party_id = EXCLUDED.party_id,
         is_family_influencer = EXCLUDED.is_family_influencer,
-        is_social_influencer = EXCLUDED.is_social_influencer,
+        social_influencer_scope = EXCLUDED.social_influencer_scope,
         family_id = COALESCE(EXCLUDED.family_id, voters.family_id),
         updated_at = NOW()
       RETURNING id
@@ -1004,6 +1029,12 @@ export class VoterQueries {
   }
 
   static async updateVoter(id: string, data: Partial<Voter>, tenantDbName?: string | null): Promise<Voter | null> {
+    let previousBoothId: string | null = null;
+    if (data.boothId !== undefined) {
+      const prevRes = await executeVoterQuery(`SELECT booth_id FROM voters WHERE id = $1`, [id], tenantDbName);
+      previousBoothId = prevRes.rows[0]?.booth_id || null;
+    }
+
     const fields: string[] = [];
     const values: any[] = [id];
 
@@ -1068,7 +1099,9 @@ export class VoterQueries {
     }
 
     if (data.socialInfluencerId !== undefined) addField('social_influencer_id', toNullableUuid(data.socialInfluencerId));
-    if (data.isSocialInfluencer !== undefined) addField('is_social_influencer', toNullableBool(data.isSocialInfluencer));
+    if (data.socialInfluencerScope !== undefined) {
+      addField('social_influencer_scope', toSocialScope(data.socialInfluencerScope));
+    }
 
     if (fields.length > 0) {
       fields.push('updated_at = NOW()');
@@ -1083,11 +1116,17 @@ export class VoterQueries {
     if (data.isFamilyInfluencer === false) {
       await executeVoterQuery(`UPDATE voters SET family_influencer_id = NULL WHERE family_influencer_id = $1`, [id], tenantDbName);
     }
-    if (data.isSocialInfluencer === false) {
+    if (data.socialInfluencerScope === null) {
       await executeVoterQuery(`UPDATE voters SET social_influencer_id = NULL WHERE social_influencer_id = $1`, [id], tenantDbName);
     }
 
     const updatedVoter = await this.getVoterById(id, tenantDbName);
+
+    if (updatedVoter && data.boothId !== undefined) {
+      await syncBoothTotalVoters([previousBoothId, updatedVoter.boothId], tenantDbName);
+    } else if (updatedVoter && tenantDbName) {
+      await invalidateTenantDashboardCache(tenantDbName);
+    }
 
     if (updatedVoter && tenantDbName && tenantDbName.trim()) {
       const tenantPool = getTenantDbPool(tenantDbName.trim());
@@ -1134,7 +1173,7 @@ export class VoterQueries {
     if (type === 'family') {
       conditions.push(`v.is_family_influencer = TRUE`);
     } else if (type === 'social') {
-      conditions.push(`v.is_social_influencer = TRUE`);
+      conditions.push(`v.social_influencer_scope IS NOT NULL`);
     }
 
     if (search && search.trim()) {
@@ -1161,7 +1200,8 @@ export class VoterQueries {
         v.surname AS "surname",
         v.eng_surname AS "engSurname",
         v.house_no AS "houseNo",
-        b.name AS "boothName"
+        b.name AS "boothName",
+        v.social_influencer_scope AS "socialInfluencerScope"
       FROM voters v
       LEFT JOIN booths b ON v.booth_id = b.id
       ${whereClause}
@@ -1177,28 +1217,79 @@ export class VoterQueries {
     influencerId: string | null,
     influencerType: 'family' | 'social',
     voterIds: string[],
-    tenantDbName?: string | null
+    tenantDbName?: string | null,
+    socialInfluencerScope?: 'booth' | 'ac' | null
   ): Promise<number> {
-    if (!voterIds || voterIds.length === 0) return 0;
+    const safeVoterIds = voterIds || [];
 
     if (influencerType === 'social') {
-      const res = await executeVoterQuery(
-        `UPDATE voters 
-         SET social_influencer_id = $1, updated_at = NOW() 
-         WHERE id = ANY($2::uuid[])`,
-        [influencerId, voterIds],
-        tenantDbName
-      );
+      let updatedCount = 0;
+      if (safeVoterIds.length > 0) {
+        if (!influencerId) {
+          // Capture affected social influencers before unlinking
+          const affectedRes = await executeVoterQuery(
+            `SELECT DISTINCT social_influencer_id AS id
+             FROM voters
+             WHERE id = ANY($1::uuid[]) AND social_influencer_id IS NOT NULL`,
+            [safeVoterIds],
+            tenantDbName
+          );
+          const affectedInfluencerIds = affectedRes.rows.map((r: any) => r.id).filter(Boolean);
+
+          const res = await executeVoterQuery(
+            `UPDATE voters 
+             SET social_influencer_id = NULL, updated_at = NOW() 
+             WHERE id = ANY($1::uuid[])`,
+            [safeVoterIds],
+            tenantDbName
+          );
+          updatedCount = res.rowCount || 0;
+
+          // Auto-remove social_influencer_scope for any affected influencer whose assigned voters dropped to 0
+          if (affectedInfluencerIds.length > 0) {
+            await executeVoterQuery(
+              `UPDATE voters v
+               SET social_influencer_scope = NULL, updated_at = NOW()
+               WHERE v.id = ANY($1::uuid[])
+                 AND NOT EXISTS (
+                   SELECT 1 FROM voters sv WHERE sv.social_influencer_id = v.id
+                 )`,
+              [affectedInfluencerIds],
+              tenantDbName
+            );
+          }
+        } else {
+          const res = await executeVoterQuery(
+            `UPDATE voters 
+             SET social_influencer_id = $1, updated_at = NOW() 
+             WHERE id = ANY($2::uuid[])`,
+            [influencerId, safeVoterIds],
+            tenantDbName
+          );
+          updatedCount = res.rowCount || 0;
+        }
+      }
 
       if (influencerId) {
-        await executeVoterQuery(
-          `UPDATE voters SET is_social_influencer = TRUE, updated_at = NOW() WHERE id = $1`,
-          [influencerId],
-          tenantDbName
-        );
+        if (socialInfluencerScope !== undefined) {
+          const scopeVal = toSocialScope(socialInfluencerScope);
+          await executeVoterQuery(
+            `UPDATE voters SET social_influencer_scope = $2, updated_at = NOW() WHERE id = $1`,
+            [influencerId, scopeVal],
+            tenantDbName
+          );
+        } else {
+          await executeVoterQuery(
+            `UPDATE voters SET social_influencer_scope = COALESCE(social_influencer_scope, 'booth'), updated_at = NOW() WHERE id = $1`,
+            [influencerId],
+            tenantDbName
+          );
+        }
       }
-      return res.rowCount || 0;
+      return updatedCount;
     }
+
+    if (safeVoterIds.length === 0) return 0;
 
     // --- Family Influencer Assignment ---
     const pool = tenantDbName && tenantDbName.trim() ? getTenantDbPool(tenantDbName.trim()) : dbPool;
@@ -1207,13 +1298,36 @@ export class VoterQueries {
       await client.query('BEGIN');
 
       if (!influencerId) {
+        // Capture affected family influencers before unlinking
+        const affectedRes = await client.query(
+          `SELECT DISTINCT family_influencer_id AS id
+           FROM voters
+           WHERE id = ANY($1::uuid[]) AND family_influencer_id IS NOT NULL`,
+          [safeVoterIds]
+        );
+        const affectedInfluencerIds = affectedRes.rows.map((r: any) => r.id).filter(Boolean);
+
         // Unlinking family influencer
         const res = await client.query(
           `UPDATE voters 
            SET family_influencer_id = NULL, updated_at = NOW() 
            WHERE id = ANY($1::uuid[])`,
-          [voterIds]
+          [safeVoterIds]
         );
+
+        // Auto-remove is_family_influencer for any affected influencer whose assigned members dropped to 0
+        if (affectedInfluencerIds.length > 0) {
+          await client.query(
+            `UPDATE voters v
+             SET is_family_influencer = FALSE, updated_at = NOW()
+             WHERE v.id = ANY($1::uuid[])
+               AND NOT EXISTS (
+                 SELECT 1 FROM voters fv WHERE fv.family_influencer_id = v.id
+               )`,
+            [affectedInfluencerIds]
+          );
+        }
+
         await client.query('COMMIT');
         return res.rowCount || 0;
       }
@@ -1291,9 +1405,16 @@ export class VoterQueries {
   }
 
   static async deleteVoter(id: string, tenantDbName?: string | null): Promise<boolean> {
-    const res = await executeVoterQuery(`DELETE FROM voters WHERE id = $1`, [id], tenantDbName);
+    const res = await executeVoterQuery(`DELETE FROM voters WHERE id = $1 RETURNING booth_id`, [id], tenantDbName);
     const deleted = (res.rowCount || 0) > 0;
+    const deletedBoothId = res.rows[0]?.booth_id || null;
+    if (deleted && deletedBoothId) {
+      await syncBoothTotalVoters([deletedBoothId], tenantDbName);
+    } else if (deleted && tenantDbName) {
+      await invalidateTenantDashboardCache(tenantDbName);
+    }
     if (deleted && tenantDbName && tenantDbName.trim()) {
+      syncTenantTotalVoters(tenantDbName).catch(() => { });
       const tenantPool = getTenantDbPool(tenantDbName.trim());
       MasterAutoSyncService.syncEntityToMaster(tenantPool, 'voter', id, 'DELETE', { id }).catch((err) => {
         logger.error(`[VoterQueries] AutoSync error for voter delete '${id}':`, err);
@@ -1426,19 +1547,25 @@ export class VoterQueries {
     if (params.influencerRole === 'family') {
       conditions.push(`is_family_influencer = TRUE`);
     } else if (params.influencerRole === 'social') {
-      conditions.push(`is_social_influencer = TRUE`);
+      conditions.push(`social_influencer_scope IS NOT NULL`);
     } else if (params.influencerRole === 'any') {
-      conditions.push(`(is_family_influencer = TRUE OR is_social_influencer = TRUE)`);
+      conditions.push(`(is_family_influencer = TRUE OR social_influencer_scope IS NOT NULL)`);
     } else {
       const isFam = params.isFamilyInfluencer === true || params.isFamilyInfluencer === 'true';
-      const isSoc = params.isSocialInfluencer === true || params.isSocialInfluencer === 'true';
+      const socScope = params.socialInfluencerScope;
 
-      if (isFam && isSoc) {
-        conditions.push(`(is_family_influencer = TRUE OR is_social_influencer = TRUE)`);
+      if (isFam && socScope) {
+        if (socScope === 'ac' || socScope === 'booth') {
+          conditions.push(`(is_family_influencer = TRUE OR social_influencer_scope = '${socScope}')`);
+        } else {
+          conditions.push(`(is_family_influencer = TRUE OR social_influencer_scope IS NOT NULL)`);
+        }
       } else if (isFam) {
         conditions.push(`is_family_influencer = TRUE`);
-      } else if (isSoc) {
-        conditions.push(`is_social_influencer = TRUE`);
+      } else if (socScope === 'ac' || socScope === 'booth') {
+        conditions.push(`social_influencer_scope = '${socScope}'`);
+      } else if (socScope === 'any' || socScope === 'true') {
+        conditions.push(`social_influencer_scope IS NOT NULL`);
       }
     }
 
@@ -1600,7 +1727,7 @@ export class VoterQueries {
       ) fic ON (v.is_family_influencer = TRUE)
       LEFT JOIN LATERAL (
         SELECT COUNT(*)::int AS cnt FROM voters sv WHERE sv.social_influencer_id = v.id
-      ) sic ON (v.is_social_influencer = TRUE)
+      ) sic ON (v.social_influencer_scope IS NOT NULL)
       ${whereClause}
       ORDER BY b.booth_number ASC NULLS LAST, v.serial_no ASC NULLS LAST
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -1804,21 +1931,32 @@ export class VoterQueries {
         v.epic_no AS "epicNo",
         CONCAT_WS(' ', NULLIF(v.eng_first_name, ''), NULLIF(v.eng_middle_name, ''), NULLIF(v.eng_surname, '')) AS "engName",
         CONCAT_WS(' ', NULLIF(v.first_name, ''), NULLIF(v.middle_name, ''), NULLIF(v.surname, '')) AS "name",
+        v.ac_id AS "acId",
+        ac.name AS "acName",
         v.booth_id AS "boothId",
         b.name AS "boothName",
         b.booth_number AS "boothNumber",
         v.section_no AS "sectionNo",
         v.house_no AS "houseNo",
         v.avatar,
+        v.social_influencer_scope AS "socialInfluencerScope",
         (SELECT COUNT(*)::int FROM voters sv WHERE sv.social_influencer_id = v.id) AS "socialInfluencedCount"
       FROM voters v
       LEFT JOIN booths b ON v.booth_id = b.id
+      LEFT JOIN assembly_constituencies ac ON v.ac_id = ac.id
       WHERE v.id = $1
     `;
     const infRes = await executeVoterQuery(influencerSql, [params.influencerId], params.tenantDbName);
     const influencer = infRes.rows[0] || null;
 
     const activeBoothId = params.boothId || influencer?.boothId || null;
+    const activeAcId = influencer?.acId || null;
+    const isAcMode =
+      params.acWise === true || params.acWise === 'true'
+        ? true
+        : params.acWise === false || params.acWise === 'false'
+          ? false
+          : influencer?.socialInfluencerScope === 'ac';
     const influencerSectionNo = influencer?.sectionNo;
 
     // 2. Build candidate conditions
@@ -1826,7 +1964,11 @@ export class VoterQueries {
     const values: any[] = [params.influencerId];
     let paramIndex = 2;
 
-    if (activeBoothId) {
+    if (isAcMode && activeAcId) {
+      conditions.push(`v.ac_id = $${paramIndex}`);
+      values.push(activeAcId);
+      paramIndex++;
+    } else if (activeBoothId) {
       conditions.push(`v.booth_id = $${paramIndex}`);
       values.push(activeBoothId);
       paramIndex++;
@@ -1870,10 +2012,13 @@ export class VoterQueries {
     const total = countRes.rows[0]?.total || 0;
     const totalPages = Math.ceil(total / limit) || 1;
 
-    // 4. Smart Order Priority: matching section first, then serial number
+    // 4. Smart Order Priority: matching booth (in AC mode), matching section first, then serial number
+    const sameBoothOrder = (isAcMode && activeBoothId)
+      ? `CASE WHEN v.booth_id = '${String(activeBoothId).replace(/'/g, "''")}' THEN 0 ELSE 1 END ASC,`
+      : '';
     const sameSectionCase = (influencerSectionNo !== undefined && influencerSectionNo !== null && !isNaN(Number(influencerSectionNo)))
       ? `CASE WHEN v.section_no = ${Number(influencerSectionNo)} THEN 0 ELSE 1 END`
-      : '1';
+      : 'CASE WHEN TRUE THEN 1 ELSE 1 END';
 
     const dataSql = `
       SELECT 
@@ -1907,6 +2052,7 @@ export class VoterQueries {
       LEFT JOIN voters si ON v.social_influencer_id = si.id
       ${whereClause}
       ORDER BY 
+        ${sameBoothOrder}
         ${sameSectionCase} ASC,
         b.booth_number ASC NULLS LAST,
         v.serial_no ASC NULLS LAST,

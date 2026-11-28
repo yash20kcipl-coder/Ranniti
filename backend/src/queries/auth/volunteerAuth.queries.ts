@@ -1,5 +1,21 @@
 import { query as masterQuery } from '../dbPool';
 import { TenantPoolManager } from '../../services/pool/tenantPoolManager';
+import { CacheService } from '../../services/cache.service';
+
+export interface VolunteerProfileSummary {
+  userId: string;
+  name: string;
+  email: string;
+  mobile?: string;
+  avatar?: string;
+  role: string;
+  roleName?: string | null;
+  status: string;
+  tenantId: string;
+  tenantDbName: string;
+  organizationName: string;
+  hasMpin: boolean;
+}
 
 export interface VolunteerUserRecord {
   id: string;
@@ -48,19 +64,36 @@ export class VolunteerAuthQueries {
 
   static async findVolunteerByIdentifier(identifier: string, tenantDbName?: string | null): Promise<VolunteerUserRecord | null> {
     const cleanIdentifier = identifier.toLowerCase().trim();
-    const sql = `
-      SELECT id, name, email, password_hash AS "passwordHash", mpin_hash AS "mpinHash", 
-             role, role_name AS "roleName", mobile, avatar, status, tenant_db_name AS "tenantDbName",
-             parent_leader_id AS "parentLeaderId", assigned_ac_id AS "assignedAcId",
-             accessible_tabs AS "accessibleTabs",
-             created_at AS "createdAt", updated_at AS "updatedAt"
-      FROM tenant_users 
-      WHERE LOWER(email) = $1 OR mobile = $1
-    `;
+    const digitsOnly = cleanIdentifier.replace(/\D/g, '');
+    const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : '';
+    const sql = last10
+      ? `
+        SELECT id, name, email, password_hash AS "passwordHash", mpin_hash AS "mpinHash", 
+               role, role_name AS "roleName", mobile, avatar, status, tenant_db_name AS "tenantDbName",
+               parent_leader_id AS "parentLeaderId", assigned_ac_id AS "assignedAcId",
+               accessible_tabs AS "accessibleTabs",
+               created_at AS "createdAt", updated_at AS "updatedAt"
+        FROM tenant_users 
+        WHERE LOWER(email) = $1
+           OR mobile = $1
+           OR RIGHT(REGEXP_REPLACE(COALESCE(mobile, ''), '\\D', '', 'g'), 10) = $2
+        LIMIT 1
+      `
+      : `
+        SELECT id, name, email, password_hash AS "passwordHash", mpin_hash AS "mpinHash", 
+               role, role_name AS "roleName", mobile, avatar, status, tenant_db_name AS "tenantDbName",
+               parent_leader_id AS "parentLeaderId", assigned_ac_id AS "assignedAcId",
+               accessible_tabs AS "accessibleTabs",
+               created_at AS "createdAt", updated_at AS "updatedAt"
+        FROM tenant_users 
+        WHERE LOWER(email) = $1 OR mobile = $1
+        LIMIT 1
+      `;
+    const queryParams = last10 ? [cleanIdentifier, last10] : [cleanIdentifier];
 
     if (tenantDbName && tenantDbName.trim()) {
       try {
-        const res = await TenantPoolManager.query(tenantDbName.trim(), sql, [cleanIdentifier]);
+        const res = await TenantPoolManager.query(tenantDbName.trim(), sql, queryParams);
         if (res.rows[0]) {
           const user = res.rows[0];
           user.tenantDbName = tenantDbName.trim();
@@ -79,7 +112,7 @@ export class VolunteerAuthQueries {
     for (const tRow of tenantRes.rows) {
       const dbName = tRow.tenant_db_name;
       try {
-        const res = await TenantPoolManager.query(dbName, sql, [cleanIdentifier]);
+        const res = await TenantPoolManager.query(dbName, sql, queryParams);
         if (res.rows[0]) {
           const user = res.rows[0];
           user.tenantDbName = dbName;
@@ -228,6 +261,8 @@ export class VolunteerAuthQueries {
     } else {
       user.assignedBoothIds = [];
     }
+    await this.invalidateMobileTenantCache(data.mobile);
+    await this.invalidateMobileTenantCache(data.email);
     return user;
   }
 
@@ -326,6 +361,10 @@ export class VolunteerAuthQueries {
       );
     }
     const updated = await this.findVolunteerById(id, tenantDbName);
+    if (updated) {
+      await this.invalidateMobileTenantCache(updated.mobile);
+      await this.invalidateMobileTenantCache(updated.email);
+    }
     return updated!;
   }
 
@@ -335,6 +374,91 @@ export class VolunteerAuthQueries {
       `UPDATE tenant_users SET mpin_hash = $1, updated_at = NOW() WHERE id = $2`,
       [mpinHash, id]
     );
+    const user = await this.findVolunteerById(id, tenantDbName);
+    if (user) {
+      await this.invalidateMobileTenantCache(user.mobile);
+      await this.invalidateMobileTenantCache(user.email);
+    }
+  }
+
+  static async invalidateMobileTenantCache(identifier?: string | null): Promise<void> {
+    if (!identifier || !identifier.trim()) return;
+    const clean = identifier.toLowerCase().trim();
+    const digitsOnly = clean.replace(/\D/g, '');
+    const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : '';
+    const keys = [`ranniti:mobile:tenants:${clean}`];
+    if (last10 && last10 !== clean) {
+      keys.push(`ranniti:mobile:tenants:${last10}`);
+    }
+    await CacheService.del(...keys);
+  }
+
+  /**
+   * Find all tenant profiles associated with a mobile number or email across all active tenants.
+   * Cached in Redis for 15 minutes (invalidated on user create/update/delete).
+   */
+  static async findAllVolunteersByIdentifier(identifier: string): Promise<VolunteerProfileSummary[]> {
+    const cleanIdentifier = identifier.toLowerCase().trim();
+    if (!cleanIdentifier) return [];
+
+    const digitsOnly = cleanIdentifier.replace(/\D/g, '');
+    const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : '';
+    const cacheKey = `ranniti:mobile:tenants:${last10 || cleanIdentifier}`;
+
+    return CacheService.getOrSet<VolunteerProfileSummary[]>(cacheKey, 900, async () => {
+      const tenantRes = await masterQuery(
+        `SELECT id, tenant_db_name, organization_name
+         FROM tenants
+         WHERE tenant_db_name IS NOT NULL AND status NOT IN ('suspended', 'failed')
+         ORDER BY created_at ASC`
+      );
+
+      const sql = last10
+        ? `
+          SELECT id, name, email, mobile, avatar, role, role_name AS "roleName", status,
+                 (mpin_hash IS NOT NULL AND mpin_hash <> '') AS "hasMpin"
+          FROM tenant_users
+          WHERE LOWER(email) = $1
+             OR mobile = $1
+             OR RIGHT(REGEXP_REPLACE(COALESCE(mobile, ''), '\\D', '', 'g'), 10) = $2
+          LIMIT 1
+        `
+        : `
+          SELECT id, name, email, mobile, avatar, role, role_name AS "roleName", status,
+                 (mpin_hash IS NOT NULL AND mpin_hash <> '') AS "hasMpin"
+          FROM tenant_users
+          WHERE LOWER(email) = $1 OR mobile = $1
+          LIMIT 1
+        `;
+
+      const queryParams = last10 ? [cleanIdentifier, last10] : [cleanIdentifier];
+
+      const results = await Promise.allSettled(
+        tenantRes.rows.map(async (tRow: { id: string; tenant_db_name: string; organization_name: string }) => {
+          const res = await TenantPoolManager.query(tRow.tenant_db_name, sql, queryParams);
+          const row = res.rows[0];
+          if (!row) return null;
+          return {
+            userId: row.id,
+            name: row.name,
+            email: row.email,
+            mobile: row.mobile,
+            avatar: row.avatar,
+            role: row.role,
+            roleName: row.roleName,
+            status: row.status,
+            tenantId: tRow.id,
+            tenantDbName: tRow.tenant_db_name,
+            organizationName: tRow.organization_name || tRow.tenant_db_name,
+            hasMpin: Boolean(row.hasMpin),
+          } as VolunteerProfileSummary;
+        })
+      );
+
+      return results
+        .filter((r): r is PromiseFulfilledResult<VolunteerProfileSummary | null> => r.status === 'fulfilled' && r.value !== null)
+        .map((r) => r.value!);
+    });
   }
 }
 

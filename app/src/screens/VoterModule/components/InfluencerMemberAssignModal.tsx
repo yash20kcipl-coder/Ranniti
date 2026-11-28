@@ -399,8 +399,15 @@ export const InfluencerMemberAssignModal: React.FC<InfluencerMemberAssignModalPr
                 const fullName =
                   [item.engFirstName, item.engMiddleName, item.engSurname].filter(Boolean).join(' ') ||
                   item.engName ||
+                  item.englishName ||
                   item.name ||
                   item.epicNo;
+                const nativeName =
+                  [item.firstName, item.middleName, item.surname].filter(Boolean).join(' ') ||
+                  item.hindiName ||
+                  item.name ||
+                  '';
+                const hasNativeSub = Boolean(nativeName && fullName && nativeName !== fullName);
 
                 return (
                   <TouchableOpacity
@@ -424,6 +431,11 @@ export const InfluencerMemberAssignModal: React.FC<InfluencerMemberAssignModalPr
                       <Text style={[styles.candidateName, { color: theme.colors.text }]} numberOfLines={1}>
                         {fullName}
                       </Text>
+                      {hasNativeSub && (
+                        <Text style={[styles.candidateMetaText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                          {nativeName}
+                        </Text>
+                      )}
                       <View style={styles.candidateMetaRow}>
                         {Boolean(item.epicNo) && (
                           <Text style={[styles.candidateMetaText, { color: theme.colors.textSecondary }]}>

@@ -111,7 +111,7 @@ export const ProfileHeaderCard: React.FC<ProfileHeaderCardProps> = ({
           <View style={[styles.statDivider, { backgroundColor: '#E2E8F0' }]} />
           <View style={styles.statCol}>
             <Text style={[styles.statNum, { color: '#16A34A' }]} numberOfLines={1}>
-              ACTIVE
+              {t('active').toUpperCase()}
             </Text>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
               {t('accountStatus')}
